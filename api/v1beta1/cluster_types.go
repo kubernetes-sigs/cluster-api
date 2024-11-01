@@ -40,6 +40,238 @@ const (
 	ClusterKind = "Cluster"
 )
 
+// Cluster's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterAvailableV1Beta2Condition is true if the Cluster is not deleted, and RemoteConnectionProbe, InfrastructureReady,
+	// ControlPlaneAvailable, WorkersAvailable, TopologyReconciled (if present) conditions are true.
+	// If conditions are defined in spec.availabilityGates, those conditions must be true as well.
+	ClusterAvailableV1Beta2Condition = AvailableV1Beta2Condition
+
+	// ClusterAvailableInternalErrorV1Beta2Reason surfaces unexpected error when computing the Available condition.
+	ClusterAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's TopologyReconciled condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterTopologyReconciledV1Beta2Condition is true if the topology controller is working properly.
+	// Note: This condition is added only if the Cluster is referencing a ClusterClass / defining a managed Topology.
+	ClusterTopologyReconciledV1Beta2Condition = "TopologyReconciled"
+)
+
+// Cluster's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterInfrastructureReadyV1Beta2Condition mirrors Cluster's infrastructure Ready condition.
+	ClusterInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+
+	// ClusterInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra cluster object) which is invalid
+	// (e.g. its status is missing).
+	ClusterInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+
+	// ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra cluster object) that reports no reason.
+	ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
+
+	// ClusterInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading an infra cluster object.
+	ClusterInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// ClusterInfrastructureDoesNotExistV1Beta2Reason surfaces when a referenced infrastructure object does not exist.
+	// Note: this could happen when creating the Cluster. However, this state should be treated as an error if it lasts indefinitely.
+	ClusterInfrastructureDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
+
+	// ClusterInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
+	// Note: controllers can't identify if the infrastructure object was deleted by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	ClusterInfrastructureDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+)
+
+// Cluster's ControlPlaneInitialized condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterControlPlaneInitializedV1Beta2Condition is true when the Cluster's control plane is functional enough
+	// to accept requests. This information is usually used as a signal for starting all the provisioning operations
+	// that depends on a functional API server, but do not require a full HA control plane to exists.
+	// Note: Once set to true, this condition will never change.
+	ClusterControlPlaneInitializedV1Beta2Condition = "ControlPlaneInitialized"
+
+	// ClusterControlPlaneInitializedV1Beta2Reason surfaces when the cluster control plane is initialized.
+	ClusterControlPlaneInitializedV1Beta2Reason = "Initialized"
+
+	// ClusterControlPlaneNotInitializedV1Beta2Reason surfaces when the cluster control plane is not yet initialized.
+	ClusterControlPlaneNotInitializedV1Beta2Reason = "NotInitialized"
+
+	// ClusterControlPlaneInitializedInternalErrorV1Beta2Reason surfaces unexpected failures when computing the
+	// ControlPlaneInitialized condition.
+	ClusterControlPlaneInitializedInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's ControlPlaneAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterControlPlaneAvailableV1Beta2Condition is a mirror of Cluster's control plane Available condition.
+	ClusterControlPlaneAvailableV1Beta2Condition = "ControlPlaneAvailable"
+
+	// ClusterControlPlaneInvalidConditionReportedV1Beta2Reason surfaces a control plane Available condition (read from a control plane object) which is invalid.
+	// (e.g. its status is missing).
+	ClusterControlPlaneInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+
+	// ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason applies to a control plane Available condition (read from a control plane object) that reports no reason.
+	ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
+
+	// ClusterControlPlaneInternalErrorV1Beta2Reason surfaces unexpected failures when reading a control plane object.
+	ClusterControlPlaneInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// ClusterControlPlaneDoesNotExistV1Beta2Reason surfaces when a referenced control plane object does not exist.
+	// Note: this could happen when creating the Cluster. However, this state should be treated as an error if it lasts indefinitely.
+	ClusterControlPlaneDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
+
+	// ClusterControlPlaneDeletedV1Beta2Reason surfaces when a referenced control plane object has been deleted.
+	// Note: controllers can't identify if the control plane object was deleted by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	ClusterControlPlaneDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+)
+
+// Cluster's WorkersAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterWorkersAvailableV1Beta2Condition is the summary of MachineDeployment and MachinePool's Available conditions.
+	// Note: Stand-alone MachineSets and stand-alone Machines are not included in this condition.
+	ClusterWorkersAvailableV1Beta2Condition = "WorkersAvailable"
+
+	// ClusterWorkersAvailableNoWorkersV1Beta2Reason surfaces when no MachineDeployment and MachinePool exist for the Cluster.
+	ClusterWorkersAvailableNoWorkersV1Beta2Reason = "NoWorkers"
+
+	// ClusterWorkersAvailableInternalErrorV1Beta2Reason surfaces unexpected failures when listing MachineDeployment and MachinePool
+	// or aggregating conditions from those objects.
+	ClusterWorkersAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	ClusterMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+
+	// ClusterMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
+	ClusterMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// ClusterMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or aggregating machine's conditions.
+	ClusterMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterMachinesUpToDateV1Beta2Condition surfaces details of Cluster's machines not up to date, if any.
+	ClusterMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+
+	// ClusterMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
+	ClusterMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// ClusterMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or aggregating status.
+	ClusterMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's RemoteConnectionProbe condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterRemoteConnectionProbeV1Beta2Condition is true when control plane can be reached; in case of connection problems.
+	// The condition turns to false only if the cluster cannot be reached for 50s after the first connection problem
+	// is detected (or whatever period is defined in the --remote-connection-grace-period flag).
+	ClusterRemoteConnectionProbeV1Beta2Condition = "RemoteConnectionProbe"
+
+	// ClusterRemoteConnectionProbeFailedV1Beta2Reason surfaces issues with the connection to the workload cluster.
+	ClusterRemoteConnectionProbeFailedV1Beta2Reason = "RemoteConnectionProbeFailed"
+
+	// ClusterRemoteConnectionProbeSucceededV1Beta2Reason is used to report a working connection with the workload cluster.
+	ClusterRemoteConnectionProbeSucceededV1Beta2Reason = "RemoteConnectionProbeSucceeded"
+)
+
+// Cluster's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterScalingUpV1Beta2Condition is the summary of `ScalingUp` conditions from ControlPlane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets.
+	ClusterScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+
+	// ClusterScalingUpV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets are scaling up.
+	ClusterScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
+
+	// ClusterNotScalingUpV1Beta2Reason surfaces when no one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets are scaling up.
+	ClusterNotScalingUpV1Beta2Reason = NotScalingUpV1Beta2Reason
+
+	// ClusterScalingUpInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or computing the ScalingUp condition.
+	ClusterScalingUpInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterScalingDownV1Beta2Condition is the summary of `ScalingDown` conditions from ControlPlane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets.
+	ClusterScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+
+	// ClusterScalingDownV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets are scaling down.
+	ClusterScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
+
+	// ClusterNotScalingDownV1Beta2Reason surfaces when no one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets are scaling down.
+	ClusterNotScalingDownV1Beta2Reason = NotScalingUpV1Beta2Reason
+
+	// ClusterScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or computing the ScalingDown condition.
+	ClusterScalingDownInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	ClusterRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+
+	// ClusterRemediatingV1Beta2Reason surfaces when the Cluster has at least one machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	ClusterRemediatingV1Beta2Reason = RemediatingV1Beta2Reason
+
+	// ClusterNotRemediatingV1Beta2Reason surfaces when the Cluster does not have any machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	ClusterNotRemediatingV1Beta2Reason = NotRemediatingV1Beta2Reason
+
+	// ClusterRemediatingInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Remediating condition.
+	ClusterRemediatingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterDeletingV1Beta2Condition surfaces details about ongoing deletion of the cluster.
+	ClusterDeletingV1Beta2Condition = DeletingV1Beta2Condition
+
+	// ClusterDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the Cluster is not deleting because the
+	// DeletionTimestamp is not set.
+	ClusterDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+
+	// ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason surfaces when the Cluster deletion
+	// waits for the ClusterDelete hooks to allow deletion to complete.
+	ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason = "WaitingForBeforeDeleteHook"
+
+	// ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason surfaces when the Cluster deletion
+	// waits for the workers Machines and the object controlling those machines (MachinePools, MachineDeployments, MachineSets)
+	// to be deleted.
+	ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason = "WaitingForWorkersDeletion"
+
+	// ClusterDeletingWaitingForControlPlaneDeletionV1Beta2Reason surfaces when the Cluster deletion
+	// waits for the ControlPlane to be deleted.
+	ClusterDeletingWaitingForControlPlaneDeletionV1Beta2Reason = "WaitingForControlPlaneDeletion"
+
+	// ClusterDeletingWaitingForInfrastructureDeletionV1Beta2Reason surfaces when the Cluster deletion
+	// waits for the InfraCluster to be deleted.
+	ClusterDeletingWaitingForInfrastructureDeletionV1Beta2Reason = "WaitingForInfrastructureDeletion"
+
+	// ClusterDeletingDeletionCompletedV1Beta2Reason surfaces when the Cluster deletion has been completed.
+	// This reason is set right after the `cluster.cluster.x-k8s.io` finalizer is removed.
+	// This means that the object will go away (i.e. be removed from etcd), except if there are other
+	// finalizers on the Cluster object.
+	ClusterDeletingDeletionCompletedV1Beta2Reason = DeletionCompletedV1Beta2Reason
+
+	// ClusterDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a cluster.
+	ClusterDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
 // ANCHOR: ClusterSpec
 
 // ClusterSpec defines the desired state of Cluster.

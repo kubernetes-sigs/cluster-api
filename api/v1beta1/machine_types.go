@@ -169,7 +169,7 @@ const (
 	// MachineInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
 	MachineInfrastructureReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
-	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a infra machine object.
+	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading an infra machine object.
 	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
 	// MachineInfrastructureDoesNotExistV1Beta2Reason surfaces when a referenced infrastructure object does not exist.

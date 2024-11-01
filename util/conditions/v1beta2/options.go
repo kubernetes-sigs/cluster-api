@@ -68,11 +68,16 @@ func (t ForConditionTypes) ApplyToSummary(opts *SummaryOptions) {
 	opts.conditionTypes = t
 }
 
-// NegativePolarityConditionTypes allows to define polarity for some of the conditions in scope for a summary operation.
+// NegativePolarityConditionTypes allows to define polarity for some of the conditions in scope for a summary or an aggregate operation.
 type NegativePolarityConditionTypes []string
 
 // ApplyToSummary applies this configuration to the given summary options.
 func (t NegativePolarityConditionTypes) ApplyToSummary(opts *SummaryOptions) {
+	opts.negativePolarityConditionTypes = t
+}
+
+// ApplyToAggregate applies this configuration to the given aggregate options.
+func (t NegativePolarityConditionTypes) ApplyToAggregate(opts *AggregateOptions) {
 	opts.negativePolarityConditionTypes = t
 }
 

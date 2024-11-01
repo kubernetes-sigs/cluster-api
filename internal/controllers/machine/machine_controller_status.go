@@ -539,7 +539,6 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	summaryOpts := []v1beta2conditions.SummaryOption{
 		forConditionTypes,
 		v1beta2conditions.IgnoreTypesIfMissing{
-			clusterv1.MachineDeletingV1Beta2Condition,
 			clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 		},
 		v1beta2conditions.CustomMergeStrategy{
@@ -553,7 +552,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		},
 	}
 
-	// Add overrides for conditions we don't to surface in the Ready condition with slightly different messages,
+	// Add overrides for conditions we want to surface in the Ready condition with slightly different messages,
 	// mostly to improve when we will aggregate the Ready condition from many machines on MS, MD etc.
 	var overrideConditions v1beta2conditions.OverrideConditions
 	if !machine.DeletionTimestamp.IsZero() {

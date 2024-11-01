@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -34,6 +35,7 @@ func TestAggregate(t *testing.T) {
 		conditionType string
 		options       []AggregateOption
 		want          *metav1.Condition
+		wantErr       bool
 	}{
 		{
 			name: "One issue",
@@ -49,6 +51,47 @@ func TestAggregate(t *testing.T) {
 				Reason:  "Reason-1",                      // Picking the reason from the only existing issue
 				Message: "Message-1 from Phase3Obj obj0", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
+		},
+		{
+			name: "One issue with negative polarity",
+			conditions: [][]metav1.Condition{
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionTrue, Reason: "Reason-1", Message: "Message-1"}},    // obj0
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "Reason-99", Message: "Message-99"}}, // obj1
+			},
+			conditionType: clusterv1.ScalingUpV1Beta2Condition,
+			options:       []AggregateOption{NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}},
+			want: &metav1.Condition{
+				Type:    clusterv1.ScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionTrue,            // True because there is one issue, and the target condition has negative polarity
+				Reason:  "Reason-1",                      // Picking the reason from the only existing issue
+				Message: "Message-1 from Phase3Obj obj0", // messages from all the issues & unknown conditions (info dropped)
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Error if negative polarity conditions are misconfigured",
+			conditions:    [][]metav1.Condition{},
+			conditionType: clusterv1.ScalingUpV1Beta2Condition,
+			options:       []AggregateOption{NegativePolarityConditionTypes{"foo"}}, // NegativePolarityConditionTypes if set must equal source condition
+			want:          nil,
+			wantErr:       true,
+		},
+		{
+			name: "One issue with custom merge strategy",
+			conditions: [][]metav1.Condition{
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionTrue, Reason: "Reason-1", Message: "Message-1"}},    // obj0
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "Reason-99", Message: "Message-99"}}, // obj1
+			},
+			conditionType: clusterv1.ScalingUpV1Beta2Condition,
+			options:       []AggregateOption{NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}, CustomMergeStrategy{newDefaultMergeStrategy(true, sets.New(clusterv1.ScalingUpV1Beta2Condition))}},
+			want: &metav1.Condition{
+				Type:    clusterv1.ScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionFalse,           // False because there is one issue, and the custom merge strategy doesn't set the flag that defines that the target condition has negative polarity
+				Reason:  "Reason-1",                      // Picking the reason from the only existing issue
+				Message: "Message-1 from Phase3Obj obj0", // messages from all the issues & unknown conditions (info dropped)
+			},
+			wantErr: false,
 		},
 		{
 			name: "One issue with target type",
@@ -64,6 +107,23 @@ func TestAggregate(t *testing.T) {
 				Reason:  "Reason-1",                      // Picking the reason from the only existing issue
 				Message: "Message-1 from Phase3Obj obj0", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
+		},
+		{
+			name: "One issue with target type and negative polarity",
+			conditions: [][]metav1.Condition{
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionTrue, Reason: "Reason-1", Message: "Message-1"}},    // obj0
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "Reason-99", Message: "Message-99"}}, // obj1
+			},
+			conditionType: clusterv1.ScalingUpV1Beta2Condition,
+			options:       []AggregateOption{TargetConditionType("SomethingAvailable"), NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}},
+			want: &metav1.Condition{
+				Type:    "SomethingAvailable",
+				Status:  metav1.ConditionTrue,            // True because there is one issue, and the target condition has negative polarity
+				Reason:  "Reason-1",                      // Picking the reason from the only existing issue
+				Message: "Message-1 from Phase3Obj obj0", // messages from all the issues & unknown conditions (info dropped)
+			},
+			wantErr: false,
 		},
 		{
 			name: "Same issue from up to three objects",
@@ -81,6 +141,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                 // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj1, obj2", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "Same issue from more than three objects",
@@ -100,6 +161,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                            // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj1, obj2 and 2 more", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "Up to three different issue messages",
@@ -120,6 +182,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                                                                                      // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj3, obj4; Message-2 from Phase3Objs obj1, obj2; Message-3 from Phase3Obj obj5", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "More than three different issue messages",
@@ -140,6 +203,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                                                                                                         // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj4; Message-2 from Phase3Obj obj1; Message-3 from Phase3Obj obj5; 2 Phase3Objs with other issues", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "Less than 2 issue messages and unknown message",
@@ -157,6 +221,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                                                                  // Using a generic reason
 				Message: "Message-1 from Phase3Obj obj0; Message-2 from Phase3Obj obj1; Message-3 from Phase3Obj obj2", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "At least 3 issue messages and unknown message",
@@ -175,6 +240,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleIssuesReportedReason,                                                                                                   // Using a generic reason
 				Message: "Message-1 from Phase3Obj obj0; Message-2 from Phase3Obj obj1; Message-4 from Phase3Obj obj3; 1 Phase3Obj with status unknown", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "unknown messages",
@@ -195,6 +261,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleUnknownReportedReason,                                                                                                          // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj4; Message-2 from Phase3Obj obj1; Message-3 from Phase3Obj obj5; 2 Phase3Objs with status unknown", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "info messages",
@@ -214,6 +281,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  MultipleInfoReportedReason,                                                                                                             // Using a generic reason
 				Message: "Message-1 from Phase3Objs obj0, obj4; Message-2 from Phase3Obj obj1; Message-3 from Phase3Obj obj5; 1 Phase3Obj with additional info", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "Missing conditions are defaulted",
@@ -229,6 +297,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  "Reason-1",                                                                                // Picking the reason from the only existing issue
 				Message: "Message-1 from Phase3Obj obj0; Condition Available not yet reported from Phase3Obj obj1", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 		{
 			name: "Missing conditions are defaulted why a custom target condition type",
@@ -244,6 +313,7 @@ func TestAggregate(t *testing.T) {
 				Reason:  "Reason-1",                                                                                // Picking the reason from the only existing issue
 				Message: "Message-1 from Phase3Obj obj0; Condition Available not yet reported from Phase3Obj obj1", // messages from all the issues & unknown conditions (info dropped)
 			},
+			wantErr: false,
 		},
 	}
 
@@ -265,7 +335,7 @@ func TestAggregate(t *testing.T) {
 			}
 
 			got, err := NewAggregateCondition(objs, tt.conditionType, tt.options...)
-			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(err != nil).To(Equal(tt.wantErr))
 
 			g.Expect(got).To(Equal(tt.want))
 		})

@@ -35,8 +35,9 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	conditionsv1beta2 "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -87,7 +88,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditionsv1beta2.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := v1beta2conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
@@ -99,7 +100,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditionsv1beta2.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := v1beta2conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))
@@ -770,20 +771,20 @@ func TestFilterOwnedDescendants(t *testing.T) {
 				ms4OwnedByCluster,
 			},
 		},
-		controlPlaneMachines: clusterv1.MachineList{
+		controlPlaneMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
 				m3ControlPlaneOwnedByCluster,
 				m6ControlPlaneOwnedByCluster,
 			},
-		},
-		workerMachines: clusterv1.MachineList{
+		}),
+		workerMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
 				m1NotOwnedByCluster,
 				m2OwnedByCluster,
 				m4NotOwnedByCluster,
 				m5OwnedByCluster,
 			},
-		},
+		}),
 		machinePools: expv1.MachinePoolList{
 			Items: []expv1.MachinePool{
 				mp1NotOwnedByCluster,
@@ -800,7 +801,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 		actual, err := d.filterOwnedDescendants(&c)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expected := []client.Object{
+		g.Expect(actual).To(ConsistOf(
 			&mp2OwnedByCluster,
 			&mp4OwnedByCluster,
 			&md2OwnedByCluster,
@@ -811,9 +812,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 			&m5OwnedByCluster,
 			&m3ControlPlaneOwnedByCluster,
 			&m6ControlPlaneOwnedByCluster,
-		}
-
-		g.Expect(actual).To(Equal(expected))
+		))
 	})
 
 	t.Run("With a control plane object", func(t *testing.T) {
@@ -827,7 +826,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 		actual, err := d.filterOwnedDescendants(cWithCP)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expected := []client.Object{
+		g.Expect(actual).To(ConsistOf(
 			&mp2OwnedByCluster,
 			&mp4OwnedByCluster,
 			&md2OwnedByCluster,
@@ -836,9 +835,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 			&ms4OwnedByCluster,
 			&m2OwnedByCluster,
 			&m5OwnedByCluster,
-		}
-
-		g.Expect(actual).To(Equal(expected))
+		))
 	})
 }
 
@@ -855,28 +852,28 @@ func TestObjectsPendingDelete(t *testing.T) {
 				newMachineSetBuilder().named("ms2").build(),
 			},
 		},
-		controlPlaneMachines: clusterv1.MachineList{
+		controlPlaneMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
-				newMachineBuilder().named("m1").build(),
-				newMachineBuilder().named("m2").build(),
-				newMachineBuilder().named("m3").build(),
+				newMachineBuilder().named("cp1").build(),
+				newMachineBuilder().named("cp2").build(),
+				newMachineBuilder().named("cp3").build(),
 			},
-		},
-		workerMachines: clusterv1.MachineList{
+		}),
+		workerMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
-				newMachineBuilder().named("m3").build(),
-				newMachineBuilder().named("m4").build(),
-				newMachineBuilder().named("m5").build(),
-				newMachineBuilder().named("m6").build(),
+				newMachineBuilder().named("w1").build(),
+				newMachineBuilder().named("w2").build(),
+				newMachineBuilder().named("w3").build(),
+				newMachineBuilder().named("w4").build(),
+				newMachineBuilder().named("w5").build(),
+				newMachineBuilder().named("w6").build(),
+				newMachineBuilder().named("w7").build(),
+				newMachineBuilder().named("w8").build(),
 			},
-		},
+		}),
 		machinePools: expv1.MachinePoolList{
 			Items: []expv1.MachinePool{
 				newMachinePoolBuilder().named("mp1").build(),
-				newMachinePoolBuilder().named("mp2").build(),
-				newMachinePoolBuilder().named("mp3").build(),
-				newMachinePoolBuilder().named("mp4").build(),
-				newMachinePoolBuilder().named("mp5").build(),
 			},
 		},
 	}
@@ -886,7 +883,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 		c := &clusterv1.Cluster{}
 		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(15))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Control plane machines: m1,m2,m3; Machine deployments: md1; Machine sets: ms1,ms2; Machine pools: mp1,mp2,mp3,mp4,mp5; Worker machines: m3,m4,m5,m6"))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Control plane Machines: cp1, cp2, cp3; MachineDeployments: md1; MachineSets: ms1, ms2; MachinePools: mp1; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
 	})
 
 	t.Run("With a control plane object", func(t *testing.T) {
@@ -894,7 +891,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 		c := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{ControlPlaneRef: &corev1.ObjectReference{Kind: "SomeKind"}}}
 		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(12))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Machine deployments: md1; Machine sets: ms1,ms2; Machine pools: mp1,mp2,mp3,mp4,mp5; Worker machines: m3,m4,m5,m6"))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("MachineDeployments: md1; MachineSets: ms1, ms2; MachinePools: mp1; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
 	})
 }
 

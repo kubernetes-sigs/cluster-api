@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // AggregateOption is some configuration that modifies options for a aggregate call.
@@ -31,8 +32,9 @@ type AggregateOption interface {
 
 // AggregateOptions allows to set options for the aggregate operation.
 type AggregateOptions struct {
-	mergeStrategy       MergeStrategy
-	targetConditionType string
+	mergeStrategy                  MergeStrategy
+	targetConditionType            string
+	negativePolarityConditionTypes []string
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -47,6 +49,10 @@ func (o *AggregateOptions) ApplyOptions(opts []AggregateOption) *AggregateOption
 // NewAggregateCondition aggregates a condition from a list of objects; the given condition must have positive polarity;
 // if the given condition does not exist in one of the source objects, missing conditions are considered Unknown, reason NotYetReported.
 //
+// If the source conditions type has negative polarity, it should be indicated with the NegativePolarityConditionTypes option;
+// in this case NegativePolarityConditionTypes must match the sourceConditionType, and by default also the resulting condition
+// will have negative polarity.
+//
 // By default, the Aggregate condition has the same type of the source condition, but this can be changed by using
 // the TargetConditionType option.
 //
@@ -57,10 +63,19 @@ func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string,
 	}
 
 	aggregateOpt := &AggregateOptions{
-		mergeStrategy:       newDefaultMergeStrategy(nil),
 		targetConditionType: sourceConditionType,
 	}
 	aggregateOpt.ApplyOptions(opts)
+
+	if len(aggregateOpt.negativePolarityConditionTypes) != 0 && (aggregateOpt.negativePolarityConditionTypes[0] != sourceConditionType || len(aggregateOpt.negativePolarityConditionTypes) > 1) {
+		return nil, errors.Errorf("negativePolarityConditionTypes can only be set to [%q]", sourceConditionType)
+	}
+
+	if aggregateOpt.mergeStrategy == nil {
+		negativePolarityConditionTypes := sets.New[string](aggregateOpt.negativePolarityConditionTypes...)
+		targetConditionHasPositivePolarity := !negativePolarityConditionTypes.Has(sourceConditionType)
+		aggregateOpt.mergeStrategy = newDefaultMergeStrategy(targetConditionHasPositivePolarity, negativePolarityConditionTypes)
+	}
 
 	conditionsInScope := make([]ConditionWithOwnerInfo, 0, len(sourceObjs))
 	for _, obj := range sourceObjs {

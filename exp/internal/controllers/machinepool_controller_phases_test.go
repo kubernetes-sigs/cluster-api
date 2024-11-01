@@ -1469,7 +1469,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1539,7 +1539,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})

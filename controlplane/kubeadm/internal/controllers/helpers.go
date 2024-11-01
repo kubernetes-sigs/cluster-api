@@ -151,7 +151,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 		return err
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, controlPlane.Cluster.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			controlPlane.InfraMachineTemplateIsNotFound = true

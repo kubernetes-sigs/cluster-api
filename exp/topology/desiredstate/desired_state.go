@@ -1347,6 +1347,7 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 	if in.currentObjectRef != nil && in.currentObjectRef.Name != "" {
 		template.SetName(in.currentObjectRef.Name)
 	}
+	template.SetNamespace(in.cluster.Namespace)
 
 	return template, nil
 }

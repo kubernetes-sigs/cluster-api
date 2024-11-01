@@ -235,6 +235,33 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		g.Expect(obj.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
 		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 	})
+
+	t.Run("Always generates the infrastructureMachineTemplate from the template in the cluster namespace", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := cluster.DeepCopy()
+		cluster.Namespace = "differs"
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertTemplateToTemplate(g, assertTemplateInput{
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentRef:  nil,
+			obj:         obj,
+		})
+
+		// Ensure Cluster ownership is added to generated InfrastructureCluster.
+		g.Expect(obj.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(obj.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
+	})
+
 	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
 

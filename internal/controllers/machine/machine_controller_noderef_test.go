@@ -412,12 +412,14 @@ func TestNodeLabelSync(t *testing.T) {
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
+					Namespace:  metav1.NamespaceDefault,
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
+				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 	}
@@ -450,6 +452,8 @@ func TestNodeLabelSync(t *testing.T) {
 
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
 		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
 		// Set Machine labels.

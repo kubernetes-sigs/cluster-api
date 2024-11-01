@@ -55,7 +55,7 @@ spec:
             description: IPAddressClaimSpec is the desired state of an IPAddressClaim.
             properties:
               poolRef:
-                description: PoolRef is a reference to the pool from which an IP address
+                description: poolRef is a reference to the pool from which an IP address
                   should be created.
                 properties:
                   apiGroup:
@@ -82,7 +82,7 @@ spec:
             description: IPAddressClaimStatus is the observed status of a IPAddressClaim.
             properties:
               addressRef:
-                description: AddressRef is a reference to the address that was created
+                description: addressRef is a reference to the address that was created
                   for this claim.
                 properties:
                   name:
@@ -97,7 +97,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               conditions:
-                description: Conditions summarises the current state of the IPAddressClaim
+                description: conditions summarises the current state of the IPAddressClaim
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -122,16 +122,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -186,11 +186,11 @@ spec:
             description: IPAddressClaimSpec is the desired state of an IPAddressClaim.
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 type: string
               poolRef:
-                description: PoolRef is a reference to the pool from which an IP address
+                description: poolRef is a reference to the pool from which an IP address
                   should be created.
                 properties:
                   apiGroup:
@@ -217,7 +217,7 @@ spec:
             description: IPAddressClaimStatus is the observed status of a IPAddressClaim.
             properties:
               addressRef:
-                description: AddressRef is a reference to the address that was created
+                description: addressRef is a reference to the address that was created
                   for this claim.
                 properties:
                   name:
@@ -232,7 +232,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               conditions:
-                description: Conditions summarises the current state of the IPAddressClaim
+                description: conditions summarises the current state of the IPAddressClaim
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -257,16 +257,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string

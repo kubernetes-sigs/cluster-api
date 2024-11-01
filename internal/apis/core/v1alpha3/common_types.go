@@ -123,7 +123,7 @@ type MachineAddresses []MachineAddress
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
 type ObjectMeta struct {
-	// Name must be unique within a namespace. Is required when creating resources, although
+	// name must be unique within a namespace. Is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name
 	// automatically. Name is primarily intended for creation idempotence and configuration
 	// definition.
@@ -134,7 +134,7 @@ type ObjectMeta struct {
 	// Deprecated: This field has no function and is going to be removed in a next release.
 	Name string `json:"name,omitempty"`
 
-	// GenerateName is an optional prefix, used by the server, to generate a unique
+	// generateName is an optional prefix, used by the server, to generate a unique
 	// name ONLY IF the Name field has not been provided.
 	// If this field is used, the name returned to the client will be different
 	// than the name passed. This value will also be combined with a unique suffix.
@@ -154,7 +154,7 @@ type ObjectMeta struct {
 	// Deprecated: This field has no function and is going to be removed in a next release.
 	GenerateName string `json:"generateName,omitempty"`
 
-	// Namespace defines the space within each name must be unique. An empty namespace is
+	// namespace defines the space within each name must be unique. An empty namespace is
 	// equivalent to the "default" namespace, but "default" is the canonical representation.
 	// Not all objects are required to be scoped to a namespace - the value of this field for
 	// those objects will be empty.
@@ -174,7 +174,7 @@ type ObjectMeta struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations is an unstructured key value map stored with a resource that may be
+	// annotations is an unstructured key value map stored with a resource that may be
 	// set by external tools to store and retrieve arbitrary metadata. They are not
 	// queryable and should be preserved when modifying objects.
 	// More info: http://kubernetes.io/docs/user-guide/annotations

@@ -204,7 +204,7 @@ const (
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
@@ -228,7 +228,7 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// RolloutAfter is a field to indicate a rollout should be performed
+	// rolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// MachineDeployment.
 	// Example: In the YAML the time can be specified in the RFC3339 format.
@@ -242,7 +242,7 @@ type MachineDeploymentSpec struct {
 	// It must match the machine template's labels.
 	Selector metav1.LabelSelector `json:"selector"`
 
-	// Template describes the machines that will be created.
+	// template describes the machines that will be created.
 	Template MachineTemplateSpec `json:"template"`
 
 	// The deployment strategy to use to replace existing machines with
@@ -250,7 +250,7 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
-	// MinReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
+	// minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
 	// Defaults to 0 (machine will be considered available as soon as the Node is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
@@ -284,7 +284,7 @@ type MachineDeploymentSpec struct {
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
-	// Type of deployment. Allowed values are RollingUpdate and OnDelete.
+	// type of deployment. Allowed values are RollingUpdate and OnDelete.
 	// The default is RollingUpdate.
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 	// +optional
@@ -295,7 +295,7 @@ type MachineDeploymentStrategy struct {
 	// +optional
 	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 
-	// Remediation controls the strategy of remediating unhealthy machines
+	// remediation controls the strategy of remediating unhealthy machines
 	// and how remediating operations should occur during the lifecycle of the dependant MachineSets.
 	// +optional
 	Remediation *RemediationStrategy `json:"remediation,omitempty"`
@@ -338,7 +338,7 @@ type MachineRollingUpdateDeployment struct {
 	// +optional
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 
-	// DeletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
+	// deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
 	// Valid values are "Random, "Newest", "Oldest"
 	// When no value is supplied, the default DeletePolicy of MachineSet is used
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest
@@ -352,7 +352,7 @@ type MachineRollingUpdateDeployment struct {
 
 // RemediationStrategy allows to define how the MachineSet can control scaling operations.
 type RemediationStrategy struct {
-	// MaxInFlight determines how many in flight remediations should happen at the same time.
+	// maxInFlight determines how many in flight remediations should happen at the same time.
 	//
 	// Remediation only happens on the MachineSet with the most current revision, while
 	// older MachineSets (usually present during rollout operations) aren't allowed to remediate.
@@ -381,7 +381,7 @@ type MachineDeploymentStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Selector is the same as the label selector but in the string format to avoid introspection
+	// selector is the same as the label selector but in the string format to avoid introspection
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
@@ -414,11 +414,11 @@ type MachineDeploymentStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
-	// Phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// Conditions defines current service state of the MachineDeployment.
+	// conditions defines current service state of the MachineDeployment.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 

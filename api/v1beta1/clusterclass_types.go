@@ -45,7 +45,7 @@ type ClusterClass struct {
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
 type ClusterClassSpec struct {
-	// Infrastructure is a reference to a provider-specific template that holds
+	// infrastructure is a reference to a provider-specific template that holds
 	// the details for provisioning infrastructure specific cluster
 	// for the underlying provider.
 	// The underlying provider is responsible for the implementation
@@ -53,23 +53,23 @@ type ClusterClassSpec struct {
 	// +optional
 	Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
 
-	// ControlPlane is a reference to a local struct that holds the details
+	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
 	// +optional
 	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
-	// Workers describes the worker nodes for the cluster.
+	// workers describes the worker nodes for the cluster.
 	// It is a collection of node types which can be used to create
 	// the worker nodes of the cluster.
 	// +optional
 	Workers WorkersClass `json:"workers,omitempty"`
 
-	// Variables defines the variables which can be configured
+	// variables defines the variables which can be configured
 	// in the Cluster topology and are then used in patches.
 	// +optional
 	Variables []ClusterClassVariable `json:"variables,omitempty"`
 
-	// Patches defines the patches which are applied to customize
+	// patches defines the patches which are applied to customize
 	// referenced templates of a ClusterClass.
 	// Note: Patches will be applied in the order of the array.
 	// +optional
@@ -78,7 +78,7 @@ type ClusterClassSpec struct {
 
 // ControlPlaneClass defines the class for the control plane.
 type ControlPlaneClass struct {
-	// Metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
+	// metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
 	// if the ControlPlaneTemplate referenced is machine based. If not, it is applied only to the
 	// ControlPlane.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
@@ -91,7 +91,7 @@ type ControlPlaneClass struct {
 	// LocalObjectTemplate contains the reference to the control plane provider.
 	LocalObjectTemplate `json:",inline"`
 
-	// MachineInfrastructure defines the metadata and infrastructure information
+	// machineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
 	//
 	// This field is supported if and only if the control plane provider template
@@ -100,30 +100,30 @@ type ControlPlaneClass struct {
 	// +optional
 	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
 
-	// MachineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
+	// machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
 	// referenced above is Machine based and supports setting replicas.
 	// +optional
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 
-	// NamingStrategy allows changing the naming pattern used when creating the control plane provider object.
+	// namingStrategy allows changing the naming pattern used when creating the control plane provider object.
 	// +optional
 	NamingStrategy *ControlPlaneClassNamingStrategy `json:"namingStrategy,omitempty"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
-	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
-	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
@@ -133,7 +133,7 @@ type ControlPlaneClass struct {
 
 // ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
 type ControlPlaneClassNamingStrategy struct {
-	// Template defines the template to use for generating the name of the ControlPlane object.
+	// template defines the template to use for generating the name of the ControlPlane object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
@@ -146,14 +146,14 @@ type ControlPlaneClassNamingStrategy struct {
 
 // WorkersClass is a collection of deployment classes.
 type WorkersClass struct {
-	// MachineDeployments is a list of machine deployment classes that can be used to create
+	// machineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
 	// +optional
 	// +listType=map
 	// +listMapKey=class
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
-	// MachinePools is a list of machine pool classes that can be used to create
+	// machinePools is a list of machine pool classes that can be used to create
 	// a set of worker nodes.
 	// +optional
 	// +listType=map
@@ -164,43 +164,43 @@ type WorkersClass struct {
 // MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
 // provisioned using the `ClusterClass`.
 type MachineDeploymentClass struct {
-	// Class denotes a type of worker node present in the cluster,
+	// class denotes a type of worker node present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachineDeployment.
 	Class string `json:"class"`
 
-	// Template is a local struct containing a collection of templates for creation of
+	// template is a local struct containing a collection of templates for creation of
 	// MachineDeployment objects representing a set of worker nodes.
 	Template MachineDeploymentClassTemplate `json:"template"`
 
-	// MachineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
+	// machineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 
-	// FailureDomain is the failure domain the machines will be created in.
+	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
-	// NamingStrategy allows changing the naming pattern used when creating the MachineDeployment.
+	// namingStrategy allows changing the naming pattern used when creating the MachineDeployment.
 	// +optional
 	NamingStrategy *MachineDeploymentClassNamingStrategy `json:"namingStrategy,omitempty"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
-	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
-	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
@@ -223,23 +223,23 @@ type MachineDeploymentClass struct {
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
 // should look like.
 type MachineDeploymentClassTemplate struct {
-	// Metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
+	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// Bootstrap contains the bootstrap template reference to be used
+	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
 	Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
-	// Infrastructure contains the infrastructure template reference to be used
+	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
 type MachineDeploymentClassNamingStrategy struct {
-	// Template defines the template to use for generating the name of the MachineDeployment object.
+	// template defines the template to use for generating the name of the MachineDeployment object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
@@ -253,7 +253,7 @@ type MachineDeploymentClassNamingStrategy struct {
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
 type MachineHealthCheckClass struct {
-	// UnhealthyConditions contains a list of the conditions that determine
+	// unhealthyConditions contains a list of the conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
@@ -274,7 +274,7 @@ type MachineHealthCheckClass struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
-	// NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+	// nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
 	//
@@ -289,7 +289,7 @@ type MachineHealthCheckClass struct {
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 
-	// RemediationTemplate is a reference to a remediation template
+	// remediationTemplate is a reference to a remediation template
 	// provided by an infrastructure provider.
 	//
 	// This field is completely optional, when filled, the MachineHealthCheck controller
@@ -302,39 +302,39 @@ type MachineHealthCheckClass struct {
 // MachinePoolClass serves as a template to define a pool of worker nodes of the cluster
 // provisioned using `ClusterClass`.
 type MachinePoolClass struct {
-	// Class denotes a type of machine pool present in the cluster,
+	// class denotes a type of machine pool present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachinePool.
 	Class string `json:"class"`
 
-	// Template is a local struct containing a collection of templates for creation of
+	// template is a local struct containing a collection of templates for creation of
 	// MachinePools objects representing a pool of worker nodes.
 	Template MachinePoolClassTemplate `json:"template"`
 
-	// FailureDomains is the list of failure domains the MachinePool should be attached to.
+	// failureDomains is the list of failure domains the MachinePool should be attached to.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
-	// NamingStrategy allows changing the naming pattern used when creating the MachinePool.
+	// namingStrategy allows changing the naming pattern used when creating the MachinePool.
 	// +optional
 	NamingStrategy *MachinePoolClassNamingStrategy `json:"namingStrategy,omitempty"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
-	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
-	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
@@ -352,23 +352,23 @@ type MachinePoolClass struct {
 // MachinePoolClassTemplate defines how a MachinePool generated from a MachinePoolClass
 // should look like.
 type MachinePoolClassTemplate struct {
-	// Metadata is the metadata applied to the MachinePool.
+	// metadata is the metadata applied to the MachinePool.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// Bootstrap contains the bootstrap template reference to be used
+	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
 	Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
-	// Infrastructure contains the infrastructure template reference to be used
+	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of the MachinePool.
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.
 type MachinePoolClassNamingStrategy struct {
-	// Template defines the template to use for generating the name of the MachinePool object.
+	// template defines the template to use for generating the name of the MachinePool object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.
@@ -388,16 +388,16 @@ func (m MachineHealthCheckClass) IsZero() bool {
 // ClusterClassVariable defines a variable which can
 // be configured in the Cluster topology and used in patches.
 type ClusterClassVariable struct {
-	// Name of the variable.
+	// name of the variable.
 	Name string `json:"name"`
 
-	// Required specifies if the variable is required.
+	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	Required bool `json:"required"`
 
-	// Metadata is the metadata of a variable.
+	// metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
@@ -406,7 +406,7 @@ type ClusterClassVariable struct {
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
-	// Schema defines the schema of the variable.
+	// schema defines the schema of the variable.
 	Schema VariableSchema `json:"schema"`
 }
 
@@ -421,7 +421,7 @@ type ClusterClassVariableMetadata struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations is an unstructured key value map that can be used to store and
+	// annotations is an unstructured key value map that can be used to store and
 	// retrieve arbitrary metadata.
 	// They are not queryable.
 	// +optional
@@ -430,7 +430,7 @@ type ClusterClassVariableMetadata struct {
 
 // VariableSchema defines the schema of a variable.
 type VariableSchema struct {
-	// OpenAPIV3Schema defines the schema of a variable via OpenAPI v3
+	// openAPIV3Schema defines the schema of a variable via OpenAPI v3
 	// schema. The schema is a subset of the schema used in
 	// Kubernetes CRDs.
 	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
@@ -442,18 +442,18 @@ type VariableSchema struct {
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
 // which are not supported in CAPI have been removed.
 type JSONSchemaProps struct {
-	// Description is a human-readable description of this variable.
+	// description is a human-readable description of this variable.
 	Description string `json:"description,omitempty"`
 
-	// Example is an example for this variable.
+	// example is an example for this variable.
 	Example *apiextensionsv1.JSON `json:"example,omitempty"`
 
-	// Type is the type of the variable.
+	// type is the type of the variable.
 	// Valid values are: object, array, string, integer, number or boolean.
 	// +optional
 	Type string `json:"type,omitempty"`
 
-	// Properties specifies fields of an object.
+	// properties specifies fields of an object.
 	// NOTE: Can only be set if type is object.
 	// NOTE: Properties is mutually exclusive with AdditionalProperties.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
@@ -463,7 +463,7 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	Properties map[string]JSONSchemaProps `json:"properties,omitempty"`
 
-	// AdditionalProperties specifies the schema of values in a map (keys are always strings).
+	// additionalProperties specifies the schema of values in a map (keys are always strings).
 	// NOTE: Can only be set if type is object.
 	// NOTE: AdditionalProperties is mutually exclusive with Properties.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
@@ -473,22 +473,22 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	AdditionalProperties *JSONSchemaProps `json:"additionalProperties,omitempty"`
 
-	// MaxProperties is the maximum amount of entries in a map or properties in an object.
+	// maxProperties is the maximum amount of entries in a map or properties in an object.
 	// NOTE: Can only be set if type is object.
 	// +optional
 	MaxProperties *int64 `json:"maxProperties,omitempty"`
 
-	// MinProperties is the minimum amount of entries in a map or properties in an object.
+	// minProperties is the minimum amount of entries in a map or properties in an object.
 	// NOTE: Can only be set if type is object.
 	// +optional
 	MinProperties *int64 `json:"minProperties,omitempty"`
 
-	// Required specifies which fields of an object are required.
+	// required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
 	// +optional
 	Required []string `json:"required,omitempty"`
 
-	// Items specifies fields of an array.
+	// items specifies fields of an array.
 	// NOTE: Can only be set if type is array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
@@ -497,90 +497,90 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	Items *JSONSchemaProps `json:"items,omitempty"`
 
-	// MaxItems is the max length of an array variable.
+	// maxItems is the max length of an array variable.
 	// NOTE: Can only be set if type is array.
 	// +optional
 	MaxItems *int64 `json:"maxItems,omitempty"`
 
-	// MinItems is the min length of an array variable.
+	// minItems is the min length of an array variable.
 	// NOTE: Can only be set if type is array.
 	// +optional
 	MinItems *int64 `json:"minItems,omitempty"`
 
-	// UniqueItems specifies if items in an array must be unique.
+	// uniqueItems specifies if items in an array must be unique.
 	// NOTE: Can only be set if type is array.
 	// +optional
 	UniqueItems bool `json:"uniqueItems,omitempty"`
 
-	// Format is an OpenAPI v3 format string. Unknown formats are ignored.
+	// format is an OpenAPI v3 format string. Unknown formats are ignored.
 	// For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
 	// https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
 	// NOTE: Can only be set if type is string.
 	// +optional
 	Format string `json:"format,omitempty"`
 
-	// MaxLength is the max length of a string variable.
+	// maxLength is the max length of a string variable.
 	// NOTE: Can only be set if type is string.
 	// +optional
 	MaxLength *int64 `json:"maxLength,omitempty"`
 
-	// MinLength is the min length of a string variable.
+	// minLength is the min length of a string variable.
 	// NOTE: Can only be set if type is string.
 	// +optional
 	MinLength *int64 `json:"minLength,omitempty"`
 
-	// Pattern is the regex which a string variable must match.
+	// pattern is the regex which a string variable must match.
 	// NOTE: Can only be set if type is string.
 	// +optional
 	Pattern string `json:"pattern,omitempty"`
 
-	// Maximum is the maximum of an integer or number variable.
+	// maximum is the maximum of an integer or number variable.
 	// If ExclusiveMaximum is false, the variable is valid if it is lower than, or equal to, the value of Maximum.
 	// If ExclusiveMaximum is true, the variable is valid if it is strictly lower than the value of Maximum.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	Maximum *int64 `json:"maximum,omitempty"`
 
-	// ExclusiveMaximum specifies if the Maximum is exclusive.
+	// exclusiveMaximum specifies if the Maximum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	ExclusiveMaximum bool `json:"exclusiveMaximum,omitempty"`
 
-	// Minimum is the minimum of an integer or number variable.
+	// minimum is the minimum of an integer or number variable.
 	// If ExclusiveMinimum is false, the variable is valid if it is greater than, or equal to, the value of Minimum.
 	// If ExclusiveMinimum is true, the variable is valid if it is strictly greater than the value of Minimum.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	Minimum *int64 `json:"minimum,omitempty"`
 
-	// ExclusiveMinimum specifies if the Minimum is exclusive.
+	// exclusiveMinimum specifies if the Minimum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
 
-	// XPreserveUnknownFields allows setting fields in a variable object
+	// x-kubernetes-preserve-unknown-fields allows setting fields in a variable object
 	// which are not defined in the variable schema. This affects fields recursively,
 	// except if nested properties or additionalProperties are specified in the schema.
 	// +optional
 	XPreserveUnknownFields bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
 
-	// Enum is the list of valid values of the variable.
+	// enum is the list of valid values of the variable.
 	// NOTE: Can be set for all types.
 	// +optional
 	Enum []apiextensionsv1.JSON `json:"enum,omitempty"`
 
-	// Default is the default value of the variable.
+	// default is the default value of the variable.
 	// NOTE: Can be set for all types.
 	// +optional
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
 
-	// XValidations describes a list of validation rules written in the CEL expression language.
+	// x-kubernetes-validations describes a list of validation rules written in the CEL expression language.
 	// +optional
 	// +listType=map
 	// +listMapKey=rule
 	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
 
-	// XMetadata is the metadata of a variable or a nested field within a variable.
+	// x-metadata is the metadata of a variable or a nested field within a variable.
 	// It can be used to add additional data for higher level tools.
 	// +optional
 	XMetadata *VariableSchemaMetadata `json:"x-metadata,omitempty"`
@@ -601,7 +601,7 @@ type JSONSchemaProps struct {
 	// +optional
 	XIntOrString bool `json:"x-kubernetes-int-or-string,omitempty"`
 
-	// AllOf specifies that the variable must validate against all of the subschemas in the array.
+	// allOf specifies that the variable must validate against all of the subschemas in the array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
@@ -609,7 +609,7 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	AllOf []JSONSchemaProps `json:"allOf,omitempty"`
 
-	// OneOf specifies that the variable must validate against exactly one of the subschemas in the array.
+	// oneOf specifies that the variable must validate against exactly one of the subschemas in the array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
@@ -617,7 +617,7 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	OneOf []JSONSchemaProps `json:"oneOf,omitempty"`
 
-	// AnyOf specifies that the variable must validate against one or more of the subschemas in the array.
+	// anyOf specifies that the variable must validate against one or more of the subschemas in the array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
@@ -625,7 +625,7 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	AnyOf []JSONSchemaProps `json:"anyOf,omitempty"`
 
-	// Not specifies that the variable must not validate against the subschema.
+	// not specifies that the variable must not validate against the subschema.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
@@ -642,7 +642,7 @@ type VariableSchemaMetadata struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations is an unstructured key value map that can be used to store and
+	// annotations is an unstructured key value map that can be used to store and
 	// retrieve arbitrary metadata.
 	// They are not queryable.
 	// +optional
@@ -651,7 +651,7 @@ type VariableSchemaMetadata struct {
 
 // ValidationRule describes a validation rule written in the CEL expression language.
 type ValidationRule struct {
-	// Rule represents the expression which will be evaluated by CEL.
+	// rule represents the expression which will be evaluated by CEL.
 	// ref: https://github.com/google/cel-spec
 	// The Rule is scoped to the location of the x-kubernetes-validations extension in the schema.
 	// The `self` variable in the CEL expression is bound to the scoped value.
@@ -701,13 +701,13 @@ type ValidationRule struct {
 	//
 	// +kubebuilder:validation:Required
 	Rule string `json:"rule"`
-	// Message represents the message displayed when validation fails. The message is required if the Rule contains
+	// message represents the message displayed when validation fails. The message is required if the Rule contains
 	// line breaks. The message must not contain line breaks.
 	// If unset, the message is "failed rule: {Rule}".
 	// e.g. "must be a URL with the host matching spec.host"
 	// +optional
 	Message string `json:"message,omitempty"`
-	// MessageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
+	// messageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
 	// Since messageExpression is used as a failure message, it must evaluate to a string.
 	// If both message and messageExpression are present on a rule, then messageExpression will be used if validation
 	// fails. If messageExpression results in a runtime error, the validation failure message is produced
@@ -718,7 +718,7 @@ type ValidationRule struct {
 	// "x must be less than max ("+string(self.max)+")"
 	// +optional
 	MessageExpression string `json:"messageExpression,omitempty"`
-	// Reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
+	// reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
 	// The currently supported reasons are: "FieldValueInvalid", "FieldValueForbidden", "FieldValueRequired", "FieldValueDuplicate".
 	// If not set, default to use "FieldValueInvalid".
 	// All future added reasons must be accepted by clients when reading this value and unknown reasons should be treated as FieldValueInvalid.
@@ -727,7 +727,7 @@ type ValidationRule struct {
 	// +kubebuilder:default=FieldValueInvalid
 	// +default=ref(sigs.k8s.io/cluster-api/api/v1beta1.FieldValueInvalid)
 	Reason FieldValueErrorReason `json:"reason,omitempty"`
-	// FieldPath represents the field path returned when the validation fails.
+	// fieldPath represents the field path returned when the validation fails.
 	// It must be a relative JSON path (i.e. with array notation) scoped to the location of this x-kubernetes-validations extension in the schema and refer to an existing field.
 	// e.g. when validation checks if a specific attribute `foo` under a map `testMap`, the fieldPath could be set to `.testMap.foo`
 	// If the validation checks two lists must have unique attributes, the fieldPath could be set to either of the list: e.g. `.testList`
@@ -761,13 +761,13 @@ const (
 
 // ClusterClassPatch defines a patch which is applied to customize the referenced templates.
 type ClusterClassPatch struct {
-	// Name of the patch.
+	// name of the patch.
 	Name string `json:"name"`
 
-	// Description is a human-readable description of this patch.
+	// description is a human-readable description of this patch.
 	Description string `json:"description,omitempty"`
 
-	// EnabledIf is a Go template to be used to calculate if a patch should be enabled.
+	// enabledIf is a Go template to be used to calculate if a patch should be enabled.
 	// It can reference variables defined in .spec.variables and builtin variables.
 	// The patch will be enabled if the template evaluates to `true`, otherwise it will
 	// be disabled.
@@ -775,13 +775,13 @@ type ClusterClassPatch struct {
 	// +optional
 	EnabledIf *string `json:"enabledIf,omitempty"`
 
-	// Definitions define inline patches.
+	// definitions define inline patches.
 	// Note: Patches will be applied in the order of the array.
 	// Note: Exactly one of Definitions or External must be set.
 	// +optional
 	Definitions []PatchDefinition `json:"definitions,omitempty"`
 
-	// External defines an external patch.
+	// external defines an external patch.
 	// Note: Exactly one of Definitions or External must be set.
 	// +optional
 	External *ExternalPatchDefinition `json:"external,omitempty"`
@@ -789,10 +789,10 @@ type ClusterClassPatch struct {
 
 // PatchDefinition defines a patch which is applied to customize the referenced templates.
 type PatchDefinition struct {
-	// Selector defines on which templates the patch should be applied.
+	// selector defines on which templates the patch should be applied.
 	Selector PatchSelector `json:"selector"`
 
-	// JSONPatches defines the patches which should be applied on the templates
+	// jsonPatches defines the patches which should be applied on the templates
 	// matching the selector.
 	// Note: Patches will be applied in the order of the array.
 	JSONPatches []JSONPatch `json:"jsonPatches"`
@@ -804,13 +804,13 @@ type PatchDefinition struct {
 // be automatically updated during reconciliation if there is a newer version for the same contract.
 // Note: The results of selection based on the individual fields are ANDed.
 type PatchSelector struct {
-	// APIVersion filters templates by apiVersion.
+	// apiVersion filters templates by apiVersion.
 	APIVersion string `json:"apiVersion"`
 
-	// Kind filters templates by kind.
+	// kind filters templates by kind.
 	Kind string `json:"kind"`
 
-	// MatchResources selects templates based on where they are referenced.
+	// matchResources selects templates based on where they are referenced.
 	MatchResources PatchSelectorMatch `json:"matchResources"`
 }
 
@@ -818,22 +818,22 @@ type PatchSelector struct {
 // Note: The selector must match at least one template.
 // Note: The results of selection based on the individual fields are ORed.
 type PatchSelectorMatch struct {
-	// ControlPlane selects templates referenced in .spec.ControlPlane.
+	// controlPlane selects templates referenced in .spec.ControlPlane.
 	// Note: this will match the controlPlane and also the controlPlane
 	// machineInfrastructure (depending on the kind and apiVersion).
 	// +optional
 	ControlPlane bool `json:"controlPlane,omitempty"`
 
-	// InfrastructureCluster selects templates referenced in .spec.infrastructure.
+	// infrastructureCluster selects templates referenced in .spec.infrastructure.
 	// +optional
 	InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
 
-	// MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
+	// machineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
 	// .spec.workers.machineDeployments.
 	// +optional
 	MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
 
-	// MachinePoolClass selects templates referenced in specific MachinePoolClasses in
+	// machinePoolClass selects templates referenced in specific MachinePoolClasses in
 	// .spec.workers.machinePools.
 	// +optional
 	MachinePoolClass *PatchSelectorMatchMachinePoolClass `json:"machinePoolClass,omitempty"`
@@ -842,7 +842,7 @@ type PatchSelectorMatch struct {
 // PatchSelectorMatchMachineDeploymentClass selects templates referenced
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
-	// Names selects templates by class names.
+	// names selects templates by class names.
 	// +optional
 	Names []string `json:"names,omitempty"`
 }
@@ -850,25 +850,25 @@ type PatchSelectorMatchMachineDeploymentClass struct {
 // PatchSelectorMatchMachinePoolClass selects templates referenced
 // in specific MachinePoolClasses in .spec.workers.machinePools.
 type PatchSelectorMatchMachinePoolClass struct {
-	// Names selects templates by class names.
+	// names selects templates by class names.
 	// +optional
 	Names []string `json:"names,omitempty"`
 }
 
 // JSONPatch defines a JSON patch.
 type JSONPatch struct {
-	// Op defines the operation of the patch.
+	// op defines the operation of the patch.
 	// Note: Only `add`, `replace` and `remove` are supported.
 	Op string `json:"op"`
 
-	// Path defines the path of the patch.
+	// path defines the path of the patch.
 	// Note: Only the spec of a template can be patched, thus the path has to start with /spec/.
 	// Note: For now the only allowed array modifications are `append` and `prepend`, i.e.:
 	// * for op: `add`: only index 0 (prepend) and - (append) are allowed
 	// * for op: `replace` or `remove`: no indexes are allowed
 	Path string `json:"path"`
 
-	// Value defines the value of the patch.
+	// value defines the value of the patch.
 	// Note: Either Value or ValueFrom is required for add and replace
 	// operations. Only one of them is allowed to be set at the same time.
 	// Note: We have to use apiextensionsv1.JSON instead of our JSON type,
@@ -878,7 +878,7 @@ type JSONPatch struct {
 	// +optional
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 
-	// ValueFrom defines the value of the patch.
+	// valueFrom defines the value of the patch.
 	// Note: Either Value or ValueFrom is required for add and replace
 	// operations. Only one of them is allowed to be set at the same time.
 	// +optional
@@ -888,12 +888,12 @@ type JSONPatch struct {
 // JSONPatchValue defines the value of a patch.
 // Note: Only one of the fields is allowed to be set at the same time.
 type JSONPatchValue struct {
-	// Variable is the variable to be used as value.
+	// variable is the variable to be used as value.
 	// Variable can be one of the variables defined in .spec.variables or a builtin variable.
 	// +optional
 	Variable *string `json:"variable,omitempty"`
 
-	// Template is the Go template to be used to calculate the value.
+	// template is the Go template to be used to calculate the value.
 	// A template can reference variables defined in .spec.variables and builtin variables.
 	// Note: The template must evaluate to a valid YAML or JSON value.
 	// +optional
@@ -903,19 +903,19 @@ type JSONPatchValue struct {
 // ExternalPatchDefinition defines an external patch.
 // Note: At least one of GenerateExtension or ValidateExtension must be set.
 type ExternalPatchDefinition struct {
-	// GenerateExtension references an extension which is called to generate patches.
+	// generateExtension references an extension which is called to generate patches.
 	// +optional
 	GenerateExtension *string `json:"generateExtension,omitempty"`
 
-	// ValidateExtension references an extension which is called to validate the topology.
+	// validateExtension references an extension which is called to validate the topology.
 	// +optional
 	ValidateExtension *string `json:"validateExtension,omitempty"`
 
-	// DiscoverVariablesExtension references an extension which is called to discover variables.
+	// discoverVariablesExtension references an extension which is called to discover variables.
 	// +optional
 	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"`
 
-	// Settings defines key value pairs to be passed to the extensions.
+	// settings defines key value pairs to be passed to the extensions.
 	// Values defined here take precedence over the values defined in the
 	// corresponding ExtensionConfig.
 	// +optional
@@ -924,7 +924,7 @@ type ExternalPatchDefinition struct {
 
 // LocalObjectTemplate defines a template for a topology Class.
 type LocalObjectTemplate struct {
-	// Ref is a required reference to a custom resource
+	// ref is a required reference to a custom resource
 	// offered by a provider.
 	Ref *corev1.ObjectReference `json:"ref"`
 }
@@ -933,15 +933,15 @@ type LocalObjectTemplate struct {
 
 // ClusterClassStatus defines the observed state of the ClusterClass.
 type ClusterClassStatus struct {
-	// Variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
+	// variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
 	// +optional
 	Variables []ClusterClassStatusVariable `json:"variables,omitempty"`
 
-	// Conditions defines current observed state of the ClusterClass.
+	// conditions defines current observed state of the ClusterClass.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -964,31 +964,31 @@ type ClusterClassV1Beta2Status struct {
 
 // ClusterClassStatusVariable defines a variable which appears in the status of a ClusterClass.
 type ClusterClassStatusVariable struct {
-	// Name is the name of the variable.
+	// name is the name of the variable.
 	Name string `json:"name"`
 
-	// DefinitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
+	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
 	DefinitionsConflict bool `json:"definitionsConflict"`
 
-	// Definitions is a list of definitions for a variable.
+	// definitions is a list of definitions for a variable.
 	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`
 }
 
 // ClusterClassStatusVariableDefinition defines a variable which appears in the status of a ClusterClass.
 type ClusterClassStatusVariableDefinition struct {
-	// From specifies the origin of the variable definition.
+	// from specifies the origin of the variable definition.
 	// This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
 	// for variables discovered from a DiscoverVariables runtime extensions.
 	From string `json:"from"`
 
-	// Required specifies if the variable is required.
+	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	Required bool `json:"required"`
 
-	// Metadata is the metadata of a variable.
+	// metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
@@ -997,7 +997,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
-	// Schema defines the schema of the variable.
+	// schema defines the schema of the variable.
 	Schema VariableSchema `json:"schema"`
 }
 

@@ -39,18 +39,18 @@ type ClusterClass struct {
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
 type ClusterClassSpec struct {
-	// Infrastructure is a reference to a provider-specific template that holds
+	// infrastructure is a reference to a provider-specific template that holds
 	// the details for provisioning infrastructure specific cluster
 	// for the underlying provider.
 	// The underlying provider is responsible for the implementation
 	// of the template to an infrastructure cluster.
 	Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
 
-	// ControlPlane is a reference to a local struct that holds the details
+	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
 	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
 
-	// Workers describes the worker nodes for the cluster.
+	// workers describes the worker nodes for the cluster.
 	// It is a collection of node types which can be used to create
 	// the worker nodes of the cluster.
 	// +optional
@@ -59,7 +59,7 @@ type ClusterClassSpec struct {
 
 // ControlPlaneClass defines the class for the control plane.
 type ControlPlaneClass struct {
-	// Metadata is the metadata applied to the machines of the ControlPlane.
+	// metadata is the metadata applied to the machines of the ControlPlane.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	//
 	// This field is supported if and only if the control plane provider template
@@ -81,7 +81,7 @@ type ControlPlaneClass struct {
 
 // WorkersClass is a collection of deployment classes.
 type WorkersClass struct {
-	// MachineDeployments is a list of machine deployment classes that can be used to create
+	// machineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 }
@@ -89,12 +89,12 @@ type WorkersClass struct {
 // MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
 // provisioned using the `ClusterClass`.
 type MachineDeploymentClass struct {
-	// Class denotes a type of worker node present in the cluster,
+	// class denotes a type of worker node present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachineDeployment.
 	Class string `json:"class"`
 
-	// Template is a local struct containing a collection of templates for creation of
+	// template is a local struct containing a collection of templates for creation of
 	// MachineDeployment objects representing a set of worker nodes.
 	Template MachineDeploymentClassTemplate `json:"template"`
 }
@@ -102,22 +102,22 @@ type MachineDeploymentClass struct {
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
 // should look like.
 type MachineDeploymentClassTemplate struct {
-	// Metadata is the metadata applied to the machines of the MachineDeployment.
+	// metadata is the metadata applied to the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// Bootstrap contains the bootstrap template reference to be used
+	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
 	Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
-	// Infrastructure contains the infrastructure template reference to be used
+	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
 // LocalObjectTemplate defines a template for a topology Class.
 type LocalObjectTemplate struct {
-	// Ref is a required reference to a custom resource
+	// ref is a required reference to a custom resource
 	// offered by a provider.
 	Ref *corev1.ObjectReference `json:"ref"`
 }

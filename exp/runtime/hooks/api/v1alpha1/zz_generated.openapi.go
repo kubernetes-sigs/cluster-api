@@ -96,7 +96,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref common.Ref
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -112,14 +112,14 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "KubernetesVersion is the Kubernetes version after upgrade.",
+							Description: "kubernetesVersion is the Kubernetes version after upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -157,7 +157,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -202,7 +202,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref c
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -218,7 +218,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref c
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -255,7 +255,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref 
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -300,7 +300,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -316,14 +316,14 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "KubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.",
+							Description: "kubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -361,7 +361,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -378,7 +378,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -414,7 +414,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref common.Ref
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -430,7 +430,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -467,7 +467,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -484,7 +484,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref common.Re
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -520,7 +520,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref common.Ref
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -536,7 +536,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -573,7 +573,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -590,7 +590,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -626,7 +626,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -642,14 +642,14 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"fromKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "FromKubernetesVersion is the current Kubernetes version of the cluster.",
+							Description: "fromKubernetesVersion is the current Kubernetes version of the cluster.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -657,7 +657,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 					},
 					"toKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ToKubernetesVersion is the target Kubernetes version of the upgrade.",
+							Description: "toKubernetesVersion is the target Kubernetes version of the upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -695,7 +695,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -712,7 +712,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -769,34 +769,34 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the cluster.",
+							Description: "name is the name of the cluster.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Namespace is the namespace of the cluster.",
+							Description: "namespace is the namespace of the cluster.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UID is the unqiue identifier of the cluster.",
+							Description: "uid is the unqiue identifier of the cluster.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Topology represents the cluster topology variables.",
+							Description: "topology represents the cluster topology variables.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"),
 						},
 					},
 					"network": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Network represents the cluster network variables.",
+							Description: "network represents the cluster network variables.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins"),
 						},
 					},
@@ -817,14 +817,14 @@ func schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"serviceDomain": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServiceDomain is the domain name for services.",
+							Description: "serviceDomain is the domain name for services.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"services": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Services is the network ranges from which service VIPs are allocated.",
+							Description: "services is the network ranges from which service VIPs are allocated.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -839,7 +839,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref common.Referen
 					},
 					"pods": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Pods is the network ranges from which Pod networks are allocated.",
+							Description: "pods is the network ranges from which Pod networks are allocated.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -854,7 +854,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref common.Referen
 					},
 					"ipFamily": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IPFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.\n\nDeprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521",
+							Description: "ipFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.\n\nDeprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -874,14 +874,14 @@ func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.Refere
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version is the Kubernetes version of the Cluster. NOTE: Please note that this version might temporarily differ from the version of the ControlPlane or workers while an upgrade process is being orchestrated.",
+							Description: "version is the Kubernetes version of the Cluster. NOTE: Please note that this version might temporarily differ from the version of the ControlPlane or workers while an upgrade process is being orchestrated.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Class is the name of the ClusterClass of the Cluster.",
+							Description: "class is the name of the ClusterClass of the Cluster.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -901,7 +901,7 @@ func schema_runtime_hooks_api_v1alpha1_CommonRequest(ref common.ReferenceCallbac
 				Properties: map[string]spec.Schema{
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -930,7 +930,7 @@ func schema_runtime_hooks_api_v1alpha1_CommonResponse(ref common.ReferenceCallba
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -961,7 +961,7 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -978,7 +978,7 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -1000,34 +1000,34 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version is the Kubernetes version of the ControlPlane object. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the ControlPlane while an upgrade process is being orchestrated.",
+							Description: "version is the Kubernetes version of the ControlPlane object. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the ControlPlane while an upgrade process is being orchestrated.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata set on the ControlPlane object.",
+							Description: "metadata is the metadata set on the ControlPlane object.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the ControlPlane, to which the current template belongs to.",
+							Description: "name is the name of the ControlPlane, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Replicas is the value of the replicas field of the ControlPlane object.",
+							Description: "replicas is the value of the replicas field of the ControlPlane object.",
 							Type:        []string{"integer"},
 							Format:      "int64",
 						},
 					},
 					"machineTemplate": {
 						SchemaProps: spec.SchemaProps{
-							Description: "MachineTemplate is the value of the .spec.machineTemplate field of the ControlPlane object.",
+							Description: "machineTemplate is the value of the .spec.machineTemplate field of the ControlPlane object.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"),
 						},
 					},
@@ -1048,7 +1048,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateBuiltins(ref c
 				Properties: map[string]spec.Schema{
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "InfrastructureRef is the value of the infrastructureRef field of ControlPlane.spec.machineTemplate.",
+							Description: "infrastructureRef is the value of the infrastructureRef field of ControlPlane.spec.machineTemplate.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateInfrastructureRefBuiltins"),
 						},
@@ -1070,7 +1070,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateInfrastructure
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the infrastructureRef.",
+							Description: "name of the infrastructureRef.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1104,7 +1104,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesRequest(ref common.Refer
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -1147,7 +1147,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1164,7 +1164,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Variables are variable schemas for variables defined by the DiscoverVariables hook.",
+							Description: "variables are variable schemas for variables defined by the DiscoverVariables hook.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1235,7 +1235,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1260,7 +1260,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "Handlers defines the current ExtensionHandlers supported by an Extension.",
+							Description: "handlers defines the current ExtensionHandlers supported by an Extension.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1290,7 +1290,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the ExtensionHandler.",
+							Description: "name is the name of the ExtensionHandler.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1298,21 +1298,21 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 					},
 					"requestHook": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RequestHook defines the versioned runtime hook which this ExtensionHandler serves.",
+							Description: "requestHook defines the versioned runtime hook which this ExtensionHandler serves.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook"),
 						},
 					},
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler. This is defaulted to 10 if left undefined.",
+							Description: "timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler. This is defaulted to 10 if left undefined.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"failurePolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "FailurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client. This is defaulted to FailurePolicyFail if not defined.",
+							Description: "failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client. This is defaulted to FailurePolicyFail if not defined.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1349,7 +1349,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -1365,7 +1365,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Variables are global variables for all templates.",
+							Description: "variables are global variables for all templates.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1379,7 +1379,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Items is the list of templates to generate patches for.",
+							Description: "items is the list of templates to generate patches for.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1409,7 +1409,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UID is an identifier for this template. It allows us to correlate the template in the request with the corresponding generated patches in the response.",
+							Description: "uid is an identifier for this template. It allows us to correlate the template in the request with the corresponding generated patches in the response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1417,20 +1417,20 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 					},
 					"holderReference": {
 						SchemaProps: spec.SchemaProps{
-							Description: "HolderReference is a reference to the object where the template is used.",
+							Description: "holderReference is a reference to the object where the template is used.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference"),
 						},
 					},
 					"object": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Object contains the template as a raw object.",
+							Description: "object contains the template as a raw object.",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Variables are variables specific for the current template. For example some builtin variables like MachineDeployment replicas and version are context-sensitive and thus are only added to templates for MachineDeployments and with values which correspond to the current MachineDeployment.",
+							Description: "variables are variables specific for the current template. For example some builtin variables like MachineDeployment replicas and version are context-sensitive and thus are only added to templates for MachineDeployments and with values which correspond to the current MachineDeployment.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1474,7 +1474,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1491,7 +1491,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Items is the list of generated patches.",
+							Description: "items is the list of generated patches.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1521,7 +1521,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref common.Re
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UID identifies the corresponding template in the request on which the patch should be applied.",
+							Description: "uid identifies the corresponding template in the request on which the patch should be applied.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1529,7 +1529,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref common.Re
 					},
 					"patchType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PatchType defines the type of the patch. One of: \"JSONPatch\" or \"JSONMergePatch\".\n\nPossible enum values:\n - `\"JSONMergePatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.\n - `\"JSONPatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.",
+							Description: "patchType defines the type of the patch. One of: \"JSONPatch\" or \"JSONMergePatch\".\n\nPossible enum values:\n - `\"JSONMergePatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.\n - `\"JSONPatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1538,7 +1538,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref common.Re
 					},
 					"patch": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Patch contains the patch which should be applied to the template. It must be of the corresponding PatchType.",
+							Description: "patch contains the patch which should be applied to the template. It must be of the corresponding PatchType.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
@@ -1559,7 +1559,7 @@ func schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion is the group and version of the Hook",
+							Description: "apiVersion is the group and version of the Hook",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1567,7 +1567,7 @@ func schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref common.ReferenceCall
 					},
 					"hook": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Hook is the name of the hook",
+							Description: "hook is the name of the hook",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1597,7 +1597,7 @@ func schema_runtime_hooks_api_v1alpha1_HolderReference(ref common.ReferenceCallb
 					},
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Description: "kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1605,7 +1605,7 @@ func schema_runtime_hooks_api_v1alpha1_HolderReference(ref common.ReferenceCallb
 					},
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+							Description: "namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1613,7 +1613,7 @@ func schema_runtime_hooks_api_v1alpha1_HolderReference(ref common.ReferenceCallb
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
+							Description: "name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1621,7 +1621,7 @@ func schema_runtime_hooks_api_v1alpha1_HolderReference(ref common.ReferenceCallb
 					},
 					"fieldPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "FieldPath is the path to the field of the object which references the template.",
+							Description: "fieldPath is the path to the field of the object which references the template.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1643,7 +1643,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineBootstrapBuiltins(ref common.Refer
 				Properties: map[string]spec.Schema{
 					"configRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ConfigRef is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment.",
+							Description: "configRef is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapConfigRefBuiltins"),
 						},
 					},
@@ -1664,7 +1664,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineBootstrapConfigRefBuiltins(ref com
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the bootstrap.configRef.",
+							Description: "name of the bootstrap.configRef.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1684,54 +1684,54 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version is the Kubernetes version of the MachineDeployment, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachineDeployment machines while an upgrade process is being orchestrated.",
+							Description: "version is the Kubernetes version of the MachineDeployment, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachineDeployment machines while an upgrade process is being orchestrated.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata set on the MachineDeployment.",
+							Description: "metadata is the metadata set on the MachineDeployment.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Class is the class name of the MachineDeployment, to which the current template belongs to.",
+							Description: "class is the class name of the MachineDeployment, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the MachineDeployment, to which the current template belongs to.",
+							Description: "name is the name of the MachineDeployment, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"topologyName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TopologyName is the topology name of the MachineDeployment, to which the current template belongs to.",
+							Description: "topologyName is the topology name of the MachineDeployment, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Replicas is the value of the replicas field of the MachineDeployment, to which the current template belongs to.",
+							Description: "replicas is the value of the replicas field of the MachineDeployment, to which the current template belongs to.",
 							Type:        []string{"integer"},
 							Format:      "int64",
 						},
 					},
 					"bootstrap": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.",
+							Description: "bootstrap is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins"),
 						},
 					},
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachineDeployment.",
+							Description: "infrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachineDeployment.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"),
 						},
 					},
@@ -1752,7 +1752,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineInfrastructureRefBuiltins(ref comm
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the infrastructureRef.",
+							Description: "name of the infrastructureRef.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1772,54 +1772,54 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version is the Kubernetes version of the MachinePool, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachinePool machines while an upgrade process is being orchestrated.",
+							Description: "version is the Kubernetes version of the MachinePool, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachinePool machines while an upgrade process is being orchestrated.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata set on the MachinePool.",
+							Description: "metadata is the metadata set on the MachinePool.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Class is the class name of the MachinePool, to which the current template belongs to.",
+							Description: "class is the class name of the MachinePool, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the MachinePool, to which the current template belongs to.",
+							Description: "name is the name of the MachinePool, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"topologyName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TopologyName is the topology name of the MachinePool, to which the current template belongs to.",
+							Description: "topologyName is the topology name of the MachinePool, to which the current template belongs to.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Replicas is the value of the replicas field of the MachinePool, to which the current template belongs to.",
+							Description: "replicas is the value of the replicas field of the MachinePool, to which the current template belongs to.",
 							Type:        []string{"integer"},
 							Format:      "int64",
 						},
 					},
 					"bootstrap": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachinePool.",
+							Description: "bootstrap is the value of the .spec.template.spec.bootstrap field of the MachinePool.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins"),
 						},
 					},
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachinePool.",
+							Description: "infrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachinePool.",
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"),
 						},
 					},
@@ -1854,7 +1854,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 					},
 					"settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Settings defines key value pairs to be passed to the call.",
+							Description: "settings defines key value pairs to be passed to the call.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -1870,7 +1870,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Variables are global variables for all templates.",
+							Description: "variables are global variables for all templates.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1884,7 +1884,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Items is the list of templates to validate.",
+							Description: "items is the list of templates to validate.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1913,20 +1913,20 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 				Properties: map[string]spec.Schema{
 					"holderReference": {
 						SchemaProps: spec.SchemaProps{
-							Description: "HolderReference is a reference to the object where the template is used.",
+							Description: "holderReference is a reference to the object where the template is used.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference"),
 						},
 					},
 					"object": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Object contains the template as a raw object.",
+							Description: "object contains the template as a raw object.",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Variables are variables specific for the current template. For example some builtin variables like MachineDeployment replicas and version are context-sensitive and thus are only added to templates for MachineDeployments and with values which correspond to the current MachineDeployment.",
+							Description: "variables are variables specific for the current template. For example some builtin variables like MachineDeployment replicas and version are context-sensitive and thus are only added to templates for MachineDeployments and with values which correspond to the current MachineDeployment.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1970,7 +1970,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref common.Refer
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2001,7 +2001,7 @@ func schema_runtime_hooks_api_v1alpha1_Variable(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the variable.",
+							Description: "name of the variable.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2009,7 +2009,7 @@ func schema_runtime_hooks_api_v1alpha1_Variable(ref common.ReferenceCallback) co
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Value of the variable.",
+							Description: "value of the variable.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},

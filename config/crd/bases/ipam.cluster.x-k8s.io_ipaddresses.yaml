@@ -59,10 +59,10 @@ spec:
             description: IPAddressSpec is the desired state of an IPAddress.
             properties:
               address:
-                description: Address is the IP address.
+                description: address is the IP address.
                 type: string
               claimRef:
-                description: ClaimRef is a reference to the claim this IPAddress was
+                description: claimRef is a reference to the claim this IPAddress was
                   created for.
                 properties:
                   name:
@@ -77,11 +77,11 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               gateway:
-                description: Gateway is the network gateway of the network the address
+                description: gateway is the network gateway of the network the address
                   is from.
                 type: string
               poolRef:
-                description: PoolRef is a reference to the pool that this IPAddress
+                description: poolRef is a reference to the pool that this IPAddress
                   was created from.
                 properties:
                   apiGroup:
@@ -102,7 +102,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               prefix:
-                description: Prefix is the prefix of the address.
+                description: prefix is the prefix of the address.
                 type: integer
             required:
             - address
@@ -157,10 +157,10 @@ spec:
             description: IPAddressSpec is the desired state of an IPAddress.
             properties:
               address:
-                description: Address is the IP address.
+                description: address is the IP address.
                 type: string
               claimRef:
-                description: ClaimRef is a reference to the claim this IPAddress was
+                description: claimRef is a reference to the claim this IPAddress was
                   created for.
                 properties:
                   name:
@@ -175,11 +175,11 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               gateway:
-                description: Gateway is the network gateway of the network the address
+                description: gateway is the network gateway of the network the address
                   is from.
                 type: string
               poolRef:
-                description: PoolRef is a reference to the pool that this IPAddress
+                description: poolRef is a reference to the pool that this IPAddress
                   was created from.
                 properties:
                   apiGroup:
@@ -200,7 +200,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               prefix:
-                description: Prefix is the prefix of the address.
+                description: prefix is the prefix of the address.
                 type: integer
             required:
             - address

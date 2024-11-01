@@ -47,7 +47,7 @@ const (
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
@@ -60,7 +60,7 @@ type MachineDeploymentSpec struct {
 	// It must match the machine template's labels.
 	Selector metav1.LabelSelector `json:"selector"`
 
-	// Template describes the machines that will be created.
+	// template describes the machines that will be created.
 	Template MachineTemplateSpec `json:"template"`
 
 	// The deployment strategy to use to replace existing machines with
@@ -100,7 +100,7 @@ type MachineDeploymentSpec struct {
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
-	// Type of deployment. Currently the only supported strategy is
+	// type of deployment. Currently the only supported strategy is
 	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +optional
@@ -160,7 +160,7 @@ type MachineDeploymentStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Selector is the same as the label selector but in the string format to avoid introspection
+	// selector is the same as the label selector but in the string format to avoid introspection
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
@@ -193,7 +193,7 @@ type MachineDeploymentStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
-	// Phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
 	Phase string `json:"phase,omitempty"`
 }

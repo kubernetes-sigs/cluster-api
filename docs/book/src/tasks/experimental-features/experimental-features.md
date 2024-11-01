@@ -92,7 +92,7 @@ Following controller manager deployments have to be edited in order to enable/di
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-* [ClusterResourceSet](./cluster-resource-set.md):
+
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 * [ClusterClass](./cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
@@ -109,7 +109,6 @@ Following controller manager deployments have to be edited in order to enable/di
 ## Active Experimental Features
 
 * [MachinePools](./machine-pools.md)
-* [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
 * [Runtime SDK](runtime-sdk/index.md)

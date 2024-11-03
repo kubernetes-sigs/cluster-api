@@ -1,6 +1,7 @@
 name: Weekly go version check
 
 on:
+  workflow_dispatch:
   schedule:
     # Cron for every Mon at 12:00 UTC.
     - cron: "0 12 * * 1"
@@ -12,6 +13,10 @@ permissions:
 jobs:
   weekly-go-patch-version-check:
     name: Check go patch version
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [automate-go-patching]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

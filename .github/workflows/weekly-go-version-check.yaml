@@ -2,9 +2,13 @@ name: Weekly go version check
 
 on:
   workflow_dispatch:
-  schedule:
-    # Cron for every Mon at 12:00 UTC.
-    - cron: "0 12 * * 1"
+  push:
+    branches:
+      - automate-go-patching
+
+  # schedule:
+  #   # Cron for every Mon at 12:00 UTC.
+  #   - cron: "0 12 * * 1"
 
 permissions:
   contents: write

@@ -1021,7 +1021,7 @@ func (c *ClusterClass) GetV1Beta2Conditions() []metav1.Condition {
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil && conditions != nil {
+	if c.Status.V1Beta2 == nil {
 		c.Status.V1Beta2 = &ClusterClassV1Beta2Status{}
 	}
 	c.Status.V1Beta2.Conditions = conditions

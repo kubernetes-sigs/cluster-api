@@ -141,7 +141,7 @@ func (m *ClusterResourceSet) GetV1Beta2Conditions() []metav1.Condition {
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil && conditions != nil {
+	if m.Status.V1Beta2 == nil {
 		m.Status.V1Beta2 = &ClusterResourceSetV1Beta2Status{}
 	}
 	m.Status.V1Beta2.Conditions = conditions

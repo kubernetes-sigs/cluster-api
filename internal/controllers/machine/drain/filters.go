@@ -27,7 +27,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -137,6 +139,15 @@ func MakePodDeleteStatusOkay() PodDeleteStatus {
 	}
 }
 
+// MakePodDeleteStatusOkayWithOrder is a helper method to return the corresponding PodDeleteStatus.
+func MakePodDeleteStatusOkayWithOrder(order *int32) PodDeleteStatus {
+	return PodDeleteStatus{
+		DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+		DrainOrder:    order,
+		Reason:        PodDeleteStatusTypeOkay,
+	}
+}
+
 // MakePodDeleteStatusSkip is a helper method to return the corresponding PodDeleteStatus.
 func MakePodDeleteStatusSkip() PodDeleteStatus {
 	return PodDeleteStatus{
@@ -203,11 +214,15 @@ func (d *Helper) daemonSetFilter(ctx context.Context, pod *corev1.Pod) PodDelete
 		return MakePodDeleteStatusWithError(err.Error())
 	}
 
+	log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+	log.V(4).Info("Skip evicting DaemonSet Pod")
 	return MakePodDeleteStatusWithWarning(clusterv1.MachineDrainRuleDrainBehaviorSkip, daemonSetWarning)
 }
 
-func (d *Helper) mirrorPodFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+func (d *Helper) mirrorPodFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
 	if _, found := pod.ObjectMeta.Annotations[corev1.MirrorPodAnnotationKey]; found {
+		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+		log.V(4).Info("Skip evicting static Pod")
 		return MakePodDeleteStatusSkip()
 	}
 	return MakePodDeleteStatusOkay()
@@ -245,22 +260,26 @@ func shouldSkipPod(pod *corev1.Pod, skipDeletedTimeoutSeconds int) bool {
 		int(time.Since(pod.ObjectMeta.GetDeletionTimestamp().Time).Seconds()) > skipDeletedTimeoutSeconds
 }
 
-func (d *Helper) skipDeletedFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+func (d *Helper) skipDeletedFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
 	if shouldSkipPod(pod, d.SkipWaitForDeleteTimeoutSeconds) {
+		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+		log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod deletionTimestamp is more than %ds ago", d.SkipWaitForDeleteTimeoutSeconds))
 		return MakePodDeleteStatusSkip()
 	}
 	return MakePodDeleteStatusOkay()
 }
 
-func (d *Helper) drainLabelFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+func (d *Helper) drainLabelFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
 	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found && strings.EqualFold(labelValue, string(clusterv1.MachineDrainRuleDrainBehaviorSkip)) {
+		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+		log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label", clusterv1.PodDrainLabel))
 		return MakePodDeleteStatusSkip()
 	}
 	return MakePodDeleteStatusOkay()
 }
 
 func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineDrainRule, namespaces map[string]*corev1.Namespace) PodFilter {
-	return func(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+	return func(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
 		// Get the namespace of the Pod
 		namespace, ok := namespaces[pod.Namespace]
 		if !ok {
@@ -276,10 +295,10 @@ func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineD
 			// If the pod selector matches, use the drain behavior from the MachineDrainRule.
 			switch mdr.Spec.Drain.Behavior {
 			case clusterv1.MachineDrainRuleDrainBehaviorDrain:
-				pd := MakePodDeleteStatusOkay()
-				pd.DrainOrder = mdr.Spec.Drain.Order
-				return pd
+				return MakePodDeleteStatusOkayWithOrder(mdr.Spec.Drain.Order)
 			case clusterv1.MachineDrainRuleDrainBehaviorSkip:
+				log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+				log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because MachineDrainRule %s with behavior %s applies to the Pod", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorSkip))
 				return MakePodDeleteStatusSkip()
 			default:
 				return MakePodDeleteStatusWithError(

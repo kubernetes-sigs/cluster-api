@@ -1,10 +1,10 @@
 name: Weekly go version check
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - automate-go-patching
+  # workflow_dispatch:
+  # push:
+  #   branches:
+  #     - automate-go-patching
   schedule:
     # Cron for every Mon at 12:00 UTC.
     - cron: "0 12 * * 1"
@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [automate-go-patching]
+        branch: [main]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,7 +34,6 @@ jobs:
         id: patch-version
         run: |
           echo "GO_PATCH_VERSION=$(curl --silent https://go.dev/VERSION?m=text | sed -n 's/^go\([0-9.]*\).*/\1/p')" >> $GITHUB_ENV
-          pwd
       - name: Replace go_patch_version in Makefile
         run: sed -i 's/GO_VERSION ?= [0-9\.]*/GO_VERSION ?= ${{ env.GO_PATCH_VERSION }}/' Makefile
       - name: Replace go_patch_version in Tiltfile
@@ -45,5 +44,5 @@ jobs:
           commit-message: Bump to Go ${{ env.GO_PATCH_VERSION }}
           title: "Bump to Go patch version ${{ env.GO_PATCH_VERSION }}"
           body: |
-            This PR promotes current GO version to the latest patch version of ${GO_PATCH_VERSION}
+            This PR promotes current GO version to the latest patch version of ${{ env.GO_PATCH_VERSION }}
           branch: promote-go-patch-version-${{ env.GO_PATCH_VERSION }}

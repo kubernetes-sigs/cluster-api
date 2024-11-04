@@ -288,12 +288,12 @@ type FooControlPlaneStatus struct {
     // +optional
     Selector string `json:"selector,omitempty"`
     
-    // replicas is the total number of non-terminated machines targeted by this control plane
+    // replicas is the total number of machines targeted by this control plane
     // (their labels match the selector).
     // +optional
     Replicas int32 `json:"replicas"`
 	
-    // updatedReplicas is the total number of non-terminated machines targeted by this control plane
+    // updatedReplicas is the total number of machines targeted by this control plane
     // that have the desired template spec.
     // +optional
     UpdatedReplicas int32 `json:"updatedReplicas"`
@@ -348,25 +348,25 @@ type FooControlPlaneStatus struct {
     // +optional
     Selector string `json:"selector,omitempty"`
     
-    // replicas is the total number of non-terminated machines targeted by this control plane
+    // replicas is the total number of machines targeted by this control plane
     // (their labels match the selector).
     // +optional
-    Replicas int32 `json:"replicas"`
+    Replicas *int32 `json:"replicas,omitempty"`
 
     // readyReplicas is the number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
     // +optional
-    ReadyReplicas int32 `json:"readyReplicas"`
+    ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
     // availableReplicas is the number of available replicas for this ControlPlane. A machine is considered available when Machine's Available condition is true.
     // +optional
-    AvailableReplicas int32 `json:"availableReplicas"`
+    AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
     // upToDateReplicas is the number of up-to-date replicas targeted by this ControlPlane. A machine is considered available when Machine's  UpToDate condition is true.
     // +optional
-    UpToDateReplicas int32 `json:"upToDateReplicas"`
+    UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
     // See other rules for more details about mandatory/optional fields in ControlPlane status.
-	// Other fields SHOULD be added based on the needs of your provider.
+    // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
 
@@ -568,7 +568,8 @@ Other fields will be ignored.
 Additional considerations apply specifically to the ControlPlane resource:
 
 In order to disambiguate the usage of the ready term and improve how the status of the control plane is
-presented, Cluster API will stop surfacing the `Ready` condition and instead surface a new `Available` condition.
+presented, Cluster API will stop surfacing the `Ready` condition and instead it will surface a new `Available` condition
+read from control plane resources.
 
 The `Available` condition is expected to properly represents the fact that a ControlPlane can be operational 
 even if there is a certain degree of not readiness / disruption in the system, or if lifecycle operations are happening.
@@ -576,8 +577,11 @@ even if there is a certain degree of not readiness / disruption in the system, o
 Last, but not least, in order to ensure a consistent users experience, it is also recommended to consider aligning also other 
 ControlPlane conditions to conditions existing on other Cluster API objects.  
 
-For example `KubeadmControlPlane` is implements following conditions on top of the `Available` defined by this contract:
+For example `KubeadmControlPlane` is going to implement following conditions on top of the `Available` defined by this contract:
 `CertificatesAvailable`, `EtcdClusterAvailable`, `MachinesReady`, `MachinesUpToDate`, `ScalingUp`, `ScalingDown`, `Remediating`, `Deleting`, `Paused`.
+
+Most notably, the Cluster controller is going to read `ScalingUp`, `ScalingDown` conditions, if existing, and use
+them to compute a Cluster level `ScalingUp`, `ScalingDown` condition including all the scalable resources.
 
 See [Improving status in CAPI resources] for more context.
 

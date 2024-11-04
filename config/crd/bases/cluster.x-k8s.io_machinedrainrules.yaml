@@ -52,7 +52,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDrainRuleSpec defines the spec of a MachineDrainRule.
+            description: spec defines the spec of a MachineDrainRule.
             properties:
               drain:
                 description: drain configures if and how Pods are drained.
@@ -230,9 +230,6 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
-                x-kubernetes-validations:
-                - message: entries in machines must be unique
-                  rule: self.all(x, self.exists_one(y, x == y))
               pods:
                 description: |-
                   pods defines to which Pods this MachineDrainRule should be applied.
@@ -378,9 +375,6 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
-                x-kubernetes-validations:
-                - message: entries in pods must be unique
-                  rule: self.all(x, self.exists_one(y, x == y))
             required:
             - drain
             type: object

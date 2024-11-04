@@ -2606,8 +2606,9 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRule(ref common.Refere
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleSpec"),
+							Description: "spec defines the spec of a MachineDrainRule.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleSpec"),
 						},
 					},
 				},
@@ -2677,7 +2678,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleList(ref common.Re
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items contains the items of the MachineDrainRuleList.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{

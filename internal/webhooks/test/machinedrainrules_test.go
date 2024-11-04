@@ -198,9 +198,10 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
-				"spec.machines: Invalid value: \"array\": entries in machines must be unique, " +
-				"spec.pods: Invalid value: \"array\": entries in pods must be unique]",
+			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
+				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
+				"spec.machines: Forbidden: Entries in machines must be unique, " +
+				"spec.pods: Forbidden: Entries in pods must be unique]",
 		},
 	}
 

@@ -35,8 +35,10 @@ jobs:
         run: |
           echo "GO_PATCH_VERSION=$(curl --silent https://go.dev/VERSION?m=text | sed -n 's/^go\([0-9.]*\).*/\1/p')" >> $GITHUB_ENV
           pwd
-          sed -i 's/GO_VERSION=[0-9\.]*/GO_VERSION=${{ env.GO_PATCH_VERSION }}/' Makefile
-          sed -i 's/golang:[0-9\.]*/golang:${{ env.GO_PATCH_VERSION }}/' Tiltfile
+      - name: Replace go_patch_version in Makefile
+        run: sed -i 's/GO_VERSION ?= [0-9\.]*/GO_VERSION ?= ${{ env.GO_PATCH_VERSION }}/' Makefile
+      - name: Replace go_patch_version in Tiltfile
+        run: sed -i 's/golang:[0-9\.]*/golang:${{ env.GO_PATCH_VERSION }}/' Tiltfile
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # tag=v7.0.5
         with:

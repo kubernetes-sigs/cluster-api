@@ -996,7 +996,7 @@ metadata:
 		}, timeout).Should(BeTrue())
 
 		t.Log("Create Kubernetes API Server Service")
-		g.Expect(env.Delete(ctx, fakeService)).Should(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, fakeService)).Should(Succeed())
 		kubernetesAPIServerService.ResourceVersion = ""
 		g.Expect(env.Create(ctx, kubernetesAPIServerService)).Should(Succeed())
 

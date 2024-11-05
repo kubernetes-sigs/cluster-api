@@ -20,14 +20,32 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // KubeadmControlPlane's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneAvailableV1Beta2Condition is True if the control plane can be reached, EtcdClusterHealthy is true,
-	// and CertificatesAvailable is true.
+	// KubeadmControlPlaneAvailableV1Beta2Condition is true if KubeadmControlPlane is not deleted, `CertificatesAvailable` is true,
+	// at least one Machine with healthy control plane components, and etcd has enough operational members to meet quorum requirements.
+	// More specifically, considering how kubeadm layouts components:
+	// -  Kubernetes API server, scheduler and controller manager health is inferred by the status of
+	//    the corresponding Pods hosted on each machine.
+	// -  In case of managed etcd, also a healthy etcd Pod and a healthy etcd member must exist on the same
+	//    machine with the healthy Kubernetes API server, scheduler and controller manager, otherwise the k8s control
+	//    plane cannot be considered operational (if etcd is not operational on a machine, most likely also API server,
+	//    scheduler and controller manager on the same machine will be impacted).
+	// -  In case of external etcd, KCP cannot make any assumption on etcd status, so all the etcd checks are skipped.
 	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+
+	// KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
+	// etcd cluster hosted on KubeadmControlPlane controlled machines.
+	KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneAvailableV1Beta2Reason surfaces when the KubeadmControlPlane is available.
+	KubeadmControlPlaneAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// KubeadmControlPlaneNotAvailableV1Beta2Reason surfaces when the KubeadmControlPlane is not available.
+	KubeadmControlPlaneNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
 )
 
 // KubeadmControlPlane's Initialized condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneInitializedV1Beta2Condition is True when the control plane is functional enough to accept
+	// KubeadmControlPlaneInitializedV1Beta2Condition is true when the control plane is functional enough to accept
 	// requests. This information is usually used as a signal for starting all the provisioning operations that
 	// depend on a functional API server, but do not require a full HA control plane to exist.
 	KubeadmControlPlaneInitializedV1Beta2Condition = "Initialized"

@@ -332,6 +332,9 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&webhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
+	if err := (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook: %+v", err)
+	}
 	if err := (&bootstrapwebhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}

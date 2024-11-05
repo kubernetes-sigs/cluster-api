@@ -22,7 +22,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -155,7 +157,7 @@ func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) err
 	return nil
 }
 
-func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
+func (r *InMemoryClusterReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
 	// Compute the name for resource group and listener.
 	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
@@ -169,6 +171,30 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	// NOTE: We are storing in this resource group both the in memory resources (e.g. VM) as
 	// well as Kubernetes resources that are expected to exist on the workload cluster (e.g Nodes).
 	r.InMemoryManager.AddResourceGroup(resourceGroup)
+
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Create default Namespaces.
+	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nsName,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": nsName,
+				},
+			},
+		}
+
+		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get %s Namespace", nsName)
+			}
+
+			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+				return errors.Wrapf(err, "failed to create %s Namespace", nsName)
+			}
+		}
+	}
 
 	// Initialize a listener for the workload cluster; if the listener has been already initialized
 	// the operation is a no-op.

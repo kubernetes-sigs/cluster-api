@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -41,7 +42,7 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*un
 	obj.SetName(ref.Name)
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s %s/%s", obj.GetKind(), ref.Namespace, ref.Name)
+		return nil, errors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
 	}
 	return obj, nil
 }
@@ -54,7 +55,7 @@ func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) e
 	obj.SetName(ref.Name)
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Delete(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to delete %s external object %q/%q", obj.GetKind(), obj.GetNamespace(), obj.GetName())
+		return errors.Wrapf(err, "failed to delete %s external object %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
 	}
 	return nil
 }

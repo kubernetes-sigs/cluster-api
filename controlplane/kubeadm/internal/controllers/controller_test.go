@@ -3036,14 +3036,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Cluster:  cluster,
 			Machines: machines,
 		}
-		s := &scope{}
 
-		result, err := r.reconcileDelete(ctx, controlPlane, s)
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
-		g.Expect(s.deletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason))
-		g.Expect(s.deletingMessage).To(Equal("Deleting 3 Machines"))
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Deleting 3 Machines"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(ctx, &controlPlaneMachines)).To(Succeed())
@@ -3065,14 +3064,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			KCP:     kcp,
 			Cluster: cluster,
 		}
-		s = &scope{}
 
-		result, err = r.reconcileDelete(ctx, controlPlane, s)
+		result, err = r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
-		g.Expect(s.deletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason))
-		g.Expect(s.deletingMessage).To(BeEmpty())
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason))
+		g.Expect(controlPlane.DeletingMessage).To(BeEmpty())
 	})
 
 	t.Run("does not remove any control plane Machines if other Machines exist", func(t *testing.T) {
@@ -3117,14 +3115,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Cluster:  cluster,
 			Machines: machines,
 		}
-		s := &scope{}
 
-		result, err := r.reconcileDelete(ctx, controlPlane, s)
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
-		g.Expect(s.deletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(s.deletingMessage).To(Equal("Worker Machines: worker"))
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Worker Machines: worker"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3177,14 +3174,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			Cluster:  cluster,
 			Machines: machines,
 		}
-		s := &scope{}
 
-		result, err := r.reconcileDelete(ctx, controlPlane, s)
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
-		g.Expect(s.deletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(s.deletingMessage).To(Equal("MachinePools: worker"))
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("MachinePools: worker"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3216,14 +3212,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			KCP:     kcp,
 			Cluster: cluster,
 		}
-		s := &scope{}
 
-		result, err := r.reconcileDelete(ctx, controlPlane, s)
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
-		g.Expect(s.deletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason))
-		g.Expect(s.deletingMessage).To(BeEmpty())
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason))
+		g.Expect(controlPlane.DeletingMessage).To(BeEmpty())
 	})
 }
 

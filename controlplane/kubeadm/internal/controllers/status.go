@@ -147,7 +147,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 
 // updateV1Beta2Status reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
 // Note: v1beta1 conditions and fields are not managed by this func.
-func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context, controlPlane *internal.ControlPlane, s *scope) {
+func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context, controlPlane *internal.ControlPlane) {
 	// If the code failed initializing the control plane, do not update the status.
 	if controlPlane == nil {
 		return
@@ -167,8 +167,8 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setMachinesUpToDateCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
-	setDeletingCondition(ctx, controlPlane.KCP, s.deletingReason, s.deletingMessage)
-	// TODO: Available, Deleting
+	setDeletingCondition(ctx, controlPlane.KCP, controlPlane.DeletingReason, controlPlane.DeletingMessage)
+	// TODO: Available
 }
 
 func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {

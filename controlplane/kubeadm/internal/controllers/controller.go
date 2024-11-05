@@ -210,8 +210,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	s := &scope{}
-
 	defer func() {
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
@@ -224,7 +222,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			}
 		}
 
-		r.updateV1Beta2Status(ctx, controlPlane, s)
+		r.updateV1Beta2Status(ctx, controlPlane)
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
 		patchOpts := []patch.Option{}
@@ -258,7 +256,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
-		res, err = r.reconcileDelete(ctx, controlPlane, s)
+		res, err = r.reconcileDelete(ctx, controlPlane)
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {
 			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
@@ -591,26 +589,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	return nil
 }
 
-// scope holds the different objects that are read and used during the reconcile.
-type scope struct {
-	// deletingReason is the reason that should be used when setting the Deleting condition.
-	deletingReason string
-
-	// deletingMessage is the message that should be used when setting the Deleting condition.
-	deletingMessage string
-}
-
 // reconcileDelete handles KubeadmControlPlane deletion.
 // The implementation does not take non-control plane workloads into consideration. This may or may not change in the future.
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
-func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, controlPlane *internal.ControlPlane, s *scope) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
 	// If no control plane machines remain, remove the finalizer
 	if len(controlPlane.Machines) == 0 {
-		s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason
-		s.deletingMessage = ""
+		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason
+		controlPlane.DeletingMessage = ""
 
 		controllerutil.RemoveFinalizer(controlPlane.KCP, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil
@@ -631,8 +620,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, controlPlane.Cluster)
 	if err != nil {
-		s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
-		s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
+		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
+		controlPlane.DeletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
 		return ctrl.Result{}, err
 	}
 
@@ -641,8 +630,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	if feature.Gates.Enabled(feature.MachinePool) {
 		allMachinePools, err = r.managementCluster.GetMachinePoolsForCluster(ctx, controlPlane.Cluster)
 		if err != nil {
-			s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
-			s.deletingMessage = "Please check controller logs for errors"
+			controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
+			controlPlane.DeletingMessage = "Please check controller logs for errors"
 			return ctrl.Result{}, err
 		}
 	}
@@ -651,8 +640,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		log.Info("Waiting for worker nodes to be deleted first")
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 
-		s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason
-		s.deletingMessage = objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster)
+		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason
+		controlPlane.DeletingMessage = objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster)
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -689,8 +678,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedDelete",
 			"Failed to delete control plane Machines for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
 
-		s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
-		s.deletingMessage = "Please check controller logs for errors"
+		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason
+		controlPlane.DeletingMessage = "Please check controller logs for errors"
 		return ctrl.Result{}, err
 	}
 
@@ -710,8 +699,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			message += fmt.Sprintf(" and %s", staleMessage)
 		}
 	}
-	s.deletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason
-	s.deletingMessage = message
+	controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason
+	controlPlane.DeletingMessage = message
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 

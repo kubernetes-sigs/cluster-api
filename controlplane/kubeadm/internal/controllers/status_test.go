@@ -29,8 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -436,7 +438,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 	}
 }
 
-func Test_setMachinesReadyAndMachinesUpToDate(t *testing.T) {
+func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionTrue}
 	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "SomeReason", Message: "NotReady"}
 
@@ -652,6 +654,413 @@ func TestDeletingCondition(t *testing.T) {
 			deletingCondition := v1beta2conditions.Get(tc.kcp, controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition)
 			g.Expect(deletingCondition).ToNot(BeNil())
 			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func Test_setAvailableCondition(t *testing.T) {
+	certificatesReady := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition, Status: metav1.ConditionTrue}
+	certificatesNotReady := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition, Status: metav1.ConditionFalse}
+
+	apiServerPodHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionTrue}
+	apiServerPodNotHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionFalse}
+	controllerManagerPodHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionTrue}
+	schedulerPodHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionTrue}
+	etcdPodHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionTrue}
+
+	etcdMemberHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionTrue}
+	etcdMemberNotHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionFalse}
+
+	tests := []struct {
+		name            string
+		controlPlane    *internal.ControlPlane
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Kcp not yet initialized",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							},
+						},
+					},
+				},
+				EtcdMembers:                  []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList: false,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "Control plane not yet initialized",
+			},
+		},
+		{
+			name: "Failed to get etcd members",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+				},
+				EtcdMembers: nil,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason,
+				Message: "Failed to get etcd members",
+			},
+		},
+		{
+			name: "Etcd members do not agree on member list",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+				},
+				EtcdMembers:                  []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList: false,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "At least one etcd member reports a list of etcd members different than the list reported by other members",
+			},
+		},
+		{
+			name: "Etcd members do not agree on cluster ID",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+				},
+				EtcdMembers:                  []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList: true,
+				EtcdMembersAgreeOnClusterID:  false,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "At least one etcd member reports a cluster ID different than the cluster ID reported by other members",
+			},
+		},
+		{
+			name: "Etcd members and machines list do not match",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+				},
+				EtcdMembers:                       []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: false,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "The list of etcd members does not match the list of Machines and Nodes",
+			},
+		},
+		{
+			name: "KCP is available",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			},
+		},
+		{
+			name: "One not healthy etcd members, but within quorum",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			},
+		},
+		{
+			name: "Two not healthy k8s control plane, but one working",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			},
+		},
+		{
+			name: "KCP is deleting",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						DeletionTimestamp: ptr.To(metav1.Now()),
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "Control plane metadata.deletionTimestamp is set",
+			},
+		},
+		{
+			name: "Certificates are not available",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesNotReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "Control plane certificates are not available",
+			},
+		},
+		{
+			name: "Not enough healthy etcd members",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "There is 1 healthy etcd member, at least 2 required for etcd quorum",
+			},
+		},
+		{
+			name: "Not enough healthy K8s control planes",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "There are no Machines with healthy control plane components, at least 1 required",
+			},
+		},
+		{
+			name: "External etcd, at least one K8s control plane",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{External: &bootstrapv1.ExternalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+				),
+				EtcdMembers:                       nil,
+				EtcdMembersAgreeOnMemberList:      false,
+				EtcdMembersAgreeOnClusterID:       false,
+				EtcdMembersAndMachinesAreMatching: false,
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			},
+		},
+		{
+			name: "External etcd, not enough healthy K8s control planes",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{External: &bootstrapv1.ExternalEtcd{}},
+							},
+						},
+					},
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}}},
+				),
+				EtcdMembers:                       nil,
+				EtcdMembersAgreeOnMemberList:      false,
+				EtcdMembersAgreeOnClusterID:       false,
+				EtcdMembersAndMachinesAreMatching: false,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "There are no Machines with healthy control plane components, at least 1 required",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setAvailableCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.IsEtcdManaged(), tt.controlPlane.EtcdMembers, tt.controlPlane.EtcdMembersAgreeOnMemberList, tt.controlPlane.EtcdMembersAgreeOnClusterID, tt.controlPlane.EtcdMembersAndMachinesAreMatching, tt.controlPlane.Machines)
+
+			availableCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition)
+			g.Expect(availableCondition).ToNot(BeNil())
+			g.Expect(*availableCondition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

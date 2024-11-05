@@ -30,6 +30,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -57,6 +58,16 @@ type ControlPlane struct {
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
 	KubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
 	InfraResources map[string]*unstructured.Unstructured
+
+	// EtcdMembers is the list of members read while computing reconcileControlPlaneConditions; also additional info below
+	// comes from the same func.
+	// NOTE: Those info are computed based on the info KCP was able to collect during inspection (e.g. if on a 3 CP
+	// control plane one etcd member is down, those info are based on the answer collected from two members only).
+	// NOTE: Those info are specifically designed for computing KCP's Available condition.
+	EtcdMembers                       []*etcd.Member
+	EtcdMembersAgreeOnMemberList      bool
+	EtcdMembersAgreeOnClusterID       bool
+	EtcdMembersAndMachinesAreMatching bool
 
 	managementCluster ManagementCluster
 	workloadCluster   WorkloadCluster

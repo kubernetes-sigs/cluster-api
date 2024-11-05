@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
@@ -168,7 +169,7 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 	setMachinesUpToDateCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
 	setDeletingCondition(ctx, controlPlane.KCP, controlPlane.DeletingReason, controlPlane.DeletingMessage)
-	// TODO: Available
+	setAvailableCondition(ctx, controlPlane.KCP, controlPlane.IsEtcdManaged(), controlPlane.EtcdMembers, controlPlane.EtcdMembersAgreeOnMemberList, controlPlane.EtcdMembersAgreeOnClusterID, controlPlane.EtcdMembersAndMachinesAreMatching, controlPlane.Machines)
 }
 
 func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
@@ -438,6 +439,141 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 		Status:  metav1.ConditionTrue,
 		Reason:  deletingReason,
 		Message: deletingMessage,
+	})
+}
+
+func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, etcdIsManaged bool, etcdMembers []*etcd.Member, etcdMembersAgreeOnMemberList, etcdMembersAgreeOnClusterID, etcdMembersAndMachinesAreMatching bool, machines collections.Machines) {
+	if !kcp.Status.Initialized {
+		v1beta2conditions.Set(kcp, metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+			Message: "Control plane not yet initialized",
+		})
+		return
+	}
+
+	if etcdIsManaged {
+		if etcdMembers == nil {
+			v1beta2conditions.Set(kcp, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason,
+				Message: "Failed to get etcd members",
+			})
+			return
+		}
+
+		if !etcdMembersAgreeOnMemberList {
+			v1beta2conditions.Set(kcp, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "At least one etcd member reports a list of etcd members different than the list reported by other members",
+			})
+			return
+		}
+
+		if !etcdMembersAgreeOnClusterID {
+			v1beta2conditions.Set(kcp, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "At least one etcd member reports a cluster ID different than the cluster ID reported by other members",
+			})
+			return
+		}
+
+		if !etcdMembersAndMachinesAreMatching {
+			v1beta2conditions.Set(kcp, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Message: "The list of etcd members does not match the list of Machines and Nodes",
+			})
+			return
+		}
+	}
+
+	// Determine control plane availability looking at machines conditions, which at this stage are
+	// already surfacing status from etcd member and all control plane pods hosted on every machine.
+	// Note: we intentionally use the number of etcd members to determine the etcd quorum because
+	// etcd members might not match with machines, e.g. while provisioning a new machine.
+	etcdQuorum := (len(etcdMembers) / 2.0) + 1
+	k8sControlPlaneHealthy := 0
+	etcdMembersHealthy := 0
+	for _, machine := range machines {
+		// if external etcd, only look at the status of the K8s control plane components on this machine.
+		if !etcdIsManaged {
+			if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition) &&
+				v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition) &&
+				v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) {
+				k8sControlPlaneHealthy++
+			}
+			continue
+		}
+
+		// Otherwise, etcd is managed.
+		// In this case, when looking at the k8s control plane we should consider how kubeadm layouts control plane components,
+		// and more specifically:
+		// - API server on one machine only connect to the local etcd member
+		// - ControllerManager and scheduler on a machine connect to the local API server (not to the control plane endpoint)
+		// As a consequence, we consider the K8s control plane on this machine healthy only if everything is healthy.
+
+		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
+			etcdMembersHealthy++
+		}
+
+		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition) &&
+			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition) &&
+			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) &&
+			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) &&
+			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition) {
+			k8sControlPlaneHealthy++
+		}
+	}
+
+	if kcp.DeletionTimestamp.IsZero() &&
+		(!etcdIsManaged || etcdMembersHealthy >= etcdQuorum) &&
+		k8sControlPlaneHealthy >= 1 &&
+		v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition) {
+		v1beta2conditions.Set(kcp, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+		})
+		return
+	}
+
+	messages := []string{}
+	if !kcp.DeletionTimestamp.IsZero() {
+		messages = append(messages, "Control plane metadata.deletionTimestamp is set")
+	}
+
+	if !v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition) {
+		messages = append(messages, "Control plane certificates are not available")
+	}
+
+	if etcdIsManaged && etcdMembersHealthy < etcdQuorum {
+		switch etcdMembersHealthy {
+		case 0:
+			messages = append(messages, fmt.Sprintf("There are no healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+		case 1:
+			messages = append(messages, fmt.Sprintf("There is 1 healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+		default:
+			messages = append(messages, fmt.Sprintf("There are %d healthy etcd members, at least %d required for etcd quorum", etcdMembersHealthy, etcdQuorum))
+		}
+	}
+
+	if k8sControlPlaneHealthy < 1 {
+		messages = append(messages, "There are no Machines with healthy control plane components, at least 1 required")
+	}
+
+	v1beta2conditions.Set(kcp, metav1.Condition{
+		Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+		Message: strings.Join(messages, ";"),
 	})
 }
 

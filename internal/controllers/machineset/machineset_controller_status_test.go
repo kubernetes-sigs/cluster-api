@@ -753,6 +753,80 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 	}
 }
 
+func Test_setDeletingCondition(t *testing.T) {
+	tests := []struct {
+		name                                      string
+		machineSet                                *clusterv1.MachineSet
+		getAndAdoptMachinesForMachineSetSucceeded bool
+		machines                                  []*clusterv1.Machine
+		expectCondition                           metav1.Condition
+	}{
+		{
+			name:       "get machines failed",
+			machineSet: &clusterv1.MachineSet{},
+			machines:   nil,
+			getAndAdoptMachinesForMachineSetSucceeded: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineSetDeletingInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:       "not deleting",
+			machineSet: &clusterv1.MachineSet{},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason,
+			},
+		},
+		{
+			name:       "Deleting with still some machine",
+			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			machines: []*clusterv1.Machine{
+				newMachine("m1"),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+				Message: "Deleting 1 Machine",
+			},
+		},
+		{
+			name:       "Deleting with still some stale machine",
+			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			machines: []*clusterv1.Machine{
+				newStaleDeletingMachine("m1"),
+				newStaleDeletingMachine("m2"),
+				newMachine("m3"),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+				Message: "Deleting 3 Machines and Machines m1, m2 are in deletion since more than 30m",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setDeletingCondition(ctx, tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+
+			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetDeletingV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func newMachine(name string, conditions ...metav1.Condition) *clusterv1.Machine {
 	m := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

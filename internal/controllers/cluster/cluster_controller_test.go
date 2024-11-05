@@ -840,39 +840,42 @@ func TestFilterOwnedDescendants(t *testing.T) {
 }
 
 func TestObjectsPendingDelete(t *testing.T) {
+	// Note: Intentionally using random order to validate sorting.
 	d := clusterDescendants{
 		machineDeployments: clusterv1.MachineDeploymentList{
 			Items: []clusterv1.MachineDeployment{
+				newMachineDeploymentBuilder().named("md2").build(),
 				newMachineDeploymentBuilder().named("md1").build(),
 			},
 		},
 		machineSets: clusterv1.MachineSetList{
 			Items: []clusterv1.MachineSet{
-				newMachineSetBuilder().named("ms1").build(),
 				newMachineSetBuilder().named("ms2").build(),
+				newMachineSetBuilder().named("ms1").build(),
 			},
 		},
 		controlPlaneMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
 				newMachineBuilder().named("cp1").build(),
-				newMachineBuilder().named("cp2").build(),
 				newMachineBuilder().named("cp3").build(),
+				newMachineBuilder().named("cp2").build(),
 			},
 		}),
 		workerMachines: collections.FromMachineList(&clusterv1.MachineList{
 			Items: []clusterv1.Machine{
-				newMachineBuilder().named("w1").build(),
 				newMachineBuilder().named("w2").build(),
-				newMachineBuilder().named("w3").build(),
-				newMachineBuilder().named("w4").build(),
+				newMachineBuilder().named("w1").build(),
 				newMachineBuilder().named("w5").build(),
 				newMachineBuilder().named("w6").build(),
-				newMachineBuilder().named("w7").build(),
+				newMachineBuilder().named("w3").build(),
+				newMachineBuilder().named("w4").build(),
 				newMachineBuilder().named("w8").build(),
+				newMachineBuilder().named("w7").build(),
 			},
 		}),
 		machinePools: expv1.MachinePoolList{
 			Items: []expv1.MachinePool{
+				newMachinePoolBuilder().named("mp2").build(),
 				newMachinePoolBuilder().named("mp1").build(),
 			},
 		},
@@ -882,16 +885,16 @@ func TestObjectsPendingDelete(t *testing.T) {
 		g := NewWithT(t)
 
 		c := &clusterv1.Cluster{}
-		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(15))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Control plane Machines: cp1, cp2, cp3; MachineDeployments: md1; MachineSets: ms1, ms2; MachinePools: mp1; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(17))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Control plane Machines: cp1, cp2, cp3; MachineDeployments: md1, md2; MachineSets: ms1, ms2; MachinePools: mp1, mp2; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
 	})
 
 	t.Run("With a control plane object", func(t *testing.T) {
 		g := NewWithT(t)
 
 		c := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{ControlPlaneRef: &corev1.ObjectReference{Kind: "SomeKind"}}}
-		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(12))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("MachineDeployments: md1; MachineSets: ms1, ms2; MachinePools: mp1; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(14))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("MachineDeployments: md1, md2; MachineSets: ms1, ms2; MachinePools: mp1, mp2; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
 	})
 }
 

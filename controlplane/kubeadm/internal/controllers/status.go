@@ -145,9 +145,9 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	return nil
 }
 
-// updateV1beta2Status reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
+// updateV1Beta2Status reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
 // Note: v1beta1 conditions and fields are not managed by this func.
-func (r *KubeadmControlPlaneReconciler) updateV1beta2Status(ctx context.Context, controlPlane *internal.ControlPlane) {
+func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context, controlPlane *internal.ControlPlane, s *scope) {
 	// If the code failed initializing the control plane, do not update the status.
 	if controlPlane == nil {
 		return
@@ -167,7 +167,7 @@ func (r *KubeadmControlPlaneReconciler) updateV1beta2Status(ctx context.Context,
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setMachinesUpToDateCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
-
+	setDeletingCondition(ctx, controlPlane.KCP, s.deletingReason, s.deletingMessage)
 	// TODO: Available, Deleting
 }
 
@@ -420,6 +420,24 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 		Status:  metav1.ConditionTrue,
 		Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
 		Message: remediatingCondition.Message,
+	})
+}
+
+func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, deletingReason, deletingMessage string) {
+	if kcp.DeletionTimestamp.IsZero() {
+		v1beta2conditions.Set(kcp, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: controlplanev1.KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason,
+		})
+		return
+	}
+
+	v1beta2conditions.Set(kcp, metav1.Condition{
+		Type:    controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  deletingReason,
+		Message: deletingMessage,
 	})
 }
 

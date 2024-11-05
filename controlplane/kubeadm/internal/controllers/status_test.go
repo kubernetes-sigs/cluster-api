@@ -599,6 +599,63 @@ func Test_setRemediatingCondition(t *testing.T) {
 	}
 }
 
+func TestDeletingCondition(t *testing.T) {
+	testCases := []struct {
+		name            string
+		kcp             *controlplanev1.KubeadmControlPlane
+		deletingReason  string
+		deletingMessage string
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "deletionTimestamp not set",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+			},
+			deletingReason:  "",
+			deletingMessage: "",
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason,
+			},
+		},
+		{
+			name: "deletionTimestamp set (waiting for control plane Machine deletion)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "kcp-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			},
+			deletingReason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason,
+			deletingMessage: "Deleting 3 Machines",
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason,
+				Message: "Deleting 3 Machines",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setDeletingCondition(ctx, tc.kcp, tc.deletingReason, tc.deletingMessage)
+
+			deletingCondition := v1beta2conditions.Get(tc.kcp, controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition)
+			g.Expect(deletingCondition).ToNot(BeNil())
+			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	g := NewWithT(t)
 

@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -34,7 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
+	"sigs.k8s.io/cluster-api/internal/util/hash"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util"
@@ -112,7 +116,22 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 		err = input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ms.Items).NotTo(BeEmpty())
+		templateHash, err := hash.Compute(mdutil.MachineTemplateDeepCopyRolloutFields(&input.MachineDeployment.Spec.Template))
+		g.Expect(err).ToNot(HaveOccurred())
+		sort.Slice(ms.Items, func(i, j int) bool {
+			if ms.Items[i].CreationTimestamp.Equal(&ms.Items[j].CreationTimestamp) {
+				return ms.Items[i].Name < ms.Items[j].Name
+			}
+			return ms.Items[i].CreationTimestamp.Before(&ms.Items[j].CreationTimestamp)
+		})
 		machineSet := ms.Items[0]
+		for _, ms := range ms.Items {
+			label := ms.Labels[clusterv1.MachineDeploymentUniqueLabel]
+			if strings.Contains(label, string(templateHash)) {
+				machineSet = ms
+				break
+			}
+		}
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 		g.Expect(err).ToNot(HaveOccurred())
 		machines := &clusterv1.MachineList{}

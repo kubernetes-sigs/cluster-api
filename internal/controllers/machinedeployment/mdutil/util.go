@@ -438,9 +438,12 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.
+	// Remove namespace part of the ref, as it always correllates with current MD namespace
 	templateCopy.Spec.InfrastructureRef.APIVersion = templateCopy.Spec.InfrastructureRef.GroupVersionKind().Group
+	templateCopy.Spec.InfrastructureRef.Namespace = ""
 	if templateCopy.Spec.Bootstrap.ConfigRef != nil {
 		templateCopy.Spec.Bootstrap.ConfigRef.APIVersion = templateCopy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
+		templateCopy.Spec.Bootstrap.ConfigRef.Namespace = ""
 	}
 
 	return templateCopy

@@ -263,6 +263,9 @@ func TestPatchHelper(t *testing.T) {
 
 					testConditionCopy := conditions.Get(objCopy, "TestCondition")
 					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+					if testConditionCopy == nil || testConditionAfter == nil {
+						return false
+					}
 					ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 					if err != nil || !ok {
 						return false
@@ -270,6 +273,9 @@ func TestPatchHelper(t *testing.T) {
 
 					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+					if readyBefore == nil || readyAfter == nil {
+						return false
+					}
 					ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 					if err != nil || !ok {
 						return false
@@ -329,6 +335,9 @@ func TestPatchHelper(t *testing.T) {
 
 					testConditionCopy := conditions.Get(objCopy, "TestCondition")
 					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+					if testConditionCopy == nil || testConditionAfter == nil {
+						return false
+					}
 					ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 					if err != nil || !ok {
 						return false
@@ -336,6 +345,9 @@ func TestPatchHelper(t *testing.T) {
 
 					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+					if readyBefore == nil || readyAfter == nil {
+						return false
+					}
 					ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 					if err != nil || !ok {
 						return false
@@ -1135,6 +1147,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := conditions.Get(objCopy, "TestCondition")
 				testConditionAfter := conditions.Get(objAfter, "TestCondition")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1142,6 +1157,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1199,6 +1217,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := conditions.Get(objCopy, "TestCondition")
 				testConditionAfter := conditions.Get(objAfter, "TestCondition")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1206,6 +1227,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1539,6 +1563,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := conditions.Get(objCopy, "Test")
 				testConditionAfter := conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1546,6 +1573,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1553,6 +1583,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testV1Beta2ConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testV1Beta2ConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testV1Beta2ConditionCopy == nil || testV1Beta2ConditionAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1560,7 +1593,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
 				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
-				if err != nil {
+				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
 					return false
 				}
 				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
@@ -1623,6 +1656,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := conditions.Get(objCopy, "Test")
 				testConditionAfter := conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1630,6 +1666,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1637,6 +1676,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testV1Beta2ConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testV1Beta2ConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testV1Beta2ConditionCopy == nil || testV1Beta2ConditionAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -1644,6 +1686,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
 				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
@@ -1796,6 +1841,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1803,6 +1851,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
 				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
@@ -1860,6 +1911,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -1867,6 +1921,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
 				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
@@ -2046,6 +2103,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testBackCompatibilityCopy := conditions.Get(objCopy, "Test")
 				testBackCompatibilityAfter := conditions.Get(objAfter, "Test")
+				if testBackCompatibilityCopy == nil || testBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2053,6 +2113,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2060,6 +2123,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -2067,6 +2133,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2127,6 +2196,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testBackCompatibilityCopy := conditions.Get(objCopy, "Test")
 				testBackCompatibilityAfter := conditions.Get(objAfter, "Test")
+				if testBackCompatibilityCopy == nil || testBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2134,6 +2206,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err = conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2141,6 +2216,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -2148,6 +2226,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2300,6 +2381,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2307,6 +2391,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2364,6 +2451,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
 				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
+					return false
+				}
 				ok, err := conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
@@ -2371,6 +2461,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2532,6 +2625,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -2539,6 +2635,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2597,6 +2696,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
 				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				if testConditionCopy == nil || testConditionAfter == nil {
+					return false
+				}
 				ok, err := v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
@@ -2604,6 +2706,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2707,6 +2812,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err := v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
@@ -2762,6 +2870,9 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 				readyBefore := v1beta2conditions.Get(obj, "Ready")
 				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				if readyBefore == nil || readyAfter == nil {
+					return false
+				}
 				ok, err := v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false

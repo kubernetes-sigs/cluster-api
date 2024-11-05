@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -83,6 +84,45 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 
 	g.Expect(*md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+}
+
+func TestMachineDeploymentReferenceDefault(t *testing.T) {
+	g := NewWithT(t)
+	md := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-md",
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: "test-cluster",
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version: ptr.To("1.19.10"),
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{},
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	webhook := &MachineDeployment{
+		decoder: admission.NewDecoder(scheme),
+	}
+
+	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			Operation: admissionv1.Create,
+		},
+	})
+
+	t.Run("for MachineDeployment", util.CustomDefaultValidateTest(reqCtx, md, webhook))
+
+	g.Expect(webhook.Default(reqCtx, md)).To(Succeed())
+
+	g.Expect(md.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(md.Namespace))
+	g.Expect(md.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(md.Namespace))
 }
 
 func TestCalculateMachineDeploymentReplicas(t *testing.T) {

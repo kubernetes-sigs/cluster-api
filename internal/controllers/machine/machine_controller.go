@@ -309,8 +309,6 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
-			clusterv1.MachineHealthCheckSucceededCondition,
-			clusterv1.MachineOwnerRemediatedCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 			clusterv1.MachineAvailableV1Beta2Condition,

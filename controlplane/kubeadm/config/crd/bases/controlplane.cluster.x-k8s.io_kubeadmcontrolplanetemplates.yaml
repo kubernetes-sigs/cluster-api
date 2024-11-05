@@ -904,7 +904,7 @@ spec:
                               type: string
                             type: array
                           preKubeadmCommands:
-                            description: preKubeadmCommands specifies extra commands
+                            description: PreKubeadmCommands specifies extra commands
                               to run before kubeadm runs
                             items:
                               type: string

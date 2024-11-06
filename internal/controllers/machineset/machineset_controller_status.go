@@ -55,7 +55,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// MachinesUpToDate condition: aggregate the Machine's UpToDate condition.
 	setMachinesUpToDateCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
-	// TODO Deleting
+	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 }
 
 func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
@@ -273,6 +273,47 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	}
 
 	v1beta2conditions.Set(machineSet, *upToDateCondition)
+}
+
+func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+	// If we got unexpected errors in listing the machines (this should never happen), surface them.
+	if !getAndAdoptMachinesForMachineSetSucceeded {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetDeletingInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	if machineSet.DeletionTimestamp.IsZero() {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason,
+		})
+		return
+	}
+
+	message := ""
+	if len(machines) > 0 {
+		if len(machines) == 1 {
+			message = fmt.Sprintf("Deleting %d Machine", len(machines))
+		} else {
+			message = fmt.Sprintf("Deleting %d Machines", len(machines))
+		}
+		staleMessage := aggregateStaleMachines(machines)
+		if staleMessage != "" {
+			message += fmt.Sprintf(" and %s", staleMessage)
+		}
+	}
+	v1beta2conditions.Set(machineSet, metav1.Condition{
+		Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+		Message: message,
+	})
 }
 
 func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTemplateNotFound, infraMachineTemplateNotFound bool) string {

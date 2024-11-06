@@ -758,6 +758,12 @@ func withAnnotation(annotation string) machineOpt {
 	}
 }
 
+func withLabels(labels map[string]string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.ObjectMeta.Labels = labels
+	}
+}
+
 func withTimestamp(t time.Time) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.NewTime(t)

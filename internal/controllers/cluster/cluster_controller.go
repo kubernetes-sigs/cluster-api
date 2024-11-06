@@ -514,6 +514,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		machineDeploymentNames[i] = machineDeployment.Name
 	}
 	if len(machineDeploymentNames) > 0 {
+		sort.Strings(machineDeploymentNames)
 		descendants = append(descendants, "MachineDeployments: "+clog.StringListToString(machineDeploymentNames))
 	}
 	machineSetNames := make([]string, len(c.machineSets.Items))
@@ -521,6 +522,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		machineSetNames[i] = machineSet.Name
 	}
 	if len(machineSetNames) > 0 {
+		sort.Strings(machineSetNames)
 		descendants = append(descendants, "MachineSets: "+clog.StringListToString(machineSetNames))
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
@@ -529,6 +531,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 			machinePoolNames[i] = machinePool.Name
 		}
 		if len(machinePoolNames) > 0 {
+			sort.Strings(machinePoolNames)
 			descendants = append(descendants, "MachinePools: "+clog.StringListToString(machinePoolNames))
 		}
 	}

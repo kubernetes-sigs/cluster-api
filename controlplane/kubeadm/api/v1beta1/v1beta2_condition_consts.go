@@ -213,12 +213,27 @@ const (
 const (
 	// KubeadmControlPlaneDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	KubeadmControlPlaneDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-)
 
-// KubeadmControlPlane's Paused condition and corresponding reasons that will be used in v1Beta2 API version.
-const (
-	// KubeadmControlPlanePausedV1Beta2Condition is true if this resource or the Cluster it belongs to are paused.
-	KubeadmControlPlanePausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
+	// KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the KCP is not deleting because the
+	// DeletionTimestamp is not set.
+	KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason = clusterv1.DeletionTimestampNotSetV1Beta2Reason
+
+	// KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason surfaces when the KCP deletion
+	// waits for the workers to be deleted.
+	KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason = "WaitingForWorkersDeletion"
+
+	// KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason surfaces when the KCP deletion
+	// waits for the control plane Machines to be deleted.
+	KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason = "WaitingForMachineDeletion"
+
+	// KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason surfaces when the KCP deletion has been completed.
+	// This reason is set right after the `kubeadm.controlplane.cluster.x-k8s.io` finalizer is removed.
+	// This means that the object will go away (i.e. be removed from etcd), except if there are other
+	// finalizers on the KCP object.
+	KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason = clusterv1.DeletionCompletedV1Beta2Reason
+
+	// KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a KCP object.
+	KubeadmControlPlaneDeletingInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy and EtcdPodHealthy condition and corresponding

@@ -157,9 +157,23 @@ const (
 const (
 	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+)
 
+// MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
 	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
+
+	// MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the MachineSet is not deleting because the
+	// DeletionTimestamp is not set.
+	MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+
+	// MachineSetDeletingDeletionTimestampSetV1Beta2Reason surfaces when the MachineSet is deleting because the
+	// DeletionTimestamp is set.
+	MachineSetDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+
+	// MachineSetDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a MachineSet.
+	MachineSetDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // ANCHOR_END: MachineSetSpec

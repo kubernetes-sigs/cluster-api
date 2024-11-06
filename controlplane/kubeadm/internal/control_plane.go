@@ -60,6 +60,12 @@ type ControlPlane struct {
 
 	managementCluster ManagementCluster
 	workloadCluster   WorkloadCluster
+
+	// deletingReason is the reason that should be used when setting the Deleting condition.
+	DeletingReason string
+
+	// deletingMessage is the message that should be used when setting the Deleting condition.
+	DeletingMessage string
 }
 
 // PreflightCheckResults contains description about pre flight check results blocking machines creation or deletion.

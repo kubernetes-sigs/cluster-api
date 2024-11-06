@@ -641,7 +641,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason
-		controlPlane.DeletingMessage = objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster)
+		controlPlane.DeletingMessage = fmt.Sprintf("KCP deletion blocked because %s still exist", objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -727,7 +727,7 @@ func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools
 	}
 	if len(workerMachineNames) > 0 {
 		sort.Strings(workerMachineNames)
-		descendants = append(descendants, "Worker Machines: "+clog.StringListToString(workerMachineNames))
+		descendants = append(descendants, "worker Machines: "+clog.StringListToString(workerMachineNames))
 	}
 	return strings.Join(descendants, "; ")
 }

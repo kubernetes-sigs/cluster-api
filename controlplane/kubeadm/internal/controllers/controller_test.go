@@ -3079,17 +3079,19 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
-		workerMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "worker",
-				Namespace: cluster.Namespace,
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
-				},
-			},
-		}
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
-		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
+		for i := range 10 {
+			initObjs = append(initObjs, &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("worker-%d", i),
+					Namespace: cluster.Namespace,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
+				},
+			})
+		}
 
 		machines := collections.New()
 		for i := range 3 {
@@ -3121,7 +3123,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("Worker Machines: worker"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("KCP deletion blocked because worker Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more) still exist"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3138,17 +3140,19 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
-		workerMachinePool := &expv1.MachinePool{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "worker",
-				Namespace: cluster.Namespace,
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
-				},
-			},
-		}
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
-		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachinePool.DeepCopy()}
+		for i := range 10 {
+			initObjs = append(initObjs, &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("mp-%d", i),
+					Namespace: cluster.Namespace,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
+				},
+			})
+		}
 
 		machines := collections.New()
 		for i := range 3 {
@@ -3180,7 +3184,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("MachinePools: worker"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("KCP deletion blocked because MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more) still exist"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3264,7 +3268,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 	g := NewWithT(t)
 
-	g.Expect(objectsPendingDeleteNames(allMachines, machinePools, c)).To(Equal("MachinePools: mp1; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+	g.Expect(objectsPendingDeleteNames(allMachines, machinePools, c)).To(Equal("MachinePools: mp1; worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
 }
 
 // test utils.

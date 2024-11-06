@@ -1842,7 +1842,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 
-func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testing.T) {
+func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesConditions(t *testing.T) {
 	now := time.Now()
 
 	defaultMachine1 := clusterv1.Machine{
@@ -1850,7 +1850,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			Name:      "machine1-test",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Spec: clusterv1.MachineSpec{
+			Version:           ptr.To("v1.31.0"),
+			InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+		},
 	}
+	defaultMachine1NotUpToDate := defaultMachine1.DeepCopy()
+	defaultMachine1NotUpToDate.Spec.Version = ptr.To("v1.30.0")
+
 	defaultMachine2 := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine2-test",
@@ -1869,6 +1876,9 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-test",
 			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.31.0",
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialized: true,
@@ -1912,6 +1922,9 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					})
 					return kcp
 				}(),
+				Machines: map[string]*clusterv1.Machine{
+					defaultMachine1.Name: defaultMachine1.DeepCopy(),
+				},
 			},
 			expectKCPConditions: []metav1.Condition{
 				{
@@ -1930,6 +1943,194 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+				},
+			},
+		},
+		{
+			name: "Machines up to date",
+			controlPlane: func() *internal.ControlPlane {
+				controlPlane, err := internal.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP, collections.FromMachines(
+					defaultMachine1.DeepCopy(),
+				))
+				if err != nil {
+					panic(err)
+				}
+				return controlPlane
+			}(),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{
+					Workload: &internal.Workload{
+						Client: fake.NewClientBuilder().Build(),
+					},
+				},
+			},
+			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+					Message: "Following Machines are reporting etcd member unknown: machine1-test",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
+					Message: "Following Machines are reporting control plane unknown: machine1-test",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+				},
+			},
+		},
+		{
+			name: "Machines not up to date",
+			controlPlane: func() *internal.ControlPlane {
+				controlPlane, err := internal.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP, collections.FromMachines(
+					defaultMachine1NotUpToDate.DeepCopy(),
+				))
+				if err != nil {
+					panic(err)
+				}
+				return controlPlane
+			}(),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{
+					Workload: &internal.Workload{
+						Client: fake.NewClientBuilder().Build(),
+					},
+				},
+			},
+			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+					Message: "Following Machines are reporting etcd member unknown: machine1-test",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
+					Message: "Following Machines are reporting control plane unknown: machine1-test",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
+					Message: "Node does not exist",
+				},
+				{
+					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+					Message: "Version v1.30.0, v1.31.0 required",
 				},
 			},
 		},
@@ -2014,6 +2215,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+				},
 			},
 		},
 		{
@@ -2097,6 +2303,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
+				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
 			},
 		},
@@ -2204,6 +2415,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+				},
 			},
 		},
 		{
@@ -2270,6 +2486,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
+				},
+				{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
 			},
 		},
@@ -2338,7 +2559,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			}
 			tc.controlPlane.SetPatchHelpers(patchHelpers)
 
-			err := r.reconcileControlPlaneConditions(ctx, tc.controlPlane)
+			err := r.reconcileControlPlaneAndMachinesConditions(ctx, tc.controlPlane)
 			if tc.expectErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tc.expectErr))

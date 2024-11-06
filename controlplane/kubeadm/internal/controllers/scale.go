@@ -157,7 +157,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // - All the health conditions on the control plane machines are true.
 // If the control plane is not passing preflight checks, it requeue.
 //
-// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
+// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
 func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
 	logger := ctrl.LoggerFrom(ctx)
 

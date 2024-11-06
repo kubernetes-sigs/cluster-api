@@ -19,11 +19,13 @@ package internal
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -1417,6 +1419,176 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 			reason, match := matchesTemplateClonedFrom(infraConfigs, kcp, machine)
 			g.Expect(match).To(Equal(tt.expectMatch))
 			g.Expect(reason).To(Equal(tt.expectReason))
+		})
+	}
+}
+
+func TestUpToDate(t *testing.T) {
+	reconciliationTime := metav1.Now()
+
+	defaultKcp := &controlplanev1.KubeadmControlPlane{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Replicas: nil,
+			Version:  "v1.31.0",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachineTemplate", Name: "template1"},
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+					ClusterName: "foo",
+				},
+			},
+			RolloutBefore: &controlplanev1.RolloutBefore{
+				CertificatesExpiryDays: ptr.To(int32(60)), // rollout if certificates will expire in less then 60 days.
+			},
+			RolloutAfter: ptr.To(metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}), // rollout 10 days from now.
+		},
+	}
+	defaultMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * 24 * time.Hour)}, // two days ago.
+			Annotations: map[string]string{
+				controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"foo\"\n}",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Version:           ptr.To("v1.31.0"),
+			InfrastructureRef: corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachine", Name: "infra-machine1"},
+		},
+		Status: clusterv1.MachineStatus{
+			CertificatesExpiryDate: &metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
+		},
+	}
+
+	defaultInfraConfigs := map[string]*unstructured.Unstructured{
+		defaultMachine.Name: {
+			Object: map[string]interface{}{
+				"kind":       "AWSMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": "default",
+					"annotations": map[string]interface{}{
+						"cluster.x-k8s.io/cloned-from-name":      "template1",
+						"cluster.x-k8s.io/cloned-from-groupkind": "AWSMachineTemplate.infrastructure.cluster.x-k8s.io",
+					},
+				},
+			},
+		},
+	}
+
+	defaultMachineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+		defaultMachine.Name: {
+			Spec: bootstrapv1.KubeadmConfigSpec{
+				InitConfiguration: &bootstrapv1.InitConfiguration{}, // first control-plane
+			},
+		},
+	}
+
+	tests := []struct {
+		name                    string
+		kcp                     *controlplanev1.KubeadmControlPlane
+		machine                 *clusterv1.Machine
+		infraConfigs            map[string]*unstructured.Unstructured
+		machineConfigs          map[string]*bootstrapv1.KubeadmConfig
+		expectUptoDate          bool
+		expectLogMessages       []string
+		expectConditionMessages []string
+	}{
+		{
+			name:                    "machine up-to-date",
+			kcp:                     defaultKcp,
+			machine:                 defaultMachine,
+			infraConfigs:            defaultInfraConfigs,
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          true,
+			expectLogMessages:       nil,
+			expectConditionMessages: nil,
+		},
+		{
+			name: "certificate are expiring soon",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
+					CertificatesExpiryDays: ptr.To(int32(150)), // rollout if certificates will expire in less then 150 days.
+				}
+				return kcp
+			}(),
+			machine:                 defaultMachine, // certificates will expire in 100 days from now.
+			infraConfigs:            defaultInfraConfigs,
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          false,
+			expectLogMessages:       []string{"certificates will expire soon, rolloutBefore expired"},
+			expectConditionMessages: []string{"Certificates will expire soon"},
+		},
+		{
+			name: "rollout after expired",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.RolloutAfter = ptr.To(metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}) // one day ago
+				return kcp
+			}(),
+			machine:                 defaultMachine, // created two days ago
+			infraConfigs:            defaultInfraConfigs,
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          false,
+			expectLogMessages:       []string{"rolloutAfter expired"},
+			expectConditionMessages: []string{"KubeadmControlPlane spec.rolloutAfter expired"},
+		},
+		{
+			name: "kubernetes version does not match",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.Version = "v1.31.2"
+				return kcp
+			}(),
+			machine:                 defaultMachine, // defaultMachine has "v1.31.0"
+			infraConfigs:            defaultInfraConfigs,
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          false,
+			expectLogMessages:       []string{"Machine version \"v1.31.0\" is not equal to KCP version \"v1.31.2\""},
+			expectConditionMessages: []string{"Version v1.31.0, v1.31.2 required"},
+		},
+		{
+			name: "KubeadmConfig is not up-to-date",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ClusterName = "bar"
+				return kcp
+			}(),
+			machine:                 defaultMachine, // was created with cluster name "foo"
+			infraConfigs:            defaultInfraConfigs,
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          false,
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta1.ClusterConfiguration{\n    ... // 10 identical fields\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n-   ClusterName:     \"foo\",\n+   ClusterName:     \"bar\",\n  }"},
+			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
+		},
+		{
+			name: "AWSMachine is not up-to-date",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
+				return kcp
+			}(),
+			machine:                 defaultMachine,
+			infraConfigs:            defaultInfraConfigs, // infra config cloned from template1
+			machineConfigs:          defaultMachineConfigs,
+			expectUptoDate:          false,
+			expectLogMessages:       []string{"Infrastructure template on KCP rotated from AWSMachineTemplate.infrastructure.cluster.x-k8s.io template1 to AWSMachineTemplate.infrastructure.cluster.x-k8s.io template2"},
+			expectConditionMessages: []string{"AWSMachine is not up-to-date"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			upToDate, logMessages, conditionMessages, err := UpToDate(tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
+			g.Expect(logMessages).To(Equal(tt.expectLogMessages))
+			g.Expect(conditionMessages).To(Equal(tt.expectConditionMessages))
 		})
 	}
 }

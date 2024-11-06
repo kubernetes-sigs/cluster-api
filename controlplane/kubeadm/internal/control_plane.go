@@ -45,6 +45,10 @@ type ControlPlane struct {
 	Machines             collections.Machines
 	machinesPatchHelpers map[string]*patch.Helper
 
+	machinesNotUptoDate                  collections.Machines
+	machinesNotUptoDateLogMessages       map[string][]string
+	machinesNotUptoDateConditionMessages map[string][]string
+
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
 
@@ -108,15 +112,35 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 		patchHelpers[machine.Name] = patchHelper
 	}
 
+	// Select machines that should be rolled out because of an outdated configuration or because rolloutAfter/Before expired.
+	reconciliationTime := metav1.Now()
+	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
+	machinesNotUptoDateLogMessages := map[string][]string{}
+	machinesNotUptoDateConditionMessages := map[string][]string{}
+	for _, m := range ownedMachines {
+		upToDate, logMessages, conditionMessages, err := UpToDate(m, kcp, &reconciliationTime, infraObjects, kubeadmConfigs)
+		if err != nil {
+			return nil, err
+		}
+		if !upToDate {
+			machinesNotUptoDate.Insert(m)
+			machinesNotUptoDateLogMessages[m.Name] = logMessages
+			machinesNotUptoDateConditionMessages[m.Name] = conditionMessages
+		}
+	}
+
 	return &ControlPlane{
-		KCP:                  kcp,
-		Cluster:              cluster,
-		Machines:             ownedMachines,
-		machinesPatchHelpers: patchHelpers,
-		KubeadmConfigs:       kubeadmConfigs,
-		InfraResources:       infraObjects,
-		reconciliationTime:   metav1.Now(),
-		managementCluster:    managementCluster,
+		KCP:                                  kcp,
+		Cluster:                              cluster,
+		Machines:                             ownedMachines,
+		machinesPatchHelpers:                 patchHelpers,
+		machinesNotUptoDate:                  machinesNotUptoDate,
+		machinesNotUptoDateLogMessages:       machinesNotUptoDateLogMessages,
+		machinesNotUptoDateConditionMessages: machinesNotUptoDateConditionMessages,
+		KubeadmConfigs:                       kubeadmConfigs,
+		InfraResources:                       infraObjects,
+		reconciliationTime:                   reconciliationTime,
+		managementCluster:                    managementCluster,
 	}, nil
 }
 
@@ -163,16 +187,12 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, machin
 	return failuredomains.PickMost(ctx, c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, machines)
 }
 
-// NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date machines.
+// NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines.
 func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil, nil
 	}
-	upToDateMachines, err := c.UpToDateMachines()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to determine next failure domain for scale up")
-	}
-	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), upToDateMachines), nil
+	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
@@ -209,40 +229,21 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]string, error) {
-	// Ignore machines to be deleted.
-	machines := c.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
+func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string][]string) {
+	// Note: Machines already deleted are dropped because they will be replaced by new machines after deletion completes.
+	return c.machinesNotUptoDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUptoDateLogMessages
+}
 
-	// Return machines if they are scheduled for rollout or if with an outdated configuration.
-	machinesNeedingRollout := make(collections.Machines, len(machines))
-	rolloutReasons := map[string]string{}
-	for _, m := range machines {
-		reason, needsRollout, err := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
-		if err != nil {
-			return nil, nil, err
-		}
-		if needsRollout {
-			machinesNeedingRollout.Insert(m)
-			rolloutReasons[m.Name] = reason
-		}
-	}
-	return machinesNeedingRollout, rolloutReasons, nil
+// NotUpToDateMachines return a list of machines that are not up to date with the control
+// plane's configuration.
+func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string][]string) {
+	return c.machinesNotUptoDate, c.machinesNotUptoDateConditionMessages
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
-// plane's configuration and therefore do not require rollout.
-func (c *ControlPlane) UpToDateMachines() (collections.Machines, error) {
-	upToDateMachines := make(collections.Machines, len(c.Machines))
-	for _, m := range c.Machines {
-		_, needsRollout, err := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
-		if err != nil {
-			return nil, err
-		}
-		if !needsRollout {
-			upToDateMachines.Insert(m)
-		}
-	}
-	return upToDateMachines, nil
+// plane's configuration.
+func (c *ControlPlane) UpToDateMachines() collections.Machines {
+	return c.Machines.Difference(c.machinesNotUptoDate)
 }
 
 // getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.
@@ -327,6 +328,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
 			}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.MachineUpToDateV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,

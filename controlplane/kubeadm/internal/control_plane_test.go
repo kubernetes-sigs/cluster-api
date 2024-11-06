@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -30,8 +31,6 @@ import (
 )
 
 func TestControlPlane(t *testing.T) {
-	g := NewWithT(t)
-
 	t.Run("Failure domains", func(t *testing.T) {
 		controlPlane := &ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{},
@@ -53,13 +52,87 @@ func TestControlPlane(t *testing.T) {
 		}
 
 		t.Run("With all machines in known failure domain, should return the FD with most number of machines", func(*testing.T) {
+			g := NewWithT(t)
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("two"))
 		})
 
 		t.Run("With some machines in non defined failure domains", func(*testing.T) {
+			g := NewWithT(t)
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
 		})
+	})
+
+	t.Run("MachinesUpToDate", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := &clusterv1.Cluster{
+			Status: clusterv1.ClusterStatus{
+				FailureDomains: clusterv1.FailureDomains{
+					"one":   failureDomain(true),
+					"two":   failureDomain(true),
+					"three": failureDomain(true),
+				},
+			},
+		}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.31.0",
+			},
+		}
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("one"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+				}},
+			"machine-2": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m2"},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.29.0"), // not up-to-date
+					FailureDomain:     ptr.To("two"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m2"},
+				}},
+			"machine-3": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.29.3"), // not up-to-date
+					FailureDomain:     ptr.To("three"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m3"},
+				}},
+			"machine-4": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("two"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+				}},
+		}
+		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), cluster, kcp, machines)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		g.Expect(controlPlane.Machines).To(HaveLen(4))
+
+		machinesNotUptoDate, machinesNotUptoDateConditionMessages := controlPlane.NotUpToDateMachines()
+		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
+		g.Expect(machinesNotUptoDateConditionMessages).To(HaveLen(2))
+		g.Expect(machinesNotUptoDateConditionMessages).To(HaveKeyWithValue("m2", []string{"Version v1.29.0, v1.31.0 required"}))
+		g.Expect(machinesNotUptoDateConditionMessages).To(HaveKeyWithValue("m3", []string{"Version v1.29.3, v1.31.0 required"}))
+
+		machinesNeedingRollout, machinesNotUptoDateLogMessages := controlPlane.MachinesNeedingRollout()
+		g.Expect(machinesNeedingRollout.Names()).To(ConsistOf("m2"))
+		g.Expect(machinesNotUptoDateLogMessages).To(HaveLen(2))
+		g.Expect(machinesNotUptoDateLogMessages).To(HaveKeyWithValue("m2", []string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
+		g.Expect(machinesNotUptoDateLogMessages).To(HaveKeyWithValue("m3", []string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
+
+		upToDateMachines := controlPlane.UpToDateMachines()
+		g.Expect(upToDateMachines).To(HaveLen(2))
+		g.Expect(upToDateMachines.Names()).To(ConsistOf("m1", "m4"))
+
+		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(fd).To(Equal(ptr.To("two"))) // deleted up-to-date machines should not be counted when picking the next failure domain for scale up
 	})
 }
 

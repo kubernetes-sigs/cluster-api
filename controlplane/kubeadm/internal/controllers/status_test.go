@@ -565,7 +565,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
-				Message: "Machine m2 is not healthy (not to be remediated by KCP)",
+				Message: "Machine m2 is not healthy (not to be remediated by KubeadmControlPlane)",
 			},
 		},
 		{
@@ -582,7 +582,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
-				Message: "Machines m1, m2 are not healthy (not to be remediated by KCP)",
+				Message: "Machines m1, m2 are not healthy (not to be remediated by KubeadmControlPlane)",
 			},
 		},
 	}

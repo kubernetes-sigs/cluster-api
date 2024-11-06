@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing node drain timeout", func() {
+var _ = Describe("When testing Node drain", func() {
 	NodeDrainTimeoutSpec(ctx, func() NodeDrainTimeoutSpecInput {
 		return NodeDrainTimeoutSpecInput{
 			E2EConfig:              e2eConfig,

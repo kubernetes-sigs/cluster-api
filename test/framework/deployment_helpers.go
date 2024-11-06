@@ -496,6 +496,8 @@ type DeployUnevictablePodInput struct {
 	Namespace            string
 	NodeSelector         map[string]string
 
+	ModifyDeployment func(deployment *appsv1.Deployment)
+
 	WaitForDeploymentAvailableInterval []interface{}
 }
 
@@ -517,6 +519,8 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		Namespace:         input.Namespace,
 		NodeSelector:      input.NodeSelector,
 	})
+
+	input.ModifyDeployment(workloadDeployment)
 
 	workloadClient := input.WorkloadClusterProxy.GetClientSet()
 

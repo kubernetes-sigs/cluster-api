@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -1125,17 +1126,19 @@ func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Clien
 		attachedVolumeName.Insert(string(attachedVolume.Name))
 	}
 
-	volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to list VolumeAttachments")
-	}
-
-	for _, va := range volumeAttachments {
-		// Return an error if a VolumeAttachments does not refer a PersistentVolume.
-		if va.Spec.Source.PersistentVolumeName == nil {
-			return nil, nil, errors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
+	if feature.Gates.Enabled(feature.MachineWaitForVolumeDetachConsiderVolumeAttachments) {
+		volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to list VolumeAttachments")
 		}
-		attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
+
+		for _, va := range volumeAttachments {
+			// Return an error if a VolumeAttachments does not refer a PersistentVolume.
+			if va.Spec.Source.PersistentVolumeName == nil {
+				return nil, nil, errors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
+			}
+			attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
+		}
 	}
 
 	return attachedVolumeName, attachedPVNames, nil

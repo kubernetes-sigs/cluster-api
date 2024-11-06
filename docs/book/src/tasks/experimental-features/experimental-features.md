@@ -3,6 +3,18 @@
 Cluster API now ships with a new experimental package that lives under the `exp/` directory. This is a
 temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
 
+Currently Cluster API has the following experimental features:
+* `ClusterResourceSet` (env var: `EXP_CLUSTER_RESOURCE_SET`): [ClusterResourceSet](./cluster-resource-set.md)
+* `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
+* `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
+* `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):
+  * During Machine drain the Machine controller waits for volumes to be detached. Per default, the controller considers
+    `Nodes.status.volumesAttached` and `VolumesAttachments`. This feature flag allows to opt-out from considering `VolumeAttachments`.
+    The feature gate was added to allow to opt-out in case unforeseen issues occur with `VolumeAttachments`.
+* `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
+* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
+* `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
+
 ## Enabling Experimental Features for Management Clusters Started with clusterctl
 
 Users can enable/disable features by setting OS environment variables before running `clusterctl init`, e.g.:

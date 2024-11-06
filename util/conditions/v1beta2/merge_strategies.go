@@ -76,13 +76,15 @@ type MergeStrategy interface {
 // DefaultMergeStrategyWithCustomPriority is the default merge strategy with a customized getPriority function.
 func DefaultMergeStrategyWithCustomPriority(getPriorityFunc func(condition metav1.Condition) MergePriority) MergeStrategy {
 	return &defaultMergeStrategy{
-		getPriorityFunc: getPriorityFunc,
+		targetConditionHasPositivePolarity: true,
+		getPriorityFunc:                    getPriorityFunc,
 	}
 }
 
-func newDefaultMergeStrategy(negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
+func newDefaultMergeStrategy(targetConditionHasPositivePolarity bool, negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
 	return &defaultMergeStrategy{
-		getPriorityFunc: GetDefaultMergePriorityFunc(negativePolarityConditionTypes),
+		targetConditionHasPositivePolarity: targetConditionHasPositivePolarity,
+		getPriorityFunc:                    GetDefaultMergePriorityFunc(negativePolarityConditionTypes),
 	}
 }
 
@@ -129,7 +131,8 @@ const (
 
 // defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
 type defaultMergeStrategy struct {
-	getPriorityFunc func(condition metav1.Condition) MergePriority
+	getPriorityFunc                    func(condition metav1.Condition) MergePriority
+	targetConditionHasPositivePolarity bool
 }
 
 // Merge all conditions in input based on a strategy that surfaces issues first, then unknown conditions, then info (if none of issues and unknown condition exists).
@@ -166,11 +169,19 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// - else if there are info, use true
 	switch {
 	case len(issueConditions) > 0:
-		status = metav1.ConditionFalse
+		if d.targetConditionHasPositivePolarity {
+			status = metav1.ConditionFalse
+		} else {
+			status = metav1.ConditionTrue
+		}
 	case len(unknownConditions) > 0:
 		status = metav1.ConditionUnknown
 	case len(infoConditions) > 0:
-		status = metav1.ConditionTrue
+		if d.targetConditionHasPositivePolarity {
+			status = metav1.ConditionTrue
+		} else {
+			status = metav1.ConditionFalse
+		}
 	default:
 		// NOTE: this is already handled above, but repeating also here for better readability.
 		return "", "", "", errors.New("can't merge an empty list of conditions")
@@ -433,7 +444,7 @@ func getConditionOwnerInfo(obj any) ConditionOwnerInfo {
 		}
 	}
 
-	if objMeta, ok := obj.(metav1.Object); ok {
+	if objMeta, ok := obj.(objectWithName); ok {
 		name = objMeta.GetName()
 	}
 
@@ -441,4 +452,9 @@ func getConditionOwnerInfo(obj any) ConditionOwnerInfo {
 		Kind: kind,
 		Name: name,
 	}
+}
+
+// objectWithName is a subset of metav1.Object.
+type objectWithName interface {
+	GetName() string
 }

@@ -87,15 +87,15 @@ func IsUnknown(from Getter, conditionType string) bool {
 	return true
 }
 
-// UnstructuredGet returns a condition from an Unstructured object.
+// UnstructuredGetAll returns conditions from an Unstructured object.
 //
-// UnstructuredGet supports retrieving conditions from objects at different stages of the transition from
+// UnstructuredGetAll supports retrieving conditions from objects at different stages of the transition from
 // clusterv1.conditions to the metav1.Condition type:
 //   - Objects with clusterv1.Conditions in status.conditions; in this case a best effort conversion
 //     to metav1.Condition is performed, just enough to allow surfacing a condition from a provider object with Mirror
 //   - Objects with metav1.Condition in status.v1beta2.conditions
 //   - Objects with metav1.Condition in status.conditions
-func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string) (*metav1.Condition, error) {
+func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, error) {
 	if util.IsNil(sourceObj) {
 		return nil, errors.New("sourceObj is nil")
 	}
@@ -109,7 +109,7 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to convert status.v1beta2.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
-			return meta.FindStatusCondition(r, sourceConditionType), nil
+			return r, nil
 		}
 	}
 
@@ -120,13 +120,29 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to convert status.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
-			return meta.FindStatusCondition(r, sourceConditionType), nil
+			return r, nil
 		}
 	}
 
 	// With unstructured, it is not possible to detect if conditions are not set if the type is wrongly defined.
 	// This methods assume condition are not set.
 	return nil, nil
+}
+
+// UnstructuredGet returns a condition from an Unstructured object.
+//
+// UnstructuredGet supports retrieving conditions from objects at different stages of the transition from
+// clusterv1.conditions to the metav1.Condition type:
+//   - Objects with clusterv1.Conditions in status.conditions; in this case a best effort conversion
+//     to metav1.Condition is performed, just enough to allow surfacing a condition from a provider object with Mirror
+//   - Objects with metav1.Condition in status.v1beta2.conditions
+//   - Objects with metav1.Condition in status.conditions
+func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string) (*metav1.Condition, error) {
+	r, err := UnstructuredGetAll(sourceObj)
+	if err != nil {
+		return nil, err
+	}
+	return meta.FindStatusCondition(r, sourceConditionType), nil
 }
 
 // convertFromUnstructuredConditions converts []interface{} to []metav1.Condition; this operation must account for

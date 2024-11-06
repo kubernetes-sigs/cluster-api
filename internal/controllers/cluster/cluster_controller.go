@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -49,8 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	conditionsv1beta2 "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
+	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -60,6 +62,9 @@ const (
 	// deleteRequeueAfter is how long to wait before checking again to see if the cluster still has children during
 	// deletion.
 	deleteRequeueAfter = 5 * time.Second
+
+	// remoteConnectionProbeSucceededMessage is the message to be used when remote connection probe succeeded.
+	remoteConnectionProbeSucceededMessage = "Remote connection probe succeeded"
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -154,8 +159,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	}
 
 	defer func() {
-		// Always reconcile the Status.Phase field.
-		r.reconcilePhase(ctx, cluster)
+		// Always reconcile the Status.
+		r.updateStatus(ctx, s)
 
 		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
@@ -180,18 +185,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		} else {
 			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", lastProbeSuccessTime.Format(time.RFC3339))
 		}
-		conditionsv1beta2.Set(cluster, metav1.Condition{
+		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason,
 			Message: msg,
 		})
 	} else {
-		conditionsv1beta2.Set(cluster, metav1.Condition{
+		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 			Status:  metav1.ConditionTrue,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
-			Message: "Remote connection probe succeeded",
+			Message: remoteConnectionProbeSucceededMessage,
 		})
 	}
 
@@ -299,6 +304,12 @@ type scope struct {
 
 	// getDescendantsSucceeded documents if getDescendants succeeded.
 	getDescendantsSucceeded bool
+
+	// deletingReason is the reason that should be used when setting the Deleting condition.
+	deletingReason string
+
+	// deletingMessage is the message that should be used when setting the Deleting condition.
+	deletingMessage string
 }
 
 // reconcileDelete handles cluster deletion.
@@ -310,19 +321,24 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
 	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
 		if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason
+			s.deletingMessage = ""
 			return ctrl.Result{}, nil
 		}
 	}
 
 	// If it failed to get descendants, no-op.
 	if !s.getDescendantsSucceeded {
+		s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+		s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
 		return reconcile.Result{}, nil
 	}
 
 	children, err := s.descendants.filterOwnedDescendants(cluster)
 	if err != nil {
-		log.Error(err, "Failed to extract direct descendants")
-		return reconcile.Result{}, err
+		s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+		s.deletingMessage = "Please check controller logs for errors"
+		return reconcile.Result{}, errors.Wrapf(err, "failed to extract direct descendants")
 	}
 
 	if len(children) > 0 {
@@ -352,6 +368,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		}
 
 		if len(errs) > 0 {
+			s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+			s.deletingMessage = "Please check controller logs for errors"
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
 	}
@@ -359,6 +377,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	if descendantCount := s.descendants.objectsPendingDeleteCount(cluster); descendantCount > 0 {
 		indirect := descendantCount - len(children)
 		log.Info("Cluster still has descendants - need to requeue", "descendants", s.descendants.objectsPendingDeleteNames(cluster), "indirect descendants count", indirect)
+
+		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason
+		s.deletingMessage = s.descendants.objectsPendingDeleteNames(cluster)
+
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -368,6 +390,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			if !s.controlPlaneIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
 				// Note: this error surfaces in reconcile reconcileControlPlane.
+				s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+				s.deletingMessage = "Please check controller logs for errors"
+
 				return ctrl.Result{}, nil
 			}
 			// All good - the control plane resource has been deleted
@@ -380,6 +405,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				// Once it's been deleted, the cluster will get processed again.
 				if err := r.Client.Delete(ctx, s.controlPlane); err != nil {
 					if !apierrors.IsNotFound(err) {
+						s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+						s.deletingMessage = "Please check controller logs for errors"
 						return ctrl.Result{}, errors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
 							s.controlPlane.GroupVersionKind().Kind, s.controlPlane.GetName(), cluster.Name, cluster.Namespace)
@@ -388,6 +415,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			}
 
 			// Return here so we don't remove the finalizer yet.
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForControlPlaneDeletionV1Beta2Reason
+			s.deletingMessage = ""
+
 			log.Info("Cluster still has descendants - need to requeue", "controlPlaneRef", cluster.Spec.ControlPlaneRef.Name)
 			return ctrl.Result{}, nil
 		}
@@ -398,6 +428,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			if !s.infraClusterIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
 				// Note: this error surfaces in reconcile reconcileInfrastructure.
+				s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+				s.deletingMessage = "Please check controller logs for errors"
+
 				return ctrl.Result{}, nil
 			}
 			// All good - the infra resource has been deleted
@@ -410,6 +443,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				// Once it's been deleted, the cluster will get processed again.
 				if err := r.Client.Delete(ctx, s.infraCluster); err != nil {
 					if !apierrors.IsNotFound(err) {
+						s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+						s.deletingMessage = "Please check controller logs for errors"
 						return ctrl.Result{}, errors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
 							s.infraCluster.GroupVersionKind().Kind, s.infraCluster.GetName(), cluster.Name, cluster.Namespace)
@@ -418,10 +453,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			}
 
 			// Return here so we don't remove the finalizer yet.
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForInfrastructureDeletionV1Beta2Reason
+			s.deletingMessage = ""
+
 			log.Info("Cluster still has descendants - need to requeue", "infrastructureRef", cluster.Spec.InfrastructureRef.Name)
 			return ctrl.Result{}, nil
 		}
 	}
+
+	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedV1Beta2Reason
+	s.deletingMessage = ""
 
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)
@@ -429,23 +470,26 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 }
 
 type clusterDescendants struct {
-	machineDeployments   clusterv1.MachineDeploymentList
-	machineSets          clusterv1.MachineSetList
-	controlPlaneMachines clusterv1.MachineList
-	workerMachines       clusterv1.MachineList
-	machinePools         expv1.MachinePoolList
+	machineDeployments     clusterv1.MachineDeploymentList
+	machineSets            clusterv1.MachineSetList
+	allMachines            collections.Machines
+	controlPlaneMachines   collections.Machines
+	workerMachines         collections.Machines
+	machinesToBeRemediated collections.Machines
+	unhealthyMachines      collections.Machines
+	machinePools           expv1.MachinePoolList
 }
 
 // objectsPendingDeleteCount returns the number of descendants pending delete.
 // Note: infrastructure cluster, control plane object and its controlled machines are not included.
 func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluster) int {
-	n := len(c.machineDeployments.Items) +
+	n := len(c.machinePools.Items) +
+		len(c.machineDeployments.Items) +
 		len(c.machineSets.Items) +
-		len(c.workerMachines.Items) +
-		len(c.machinePools.Items)
+		len(c.workerMachines)
 
 	if cluster.Spec.ControlPlaneRef == nil {
-		n += len(c.controlPlaneMachines.Items)
+		n += len(c.controlPlaneMachines)
 	}
 
 	return n
@@ -456,12 +500,13 @@ func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluste
 func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluster) string {
 	descendants := make([]string, 0)
 	if cluster.Spec.ControlPlaneRef == nil {
-		controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines.Items))
-		for i, controlPlaneMachine := range c.controlPlaneMachines.Items {
+		controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines))
+		for i, controlPlaneMachine := range c.controlPlaneMachines.UnsortedList() {
 			controlPlaneMachineNames[i] = controlPlaneMachine.Name
 		}
 		if len(controlPlaneMachineNames) > 0 {
-			descendants = append(descendants, "Control plane machines: "+strings.Join(controlPlaneMachineNames, ","))
+			sort.Strings(controlPlaneMachineNames)
+			descendants = append(descendants, "Control plane Machines: "+clog.StringListToString(controlPlaneMachineNames))
 		}
 	}
 	machineDeploymentNames := make([]string, len(c.machineDeployments.Items))
@@ -469,14 +514,14 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		machineDeploymentNames[i] = machineDeployment.Name
 	}
 	if len(machineDeploymentNames) > 0 {
-		descendants = append(descendants, "Machine deployments: "+strings.Join(machineDeploymentNames, ","))
+		descendants = append(descendants, "MachineDeployments: "+clog.StringListToString(machineDeploymentNames))
 	}
 	machineSetNames := make([]string, len(c.machineSets.Items))
 	for i, machineSet := range c.machineSets.Items {
 		machineSetNames[i] = machineSet.Name
 	}
 	if len(machineSetNames) > 0 {
-		descendants = append(descendants, "Machine sets: "+strings.Join(machineSetNames, ","))
+		descendants = append(descendants, "MachineSets: "+clog.StringListToString(machineSetNames))
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		machinePoolNames := make([]string, len(c.machinePools.Items))
@@ -484,15 +529,16 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 			machinePoolNames[i] = machinePool.Name
 		}
 		if len(machinePoolNames) > 0 {
-			descendants = append(descendants, "Machine pools: "+strings.Join(machinePoolNames, ","))
+			descendants = append(descendants, "MachinePools: "+clog.StringListToString(machinePoolNames))
 		}
 	}
-	workerMachineNames := make([]string, len(c.workerMachines.Items))
-	for i, workerMachine := range c.workerMachines.Items {
+	workerMachineNames := make([]string, len(c.workerMachines))
+	for i, workerMachine := range c.workerMachines.UnsortedList() {
 		workerMachineNames[i] = workerMachine.Name
 	}
 	if len(workerMachineNames) > 0 {
-		descendants = append(descendants, "Worker machines: "+strings.Join(workerMachineNames, ","))
+		sort.Strings(workerMachineNames)
+		descendants = append(descendants, "Worker Machines: "+clog.StringListToString(workerMachineNames))
 	}
 	return strings.Join(descendants, "; ")
 }
@@ -526,12 +572,11 @@ func (r *Reconciler) getDescendants(ctx context.Context, s *scope) (reconcile.Re
 	}
 
 	// Split machines into control plane and worker machines
-	machineCollection := collections.FromMachineList(&machines)
-	controlPlaneMachines := machineCollection.Filter(collections.ControlPlaneMachines(cluster.Name))
-	workerMachines := machineCollection.Difference(controlPlaneMachines)
-
-	descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
-	descendants.workerMachines = collections.ToMachineList(workerMachines)
+	descendants.allMachines = collections.FromMachineList(&machines)
+	descendants.controlPlaneMachines = descendants.allMachines.Filter(collections.ControlPlaneMachines(cluster.Name))
+	descendants.workerMachines = descendants.allMachines.Difference(descendants.controlPlaneMachines)
+	descendants.machinesToBeRemediated = descendants.allMachines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+	descendants.unhealthyMachines = descendants.allMachines.Filter(collections.IsUnhealthy)
 
 	s.descendants = descendants
 	s.getDescendantsSucceeded = true
@@ -559,10 +604,21 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 		return nil
 	}
 
+	toObjectList := func(c collections.Machines) client.ObjectList {
+		l := &clusterv1.MachineList{}
+		for _, m := range c.UnsortedList() {
+			l.Items = append(l.Items, *m)
+		}
+		sort.Slice(l.Items, func(i, j int) bool {
+			return l.Items[i].Name < l.Items[j].Name
+		})
+		return l
+	}
+
 	lists := []client.ObjectList{
 		&c.machineDeployments,
 		&c.machineSets,
-		&c.workerMachines,
+		toObjectList(c.workerMachines),
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		lists = append([]client.ObjectList{&c.machinePools}, lists...)
@@ -578,7 +634,7 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 	// More specifically, when deleting a Cluster with stand-alone control plane machines, stand-alone control plane machines
 	// will be decommissioned in parallel with other machines, no matter of them being added as last in this list.
 	if cluster.Spec.ControlPlaneRef == nil {
-		lists = append(lists, []client.ObjectList{&c.controlPlaneMachines}...)
+		lists = append(lists, toObjectList(c.controlPlaneMachines))
 	}
 
 	for _, list := range lists {

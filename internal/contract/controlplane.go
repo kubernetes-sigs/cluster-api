@@ -119,6 +119,41 @@ func (c *ControlPlaneContract) UnavailableReplicas() *Int64 {
 	}
 }
 
+// V1Beta2ReadyReplicas provide access to readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2ReadyReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "readyReplicas"},
+			[]string{"status", "readyReplicas"},
+		},
+	}
+}
+
+// V1Beta2AvailableReplicas provide access to the availableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2AvailableReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "availableReplicas"},
+			[]string{"status", "availableReplicas"},
+		},
+	}
+}
+
+// V1Beta2UpToDateReplicas provide access to the upToDateReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2UpToDateReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "upToDateReplicas"},
+			[]string{"status", "upToDateReplicas"},
+		},
+	}
+}
+
+// AvailableConditionType returns the type of the available condition.
+func (c *ControlPlaneContract) AvailableConditionType() string {
+	return "Available"
+}
+
 // Selector provide access to the status.selector field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) Selector() *String {
 	return &String{

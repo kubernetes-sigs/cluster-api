@@ -141,7 +141,7 @@ func TestSummary(t *testing.T) {
 				{Type: "!C", Status: metav1.ConditionFalse, Reason: "Reason-!C", Message: "Message-!C"}, // info
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, CustomMergeStrategy{newDefaultMergeStrategy(sets.New("!C"))}},
+			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, CustomMergeStrategy{newDefaultMergeStrategy(true, sets.New("!C"))}},
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionTrue,           // True because there are many info
@@ -239,6 +239,22 @@ func TestSummary(t *testing.T) {
 				Reason:  "Reason-C-additional",      // Picking the reason from the additional condition
 				Message: "!C: Message-C-additional", // Picking the message from the additional condition (info dropped)
 			},
+		},
+		{
+			name:          "Error if ForConditionTypes is not set",
+			conditions:    []metav1.Condition{},
+			conditionType: clusterv1.AvailableV1Beta2Condition,
+			options:       []SummaryOption{},
+			wantErr:       true,
+		},
+		{
+			name:          "Error if ForConditionTypes includes target condition",
+			conditions:    []metav1.Condition{},
+			conditionType: clusterv1.AvailableV1Beta2Condition,
+			options: []SummaryOption{
+				ForConditionTypes{clusterv1.AvailableV1Beta2Condition},
+			},
+			wantErr: true,
 		},
 		{
 			name: "Error if the same override condition is specified multiple times",

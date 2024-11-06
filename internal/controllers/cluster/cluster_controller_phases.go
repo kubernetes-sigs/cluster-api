@@ -150,7 +150,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 	// If the infrastructure ref is not set, no-op.
 	if s.cluster.Spec.InfrastructureRef == nil {
-		// if the cluster is not deleted, mark the infrastructure as ready to unblock other provisioning workflows.
+		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
 			cluster.Status.InfrastructureReady = true
 			conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)

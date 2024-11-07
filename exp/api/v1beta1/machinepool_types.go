@@ -60,6 +60,11 @@ type MachinePoolSpec struct {
 	// failureDomains is the list of failure domains this MachinePool should be attached to.
 	// +optional
 	FailureDomains []string `json:"failureDomains,omitempty"`
+
+	// The strategy for replacing existing machines with
+	// new ones.
+	// +optional
+	Strategy *MachinePoolStrategy `json:"strategy,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolSpec
@@ -160,6 +165,21 @@ type MachinePoolV1Beta2Status struct {
 }
 
 // ANCHOR_END: MachinePoolStatus
+
+// ANCHOR: MachinePoolStrategy
+
+// MachinePoolStrategy defines how to replace existing machines
+// with new ones.
+type MachinePoolStrategy struct {
+	// Remediation controls the strategy of remediating unhealthy machines
+	// as marked by a MachineHealthCheck. This only applies to infrastructure
+	// providers supporting "MachinePool Machines". For other providers,
+	// no remediation is done.
+	// +optional
+	Remediation *clusterv1.RemediationStrategy `json:"remediation,omitempty"`
+}
+
+// ANCHOR_END: MachinePoolStrategy
 
 // MachinePoolPhase is a string representation of a MachinePool Phase.
 //

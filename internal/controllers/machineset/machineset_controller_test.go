@@ -1723,11 +1723,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		c := v1beta2conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(v1beta2conditions.MatchCondition(metav1.Condition{
-			Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
-			Message: "Machine remediation on hold because GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight failed). " +
-				"The operation will continue after the preflight check(s) pass",
+			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Message: "GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 		}, v1beta2conditions.IgnoreLastTransitionTime(true)))
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.

@@ -270,6 +270,8 @@ type scope struct {
 	infrastructureObjectNotFound              bool
 	getAndAdoptMachinesForMachineSetSucceeded bool
 	owningMachineDeployment                   *clusterv1.MachineDeployment
+	remediationPreflightCheckErrMessage       string
+	scaleUpPreflightCheckErrMessage           string
 }
 
 type machineSetReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, error)
@@ -602,6 +604,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				// If the error is not nil use that as the message for the condition.
 				preflightCheckErrMessage = err.Error()
 			}
+			s.scaleUpPreflightCheckErrMessage = preflightCheckErrMessage
 			conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, preflightCheckErrMessage)
 			return result, err
 		}
@@ -1350,6 +1353,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if preflightChecksFailed {
 		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
 		// WaitingForRemediationReason reason.
+		s.remediationPreflightCheckErrMessage = preflightCheckErrMessage
 		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,

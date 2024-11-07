@@ -194,6 +194,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		bootstrapObjectNotFound                   bool
 		infrastructureObjectNotFound              bool
 		getAndAdoptMachinesForMachineSetSucceeded bool
+		scaleUpPreflightCheckErrMessage           string
 		expectCondition                           metav1.Condition
 	}{
 		{
@@ -300,6 +301,27 @@ func Test_setScalingUpCondition(t *testing.T) {
 			},
 		},
 		{
+			name:                         "scaling up and blocked by bootstrap and infrastructure object and preflight checks",
+			ms:                           scalingUpMachineSetWith3Replicas,
+			bootstrapObjectNotFound:      true,
+			infrastructureObjectNotFound: true,
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			// This preflight check error can happen when a MachineSet is scaling up while the control plane
+			// already has a newer Kubernetes version.
+			scaleUpPreflightCheckErrMessage: "MachineSet version (1.25.5) and ControlPlane version (1.26.2) " +
+				"do not conform to kubeadm version skew policy as kubeadm only supports joining with the same " +
+				"major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
+				Message: "Scaling up from 0 to 3 replicas is blocked because KubeadmBootstrapTemplate and DockerMachineTemplate " +
+					"do not exist and MachineSet version (1.25.5) and ControlPlane version (1.26.2) " +
+					"do not conform to kubeadm version skew policy as kubeadm only supports joining with the same " +
+					"major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+			},
+		},
+		{
 			name:                         "deleting",
 			ms:                           deletingMachineSetWith3Replicas,
 			machines:                     []*clusterv1.Machine{{}, {}, {}},
@@ -317,7 +339,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingUpCondition(ctx, tt.ms, tt.machines, tt.bootstrapObjectNotFound, tt.infrastructureObjectNotFound, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setScalingUpCondition(ctx, tt.ms, tt.machines, tt.bootstrapObjectNotFound, tt.infrastructureObjectNotFound, tt.getAndAdoptMachinesForMachineSetSucceeded, tt.scaleUpPreflightCheckErrMessage)
 
 			condition := v1beta2conditions.Get(tt.ms, clusterv1.MachineSetScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -758,13 +780,15 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Message: "Remediation in progress"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason}
+	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason}
 
 	tests := []struct {
 		name                                      string
 		machineSet                                *clusterv1.MachineSet
 		machines                                  []*clusterv1.Machine
 		getAndAdoptMachinesForMachineSetSucceeded bool
+		remediationPreflightCheckErrMessage       string
 		expectCondition                           metav1.Condition
 	}{
 		{
@@ -806,7 +830,27 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "Remediation in progress from Machine m3",
+				Message: " from Machine m3", // FIXME: We should change something :)
+			},
+		},
+		{
+			name:       "With machines to be remediated by MS and preflight check error",
+			machineSet: &clusterv1.MachineSet{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withConditions(healthCheckSucceeded)),    // Healthy machine
+				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
+				fakeMachine("m3", withConditions(healthCheckNotSucceeded, ownerRemediated), withV1Beta2Condition(ownerRemediatedV1Beta2)),
+				fakeMachine("m4", withConditions(healthCheckNotSucceeded, ownerRemediated), withV1Beta2Condition(ownerRemediatedWaitingForRemediationV1Beta2)),
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			// This preflight check error can happen when a Machine becomes unhealthy while the control plane is upgrading.
+			remediationPreflightCheckErrMessage: "KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetRemediatingV1Beta2Reason,
+				Message: "Remediation is blocked because KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed);" +
+					"  from Machines m3, m4", // FIXME: We should change something :)
 			},
 		},
 		{
@@ -852,7 +896,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 				unHealthyMachines = machines.Filter(collections.IsUnhealthy)
 			}
-			setRemediatingCondition(ctx, tt.machineSet, machinesToBeRemediated, unHealthyMachines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setRemediatingCondition(ctx, tt.machineSet, machinesToBeRemediated, unHealthyMachines, tt.getAndAdoptMachinesForMachineSetSucceeded, tt.remediationPreflightCheckErrMessage)
 
 			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())

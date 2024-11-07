@@ -467,6 +467,14 @@ spec:
         failureDomain: region
 ```
 
+<aside class="note warning">
+
+<h1>Cluster rebase across namespaces</h1>
+
+Class namespace referenced in the `Cluster` object is equivalent to a cluster being located in the referenced namespace from the validation perspective. Changing `classNamespace` is not allowed, while using a different `CluterClass` from the same namespace is permitted in the Cluster rebase procedure.
+
+</aside>
+
 #### Securing cross-namespace reference to the ClusterClass
 
 It is often desirable to restrict free cross-namespace `ClusterClass` access for the `Cluster` object. This can be implemented by defining a [`ValidatingAdmissionPolicy`](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/) on the `Cluster` object.

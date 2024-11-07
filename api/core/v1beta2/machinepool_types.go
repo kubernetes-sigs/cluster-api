@@ -97,9 +97,28 @@ type MachinePoolSpec struct {
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
+
+	// strategy defines how to replace existing machines with new ones.
+	// +optional
+	Strategy *MachinePoolStrategy `json:"strategy,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolSpec
+
+// ANCHOR: MachinePoolStrategy
+
+// MachinePoolStrategy describes how to replace existing machines
+// with new ones.
+type MachinePoolStrategy struct {
+	// remediation controls the strategy of remediating unhealthy machines
+	// as marked by a MachineHealthCheck. This only applies to infrastructure
+	// providers supporting "MachinePool Machines". For other providers,
+	// no remediation is done.
+	// +optional
+	Remediation *RemediationStrategy `json:"remediation,omitempty"`
+}
+
+// ANCHOR_END: MachinePoolStrategy
 
 // ANCHOR: MachinePoolStatus
 

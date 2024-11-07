@@ -380,12 +380,19 @@ func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, c
 	clusters := &clusterv1.ClusterList{}
 	err := webhook.Client.List(ctx, clusters,
 		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
-		client.InNamespace(clusterClass.Namespace),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return clusters.Items, nil
+
+	referencedClusters := []clusterv1.Cluster{}
+	for _, cluster := range clusters.Items {
+		if cluster.GetInfrastructureNamespace() == clusterClass.Namespace {
+			referencedClusters = append(referencedClusters, cluster)
+		}
+	}
+
+	return referencedClusters, nil
 }
 
 func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []clusterv1.ClusterClassVariable) (map[string]*clusterv1.ClusterClassVariable, map[string]int) {

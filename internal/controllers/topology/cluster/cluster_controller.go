@@ -373,7 +373,6 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 		ctx,
 		clusterList,
 		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
-		client.InNamespace(clusterClass.Namespace),
 	); err != nil {
 		return nil
 	}
@@ -382,7 +381,9 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 	// create a request for each of the clusters.
 	requests := []ctrl.Request{}
 	for i := range clusterList.Items {
-		requests = append(requests, ctrl.Request{NamespacedName: util.ObjectKey(&clusterList.Items[i])})
+		if clusterList.Items[i].GetInfrastructureNamespace() == clusterClass.Namespace {
+			requests = append(requests, ctrl.Request{NamespacedName: util.ObjectKey(&clusterList.Items[i])})
+		}
 	}
 	return requests
 }

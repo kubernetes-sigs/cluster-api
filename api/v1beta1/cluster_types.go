@@ -56,6 +56,59 @@ const (
 	// ClusterTopologyReconciledV1Beta2Condition is true if the topology controller is working properly.
 	// Note: This condition is added only if the Cluster is referencing a ClusterClass / defining a managed Topology.
 	ClusterTopologyReconciledV1Beta2Condition = "TopologyReconciled"
+
+	// ClusterTopologyReconcileSucceededV1Beta2Reason documents the reconciliation of a Cluster topology succeeded.
+	ClusterTopologyReconcileSucceededV1Beta2Reason = "TopologyReconcileSucceeded"
+
+	// ClusterTopologyReconciledFailedV1Beta2Reason documents the reconciliation of a Cluster topology
+	// failing due to an error.
+	ClusterTopologyReconciledFailedV1Beta2Reason = "TopologyReconcileFailed"
+
+	// ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
+	ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason = "ControlPlaneUpgradePending"
+
+	// ClusterTopologyReconciledMachineDeploymentsCreatePendingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachineDeployments is yet to be created.
+	// This generally happens because new MachineDeployment creations are held off while the ControlPlane is not stable.
+	ClusterTopologyReconciledMachineDeploymentsCreatePendingV1Beta2Reason = "MachineDeploymentsCreatePending"
+
+	// ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
+	ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason = "MachineDeploymentsUpgradePending"
+
+	// ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
+	ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta2Reason = "MachineDeploymentsUpgradeDeferred"
+
+	// ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
+	ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason = "MachinePoolsUpgradePending"
+
+	// ClusterTopologyReconciledMachinePoolsCreatePendingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachinePools is yet to be created.
+	// This generally happens because new MachinePool creations are held off while the ControlPlane is not stable.
+	ClusterTopologyReconciledMachinePoolsCreatePendingV1Beta2Reason = "MachinePoolsCreatePending"
+
+	// ClusterTopologyReconciledMachinePoolsUpgradeDeferredV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
+	ClusterTopologyReconciledMachinePoolsUpgradeDeferredV1Beta2Reason = "MachinePoolsUpgradeDeferred"
+
+	// ClusterTopologyReconciledHookBlockingV1Beta2Reason documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the lifecycle hooks is blocking.
+	ClusterTopologyReconciledHookBlockingV1Beta2Reason = "LifecycleHookBlocking"
+
+	// ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason documents reconciliation of a Cluster topology not
+	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue
+	// with the ClusterClass surfaced in the ClusterClass status or controller logs.
+	ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason = "ClusterClassNotReconciled"
+
+	// ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason surfaces when the Cluster is deleting because the
+	// DeletionTimestamp is set.
+	ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+
+	// ClusterTopologyReconcilePausedV1Beta2Reason surfaces when the Cluster is paused.
+	ClusterTopologyReconcilePausedV1Beta2Reason = PausedV1Beta2Reason
 )
 
 // Cluster's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.

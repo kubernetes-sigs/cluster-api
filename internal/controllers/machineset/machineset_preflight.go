@@ -136,9 +136,8 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		for _, v := range preflightCheckErrs {
 			preflightCheckErrStrings = append(preflightCheckErrStrings, *v)
 		}
-		msg := fmt.Sprintf("%s on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; "))
-		log.Info(msg)
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, msg, nil
+		log.Info(fmt.Sprintf("%s on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; ")))
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, strings.Join(preflightCheckErrStrings, "; "), nil
 	}
 	return ctrl.Result{}, "", nil
 }
@@ -152,7 +151,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if %s %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isProvisioning {
-		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	// Check that the control plane is not upgrading.
@@ -161,7 +160,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if the %s %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isUpgrading {
-		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	return nil, nil
@@ -173,7 +172,7 @@ func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.V
 	// => MS minor version cannot be outside of the supported skew.
 	// Kubernetes skew policy: https://kubernetes.io/releases/version-skew-policy/#kubelet
 	if msSemver.Minor > cpSemver.Minor {
-		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (%q preflight failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
+		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
 	minorSkew := uint64(3)
 	// For Control Planes running Kubernetes < v1.28, the version skew policy for kubelets is two.
@@ -181,7 +180,7 @@ func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.V
 		minorSkew = 2
 	}
 	if msSemver.Minor < cpSemver.Minor-minorSkew {
-		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight failed)", msSemver.String(), cpSemver.String(), minorSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
+		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), minorSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
 
 	return nil
@@ -205,7 +204,7 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 		groupVersion.Group == bootstrapv1.GroupVersion.Group
 	if kubeadmBootstrapProviderUsed {
 		if cpSemver.Minor != msSemver.Minor {
-			return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (%q preflight failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubeadmVersionSkew)), nil
+			return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubeadmVersionSkew)), nil
 		}
 	}
 	return nil, nil

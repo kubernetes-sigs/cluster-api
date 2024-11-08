@@ -270,6 +270,8 @@ type scope struct {
 	infrastructureObjectNotFound              bool
 	getAndAdoptMachinesForMachineSetSucceeded bool
 	owningMachineDeployment                   *clusterv1.MachineDeployment
+	remediationPreflightCheckErrMessage       string
+	scaleUpPreflightCheckErrMessage           string
 }
 
 type machineSetReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, error)
@@ -602,6 +604,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				// If the error is not nil use that as the message for the condition.
 				preflightCheckErrMessage = err.Error()
 			}
+			s.scaleUpPreflightCheckErrMessage = preflightCheckErrMessage
 			conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, preflightCheckErrMessage)
 			return result, err
 		}
@@ -1350,6 +1353,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if preflightChecksFailed {
 		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
 		// WaitingForRemediationReason reason.
+		s.remediationPreflightCheckErrMessage = preflightCheckErrMessage
 		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -1375,9 +1379,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Instead if we set the condition but the deletion does not go through on next reconcile either the
 	// condition will be fixed/updated or the Machine deletion will be retried.
 	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-		Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
+		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
+		Message: "Machine deletionTimestamp set",
 	}, &clusterv1.Condition{
 		Type:   clusterv1.MachineOwnerRemediatedCondition,
 		Status: corev1.ConditionTrue,

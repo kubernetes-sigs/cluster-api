@@ -19,6 +19,7 @@ package machineset
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -47,7 +48,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Conditions
 
 	// Update the ScalingUp and ScalingDown condition.
-	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded, s.scaleUpPreflightCheckErrMessage)
 	setScalingDownCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition.
@@ -59,7 +60,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	machines := collections.FromMachines(s.machines...)
 	machinesToBeRemediated := machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 	unhealthyMachines := machines.Filter(collections.IsUnhealthy)
-	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded, s.remediationPreflightCheckErrMessage)
 
 	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 }
@@ -92,7 +93,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 	ms.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
-func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool, scaleUpPreflightCheckErrMessage string) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -125,7 +126,7 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	if currentReplicas >= desiredReplicas {
 		var message string
 		if missingReferencesMessage != "" {
-			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
+			message = fmt.Sprintf("Scaling up would be blocked because %s", missingReferencesMessage)
 		}
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
@@ -138,8 +139,11 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 
 	// Scaling up.
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
-	if missingReferencesMessage != "" {
-		message += fmt.Sprintf(" is blocked %s", missingReferencesMessage)
+	if missingReferencesMessage != "" || scaleUpPreflightCheckErrMessage != "" {
+		blockMessages := slices.DeleteFunc([]string{missingReferencesMessage, scaleUpPreflightCheckErrMessage}, func(s string) bool {
+			return s == ""
+		})
+		message += fmt.Sprintf(" is blocked because %s", strings.Join(blockMessages, " and "))
 	}
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
@@ -281,7 +285,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	v1beta2conditions.Set(machineSet, *upToDateCondition)
 }
 
-func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesToBeRemediated, unhealthyMachines collections.Machines, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesToBeRemediated, unhealthyMachines collections.Machines, getAndAdoptMachinesForMachineSetSucceeded bool, remediationPreflightCheckErrMessage string) {
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
@@ -320,11 +324,16 @@ func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineS
 		return
 	}
 
+	msg := remediatingCondition.Message
+	if remediationPreflightCheckErrMessage != "" {
+		msg = fmt.Sprintf("Triggering further remediations is blocked because %s; %s", remediationPreflightCheckErrMessage, remediatingCondition.Message)
+	}
+
 	v1beta2conditions.Set(machineSet, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-		Message: remediatingCondition.Message,
+		Message: msg,
 	})
 }
 
@@ -383,10 +392,10 @@ func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTempla
 	}
 
 	if len(missingObjects) == 1 {
-		return fmt.Sprintf("because %s does not exist", missingObjects[0])
+		return fmt.Sprintf("%s does not exist", missingObjects[0])
 	}
 
-	return fmt.Sprintf("because %s do not exist", strings.Join(missingObjects, " and "))
+	return fmt.Sprintf("%s do not exist", strings.Join(missingObjects, " and "))
 }
 
 func aggregateStaleMachines(machines []*clusterv1.Machine) string {

@@ -514,7 +514,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Message: "Remediation in progress"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
 
 	tests := []struct {
 		name            string
@@ -550,7 +550,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
-				Message: "Remediation in progress from Machine m3",
+				Message: "Machine deletionTimestamp set from Machine m3",
 			},
 		},
 		{

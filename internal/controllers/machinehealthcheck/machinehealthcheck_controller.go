@@ -477,9 +477,10 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 				if ownerRemediatedCondition := v1beta2conditions.Get(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta2Condition); ownerRemediatedCondition == nil || ownerRemediatedCondition.Status == metav1.ConditionTrue {
 					v1beta2conditions.Set(t.Machine, metav1.Condition{
-						Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-						Status: metav1.ConditionFalse,
-						Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
+						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
+						Message: "Waiting for remediation",
 					})
 				}
 			}

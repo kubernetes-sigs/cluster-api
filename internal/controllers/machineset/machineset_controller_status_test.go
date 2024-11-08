@@ -780,8 +780,8 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason}
-	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
+	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason, Message: "Waiting for remediation"}
 
 	tests := []struct {
 		name                                      string
@@ -830,7 +830,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: " from Machine m3", // FIXME: We should change something :)
+				Message: "Machine deletionTimestamp set from Machine m3",
 			},
 		},
 		{
@@ -849,8 +849,8 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "Remediation is blocked because KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed);" +
-					"  from Machines m3, m4", // FIXME: We should change something :)
+				Message: "Triggering further remediations is blocked because KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed); " +
+					"Machine deletionTimestamp set from Machine m3; Waiting for remediation from Machine m4",
 			},
 		},
 		{

@@ -326,7 +326,7 @@ func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineS
 
 	msg := remediatingCondition.Message
 	if remediationPreflightCheckErrMessage != "" {
-		msg = fmt.Sprintf("Remediation is blocked because %s; %s", remediationPreflightCheckErrMessage, remediatingCondition.Message)
+		msg = fmt.Sprintf("Triggering further remediations is blocked because %s; %s", remediationPreflightCheckErrMessage, remediatingCondition.Message)
 	}
 
 	v1beta2conditions.Set(machineSet, metav1.Condition{

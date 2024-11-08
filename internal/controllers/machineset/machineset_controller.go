@@ -1379,9 +1379,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Instead if we set the condition but the deletion does not go through on next reconcile either the
 	// condition will be fixed/updated or the Machine deletion will be retried.
 	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-		Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
+		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
+		Message: "Machine deletionTimestamp set",
 	}, &clusterv1.Condition{
 		Type:   clusterv1.MachineOwnerRemediatedCondition,
 		Status: corev1.ConditionTrue,

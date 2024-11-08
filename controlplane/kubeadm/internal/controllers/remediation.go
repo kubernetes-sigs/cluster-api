@@ -315,9 +315,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 
 	v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
-		Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason,
+		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason,
+		Message: "Machine deletionTimestamp set",
 	})
 
 	// Prepare the info for tracking the remediation progress into the RemediationInProgressAnnotation.

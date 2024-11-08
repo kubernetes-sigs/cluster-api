@@ -120,7 +120,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog)),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -175,13 +175,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// Return early if the Cluster is paused.
-	// TODO: What should we do if the cluster class is paused?
-	if annotations.IsPaused(cluster, cluster) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -200,13 +193,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.TopologyReconciledCondition,
 			}},
-			patch.WithForceOverwriteConditions{},
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+			}},
 		}
 		if err := patchHelper.Patch(ctx, cluster, options...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 			return
 		}
 	}()
+
+	// Return early if the Cluster is paused.
+	if cluster.Spec.Paused || annotations.HasPaused(cluster) {
+		return ctrl.Result{}, nil
+	}
 
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).

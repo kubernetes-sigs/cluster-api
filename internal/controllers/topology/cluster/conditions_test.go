@@ -32,6 +32,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -43,24 +44,30 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 
 	deletionTime := metav1.Unix(0, 0)
 	tests := []struct {
-		name                 string
-		reconcileErr         error
-		s                    *scope.Scope
-		cluster              *clusterv1.Cluster
-		machines             []*clusterv1.Machine
-		wantConditionStatus  corev1.ConditionStatus
-		wantConditionReason  string
-		wantConditionMessage string
-		wantErr              bool
+		name                        string
+		reconcileErr                error
+		s                           *scope.Scope
+		cluster                     *clusterv1.Cluster
+		machines                    []*clusterv1.Machine
+		wantConditionStatus         corev1.ConditionStatus
+		wantConditionReason         string
+		wantConditionMessage        string
+		wantV1Beta2ConditionStatus  metav1.ConditionStatus
+		wantV1Beta2ConditionReason  string
+		wantV1Beta2ConditionMessage string
+		wantErr                     bool
 	}{
 		{
-			name:                 "should set the condition to false if there is a reconcile error",
-			reconcileErr:         errors.New("reconcile error"),
-			cluster:              &clusterv1.Cluster{},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconcileFailedReason,
-			wantConditionMessage: "reconcile error",
-			wantErr:              false,
+			name:                        "should set the condition to false if there is a reconcile error",
+			reconcileErr:                errors.New("reconcile error"),
+			cluster:                     &clusterv1.Cluster{},
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconcileFailedReason,
+			wantConditionMessage:        "reconcile error",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "reconcile error",
+			wantErr:                     false,
 		},
 		{
 			name:    "should set the condition to false if the ClusterClass is out of date",
@@ -82,6 +89,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionReason: clusterv1.TopologyReconciledClusterClassNotReconciledReason,
 			wantConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+			wantV1Beta2ConditionStatus: metav1.ConditionFalse,
+			wantV1Beta2ConditionReason: clusterv1.TopologyReconciledClusterClassNotReconciledReason,
+			wantV1Beta2ConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			wantErr: false,
 		},
 		{
@@ -102,9 +113,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					return hrt
 				}(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledHookBlockingReason,
-			wantConditionMessage: "hook \"BeforeClusterUpgrade\" is blocking: msg",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledHookBlockingReason,
+			wantConditionMessage:        "hook \"BeforeClusterUpgrade\" is blocking: msg",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "hook \"BeforeClusterUpgrade\" is blocking: msg",
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because control plane is provisioning",
@@ -132,9 +146,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is completing initial provisioning",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage:        "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is completing initial provisioning",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is completing initial provisioning",
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because control plane is upgrading",
@@ -163,9 +180,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.21.2",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage:        "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.21.2",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.21.2",
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because control plane is scaling",
@@ -194,9 +214,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage:        "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because at least one of the machine deployment is upgrading",
@@ -239,9 +262,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage:        "Control plane rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because at least one of the machine pool is upgrading",
@@ -283,9 +309,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage:        "Control plane rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine deployments did not because control plane is upgrading",
@@ -329,9 +358,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
-			wantConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
+			wantConditionMessage:        "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine pools did not because control plane is upgrading",
@@ -374,9 +406,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
-			wantConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage:        "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine deployments did not because control plane is scaling",
@@ -420,9 +455,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
-			wantConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
+			wantConditionMessage:        "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine pools did not because control plane is scaling",
@@ -465,9 +503,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
-			wantConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage:        "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but there are machine deployments pending create because control plane is scaling",
@@ -497,9 +538,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsCreatePendingReason,
-			wantConditionMessage: "MachineDeployment(s) for Topologies md0 creation on hold. Control plane is reconciling desired replicas",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachineDeploymentsCreatePendingReason,
+			wantConditionMessage:        "MachineDeployment(s) for Topologies md0 creation on hold. Control plane is reconciling desired replicas",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachineDeploymentsCreatePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachineDeployment(s) for Topologies md0 creation on hold. Control plane is reconciling desired replicas",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but there are machine pools pending create because control plane is scaling",
@@ -529,9 +573,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsCreatePendingReason,
-			wantConditionMessage: "MachinePool(s) for Topologies mp0 creation on hold. Control plane is reconciling desired replicas",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachinePoolsCreatePendingReason,
+			wantConditionMessage:        "MachinePool(s) for Topologies mp0 creation on hold. Control plane is reconciling desired replicas",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachinePoolsCreatePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachinePool(s) for Topologies mp0 creation on hold. Control plane is reconciling desired replicas",
 		},
 		{
 			name:         "should set the condition to true if control plane picked the new version and is upgrading but there are no machine deployments or machine pools",
@@ -560,7 +607,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus: corev1.ConditionTrue,
+			wantConditionStatus:         corev1.ConditionTrue,
+			wantV1Beta2ConditionStatus:  metav1.ConditionTrue,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconcileSucceededV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "",
 		},
 		{
 			name:         "should set the condition to true if control plane picked the new version and is scaling but there are no machine deployments or machine pools",
@@ -589,7 +639,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus: corev1.ConditionTrue,
+			wantConditionStatus:         corev1.ConditionTrue,
+			wantV1Beta2ConditionStatus:  metav1.ConditionTrue,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconcileSucceededV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "",
 		},
 		{
 			name:         "should set the condition to false is some machine deployments have not picked the new version because other machine deployments are upgrading",
@@ -668,9 +721,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					WithVersion("v1.21.2").
 					Build(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
-			wantConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
+			wantConditionMessage:        "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
 		},
 		{
 			name:         "should set the condition to false is some machine pools have not picked the new version because other machine pools are upgrading",
@@ -737,9 +793,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					WithVersion("v1.21.2").
 					Build(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
-			wantConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage:        "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
 		},
 		{
 			name:         "should set the condition to false if some machine deployments have not picked the new version because their upgrade has been deferred",
@@ -796,9 +855,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason,
-			wantConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 deferred.",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason,
+			wantConditionMessage:        "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 deferred.",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 deferred.",
 		},
 		{
 			name:         "should set the condition to false if some machine pools have not picked the new version because their upgrade has been deferred",
@@ -853,9 +915,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredReason,
-			wantConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 deferred.",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredReason,
+			wantConditionMessage:        "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 deferred.",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 deferred.",
 		},
 		{
 			name:         "should set the condition to true if there are no reconcile errors and control plane and all machine deployments and machine pools picked up the new version",
@@ -937,7 +1002,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			wantConditionStatus: corev1.ConditionTrue,
+			wantConditionStatus:         corev1.ConditionTrue,
+			wantV1Beta2ConditionStatus:  metav1.ConditionTrue,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconcileSucceededV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "",
 		},
 		{
 			name: "should set the TopologyReconciledCondition to False if the cluster has been deleted",
@@ -946,9 +1014,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					DeletionTimestamp: &deletionTime,
 				},
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.DeletedReason,
-			wantConditionMessage: "",
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.DeletedReason,
+			wantConditionMessage:        "",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "",
 		},
 	}
 
@@ -978,9 +1049,16 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				actualCondition := conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
+				g.Expect(actualCondition).ToNot(BeNil())
 				g.Expect(actualCondition.Status).To(Equal(tt.wantConditionStatus))
 				g.Expect(actualCondition.Reason).To(Equal(tt.wantConditionReason))
 				g.Expect(actualCondition.Message).To(Equal(tt.wantConditionMessage))
+
+				actualV1Beta2Condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledV1Beta2Condition)
+				g.Expect(actualV1Beta2Condition).ToNot(BeNil())
+				g.Expect(actualV1Beta2Condition.Status).To(Equal(tt.wantV1Beta2ConditionStatus))
+				g.Expect(actualV1Beta2Condition.Reason).To(Equal(tt.wantV1Beta2ConditionReason))
+				g.Expect(actualV1Beta2Condition.Message).To(Equal(tt.wantV1Beta2ConditionMessage))
 			}
 		})
 	}

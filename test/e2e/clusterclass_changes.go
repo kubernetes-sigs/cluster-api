@@ -135,11 +135,11 @@ type ClusterClassChangesSpecInput struct {
 // indirect test coverage of this from other tests as well.
 func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClassChangesSpecInput) {
 	var (
-		specName         = "clusterclass-changes"
-		input            ClusterClassChangesSpecInput
-		namespace        *corev1.Namespace
-		cancelWatches    context.CancelFunc
-		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		specName                         = "clusterclass-changes"
+		input                            ClusterClassChangesSpecInput
+		namespace, clusterClassNamespace *corev1.Namespace
+		cancelWatches                    context.CancelFunc
+		clusterResources                 *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -155,6 +155,8 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		clusterClassNamespace = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{Creator: input.BootstrapClusterProxy.GetClient(), Name: fmt.Sprintf("%s-clusterclass", namespace.Name)}, "40s", "10s")
+		Expect(clusterClassNamespace).ToNot(BeNil(), "Failed to create namespace")
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
@@ -184,10 +186,21 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		originalClusterClassState := clusterResources.ClusterClass.DeepCopy()
+
+		By("Rebasing the Cluster to a ClusterClass with a modified label for MachineDeployments and wait for changes to be applied to the MachineDeployment objects")
+		rebasedClusterClass := rebaseClusterClassAndWait(ctx, rebaseClusterClassAndWaitInput{
+			ClusterProxy:                 input.BootstrapClusterProxy,
+			ClusterClass:                 clusterResources.ClusterClass,
+			Cluster:                      clusterResources.Cluster,
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+
 		By("Modifying the control plane configuration in ClusterClass and wait for changes to be applied to the control plane object")
 		modifyControlPlaneViaClusterClassAndWait(ctx, modifyClusterClassControlPlaneAndWaitInput{
 			ClusterProxy:             input.BootstrapClusterProxy,
-			ClusterClass:             clusterResources.ClusterClass,
+			ClusterClass:             rebasedClusterClass,
 			Cluster:                  clusterResources.Cluster,
 			ModifyControlPlaneFields: input.ModifyControlPlaneFields,
 			WaitForControlPlane:      input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -196,7 +209,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		By("Modifying the MachineDeployment configuration in ClusterClass and wait for changes to be applied to the MachineDeployment objects")
 		modifyMachineDeploymentViaClusterClassAndWait(ctx, modifyMachineDeploymentViaClusterClassAndWaitInput{
 			ClusterProxy:                        input.BootstrapClusterProxy,
-			ClusterClass:                        clusterResources.ClusterClass,
+			ClusterClass:                        rebasedClusterClass,
 			Cluster:                             clusterResources.Cluster,
 			ModifyBootstrapConfigTemplateFields: input.ModifyMachineDeploymentBootstrapConfigTemplateFields,
 			ModifyInfrastructureMachineTemplateFields: input.ModifyMachineDeploymentInfrastructureMachineTemplateFields,
@@ -206,19 +219,55 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		By("Modifying the MachinePool configuration in ClusterClass and wait for changes to be applied to the MachinePool objects")
 		modifyMachinePoolViaClusterClassAndWait(ctx, modifyMachinePoolViaClusterClassAndWaitInput{
 			ClusterProxy:                        input.BootstrapClusterProxy,
-			ClusterClass:                        clusterResources.ClusterClass,
+			ClusterClass:                        rebasedClusterClass,
 			Cluster:                             clusterResources.Cluster,
 			ModifyBootstrapConfigTemplateFields: input.ModifyMachinePoolBootstrapConfigTemplateFields,
 			ModifyInfrastructureMachinePoolTemplateFields: input.ModifyMachinePoolInfrastructureMachinePoolTemplateFields,
 			WaitForMachinePools:                           input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 
-		By("Rebasing the Cluster to a ClusterClass with a modified label for MachineDeployments and wait for changes to be applied to the MachineDeployment objects")
-		rebaseClusterClassAndWait(ctx, rebaseClusterClassAndWaitInput{
-			ClusterProxy:              input.BootstrapClusterProxy,
-			ClusterClass:              clusterResources.ClusterClass,
-			Cluster:                   clusterResources.Cluster,
-			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		By("Rebasing the Cluster to a copy of original ClusterClass in a different namespace")
+		rebasedClusterClass = rebaseClusterClassAndWait(ctx, rebaseClusterClassAndWaitInput{
+			ClusterProxy:          input.BootstrapClusterProxy,
+			ClusterClassNamespace: clusterClassNamespace.Name,
+			ClusterClass:          originalClusterClassState,
+			Cluster:               clusterResources.Cluster,
+			// This rebase will revert the CP back to the original state. If we modified CP fields via
+			// modifyControlPlaneViaClusterClassAndWait this rebase will leads to changes in the CP.
+			ControlPlaneChanged:          input.ModifyControlPlaneFields != nil,
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+
+		By("Performing modifications on the referenced ClusterClass templates in a different namespace")
+
+		By("Modifying the control plane configuration in second ClusterClass and wait for changes to be applied to the control plane object")
+		modifyControlPlaneViaClusterClassAndWait(ctx, modifyClusterClassControlPlaneAndWaitInput{
+			ClusterProxy:             input.BootstrapClusterProxy,
+			ClusterClass:             rebasedClusterClass,
+			Cluster:                  clusterResources.Cluster,
+			ModifyControlPlaneFields: input.ModifyControlPlaneFields,
+			WaitForControlPlane:      input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+
+		By("Modifying the MachineDeployment configuration in ClusterClass and wait for changes to be applied to the MachineDeployment objects")
+		modifyMachineDeploymentViaClusterClassAndWait(ctx, modifyMachineDeploymentViaClusterClassAndWaitInput{
+			ClusterProxy:                        input.BootstrapClusterProxy,
+			ClusterClass:                        rebasedClusterClass,
+			Cluster:                             clusterResources.Cluster,
+			ModifyBootstrapConfigTemplateFields: input.ModifyMachineDeploymentBootstrapConfigTemplateFields,
+			ModifyInfrastructureMachineTemplateFields: input.ModifyMachineDeploymentInfrastructureMachineTemplateFields,
+			WaitForMachineDeployments:                 input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Modifying the MachinePool configuration in ClusterClass and wait for changes to be applied to the MachinePool objects")
+		modifyMachinePoolViaClusterClassAndWait(ctx, modifyMachinePoolViaClusterClassAndWaitInput{
+			ClusterProxy:                        input.BootstrapClusterProxy,
+			ClusterClass:                        rebasedClusterClass,
+			Cluster:                             clusterResources.Cluster,
+			ModifyBootstrapConfigTemplateFields: input.ModifyMachinePoolBootstrapConfigTemplateFields,
+			ModifyInfrastructureMachinePoolTemplateFields: input.ModifyMachinePoolInfrastructureMachinePoolTemplateFields,
+			WaitForMachinePools:                           input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 
 		By("Deleting a MachineDeploymentTopology in the Cluster Topology and wait for associated MachineDeployment to be deleted")
@@ -233,6 +282,14 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+
+		if !input.SkipCleanup {
+			Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
+			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+				Deleter: input.BootstrapClusterProxy.GetClient(),
+				Name:    clusterClassNamespace.Name,
+			})
+		}
 	})
 }
 
@@ -300,6 +357,18 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 			g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
 			g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 		}
+
+		// Ensure KCP recognized the change and finished scaling.
+		// Note: This is to ensure to not hit https://github.com/kubernetes-sigs/cluster-api/issues/11772
+		observedGeneration, ok, err := unstructured.NestedInt64(controlPlane.Object, "status", "observedGeneration")
+		g.Expect(err).ToNot(HaveOccurred())
+		if ok {
+			g.Expect(controlPlane.GetGeneration()).To(BeComparableTo(observedGeneration))
+		}
+		scaling, err := contract.ControlPlane().IsScaling(controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(scaling).To(BeFalse())
+
 		return nil
 	}, input.WaitForControlPlane...).Should(BeNil())
 }
@@ -660,16 +729,19 @@ func assertMachinePoolTopologyFields(g Gomega, mp expv1.MachinePool, mpTopology 
 
 // rebaseClusterClassAndWaitInput is the input type for rebaseClusterClassAndWait.
 type rebaseClusterClassAndWaitInput struct {
-	ClusterProxy              framework.ClusterProxy
-	ClusterClass              *clusterv1.ClusterClass
-	Cluster                   *clusterv1.Cluster
-	WaitForMachineDeployments []interface{}
+	ClusterProxy                 framework.ClusterProxy
+	ClusterClass                 *clusterv1.ClusterClass
+	ClusterClassNamespace        string
+	Cluster                      *clusterv1.Cluster
+	ControlPlaneChanged          bool
+	WaitForMachineDeployments    []interface{}
+	WaitForControlPlaneIntervals []interface{}
 }
 
 // rebaseClusterClassAndWait rebases the cluster to a copy of the ClusterClass with different worker labels
 // and waits until the changes are rolled out to the MachineDeployments of the Cluster.
 // NOTE: This helper is really specific to this test, so we are keeping this private vs. adding it to the framework.
-func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndWaitInput) {
+func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndWaitInput) *clusterv1.ClusterClass {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for RebaseClusterClassAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling RebaseClusterClassAndWait")
 	Expect(input.ClusterClass).ToNot(BeNil(), "Invalid argument. input.ClusterClass can't be nil when calling RebaseClusterClassAndWait")
@@ -679,11 +751,18 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	var testWorkerLabelName = "rebase-diff"
 
+	sourceClusterClass := input.ClusterClass.DeepCopy()
+	Expect(mgmtClient.Get(ctx, client.ObjectKeyFromObject(sourceClusterClass), sourceClusterClass)).To(Succeed())
+
 	// Create a new ClusterClass with a new name and the new worker label set.
-	newClusterClass := input.ClusterClass.DeepCopy()
+	newClusterClass := sourceClusterClass.DeepCopy()
 	newClusterClassName := fmt.Sprintf("%s-%s", input.ClusterClass.Name, util.RandomString(6))
 	newClusterClass.SetName(newClusterClassName)
+	if input.ClusterClassNamespace != "" {
+		newClusterClass.SetNamespace(input.ClusterClassNamespace)
+	}
 	newClusterClass.SetResourceVersion("")
+
 	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
 		if mdClass.Template.Metadata.Labels == nil {
 			mdClass.Template.Metadata.Labels = map[string]string{}
@@ -691,6 +770,24 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 		mdClass.Template.Metadata.Labels[testWorkerLabelName] = mdClass.Class
 		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
 	}
+
+	// Copy ClusterClass templates to the new namespace
+	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
+		cloneRef(ctx, mgmtClient, mdClass.Template.Infrastructure.Ref, input.ClusterClassNamespace)
+		cloneRef(ctx, mgmtClient, mdClass.Template.Bootstrap.Ref, input.ClusterClassNamespace)
+		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
+	}
+
+	for i, mpClass := range newClusterClass.Spec.Workers.MachinePools {
+		cloneRef(ctx, mgmtClient, mpClass.Template.Infrastructure.Ref, input.ClusterClassNamespace)
+		cloneRef(ctx, mgmtClient, mpClass.Template.Bootstrap.Ref, input.ClusterClassNamespace)
+		newClusterClass.Spec.Workers.MachinePools[i] = mpClass
+	}
+
+	cloneRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref, input.ClusterClassNamespace)
+	cloneRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.Ref, input.ClusterClassNamespace)
+	cloneRef(ctx, mgmtClient, newClusterClass.Spec.Infrastructure.Ref, input.ClusterClassNamespace)
+
 	Expect(mgmtClient.Create(ctx, newClusterClass)).To(Succeed())
 
 	// Get the current ControlPlane, we will later verify that it has not changed.
@@ -702,6 +799,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
 	input.Cluster.Spec.Topology.Class = newClusterClassName
+	input.Cluster.Spec.Topology.ClassNamespace = input.ClusterClassNamespace
 	// We have to retry the patch. The ClusterClass was just created so the client cache in the
 	// controller/webhook might not be aware of it yet. If the webhook is not aware of the ClusterClass
 	// we get a "Cluster ... can't be validated. ClusterClass ... can not be retrieved" error.
@@ -714,10 +812,10 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 		// NOTE: We only wait until the change is rolled out to the MachineDeployment objects and not to the worker machines
 		// to speed up the test and focus the test on the ClusterClass feature.
 		log.Logf("Waiting for MachineDeployment rollout for MachineDeploymentTopology %q (class %q) to complete.", mdTopology.Name, mdTopology.Class)
-		Eventually(func() error {
+		Eventually(func(g Gomega) error {
 			// Get MachineDeployment for the current MachineDeploymentTopology.
 			mdList := &clusterv1.MachineDeploymentList{}
-			Expect(mgmtClient.List(ctx, mdList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
+			g.Expect(mgmtClient.List(ctx, mdList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
 				clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 			})).To(Succeed())
 			if len(mdList.Items) != 1 {
@@ -738,13 +836,59 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 		}, input.WaitForMachineDeployments...).Should(BeNil())
 	}
 
-	// Verify that the ControlPlane has not been changed.
-	// NOTE: MachineDeployments are rolled out before the ControlPlane. Thus, we know that the
-	// ControlPlane would have been updated by now, if there have been any changes.
-	afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+	if input.ControlPlaneChanged {
+		Eventually(func(g Gomega) {
+			controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(controlPlane.GetGeneration()).ToNot(Equal(beforeControlPlane.GetGeneration()),
+				"ControlPlane generation should be incremented during the rebase because ControlPlane expected to be changed.")
+
+			// Ensure KCP recognized the change and finished scaling.
+			// Note: This is to ensure to not hit https://github.com/kubernetes-sigs/cluster-api/issues/11772
+			observedGeneration, ok, err := unstructured.NestedInt64(controlPlane.Object, "status", "observedGeneration")
+			g.Expect(err).ToNot(HaveOccurred())
+			if ok {
+				g.Expect(controlPlane.GetGeneration()).To(BeComparableTo(observedGeneration))
+			}
+
+			scaling, err := contract.ControlPlane().IsScaling(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(scaling).To(BeFalse())
+		}, input.WaitForControlPlaneIntervals...).Should(Succeed())
+	} else {
+		Consistently(func(g Gomega) {
+			// Verify that the ControlPlane has not been changed.
+			// NOTE: MachineDeployments are rolled out before the ControlPlane. Thus, we know that the
+			// ControlPlane would have been updated by now, if there have been any changes.
+			afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(afterControlPlane.GetGeneration()).To(Equal(beforeControlPlane.GetGeneration()),
+				"ControlPlane generation should not be incremented during the rebase because ControlPlane should not be affected.")
+		}, "5s", "100ms").Should(Succeed())
+	}
+
+	return newClusterClass
+}
+
+// cloneRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
+func cloneRef(ctx context.Context, cl client.Client, ref *corev1.ObjectReference, namespace string) {
+	if ref == nil {
+		return
+	}
+
+	template, err := external.Get(ctx, cl, ref)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(afterControlPlane.GetGeneration()).To(Equal(beforeControlPlane.GetGeneration()),
-		"ControlPlane generation should not be incremented during the rebase because ControlPlane should not be affected.")
+	if namespace != "" {
+		template.SetNamespace(namespace)
+	} else {
+		template.SetGenerateName(template.GetName() + "-")
+		template.SetName("")
+	}
+	template.SetResourceVersion("")
+	template.SetOwnerReferences(nil)
+	Expect(cl.Create(ctx, template)).To(Succeed())
+
+	*ref = *external.GetObjectReference(template)
 }
 
 // deleteMachineDeploymentTopologyAndWaitInput is the input type for deleteMachineDeploymentTopologyAndWaitInput.

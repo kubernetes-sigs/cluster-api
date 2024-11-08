@@ -60,3 +60,31 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 		}
 	})
 })
+
+var _ = Describe("When upgrading a workload cluster using ClusterClass in a different NS with RuntimeSDK [ClusterClass]", Label("ClusterClass"), func() {
+	ClusterUpgradeWithRuntimeSDKSpec(ctx, func() ClusterUpgradeWithRuntimeSDKSpecInput {
+		return ClusterUpgradeWithRuntimeSDKSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker"),
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+			},
+			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
+			Flavor:                                ptr.To("upgrades-runtimesdk"),
+			DeployClusterClassInSeparateNamespace: true,
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
+			ExtensionConfigName:       "k8s-upgrade-with-runtimesdk-cross-ns",
+		}
+	})
+})

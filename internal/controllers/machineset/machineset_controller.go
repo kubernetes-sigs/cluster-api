@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -183,8 +184,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	s := &scope{
-		cluster:    cluster,
-		machineSet: machineSet,
+		cluster:            cluster,
+		machineSet:         machineSet,
+		reconciliationTime: time.Now(),
 	}
 
 	// Initialize the patch helper
@@ -272,6 +274,7 @@ type scope struct {
 	owningMachineDeployment                   *clusterv1.MachineDeployment
 	remediationPreflightCheckErrMessage       string
 	scaleUpPreflightCheckErrMessage           string
+	reconciliationTime                        time.Time
 }
 
 type machineSetReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, error)
@@ -493,6 +496,9 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 	log := ctrl.LoggerFrom(ctx)
 	for i := range machines {
 		m := machines[i]
+
+		upToDateCondition := newMachineUpToDateCondition(s)
+
 		// If the machine is already being deleted, we only need to sync
 		// the subset of fields that impact tearing down a machine
 		if !m.DeletionTimestamp.IsZero() {
@@ -507,10 +513,29 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
 
-			if err := patchHelper.Patch(ctx, m); err != nil {
+			// Set machine's up to date condition
+			if upToDateCondition != nil {
+				v1beta2conditions.Set(m, *upToDateCondition)
+			}
+
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
 				return ctrl.Result{}, err
 			}
 			continue
+		}
+
+		// Patch the machine's up-to-date condition.
+		// Note: for the time being we continue to rely on the patch helper for setting conditions; In the future, if
+		// we will improve patch helper to support SSA, we can revisit this code and perform both this change and the others in place mutations in a single operation.
+		if upToDateCondition != nil {
+			patchHelper, err := patch.NewHelper(m, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			v1beta2conditions.Set(m, *upToDateCondition)
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
 		// Cleanup managed fields of all Machines.
@@ -571,6 +596,57 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func newMachineUpToDateCondition(s *scope) *metav1.Condition {
+	// If the current MachineSet is a stand-alone MachineSet, the MachineSet controller does not set an up-to-date condition
+	// on Machines, allowing tools managing higher level abstractions to set this condition.
+	// This is also consistent with the fact that the MachineSet controller primarily takes care of the number of Machine
+	// replicas, it doesn't reconcile them (even if we have a few exceptions like in-place propagation of a few selected
+	// fields and remediation).
+	if s.owningMachineDeployment == nil {
+		return nil
+	}
+
+	// Determine current and desired state.
+	// If the current MachineSet is owned by a MachineDeployment, we mirror what is implemented in the MachineDeployment controller
+	// to trigger rollouts (by creating new MachineSets).
+	// More specifically:
+	// - desired state for the Machine is the spec.Template of the MachineDeployment
+	// - current state for the Machine is the spec.Template of the MachineSet who owns the Machine
+	// Note: We are intentionally considering current spec from the MachineSet instead of spec from the Machine itself in
+	// order to surface info consistent with what the MachineDeployment controller uses to take decisions about rollouts.
+	// The downside is that the system will ignore out of band changes applied to controlled Machines, which is
+	// considered an acceptable trade-off given that out of band changes are the exception (users should not change
+	// objects owned by the system).
+	// However, if out of band changes happen, at least the system will ignore out of band changes consistently, both in the
+	// MachineDeployment controller and in the condition computed here.
+	current := &s.machineSet.Spec.Template
+	desired := &s.owningMachineDeployment.Spec.Template
+
+	upToDate, _, conditionMessages := mdutil.MachineTemplateUpToDate(current, desired)
+
+	if s.owningMachineDeployment.Spec.RolloutAfter != nil {
+		if s.owningMachineDeployment.Spec.RolloutAfter.Time.Before(s.reconciliationTime) && !s.machineSet.CreationTimestamp.After(s.owningMachineDeployment.Spec.RolloutAfter.Time) {
+			upToDate = false
+			conditionMessages = append(conditionMessages, "MachineDeployment spec.rolloutAfter expired")
+		}
+	}
+
+	if !upToDate {
+		return &metav1.Condition{
+			Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+			Message: strings.Join(conditionMessages, "; "),
+		}
+	}
+
+	return &metav1.Condition{
+		Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+	}
 }
 
 // syncReplicas scales Machine resources up or down.

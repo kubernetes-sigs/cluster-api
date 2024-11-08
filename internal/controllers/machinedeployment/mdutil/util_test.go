@@ -171,7 +171,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 	}
 }
 
-func TestEqualMachineTemplate(t *testing.T) {
+func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplate := &clusterv1.MachineTemplateSpec{
 		ObjectMeta: clusterv1.ObjectMeta{
 			Labels:      map[string]string{"l1": "v1"},
@@ -187,14 +187,14 @@ func TestEqualMachineTemplate(t *testing.T) {
 			InfrastructureRef: corev1.ObjectReference{
 				Name:       "infra1",
 				Namespace:  "default",
-				Kind:       "InfrastructureMachine",
+				Kind:       "InfrastructureMachineTemplate",
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Name:       "bootstrap1",
 					Namespace:  "default",
-					Kind:       "BootstrapConfig",
+					Kind:       "BootstrapConfigTemplate",
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				},
 			},
@@ -236,9 +236,12 @@ func TestEqualMachineTemplate(t *testing.T) {
 	machineTemplateWithDifferentInfraRefAPIVersion := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInfraRefAPIVersion.Spec.InfrastructureRef.APIVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
 
-	machineTemplateWithDifferentBootstrap := machineTemplate.DeepCopy()
-	machineTemplateWithDifferentBootstrap.Spec.Bootstrap.ConfigRef = nil
-	machineTemplateWithDifferentBootstrap.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
+	machineTemplateWithBootstrapDataSecret := machineTemplate.DeepCopy()
+	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = nil
+	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret1")
+
+	machineTemplateWithDifferentBootstrapDataSecret := machineTemplateWithBootstrapDataSecret.DeepCopy()
+	machineTemplateWithDifferentBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret2")
 
 	machineTemplateWithDifferentBootstrapConfigRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentBootstrapConfigRef.Spec.Bootstrap.ConfigRef.Name = "bootstrap2"
@@ -247,279 +250,122 @@ func TestEqualMachineTemplate(t *testing.T) {
 	machineTemplateWithDifferentBootstrapConfigRefAPIVersion.Spec.Bootstrap.ConfigRef.APIVersion = "bootstrap.cluster.x-k8s.io/v1beta2"
 
 	tests := []struct {
-		Name           string
-		Former, Latter *clusterv1.MachineTemplateSpec
-		Expected       bool
-		Diff1          string
-		Diff2          string
+		Name                       string
+		current, desired           *clusterv1.MachineTemplateSpec
+		expectedUpToDate           bool
+		expectedLogMessages1       []string
+		expectedLogMessages2       []string
+		expectedConditionMessages1 []string
+		expectedConditionMessages2 []string
 	}{
 		{
 			Name: "Same spec",
 			// Note: This test ensures that two MachineTemplates are equal even if the pointers differ.
-			Former:   machineTemplate,
-			Latter:   machineTemplateEqual,
-			Expected: true,
+			current:          machineTemplate,
+			desired:          machineTemplateEqual,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Same spec, except latter does not have labels",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithEmptyLabels,
-			Expected: true,
+			Name:             "Same spec, except desired does not have labels",
+			current:          machineTemplate,
+			desired:          machineTemplateWithEmptyLabels,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Same spec, except latter has different labels",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentLabels,
-			Expected: true,
+			Name:             "Same spec, except desired has different labels",
+			current:          machineTemplate,
+			desired:          machineTemplateWithDifferentLabels,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Same spec, except latter does not have annotations",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithEmptyAnnotations,
-			Expected: true,
+			Name:             "Same spec, except desired does not have annotations",
+			current:          machineTemplate,
+			desired:          machineTemplateWithEmptyAnnotations,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Same spec, except latter has different annotations",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentAnnotations,
-			Expected: true,
+			Name:             "Same spec, except desired has different annotations",
+			current:          machineTemplate,
+			desired:          machineTemplateWithDifferentAnnotations,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Spec changes, latter has different in-place mutable spec fields",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentInPlaceMutableSpecFields,
-			Expected: true,
+			Name:             "Spec changes, desired has different in-place mutable spec fields",
+			current:          machineTemplate,
+			desired:          machineTemplateWithDifferentInPlaceMutableSpecFields,
+			expectedUpToDate: true,
 		},
 		{
-			Name: "Spec changes, latter has different ClusterName",
-			// Note: ClusterName is immutable, but EqualMachineTemplate should still work correctly independent of that.
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentClusterName,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
--     ClusterName:       "cluster1",
-+     ClusterName:       "cluster2",
-      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      ... // 7 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
--     ClusterName:       "cluster2",
-+     ClusterName:       "cluster1",
-      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      ... // 7 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has different Version",
+			current:                    machineTemplate,
+			desired:                    machineTemplateWithDifferentVersion,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.version v1.25.0, v1.26.0 required"},
+			expectedLogMessages2:       []string{"spec.version v1.26.0, v1.25.0 required"},
+			expectedConditionMessages1: []string{"Version v1.25.0, v1.26.0 required"},
+			expectedConditionMessages2: []string{"Version v1.26.0, v1.25.0 required"},
 		},
 		{
-			Name:     "Spec changes, latter has different Version",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentVersion,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName:       "cluster1",
-      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
--     Version:           &"v1.25.0",
-+     Version:           &"v1.26.0",
-      ProviderID:        nil,
-      FailureDomain:     &"failure-domain1",
-      ... // 4 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName:       "cluster1",
-      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
--     Version:           &"v1.26.0",
-+     Version:           &"v1.25.0",
-      ProviderID:        nil,
-      FailureDomain:     &"failure-domain1",
-      ... // 4 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has different FailureDomain",
+			current:                    machineTemplate,
+			desired:                    machineTemplateWithDifferentFailureDomain,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.failureDomain failure-domain1, failure-domain2 required"},
+			expectedLogMessages2:       []string{"spec.failureDomain failure-domain2, failure-domain1 required"},
+			expectedConditionMessages1: []string{"Failure domain failure-domain1, failure-domain2 required"},
+			expectedConditionMessages2: []string{"Failure domain failure-domain2, failure-domain1 required"},
 		},
 		{
-			Name:     "Spec changes, latter has different FailureDomain",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentFailureDomain,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ... // 3 identical fields
-      Version:          &"v1.25.0",
-      ProviderID:       nil,
--     FailureDomain:    &"failure-domain1",
-+     FailureDomain:    &"failure-domain2",
-      ReadinessGates:   nil,
-      NodeDrainTimeout: nil,
-      ... // 2 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ... // 3 identical fields
-      Version:          &"v1.25.0",
-      ProviderID:       nil,
--     FailureDomain:    &"failure-domain2",
-+     FailureDomain:    &"failure-domain1",
-      ReadinessGates:   nil,
-      NodeDrainTimeout: nil,
-      ... // 2 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has different InfrastructureRef",
+			current:                    machineTemplate,
+			desired:                    machineTemplateWithDifferentInfraRef,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.infrastructureRef InfrastructureMachineTemplate infra1, InfrastructureMachineTemplate infra2 required"},
+			expectedLogMessages2:       []string{"spec.infrastructureRef InfrastructureMachineTemplate infra2, InfrastructureMachineTemplate infra1 required"},
+			expectedConditionMessages1: []string{"InfrastructureMachine is not up-to-date"},
+			expectedConditionMessages2: []string{"InfrastructureMachine is not up-to-date"},
 		},
 		{
-			Name:     "Spec changes, latter has different InfrastructureRef",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentInfraRef,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap:   {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: v1.ObjectReference{
-        Kind:       "InfrastructureMachine",
-        Namespace:  "default",
--       Name:       "infra1",
-+       Name:       "infra2",
-        UID:        "",
-        APIVersion: "infrastructure.cluster.x-k8s.io",
-        ... // 2 identical fields
-      },
-      Version:    &"v1.25.0",
-      ProviderID: nil,
-      ... // 5 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap:   {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
-      InfrastructureRef: v1.ObjectReference{
-        Kind:       "InfrastructureMachine",
-        Namespace:  "default",
--       Name:       "infra2",
-+       Name:       "infra1",
-        UID:        "",
-        APIVersion: "infrastructure.cluster.x-k8s.io",
-        ... // 2 identical fields
-      },
-      Version:    &"v1.25.0",
-      ProviderID: nil,
-      ... // 5 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has different Bootstrap data secret",
+			current:                    machineTemplateWithBootstrapDataSecret,
+			desired:                    machineTemplateWithDifferentBootstrapDataSecret,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.bootstrap.dataSecretName data-secret1, data-secret2 required"},
+			expectedLogMessages2:       []string{"spec.bootstrap.dataSecretName data-secret2, data-secret1 required"},
+			expectedConditionMessages1: []string{"spec.bootstrap.dataSecretName data-secret1, data-secret2 required"},
+			expectedConditionMessages2: []string{"spec.bootstrap.dataSecretName data-secret2, data-secret1 required"},
 		},
 		{
-			Name:     "Spec changes, latter has different Bootstrap",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentBootstrap,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap: v1beta1.Bootstrap{
--       ConfigRef:      s"&ObjectReference{Kind:BootstrapConfig,Namespace:default,Name:bootstrap1,UID:,APIVersion:bootstrap.cluster.x-k8s.io,ResourceVersion:,FieldPath:,}",
-+       ConfigRef:      nil,
--       DataSecretName: nil,
-+       DataSecretName: &"data-secret",
-      },
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      Version:           &"v1.25.0",
-      ... // 6 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap: v1beta1.Bootstrap{
--       ConfigRef:      nil,
-+       ConfigRef:      s"&ObjectReference{Kind:BootstrapConfig,Namespace:default,Name:bootstrap1,UID:,APIVersion:bootstrap.cluster.x-k8s.io,ResourceVersion:,FieldPath:,}",
--       DataSecretName: &"data-secret",
-+       DataSecretName: nil,
-      },
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      Version:           &"v1.25.0",
-      ... // 6 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has different Bootstrap.ConfigRef",
+			current:                    machineTemplate,
+			desired:                    machineTemplateWithDifferentBootstrapConfigRef,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.bootstrap.configRef BootstrapConfigTemplate bootstrap1, BootstrapConfigTemplate bootstrap2 required"},
+			expectedLogMessages2:       []string{"spec.bootstrap.configRef BootstrapConfigTemplate bootstrap2, BootstrapConfigTemplate bootstrap1 required"},
+			expectedConditionMessages1: []string{"BootstrapConfig is not up-to-date"},
+			expectedConditionMessages2: []string{"BootstrapConfig is not up-to-date"},
 		},
 		{
-			Name:     "Spec changes, latter has different Bootstrap.ConfigRef",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentBootstrapConfigRef,
-			Expected: false,
-			Diff1: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap: v1beta1.Bootstrap{
-        ConfigRef: &v1.ObjectReference{
-          Kind:       "BootstrapConfig",
-          Namespace:  "default",
--         Name:       "bootstrap1",
-+         Name:       "bootstrap2",
-          UID:        "",
-          APIVersion: "bootstrap.cluster.x-k8s.io",
-          ... // 2 identical fields
-        },
-        DataSecretName: nil,
-      },
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      Version:           &"v1.25.0",
-      ... // 6 identical fields
-    },
-  }`,
-			Diff2: `&v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "cluster1",
-      Bootstrap: v1beta1.Bootstrap{
-        ConfigRef: &v1.ObjectReference{
-          Kind:       "BootstrapConfig",
-          Namespace:  "default",
--         Name:       "bootstrap2",
-+         Name:       "bootstrap1",
-          UID:        "",
-          APIVersion: "bootstrap.cluster.x-k8s.io",
-          ... // 2 identical fields
-        },
-        DataSecretName: nil,
-      },
-      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      Version:           &"v1.25.0",
-      ... // 6 identical fields
-    },
-  }`,
+			Name:                       "Spec changes, desired has data secret instead of Bootstrap.ConfigRef",
+			current:                    machineTemplate,
+			desired:                    machineTemplateWithBootstrapDataSecret,
+			expectedUpToDate:           false,
+			expectedLogMessages1:       []string{"spec.bootstrap.configRef BootstrapConfigTemplate bootstrap1,   required"},
+			expectedLogMessages2:       []string{"spec.bootstrap.dataSecretName data-secret1, nil required"},
+			expectedConditionMessages1: []string{"BootstrapConfig is not up-to-date"},
+			expectedConditionMessages2: []string{"spec.bootstrap.dataSecretName data-secret1, nil required"},
 		},
 		{
-			Name:     "Same spec, except latter has different InfrastructureRef APIVersion",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentInfraRefAPIVersion,
-			Expected: true,
+			Name:             "Same spec, except desired has different InfrastructureRef APIVersion",
+			current:          machineTemplate,
+			desired:          machineTemplateWithDifferentInfraRefAPIVersion,
+			expectedUpToDate: true,
 		},
 		{
-			Name:     "Same spec, except latter has different Bootstrap.ConfigRef APIVersion",
-			Former:   machineTemplate,
-			Latter:   machineTemplateWithDifferentBootstrapConfigRefAPIVersion,
-			Expected: true,
+			Name:             "Same spec, except desired has different Bootstrap.ConfigRef APIVersion",
+			current:          machineTemplate,
+			desired:          machineTemplateWithDifferentBootstrapConfigRefAPIVersion,
+			expectedUpToDate: true,
 		},
 	}
 
@@ -527,19 +373,19 @@ func TestEqualMachineTemplate(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, expectedDiff string) {
+			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, expectedLogMessages, expectedConditionMessages []string) {
 				// Run
-				equal, diff, err := EqualMachineTemplate(t1, t2)
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(equal).To(Equal(test.Expected))
-				g.Expect(diff).To(BeComparableTo(expectedDiff))
+				upToDate, logMessages, conditionMessages := MachineTemplateUpToDate(t1, t2)
+				g.Expect(upToDate).To(Equal(test.expectedUpToDate))
+				g.Expect(logMessages).To(Equal(expectedLogMessages))
+				g.Expect(conditionMessages).To(Equal(expectedConditionMessages))
 				g.Expect(t1.Labels).NotTo(BeNil())
 				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
-			runTest(test.Former, test.Latter, test.Diff1)
+			runTest(test.current, test.desired, test.expectedLogMessages1, test.expectedConditionMessages1)
 			// Test the same case in reverse order
-			runTest(test.Latter, test.Former, test.Diff2)
+			runTest(test.desired, test.current, test.expectedLogMessages2, test.expectedConditionMessages2)
 		})
 	}
 }
@@ -552,6 +398,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
 
 	deployment := generateDeployment("nginx")
+	deployment.Spec.Template.Spec.InfrastructureRef.Kind = "InfrastructureMachineTemplate"
 	deployment.Spec.Template.Spec.InfrastructureRef.Name = "new-infra-ref"
 
 	deploymentWithRolloutAfter := deployment.DeepCopy()
@@ -608,29 +455,11 @@ func TestFindNewMachineSet(t *testing.T) {
 			expected:   &matchingMSDiffersInPlaceMutableFields,
 		},
 		{
-			Name:       "Get nil if no MachineSet matches the desired intent of the MachineDeployment",
-			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&oldMS},
-			expected:   nil,
-			createReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: &v1beta1.MachineTemplateSpec{
-    ObjectMeta: {},
-    Spec: v1beta1.MachineSpec{
-      ClusterName: "",
-      Bootstrap:   {},
-      InfrastructureRef: v1.ObjectReference{
-        Kind:       "",
-        Namespace:  "",
--       Name:       "old-infra-ref",
-+       Name:       "new-infra-ref",
-        UID:        "",
-        APIVersion: "",
-        ... // 2 identical fields
-      },
-      Version:    nil,
-      ProviderID: nil,
-      ... // 5 identical fields
-    },
-  }`, oldMS.Name),
+			Name:         "Get nil if no MachineSet matches the desired intent of the MachineDeployment",
+			deployment:   deployment,
+			msList:       []*clusterv1.MachineSet{&oldMS},
+			expected:     nil,
+			createReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
 		},
 		{
 			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",

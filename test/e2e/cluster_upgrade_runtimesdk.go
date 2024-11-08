@@ -102,6 +102,9 @@ type ClusterUpgradeWithRuntimeSDKSpecInput struct {
 
 	// ExtensionServiceName is the name of the service to configure in the test-namespace scoped ExtensionConfig.
 	ExtensionServiceName string
+
+	// DeployClusterClassInSeparateNamespace defines if the ClusterClass should be deployed in a separate namespace.
+	DeployClusterClassInSeparateNamespace bool
 }
 
 // ClusterUpgradeWithRuntimeSDKSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -116,9 +119,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 	)
 
 	var (
-		input         ClusterUpgradeWithRuntimeSDKSpecInput
-		namespace     *corev1.Namespace
-		cancelWatches context.CancelFunc
+		input                            ClusterUpgradeWithRuntimeSDKSpecInput
+		namespace, clusterClassNamespace *corev1.Namespace
+		cancelWatches                    context.CancelFunc
 
 		controlPlaneMachineCount int64
 		workerMachineCount       int64
@@ -158,6 +161,10 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the Namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		if input.DeployClusterClassInSeparateNamespace {
+			clusterClassNamespace = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{Creator: input.BootstrapClusterProxy.GetClient(), Name: fmt.Sprintf("%s-clusterclass", namespace.Name)}, "40s", "10s")
+			Expect(clusterClassNamespace).ToNot(BeNil(), "Failed to create namespace")
+		}
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
@@ -171,11 +178,16 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 		By("Deploy Test Extension ExtensionConfig")
 
+		namespaces := []string{namespace.Name}
+		if input.DeployClusterClassInSeparateNamespace {
+			namespaces = append(namespaces, clusterClassNamespace.Name)
+		}
+
 		// In this test we are defaulting all handlers to blocking because we expect the handlers to block the
 		// cluster lifecycle by default. Setting defaultAllHandlersToBlocking to true enforces that the test-extension
 		// automatically creates the ConfigMap with blocking preloaded responses.
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespace.Name))).
+			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespaces...))).
 			To(Succeed(), "Failed to create the extension config")
 
 		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
@@ -193,6 +205,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		variables := map[string]string{
 			// This is used to template the name of the ExtensionConfig into the ClusterClass.
 			"EXTENSION_CONFIG_NAME": input.ExtensionConfigName,
+		}
+		if input.DeployClusterClassInSeparateNamespace {
+			variables["CLUSTER_CLASS_NAMESPACE"] = clusterClassNamespace.Name
 		}
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -341,6 +356,14 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				Deleter: input.BootstrapClusterProxy.GetClient(),
 				Name:    namespace.Name,
 			})
+
+			if input.DeployClusterClassInSeparateNamespace {
+				Byf("Deleting namespace used for hosting the %q test spec ClusterClass", specName)
+				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+					Deleter: input.BootstrapClusterProxy.GetClient(),
+					Name:    clusterClassNamespace.Name,
+				})
+			}
 		}
 		cancelWatches()
 	})

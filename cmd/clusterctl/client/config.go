@@ -344,7 +344,7 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 
 	clusterClassClient := repo.ClusterClasses(version)
 
-	template, err = addClusterClassIfMissing(ctx, template, clusterClassClient, cluster, targetNamespace, listVariablesOnly)
+	template, err = addClusterClassIfMissing(ctx, template, clusterClassClient, cluster, listVariablesOnly)
 	if err != nil {
 		return nil, err
 	}

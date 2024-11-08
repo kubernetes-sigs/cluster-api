@@ -14,6 +14,7 @@ spec:
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
     class: "quick-start-runtimesdk"
+    classNamespace: '${CLUSTER_CLASS_NAMESPACE:-""}'
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       metadata: {}

@@ -616,10 +616,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 		return ""
 	}
 
-	machineNames := []string{}
-	for _, machine := range machines {
-		machineNames = append(machineNames, machine.GetName())
-	}
+	machineNames := machines.Names()
 
 	if len(machineNames) == 0 {
 		return ""

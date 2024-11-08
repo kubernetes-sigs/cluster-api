@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
@@ -54,6 +55,11 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 
 	// MachinesUpToDate condition: aggregate the Machine's UpToDate condition.
 	setMachinesUpToDateCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
+
+	machines := collections.FromMachines(s.machines...)
+	machinesToBeRemediated := machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+	unhealthyMachines := machines.Filter(collections.IsUnhealthy)
+	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 }
@@ -275,6 +281,53 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	v1beta2conditions.Set(machineSet, *upToDateCondition)
 }
 
+func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesToBeRemediated, unhealthyMachines collections.Machines, getAndAdoptMachinesForMachineSetSucceeded bool) {
+	if !getAndAdoptMachinesForMachineSetSucceeded {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetRemediatingInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	if len(machinesToBeRemediated) == 0 {
+		message := aggregateUnhealthyMachines(unhealthyMachines)
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineSetNotRemediatingV1Beta2Reason,
+			Message: message,
+		})
+		return
+	}
+
+	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
+		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetRemediatingV1Beta2Condition),
+	)
+	if err != nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetRemediatingInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+
+		log := ctrl.LoggerFrom(ctx)
+		log.Error(err, fmt.Sprintf("Failed to aggregate Machine's %s conditions", clusterv1.MachineOwnerRemediatedV1Beta2Condition))
+		return
+	}
+
+	v1beta2conditions.Set(machineSet, metav1.Condition{
+		Type:    remediatingCondition.Type,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
+		Message: remediatingCondition.Message,
+	})
+}
+
 func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
@@ -366,6 +419,35 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 		message += " are "
 	}
 	message += "in deletion since more than 30m"
+
+	return message
+}
+
+func aggregateUnhealthyMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
+	machineNames := machines.Names()
+
+	if len(machineNames) == 0 {
+		return ""
+	}
+
+	message := "Machine"
+	if len(machineNames) > 1 {
+		message += "s"
+	}
+
+	sort.Strings(machineNames)
+	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+
+	if len(machineNames) == 1 {
+		message += " is "
+	} else {
+		message += " are "
+	}
+	message += "not healthy (not to be remediated by MachineSet)"
 
 	return message
 }

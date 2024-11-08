@@ -153,10 +153,37 @@ const (
 	MachineSetMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// Conditions that will be used for the MachineSet object in v1Beta2 API version.
+// MachineSet's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+
+	// MachineSetRemediatingV1Beta2Reason surfaces when the MachineSet has at least one machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachineSetRemediatingV1Beta2Reason = RemediatingV1Beta2Reason
+
+	// MachineSetNotRemediatingV1Beta2Reason surfaces when the MachineSet does not have any machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachineSetNotRemediatingV1Beta2Reason = NotRemediatingV1Beta2Reason
+
+	// MachineSetRemediatingInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Remediating condition.
+	MachineSetRemediatingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Reasons that will be used for the OwnerRemediated condition set by MachineHealthCheck on MachineSet controlled machines
+// being remediated in v1Beta2 API version.
+const (
+	// MachineSetMachineCannotBeRemediatedV1Beta2Reason surfaces when remediation of a MachineSet machine can't be started.
+	MachineSetMachineCannotBeRemediatedV1Beta2Reason = "CannotBeRemediated"
+
+	// MachineSetMachineRemediationDeferredV1Beta2Reason surfaces when remediation of a MachineSet machine must be deferred.
+	MachineSetMachineRemediationDeferredV1Beta2Reason = "RemediationDeferred"
+
+	// MachineSetMachineRemediationMachineDeletedV1Beta2Reason surfaces when remediation of a MachineSet machine
+	// has been completed by deleting the unhealthy machine.
+	// Note: After an unhealthy machine is deleted, a new one is created by the MachineSet as part of the
+	// regular reconcile loop that ensures the correct number of replicas exist.
+	MachineSetMachineRemediationMachineDeletedV1Beta2Reason = "MachineDeleted"
 )
 
 // MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.

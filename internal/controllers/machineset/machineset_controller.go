@@ -19,6 +19,7 @@ package machineset
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -1241,6 +1242,8 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errList), "failed to remove OwnerRemediated condition from healhty Machines")
 	}
 
+	// Calculates the Machines to be remediated.
+	// Note: Machines already deleting are not included, there is no need to trigger remediation for them again.
 	machinesToRemediate := collections.FromMachines(machines...).Filter(collections.IsUnhealthyAndOwnerRemediated, collections.Not(collections.HasDeletionTimestamp)).UnsortedList()
 
 	// If there are no machines to remediate return early.
@@ -1250,7 +1253,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 
 	// Calculate how many in flight machines we should remediate.
 	// By default, we allow all machines to be remediated at the same time.
-	maxInFlight := len(machinesToRemediate)
+	maxInFlight := math.MaxInt
 
 	// If the MachineSet is part of a MachineDeployment, only allow remediations if
 	// it's the desired revision.
@@ -1282,6 +1285,8 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	}
 
 	// Update maxInFlight based on remediations that are in flight.
+	// A Machine has a remediation in flight when Machine's OwnerRemediated condition
+	// reports that remediation has been completed and the Machine has been deleted.
 	for _, m := range machines {
 		if !m.DeletionTimestamp.IsZero() {
 			// TODO: Check for Status: False and Reason: MachineSetMachineRemediationMachineDeletedV1Beta2Reason

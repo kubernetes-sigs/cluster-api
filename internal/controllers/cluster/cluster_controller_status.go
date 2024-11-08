@@ -849,6 +849,12 @@ func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 				return v1beta2conditions.InfoMergePriority
 			}
 		}
+
+		// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled condition as info.
+		if condition.Type == clusterv1.ClusterTopologyReconciledV1Beta2Condition && condition.Status == metav1.ConditionFalse &&
+			condition.Reason != clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason {
+			return v1beta2conditions.InfoMergePriority
+		}
 		return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes)(condition)
 	}).Merge(conditions, conditionTypes)
 }

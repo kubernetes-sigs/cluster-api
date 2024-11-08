@@ -1949,6 +1949,231 @@ func TestSetAvailableCondition(t *testing.T) {
 				Reason: v1beta2conditions.MultipleInfoReportedReason,
 			},
 		},
+		{
+			name: "Surfaces message from TopologyReconciled for reason that doesn't affect availability (no other issues)",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{}, // using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "Foo",
+							},
+							{
+								Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+								Status:  metav1.ConditionFalse,
+								Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+								Message: "Control plane rollout and upgrade to version v1.29.0 on hold.",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  v1beta2conditions.MultipleInfoReportedReason,
+				Message: "TopologyReconciled: Control plane rollout and upgrade to version v1.29.0 on hold.",
+			},
+		},
+		{
+			name: "Drops messages from TopologyReconciled for reason that doesn't affect availability (when there is another issue)",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{}, // using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status:  metav1.ConditionFalse,
+								Reason:  v1beta2conditions.MultipleIssuesReportedReason,
+								Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "Foo",
+							},
+							{
+								Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+								Status:  metav1.ConditionFalse,
+								Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+								Message: "Control plane rollout and upgrade to version v1.29.0 on hold.",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  v1beta2conditions.MultipleIssuesReportedReason, // Note: There is only one condition that is an issue, but it has the MultipleIssuesReported reason.
+				Message: "WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
+			},
+		},
+		{
+			name: "Takes into account messages from TopologyReconciled for reason that affects availability (no other issues)",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{}, // using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+								Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+									".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+				Message: "TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+			},
+		},
+		{
+			name: "Takes into account messages from TopologyReconciled for reason that affects availability (when there is another issue)",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{}, // using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status:  metav1.ConditionFalse,
+								Reason:  v1beta2conditions.MultipleIssuesReportedReason,
+								Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+								Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+									".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1; TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+			},
+		},
 	}
 
 	for _, tc := range testCases {

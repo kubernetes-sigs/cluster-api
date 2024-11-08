@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -753,6 +754,113 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 	}
 }
 
+func Test_setRemediatingCondition(t *testing.T) {
+	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
+	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
+	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Message: "Remediation in progress"}
+
+	tests := []struct {
+		name                                      string
+		machineSet                                *clusterv1.MachineSet
+		machines                                  []*clusterv1.Machine
+		getAndAdoptMachinesForMachineSetSucceeded bool
+		expectCondition                           metav1.Condition
+	}{
+		{
+			name:       "get machines failed",
+			machineSet: &clusterv1.MachineSet{},
+			machines:   nil,
+			getAndAdoptMachinesForMachineSetSucceeded: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineSetRemediatingInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:       "Without unhealthy machines",
+			machineSet: &clusterv1.MachineSet{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1"),
+				fakeMachine("m2"),
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineSetNotRemediatingV1Beta2Reason,
+			},
+		},
+		{
+			name:       "With machines to be remediated by MS",
+			machineSet: &clusterv1.MachineSet{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withConditions(healthCheckSucceeded)),    // Healthy machine
+				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
+				fakeMachine("m3", withConditions(healthCheckNotSucceeded, ownerRemediated), withV1Beta2Condition(ownerRemediatedV1Beta2)),
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
+				Message: "Remediation in progress from Machine m3",
+			},
+		},
+		{
+			name:       "With one unhealthy machine not to be remediated by MS",
+			machineSet: &clusterv1.MachineSet{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withConditions(healthCheckSucceeded)),    // Healthy machine
+				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
+				fakeMachine("m3", withConditions(healthCheckSucceeded)),    // Healthy machine
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineSetNotRemediatingV1Beta2Reason,
+				Message: "Machine m2 is not healthy (not to be remediated by MachineSet)",
+			},
+		},
+		{
+			name:       "With two unhealthy machine not to be remediated by MS",
+			machineSet: &clusterv1.MachineSet{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
+				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
+				fakeMachine("m3", withConditions(healthCheckSucceeded)),    // Healthy machine
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineSetNotRemediatingV1Beta2Reason,
+				Message: "Machines m1, m2 are not healthy (not to be remediated by MachineSet)",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var machinesToBeRemediated, unHealthyMachines collections.Machines
+			if tt.getAndAdoptMachinesForMachineSetSucceeded {
+				machines := collections.FromMachines(tt.machines...)
+				machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+				unHealthyMachines = machines.Filter(collections.IsUnhealthy)
+			}
+			setRemediatingCondition(ctx, tt.machineSet, machinesToBeRemediated, unHealthyMachines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+
+			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetRemediatingV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func Test_setDeletingCondition(t *testing.T) {
 	tests := []struct {
 		name                                      string
@@ -846,4 +954,33 @@ func newStaleDeletingMachine(name string) *clusterv1.Machine {
 	m := newMachine(name)
 	m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
 	return m
+}
+
+type fakeMachinesOption func(m *clusterv1.Machine)
+
+func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine {
+	p := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	for _, opt := range options {
+		opt(p)
+	}
+	return p
+}
+
+func withV1Beta2Condition(c metav1.Condition) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		if m.Status.V1Beta2 == nil {
+			m.Status.V1Beta2 = &clusterv1.MachineV1Beta2Status{}
+		}
+		v1beta2conditions.Set(m, c)
+	}
+}
+
+func withConditions(c ...clusterv1.Condition) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.Status.Conditions = append(m.Status.Conditions, c...)
+	}
 }

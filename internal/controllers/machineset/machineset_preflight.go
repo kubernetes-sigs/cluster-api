@@ -136,7 +136,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		for _, v := range preflightCheckErrs {
 			preflightCheckErrStrings = append(preflightCheckErrStrings, *v)
 		}
-		msg := fmt.Sprintf("Performing %q on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; "))
+		msg := fmt.Sprintf("%s on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; "))
 		log.Info(msg)
 		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, msg, nil
 	}
@@ -149,19 +149,19 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 	// Check that the control plane is not provisioning.
 	isProvisioning, err := contract.ControlPlane().IsProvisioning(controlPlane)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if ControlPlane %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, cpKlogRef)
+		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if %s %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isProvisioning {
-		return ptr.To(fmt.Sprintf("ControlPlane %s is provisioning (%q preflight failed)", cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	// Check that the control plane is not upgrading.
 	isUpgrading, err := contract.ControlPlane().IsUpgrading(controlPlane)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if the ControlPlane %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, cpKlogRef)
+		return nil, errors.Wrapf(err, "failed to perform %q preflight check: failed to check if the %s %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isUpgrading {
-		return ptr.To(fmt.Sprintf("ControlPlane %s is upgrading (%q preflight failed)", cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	return nil, nil

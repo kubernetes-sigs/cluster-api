@@ -209,7 +209,7 @@ const (
 // Reasons that will be used for the OwnerRemediated condition set by MachineHealthCheck on KubeadmControlPlane controlled machines
 // being remediated in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason surfaces unexpected failures while remediation a control plane machine.
+	// KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason surfaces unexpected failures while remediating a control plane machine.
 	KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 
 	// KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason surfaces when remediation of a control plane machine can't be started.

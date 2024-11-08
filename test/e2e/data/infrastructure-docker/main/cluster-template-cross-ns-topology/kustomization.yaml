@@ -1,0 +1,5 @@
+resources:
+  - ../cluster-template-topology-no-workers
+
+patches:
+- path: cluster.yaml

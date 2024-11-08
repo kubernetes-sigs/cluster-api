@@ -347,6 +347,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-cross-ns-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"

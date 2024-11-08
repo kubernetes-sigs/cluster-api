@@ -124,6 +124,22 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 	})
 })
 
+var _ = Describe("When following the Cluster API quick-start with a cross-ns referenced ClusterClass [PR-Blocking] [ClusterClass]", func() {
+	CrossNsSpecQuickstart(ctx, func() CrossNsSpecInput {
+		return CrossNsSpecInput{
+			QuickStartSpecInput: QuickStartSpecInput{
+				E2EConfig:              e2eConfig,
+				ClusterctlConfigPath:   clusterctlConfigPath,
+				BootstrapClusterProxy:  bootstrapClusterProxy,
+				ArtifactFolder:         artifactFolder,
+				SkipCleanup:            skipCleanup,
+				Flavor:                 ptr.To("cross-ns-topology"),
+				InfrastructureProvider: ptr.To("docker"),
+			},
+		}
+	})
+})
+
 // NOTE: This test requires an IPv6 management cluster (can be configured via IP_FAMILY=IPv6).
 var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {

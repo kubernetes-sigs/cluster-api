@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,65 +40,74 @@ import (
 // - mutated in-place (ex: NodeDrainTimeout)
 // - are not dictated by KCP (ex: ProviderID)
 // - are not relevant for the rollout decision (ex: failureDomain).
-func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool, error) {
-	mismatchReasons := []string{}
+func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (bool, []string, []string, error) {
+	logMessages := []string{}
+	conditionMessages := []string{}
 
 	if !collections.MatchesKubernetesVersion(kcp.Spec.Version)(machine) {
 		machineVersion := ""
 		if machine != nil && machine.Spec.Version != nil {
 			machineVersion = *machine.Spec.Version
 		}
-		mismatchReasons = append(mismatchReasons, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
+		logMessages = append(logMessages, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", machineVersion, kcp.Spec.Version))
 	}
 
 	reason, matches, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, machine)
 	if err != nil {
-		return "", false, errors.Wrapf(err, "failed to match Machine spec")
+		return false, nil, nil, errors.Wrapf(err, "failed to match Machine spec")
 	}
 	if !matches {
-		mismatchReasons = append(mismatchReasons, reason)
+		logMessages = append(logMessages, reason)
+		conditionMessages = append(conditionMessages, "KubeadmConfig is not up-to-date")
 	}
 
 	if reason, matches := matchesTemplateClonedFrom(infraConfigs, kcp, machine); !matches {
-		mismatchReasons = append(mismatchReasons, reason)
+		logMessages = append(logMessages, reason)
+		conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", machine.Spec.InfrastructureRef.Kind))
 	}
 
-	if len(mismatchReasons) > 0 {
-		return strings.Join(mismatchReasons, ","), false, nil
+	if len(logMessages) > 0 || len(conditionMessages) > 0 {
+		return false, logMessages, conditionMessages, nil
 	}
 
-	return "", true, nil
+	return true, nil, nil, nil
 }
 
-// NeedsRollout checks if a Machine needs to be rolled out and returns the reason why.
-func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool, error) {
-	rolloutReasons := []string{}
+// UpToDate checks if a Machine is up to date with the control plane's configuration.
+// If not, messages explaining why are provided with different level of detail for logs and conditions.
+func UpToDate(machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, reconciliationTime *metav1.Time, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig) (bool, []string, []string, error) {
+	logMessages := []string{}
+	conditionMessages := []string{}
 
 	// Machines whose certificates are about to expire.
-	if collections.ShouldRolloutBefore(reconciliationTime, rolloutBefore)(machine) {
-		rolloutReasons = append(rolloutReasons, "certificates will expire soon, rolloutBefore expired")
+	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.RolloutBefore)(machine) {
+		logMessages = append(logMessages, "certificates will expire soon, rolloutBefore expired")
+		conditionMessages = append(conditionMessages, "Certificates will expire soon")
 	}
 
 	// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
 	// the RolloutAfter deadline is expired, and the machine was created before the deadline).
-	if collections.ShouldRolloutAfter(reconciliationTime, rolloutAfter)(machine) {
-		rolloutReasons = append(rolloutReasons, "rolloutAfter expired")
+	if collections.ShouldRolloutAfter(reconciliationTime, kcp.Spec.RolloutAfter)(machine) {
+		logMessages = append(logMessages, "rolloutAfter expired")
+		conditionMessages = append(conditionMessages, "KubeadmControlPlane spec.rolloutAfter expired")
 	}
 
 	// Machines that do not match with KCP config.
-	mismatchReason, matches, err := matchesMachineSpec(infraConfigs, machineConfigs, kcp, machine)
+	matches, specLogMessages, specConditionMessages, err := matchesMachineSpec(infraConfigs, machineConfigs, kcp, machine)
 	if err != nil {
-		return "", false, errors.Wrapf(err, "failed to determine if Machine %s needs rollout", machine.Name)
+		return false, nil, nil, errors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
 	}
 	if !matches {
-		rolloutReasons = append(rolloutReasons, mismatchReason)
+		logMessages = append(logMessages, specLogMessages...)
+		conditionMessages = append(conditionMessages, specConditionMessages...)
 	}
 
-	if len(rolloutReasons) > 0 {
-		return fmt.Sprintf("Machine %s needs rollout: %s", machine.Name, strings.Join(rolloutReasons, ",")), true, nil
+	if len(logMessages) > 0 || len(conditionMessages) > 0 {
+		return false, logMessages, conditionMessages, nil
 	}
 
-	return "", false, nil
+	return true, nil, nil, nil
 }
 
 // matchesTemplateClonedFrom checks if a Machine has a corresponding infrastructure machine that

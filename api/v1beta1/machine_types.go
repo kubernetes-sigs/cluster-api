@@ -123,7 +123,15 @@ const (
 const (
 	// MachineUpToDateV1Beta2Condition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
 	// The Machine's owner (e.g. MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
+	// NOTE: The Machine's owner might use this condition to surface also other use cases when Machine is considered not up to date, e.g. when MachineDeployment spec.rolloutAfter
+	// is expired and the Machine needs to be rolled out.
 	MachineUpToDateV1Beta2Condition = "UpToDate"
+
+	// MachineUpToDateV1Beta2Reason surface when a Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	MachineUpToDateV1Beta2Reason = "UpToDate"
+
+	// MachineNotUpToDateV1Beta2Reason surface when a Machine spec does not match the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	MachineNotUpToDateV1Beta2Reason = "NotUpToDate"
 )
 
 // Machine's BootstrapConfigReady condition and corresponding reasons that will be used in v1Beta2 API version.

@@ -46,10 +46,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	// This is necessary for CRDs including scale subresources.
 	controlPlane.KCP.Status.Selector = selector.String()
 
-	upToDateMachines, err := controlPlane.UpToDateMachines()
-	if err != nil {
-		return errors.Wrapf(err, "failed to update status")
-	}
+	upToDateMachines := controlPlane.UpToDateMachines()
 	controlPlane.KCP.Status.UpdatedReplicas = int32(len(upToDateMachines))
 
 	replicas := int32(len(controlPlane.Machines))
@@ -154,11 +151,11 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 		return
 	}
 
-	// Note: some of the status is set on reconcileControlPlaneConditions (EtcdClusterHealthy, ControlPlaneComponentsHealthy conditions),
+	// Note: some of the status is set on reconcileControlPlaneAndMachinesConditions (EtcdClusterHealthy, ControlPlaneComponentsHealthy conditions),
 	// reconcileClusterCertificates (CertificatesAvailable condition), and also in the defer patch at the end of
 	// the main reconcile loop (status.ObservedGeneration) etc
 
-	// Note: KCP also sets status on machines in reconcileUnhealthyMachines and reconcileControlPlaneConditions; if for
+	// Note: KCP also sets status on machines in reconcileUnhealthyMachines and reconcileControlPlaneAndMachinesConditions; if for
 	// any reason those functions are not called before, e.g. an error, this func relies on existing Machine's condition.
 
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -635,7 +632,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	} else {
 		message += " are "
 	}
-	message += "not healthy (not to be remediated by KCP)"
+	message += "not healthy (not to be remediated by KubeadmControlPlane)"
 
 	return message
 }

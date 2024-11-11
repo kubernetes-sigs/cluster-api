@@ -83,7 +83,7 @@ func TestControlPlane(t *testing.T) {
 			"machine-1": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
+					Version:           ptr.To("v1.31.0"), // up-to-date
 					FailureDomain:     ptr.To("one"),
 					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
 				}},
@@ -104,15 +104,22 @@ func TestControlPlane(t *testing.T) {
 			"machine-4": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
+					Version:           ptr.To("v1.31.0"), // up-to-date
 					FailureDomain:     ptr.To("two"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m4"},
+				}},
+			"machine-5": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m5"},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"), // up-to-date
+					FailureDomain:     ptr.To("three"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m5"},
 				}},
 		}
 		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), cluster, kcp, machines)
 		g.Expect(err).NotTo(HaveOccurred())
 
-		g.Expect(controlPlane.Machines).To(HaveLen(4))
+		g.Expect(controlPlane.Machines).To(HaveLen(5))
 
 		machinesNotUptoDate, machinesNotUptoDateConditionMessages := controlPlane.NotUpToDateMachines()
 		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
@@ -127,12 +134,12 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(machinesNotUptoDateLogMessages).To(HaveKeyWithValue("m3", []string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
 
 		upToDateMachines := controlPlane.UpToDateMachines()
-		g.Expect(upToDateMachines).To(HaveLen(2))
-		g.Expect(upToDateMachines.Names()).To(ConsistOf("m1", "m4"))
+		g.Expect(upToDateMachines).To(HaveLen(3))
+		g.Expect(upToDateMachines.Names()).To(ConsistOf("m1", "m4", "m5"))
 
 		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(fd).To(Equal(ptr.To("two"))) // deleted up-to-date machines should not be counted when picking the next failure domain for scale up
+		g.Expect(fd).To(Equal(ptr.To("two"))) // deleted up-to-date machines (m4) should not be counted when picking the next failure domain for scale up
 	})
 }
 

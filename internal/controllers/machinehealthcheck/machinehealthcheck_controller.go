@@ -160,7 +160,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	defer func() {
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []patch.Option{}
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.RemediationAllowedCondition,
+			}},
+			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+			}},
+		}
 		if reterr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
@@ -300,7 +307,18 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		}
 		errList := []error{}
 		for _, t := range append(healthy, unhealthy...) {
-			if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+			patchOpts := []patch.Option{
+				patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+					clusterv1.MachineHealthCheckSucceededCondition,
+					// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+				}},
+				patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+					clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+					// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+					// (Same for ExternallyRemediated condition)
+				}},
+			}
+			if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
 				errList = append(errList, errors.Wrapf(err, "failed to patch machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 				continue
 			}
@@ -380,7 +398,18 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 			}
 		}
 
-		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineHealthCheckSucceededCondition,
+				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+			}},
+			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+				// (Same for ExternallyRemediated condition)
+			}},
+		}
+		if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
 			logger.Error(err, "failed to patch healthy machine status for machine", "Machine", klog.KObj(t.Machine))
 			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 		}
@@ -486,7 +515,18 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			}
 		}
 
-		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineHealthCheckSucceededCondition,
+				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+			}},
+			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
+				// (Same for ExternallyRemediated condition)
+			}},
+		}
+		if err := t.patchHelper.Patch(ctx, t.Machine, patchOpts...); err != nil {
 			errList = append(errList, errors.Wrapf(err, "failed to patch unhealthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 			continue
 		}

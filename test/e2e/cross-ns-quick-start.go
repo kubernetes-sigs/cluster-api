@@ -37,8 +37,8 @@ type CrossNsSpecInput struct {
 	QuickStartSpecInput
 }
 
-// QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
-// creating a workload cluster.
+// CrossNsSpecQuickstart implements a spec that mimics the operation described in the Cluster API quick start, that is
+// creating a workload cluster, but uses a cross-namespaced cluster class reference.
 // This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
 // NOTE: This test works with Clusters with and without ClusterClass.
 func CrossNsSpecQuickstart(ctx context.Context, inputGetter func() CrossNsSpecInput) {

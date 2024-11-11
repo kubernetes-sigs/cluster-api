@@ -35,7 +35,4 @@ type ReconcileOutput struct {
 	// Details of the referenced external object.
 	// +optional
 	Result *unstructured.Unstructured
-	// Indicates if the external object is paused.
-	// +optional
-	Paused bool
 }

@@ -77,7 +77,7 @@ var (
 	leaderElectionRenewDeadline time.Duration
 	leaderElectionRetryPeriod   time.Duration
 	watchFilterValue            string
-	watchNamespace              string
+	watchNamespacesList         []string
 	profilerAddress             string
 	enableContentionProfiling   bool
 	syncPeriod                  time.Duration
@@ -125,8 +125,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
-	fs.StringVar(&watchNamespace, "namespace", "",
-		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+	fs.StringSliceVar(&watchNamespacesList, "namespace", nil,
+		"Comma-separated list of namespaces that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 
 	fs.StringVar(&watchFilterValue, "watch-filter", "",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
@@ -218,9 +218,10 @@ func main() {
 	}
 
 	var watchNamespaces map[string]cache.Config
-	if watchNamespace != "" {
-		watchNamespaces = map[string]cache.Config{
-			watchNamespace: {},
+	if watchNamespacesList != nil {
+		watchNamespaces = map[string]cache.Config{}
+		for _, watchNamespace := range watchNamespacesList {
+			watchNamespaces[watchNamespace] = cache.Config{}
 		}
 	}
 

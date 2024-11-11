@@ -149,7 +149,7 @@ type ClusterCache interface {
 	// During a disconnect existing watches (i.e. informers) are shutdown when stopping the cache.
 	// After a re-connect watches will be re-added (assuming the Watch method is called again).
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
-	Watch(ctx context.Context, cluster client.ObjectKey, input WatchInput) error
+	Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error
 
 	// GetLastProbeSuccessTimestamp returns the time when the health probe was successfully executed last.
 	GetLastProbeSuccessTimestamp(ctx context.Context, cluster client.ObjectKey) time.Time
@@ -169,17 +169,29 @@ type ClusterCache interface {
 // because there is no connection to the workload cluster.
 var ErrClusterNotConnected = errors.New("connection to the workload cluster is down")
 
-// Watcher is a scoped-down interface from Controller that only has the Watch func.
+// Watcher is an interface that can start a Watch.
 type Watcher interface {
-	// Watch watches the provided Source.
-	Watch(src source.Source) error
+	Name() string
+	Object() client.Object
+	Watch(cache cache.Cache) error
 }
 
-// WatchInput specifies the parameters used to establish a new watch for a workload cluster.
-// A source.Kind source (configured with Kind, EventHandler and Predicates) will be added to the Watcher.
-// To watch for events, the source.Kind will create an informer on the Cache that we have created and cached
+// SourceWatcher is a scoped-down interface from Controller that only has the Watch func.
+type SourceWatcher[request comparable] interface {
+	Watch(src source.TypedSource[request]) error
+}
+
+// WatcherOptions specifies the parameters used to establish a new watch for a workload cluster.
+// A source.TypedKind source (configured with Kind, TypedEventHandler and Predicates) will be added to the Watcher.
+// To watch for events, the source.TypedKind will create an informer on the Cache that we have created and cached
 // for the given Cluster.
-type WatchInput struct {
+type WatcherOptions = TypedWatcherOptions[client.Object, ctrl.Request]
+
+// TypedWatcherOptions specifies the parameters used to establish a new watch for a workload cluster.
+// A source.TypedKind source (configured with Kind, TypedEventHandler and Predicates) will be added to the Watcher.
+// To watch for events, the source.TypedKind will create an informer on the Cache that we have created and cached
+// for the given Cluster.
+type TypedWatcherOptions[object client.Object, request comparable] struct {
 	// Name represents a unique Watch request for the specified Cluster.
 	// The name is used to track that a specific watch is only added once to a cache.
 	// After a connection (and thus also the cache) has been re-created, watches have to be added
@@ -187,16 +199,44 @@ type WatchInput struct {
 	Name string
 
 	// Watcher is the watcher (controller) whose Reconcile() function will be called for events.
-	Watcher Watcher
+	Watcher SourceWatcher[request]
 
 	// Kind is the type of resource to watch.
-	Kind client.Object
+	Kind object
 
 	// EventHandler contains the event handlers to invoke for resource events.
-	EventHandler handler.EventHandler
+	EventHandler handler.TypedEventHandler[object, request]
 
 	// Predicates is used to filter resource events.
-	Predicates []predicate.Predicate
+	Predicates []predicate.TypedPredicate[object]
+}
+
+// NewWatcher creates a Watcher for the workload cluster.
+// A source.TypedKind source (configured with Kind, TypedEventHandler and Predicates) will be added to the SourceWatcher.
+// To watch for events, the source.TypedKind will create an informer on the Cache that we have created and cached
+// for the given Cluster.
+func NewWatcher[object client.Object, request comparable](options TypedWatcherOptions[object, request]) Watcher {
+	return &watcher[object, request]{
+		name:         options.Name,
+		kind:         options.Kind,
+		eventHandler: options.EventHandler,
+		predicates:   options.Predicates,
+		watcher:      options.Watcher,
+	}
+}
+
+type watcher[object client.Object, request comparable] struct {
+	name         string
+	kind         object
+	eventHandler handler.TypedEventHandler[object, request]
+	predicates   []predicate.TypedPredicate[object]
+	watcher      SourceWatcher[request]
+}
+
+func (tw *watcher[object, request]) Name() string          { return tw.name }
+func (tw *watcher[object, request]) Object() client.Object { return tw.kind }
+func (tw *watcher[object, request]) Watch(cache cache.Cache) error {
+	return tw.watcher.Watch(source.TypedKind[object, request](cache, tw.kind, tw.eventHandler, tw.predicates...))
 }
 
 // GetClusterSourceOption is an option that modifies GetClusterSourceOptions for a GetClusterSource call.
@@ -342,12 +382,12 @@ func (cc *clusterCache) GetClientCertificatePrivateKey(ctx context.Context, clus
 	return accessor.GetClientCertificatePrivateKey(ctx), nil
 }
 
-func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, input WatchInput) error {
+func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
-	return accessor.Watch(ctx, input)
+	return accessor.Watch(ctx, watcher)
 }
 
 func (cc *clusterCache) GetLastProbeSuccessTimestamp(ctx context.Context, cluster client.ObjectKey) time.Time {

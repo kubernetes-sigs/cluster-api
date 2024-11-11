@@ -327,7 +327,7 @@ func TestWatch(t *testing.T) {
 	accessor := newClusterAccessor(clusterKey, config)
 
 	tw := &testWatcher{}
-	wi := WatchInput{
+	wi := WatcherOptions{
 		Name:         "test-watch",
 		Watcher:      tw,
 		Kind:         &corev1.Node{},
@@ -335,7 +335,7 @@ func TestWatch(t *testing.T) {
 	}
 
 	// Add watch when not connected (fails)
-	err := accessor.Watch(ctx, wi)
+	err := accessor.Watch(ctx, NewWatcher(wi))
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(errors.Is(err, ErrClusterNotConnected)).To(BeTrue())
 
@@ -346,12 +346,12 @@ func TestWatch(t *testing.T) {
 	g.Expect(accessor.lockedState.connection.watches).To(BeEmpty())
 
 	// Add watch
-	g.Expect(accessor.Watch(ctx, wi)).To(Succeed())
+	g.Expect(accessor.Watch(ctx, NewWatcher(wi))).To(Succeed())
 	g.Expect(accessor.lockedState.connection.watches.Has("test-watch")).To(BeTrue())
 	g.Expect(accessor.lockedState.connection.watches.Len()).To(Equal(1))
 
 	// Add watch again (no-op as watch already exists)
-	g.Expect(accessor.Watch(ctx, wi)).To(Succeed())
+	g.Expect(accessor.Watch(ctx, NewWatcher(wi))).To(Succeed())
 	g.Expect(accessor.lockedState.connection.watches.Has("test-watch")).To(BeTrue())
 	g.Expect(accessor.lockedState.connection.watches.Len()).To(Equal(1))
 

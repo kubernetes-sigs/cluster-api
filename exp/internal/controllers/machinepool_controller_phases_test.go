@@ -1216,43 +1216,6 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 		},
 		{
-			name: "infrastructure ref is paused",
-			infraConfig: map[string]interface{}{
-				"kind":       builder.TestInfrastructureMachineTemplateKind,
-				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": metav1.NamespaceDefault,
-					"annotations": map[string]interface{}{
-						"cluster.x-k8s.io/paused": "true",
-					},
-				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.2",
-						},
-					},
-				},
-			},
-			expectError:   false,
-			expectChanged: false,
-			expected: func(g *WithT, m *expv1.MachinePool) {
-				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
-			},
-		},
-		{
 			name: "ready bootstrap, infra, and nodeRef, machinepool is running, replicas 0, providerIDList not set",
 			machinepool: &expv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{

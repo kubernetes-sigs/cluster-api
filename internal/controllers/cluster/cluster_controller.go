@@ -251,6 +251,20 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 			clusterv1.ControlPlaneReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+			clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+			clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
+			clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+			clusterv1.ClusterMachinesReadyV1Beta2Condition,
+			clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
+			clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			clusterv1.ClusterScalingUpV1Beta2Condition,
+			clusterv1.ClusterScalingDownV1Beta2Condition,
+			clusterv1.ClusterRemediatingV1Beta2Condition,
+			clusterv1.ClusterDeletingV1Beta2Condition,
+			clusterv1.ClusterAvailableV1Beta2Condition,
+		}},
 	)
 	return patchHelper.Patch(ctx, cluster, options...)
 }

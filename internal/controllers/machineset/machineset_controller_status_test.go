@@ -572,7 +572,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition Ready not yet reported from Machine machine-2",
+				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
 		{
@@ -601,10 +601,12 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Deleting: Machine deletion in progress, stage: DrainingNode from Machine machine-4; HealthCheckSucceeded: Some message from Machine machine-2; Some unknown message from Machine machine-3",
+				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
+					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
+					"* Machine machine-3: Some unknown message",
 			},
 		},
 	}
@@ -689,7 +691,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "some-unknown-reason-1",
-				Message: "some unknown message from Machine unknown-1",
+				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
 		{
@@ -708,7 +710,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "some-not-up-to-date-reason",
-				Message: "some not up-to-date message from Machine not-up-to-date-machine-1",
+				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
 		{
@@ -722,7 +724,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition UpToDate not yet reported from Machine no-condition-machine-1",
+				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
 		{
@@ -756,10 +758,11 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "This is not up-to-date message from Machines not-up-to-date-machine-1, not-up-to-date-machine-2; Condition UpToDate not yet reported from Machines no-condition-machine-1, no-condition-machine-2",
+				Type:   clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
+					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
 		},
 	}
@@ -781,14 +784,13 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
 	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
-	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason, Message: "Waiting for remediation"}
+	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason, Message: "KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)"}
 
 	tests := []struct {
 		name                                      string
 		machineSet                                *clusterv1.MachineSet
 		machines                                  []*clusterv1.Machine
 		getAndAdoptMachinesForMachineSetSucceeded bool
-		remediationPreflightCheckErrMessage       string
 		expectCondition                           metav1.Condition
 	}{
 		{
@@ -830,7 +832,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "Machine deletionTimestamp set from Machine m3",
+				Message: "* Machine m3: Machine deletionTimestamp set",
 			},
 		},
 		{
@@ -844,13 +846,12 @@ func Test_setRemediatingCondition(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			// This preflight check error can happen when a Machine becomes unhealthy while the control plane is upgrading.
-			remediationPreflightCheckErrMessage: "KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "Triggering further remediations is blocked because KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed); " +
-					"Machine deletionTimestamp set from Machine m3; Waiting for remediation from Machine m4",
+				Message: "* Machine m3: Machine deletionTimestamp set\n" +
+					"* Machine m4: KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 			},
 		},
 		{
@@ -896,7 +897,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 				unHealthyMachines = machines.Filter(collections.IsUnhealthy)
 			}
-			setRemediatingCondition(ctx, tt.machineSet, machinesToBeRemediated, unHealthyMachines, tt.getAndAdoptMachinesForMachineSetSucceeded, tt.remediationPreflightCheckErrMessage)
+			setRemediatingCondition(ctx, tt.machineSet, machinesToBeRemediated, unHealthyMachines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())

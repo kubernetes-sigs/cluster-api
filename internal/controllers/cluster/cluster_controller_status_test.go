@@ -248,7 +248,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason,
-				Message: "some message (from FakeInfraCluster)",
+				Message: "some message",
 			},
 		},
 		{
@@ -402,7 +402,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason,
-				Message: "some message (from FakeControlPlane)",
+				Message: "some message",
 			},
 		},
 		{
@@ -694,10 +694,11 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.MultipleUnknownReportedReason,
-				Message: "Condition Available not yet reported from MachineDeployment md1; Condition Available not yet reported from MachinePool mp1",
+				Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: v1beta2conditions.MultipleUnknownReportedReason,
+				Message: "* MachineDeployment md1: Condition Available not yet reported\n" +
+					"* MachinePool mp1: Condition Available not yet reported",
 			},
 		},
 		{
@@ -721,10 +722,11 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
+				Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* MachineDeployment md1: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5)\n" +
+					"* MachinePool mp1: 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4)",
 			},
 		},
 	}
@@ -804,7 +806,7 @@ func TestSetMachinesReadyCondition(t *testing.T) {
 				Type:    clusterv1.ClusterMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition Ready not yet reported from Machine machine-2",
+				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
 		{
@@ -833,10 +835,12 @@ func TestSetMachinesReadyCondition(t *testing.T) {
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterMachinesReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Deleting: Machine deletion in progress, stage: DrainingNode from Machine machine-4; HealthCheckSucceeded: Some message from Machine machine-2; Some unknown message from Machine machine-3",
+				Type:   clusterv1.ClusterMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
+					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
+					"* Machine machine-3: Some unknown message",
 			},
 		},
 	}
@@ -923,7 +927,7 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "some-unknown-reason-1",
-				Message: "some unknown message from Machine unknown-1",
+				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
 		{
@@ -942,7 +946,7 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "some-not-up-to-date-reason",
-				Message: "some not up-to-date message from Machine not-up-to-date-machine-1",
+				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
 		{
@@ -956,7 +960,7 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition UpToDate not yet reported from Machine no-condition-machine-1",
+				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
 		{
@@ -990,10 +994,11 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "This is not up-to-date message from Machines not-up-to-date-machine-1, not-up-to-date-machine-2; Condition UpToDate not yet reported from Machines no-condition-machine-1, no-condition-machine-2",
+				Type:   clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
+					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
 		},
 	}
@@ -1084,10 +1089,12 @@ func TestSetScalingUpCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.MultipleUnknownReportedReason,
-				Message: "Condition ScalingUp not yet reported from MachineDeployment md1; Condition ScalingUp not yet reported from MachinePool mp1; Condition ScalingUp not yet reported from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingUpV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: v1beta2conditions.MultipleUnknownReportedReason,
+				Message: "* MachineDeployment md1: Condition ScalingUp not yet reported\n" +
+					"* MachinePool mp1: Condition ScalingUp not yet reported\n" +
+					"* MachineSet ms1: Condition ScalingUp not yet reported",
 			},
 		},
 		{
@@ -1131,10 +1138,13 @@ func TestSetScalingUpCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling up from 0 to 3 replicas from FakeControlPlane cp1; Scaling up from 1 to 5 replicas from MachineDeployment md1; Scaling up from 0 to 3 replicas from MachinePool mp1; 1 MachineSet with other issues",
+				Type:   clusterv1.ClusterScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* FakeControlPlane cp1: Scaling up from 0 to 3 replicas\n" +
+					"* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
+					"And 1 MachineSet with other issues",
 			},
 		},
 		{
@@ -1173,10 +1183,12 @@ func TestSetScalingUpCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling up from 1 to 5 replicas from MachineDeployment md1; Scaling up from 0 to 3 replicas from MachinePool mp1; Scaling up from 2 to 7 replicas from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
+					"* MachineSet ms1: Scaling up from 2 to 7 replicas",
 			},
 		},
 		{
@@ -1236,10 +1248,12 @@ func TestSetScalingUpCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling up from 1 to 5 replicas from MachineDeployment md1; Scaling up from 0 to 3 replicas from MachinePool mp1; Scaling up from 2 to 7 replicas from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
+					"* MachineSet ms1: Scaling up from 2 to 7 replicas",
 			},
 		},
 	}
@@ -1326,10 +1340,12 @@ func TestSetScalingDownCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.MultipleUnknownReportedReason,
-				Message: "Condition ScalingDown not yet reported from MachineDeployment md1; Condition ScalingDown not yet reported from MachinePool mp1; Condition ScalingDown not yet reported from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingDownV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: v1beta2conditions.MultipleUnknownReportedReason,
+				Message: "* MachineDeployment md1: Condition ScalingDown not yet reported\n" +
+					"* MachinePool mp1: Condition ScalingDown not yet reported\n" +
+					"* MachineSet ms1: Condition ScalingDown not yet reported",
 			},
 		},
 		{
@@ -1373,10 +1389,13 @@ func TestSetScalingDownCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling down from 0 to 3 replicas from FakeControlPlane cp1; Scaling down from 1 to 5 replicas from MachineDeployment md1; Scaling down from 0 to 3 replicas from MachinePool mp1; 1 MachineSet with other issues",
+				Type:   clusterv1.ClusterScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* FakeControlPlane cp1: Scaling down from 0 to 3 replicas\n" +
+					"* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
+					"And 1 MachineSet with other issues",
 			},
 		},
 		{
@@ -1415,10 +1434,12 @@ func TestSetScalingDownCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling down from 1 to 5 replicas from MachineDeployment md1; Scaling down from 0 to 3 replicas from MachinePool mp1; Scaling down from 2 to 7 replicas from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
+					"* MachineSet ms1: Scaling down from 2 to 7 replicas",
 			},
 		},
 		{
@@ -1478,10 +1499,12 @@ func TestSetScalingDownCondition(t *testing.T) {
 			}},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Scaling down from 1 to 5 replicas from MachineDeployment md1; Scaling down from 0 to 3 replicas from MachinePool mp1; Scaling down from 2 to 7 replicas from MachineSet ms1",
+				Type:   clusterv1.ClusterScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
+					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
+					"* MachineSet ms1: Scaling down from 2 to 7 replicas",
 			},
 		},
 	}
@@ -1550,7 +1573,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.ClusterRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.ClusterRemediatingV1Beta2Reason,
-				Message: "Machine deletionTimestamp set from Machine m3",
+				Message: "* Machine m3: Machine deletionTimestamp set",
 			},
 		},
 		{
@@ -1625,15 +1648,21 @@ func TestDeletingCondition(t *testing.T) {
 			},
 		},
 		{
-			name:            "deletionTimestamp set (some reason/message reported)",
-			cluster:         fakeCluster("c", deleted(true)),
-			deletingReason:  clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason,
-			deletingMessage: "Some message",
+			name:           "deletionTimestamp set (some reason/message reported)",
+			cluster:        fakeCluster("c", deleted(true)),
+			deletingReason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+			deletingMessage: "* Control plane Machines: cp1, cp2, cp3\n" +
+				"* MachineDeployments: md1, md2\n" +
+				"* MachineSets: ms1, ms2\n" +
+				"* Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterDeletingV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason,
-				Message: "Some message",
+				Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+				Message: "* Control plane Machines: cp1, cp2, cp3\n" +
+					"* MachineDeployments: md1, md2\n" +
+					"* MachineSets: ms1, ms2\n" +
+					"* Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
 			},
 		},
 	}
@@ -1676,10 +1705,14 @@ func TestSetAvailableCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.MultipleUnknownReportedReason,
-				Message: "InfrastructureReady: Condition InfrastructureReady not yet reported; ControlPlaneAvailable: Condition ControlPlaneAvailable not yet reported; WorkersAvailable: Condition WorkersAvailable not yet reported; RemoteConnectionProbe: Condition RemoteConnectionProbe not yet reported; Deleting: Condition Deleting not yet reported",
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: v1beta2conditions.MultipleUnknownReportedReason,
+				Message: "* InfrastructureReady: Condition not yet reported\n" +
+					"* ControlPlaneAvailable: Condition not yet reported\n" +
+					"* WorkersAvailable: Condition not yet reported\n" +
+					"* RemoteConnectionProbe: Condition not yet reported\n" +
+					"* Deleting: Condition not yet reported",
 			},
 		},
 		{
@@ -1733,6 +1766,63 @@ func TestSetAvailableCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "Handles multiline conditions",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: nil, // not using CC
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+								Message: "* Control plane Machines: cp1, cp2, cp3\n" +
+									"* MachineDeployments: md1, md2\n" +
+									"* MachineSets: ms1, ms2\n" +
+									"* Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+				Message: "* Deleting:\n" +
+					"  * Control plane Machines: cp1, cp2, cp3\n" +
+					"  * MachineDeployments: md1, md2\n" +
+					"  * MachineSets: ms1, ms2\n" +
+					"  * Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
+			},
+		},
+		{
 			name: "TopologyReconciled is required when the cluster is using CC",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1779,7 +1869,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "TopologyReconciled: Condition TopologyReconciled not yet reported",
+				Message: "* TopologyReconciled: Condition not yet reported",
 			},
 		},
 		{
@@ -1838,7 +1928,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "SomeReason",
-				Message: "MyAvailabilityGate: Some message",
+				Message: "* MyAvailabilityGate: Some message",
 			},
 		},
 		{
@@ -1886,7 +1976,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason,
-				Message: "Deleting: Some message",
+				Message: "* Deleting: Some message",
 			},
 		},
 		{
@@ -2001,7 +2091,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  v1beta2conditions.MultipleInfoReportedReason,
-				Message: "TopologyReconciled: Control plane rollout and upgrade to version v1.29.0 on hold.",
+				Message: "* TopologyReconciled: Control plane rollout and upgrade to version v1.29.0 on hold.",
 			},
 		},
 		{
@@ -2057,7 +2147,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  v1beta2conditions.MultipleIssuesReportedReason, // Note: There is only one condition that is an issue, but it has the MultipleIssuesReported reason.
-				Message: "WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
+				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
 			},
 		},
 		{
@@ -2113,7 +2203,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
-				Message: "TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+				Message: "* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
 		},
@@ -2168,10 +2258,11 @@ func TestSetAvailableCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1; TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1\n" +
+					"* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
 		},
 	}

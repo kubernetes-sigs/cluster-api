@@ -249,7 +249,7 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 		// Add the pod to PodDeleteList no matter what PodDeleteStatus is,
 		// those pods whose PodDeleteStatus is false like DaemonSet will
 		// be caught by list.errors()
-		pod.Kind = "Pod"
+		pod.Kind = "Pod" //nolint:goconst
 		pod.APIVersion = "v1"
 		pods = append(pods, PodDelete{
 			Pod:    pod,
@@ -448,14 +448,16 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 
 	conditionMessage := fmt.Sprintf("Drain not completed yet (started at %s):", nodeDrainStartTime.Format(time.RFC3339))
 	if len(r.PodsDeletionTimestampSet) > 0 {
-		conditionMessage = fmt.Sprintf("%s\n* Pods with deletionTimestamp that still exist: %s",
-			conditionMessage, PodListToString(r.PodsDeletionTimestampSet, 3))
+		kind := "Pod"
+		if len(r.PodsDeletionTimestampSet) > 1 {
+			kind = "Pods"
+		}
+		conditionMessage = fmt.Sprintf("%s\n* %s %s: deletionTimestamp set, but still not removed from the Node",
+			conditionMessage, kind, PodListToString(r.PodsDeletionTimestampSet, 3))
 	}
 	if len(r.PodsFailedEviction) > 0 {
 		sortedFailureMessages := maps.Keys(r.PodsFailedEviction)
 		sort.Strings(sortedFailureMessages)
-
-		conditionMessage = fmt.Sprintf("%s\n* Pods with eviction failed:", conditionMessage)
 
 		skippedFailureMessages := []string{}
 		if len(sortedFailureMessages) > 5 {
@@ -464,30 +466,32 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 		}
 		for _, failureMessage := range sortedFailureMessages {
 			pods := r.PodsFailedEviction[failureMessage]
-			conditionMessage = fmt.Sprintf("%s\n  * %s: %s", conditionMessage, failureMessage, PodListToString(pods, 3))
+			kind := "Pod"
+			if len(pods) > 1 {
+				kind = "Pods"
+			}
+			failureMessage = strings.Replace(failureMessage, "Cannot evict pod as it would violate the pod's disruption budget.", "cannot evict pod as it would violate the pod's disruption budget.", -1)
+			if !strings.HasPrefix(failureMessage, "cannot evict pod as it would violate the pod's disruption budget.") {
+				failureMessage = "failed to evict Pod, " + failureMessage
+			}
+			conditionMessage = fmt.Sprintf("%s\n* %s %s: %s", conditionMessage, kind, PodListToString(pods, 3), failureMessage)
 		}
 		if len(skippedFailureMessages) > 0 {
-			skippedFailureMessagesCount := len(skippedFailureMessages)
 			podCount := 0
 			for _, failureMessage := range skippedFailureMessages {
 				podCount += len(r.PodsFailedEviction[failureMessage])
 			}
 
-			conditionMessage = fmt.Sprintf("%s\n  * ... ", conditionMessage)
-			if skippedFailureMessagesCount == 1 {
-				conditionMessage += "(1 more error "
-			} else {
-				conditionMessage += fmt.Sprintf("(%d more errors ", skippedFailureMessagesCount)
-			}
 			if podCount == 1 {
-				conditionMessage += "applying to 1 Pod)"
+				conditionMessage = fmt.Sprintf("%s\n* 1 Pod with other issues", conditionMessage)
 			} else {
-				conditionMessage += fmt.Sprintf("applying to %d Pods)", podCount)
+				conditionMessage = fmt.Sprintf("%s\n* %d Pods with other issues",
+					conditionMessage, podCount)
 			}
 		}
 	}
 	if len(r.PodsToTriggerEvictionLater) > 0 {
-		conditionMessage = fmt.Sprintf("%s\n* After above Pods have been removed from the Node, the following Pods will be evicted: %s",
+		conditionMessage = fmt.Sprintf("%s\nAfter above Pods have been removed from the Node, the following Pods will be evicted: %s",
 			conditionMessage, PodListToString(r.PodsToTriggerEvictionLater, 3))
 	}
 	return conditionMessage

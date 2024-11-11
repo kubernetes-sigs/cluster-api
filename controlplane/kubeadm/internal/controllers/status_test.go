@@ -482,13 +482,13 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "SomeReason", // There is only one machine reporting issues, using the reason from that machine.
-				Message: "NotReady from Machine m3",
+				Message: "* Machine m3: NotReady",
 			},
 			expectMachinesUpToDateCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  v1beta2conditions.MultipleIssuesReportedReason, // There are many machines reporting issues, using a generic reason.
-				Message: "NotUpToDate from Machines m2, m3",
+				Message: "* Machines m2, m3: NotUpToDate",
 			},
 		},
 	}
@@ -550,7 +550,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
-				Message: "Machine deletionTimestamp set from Machine m3",
+				Message: "* Machine m3: Machine deletionTimestamp set",
 			},
 		},
 		{

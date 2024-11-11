@@ -60,29 +60,23 @@ func (o *MirrorOptions) ApplyOptions(opts []MirrorOption) *MirrorOptions {
 func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...MirrorOption) *metav1.Condition {
 	condition := Get(sourceObj, sourceConditionType)
 
-	return newMirrorCondition(sourceObj, condition, sourceConditionType, opts)
+	return newMirrorCondition(condition, sourceConditionType, opts)
 }
 
-func newMirrorCondition(sourceObj any, sourceCondition *metav1.Condition, sourceConditionType string, opts []MirrorOption) *metav1.Condition {
+func newMirrorCondition(sourceCondition *metav1.Condition, sourceConditionType string, opts []MirrorOption) *metav1.Condition {
 	mirrorOpt := &MirrorOptions{
 		targetConditionType: sourceConditionType,
 	}
 	mirrorOpt.ApplyOptions(opts)
 
-	conditionOwner := getConditionOwnerInfo(sourceObj)
-
 	if sourceCondition != nil {
-		message := ""
-		if sourceCondition.Message != "" {
-			message = fmt.Sprintf("%s (from %s)", sourceCondition.Message, conditionOwner.Kind)
-		}
 		return &metav1.Condition{
 			Type:   mirrorOpt.targetConditionType,
 			Status: sourceCondition.Status,
 			// NOTE: we are preserving the original transition time (when the underlying condition changed)
 			LastTransitionTime: sourceCondition.LastTransitionTime,
 			Reason:             sourceCondition.Reason,
-			Message:            message,
+			Message:            sourceCondition.Message,
 			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set
 			// (also preserving ObservedGeneration from the source object will be confusing when the mirror conditions shows up in the target object).
 		}
@@ -102,7 +96,7 @@ func newMirrorCondition(sourceObj any, sourceCondition *metav1.Condition, source
 		Type:    mirrorOpt.targetConditionType,
 		Status:  metav1.ConditionUnknown,
 		Reason:  NotYetReportedReason,
-		Message: fmt.Sprintf("Condition %s not yet reported from %s", sourceConditionType, conditionOwner.Kind),
+		Message: fmt.Sprintf("Condition %s not yet reported", sourceConditionType),
 		// NOTE: LastTransitionTime and ObservedGeneration will be set when this condition is added to an object by calling Set.
 	}
 }
@@ -123,7 +117,7 @@ func SetMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, targetOb
 		return err
 	}
 
-	Set(targetObj, *newMirrorCondition(sourceObj, condition, sourceConditionType, opts))
+	Set(targetObj, *newMirrorCondition(condition, sourceConditionType, opts))
 	return nil
 }
 

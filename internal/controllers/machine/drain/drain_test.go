@@ -1496,11 +1496,10 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 				},
 			},
 			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1
-* Pods with eviction failed:
-  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1
-  * some other error 1: pod-6-to-trigger-eviction-some-other-error
-* After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+* Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
+* Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
 		},
 		{
 			name: "Compute long condition message correctly",
@@ -1654,15 +1653,14 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 				},
 			},
 			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, ... (4 more)
-* Pods with eviction failed:
-  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
-  * some other error 1: pod-6-to-trigger-eviction-some-other-error
-  * some other error 2: pod-7-to-trigger-eviction-some-other-error
-  * some other error 3: pod-8-to-trigger-eviction-some-other-error
-  * some other error 4: pod-9-to-trigger-eviction-some-other-error
-  * ... (1 more error applying to 1 Pod)
-* After above Pods have been removed from the Node, the following Pods will be evicted: pod-11-eviction-later, pod-12-eviction-later, pod-13-eviction-later, ... (2 more)`,
+* Pods pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, ... (4 more): deletionTimestamp set, but still not removed from the Node
+* Pods pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more): cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
+* Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+* Pod pod-7-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 2
+* Pod pod-8-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 3
+* Pod pod-9-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 4
+* 1 Pod with other issues
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-11-eviction-later, pod-12-eviction-later, pod-13-eviction-later, ... (2 more)`,
 		},
 		{
 			name: "Compute long condition message correctly with more skipped errors",
@@ -1730,13 +1728,12 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 				},
 			},
 			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with eviction failed:
-  * some other error 1: pod-1-to-trigger-eviction-some-other-error
-  * some other error 2: pod-2-to-trigger-eviction-some-other-error
-  * some other error 3: pod-3-to-trigger-eviction-some-other-error
-  * some other error 4: pod-4-to-trigger-eviction-some-other-error
-  * some other error 5: pod-5-to-trigger-eviction-some-other-error
-  * ... (2 more errors applying to 4 Pods)`,
+* Pod pod-1-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+* Pod pod-2-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 2
+* Pod pod-3-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 3
+* Pod pod-4-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 4
+* Pod pod-5-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 5
+* 4 Pods with other issues`,
 		},
 	}
 

@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -38,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
 // UpdateEtcdConditions is responsible for updating machine conditions reflecting the status of all the etcd members.
@@ -934,8 +936,10 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 	kcpMachinesWithUnknown := sets.Set[string]{}
 	kcpMachinesWithInfo := sets.Set[string]{}
 
+	messageMap := map[string][]string{}
 	for i := range input.controlPlane.Machines {
 		machine := input.controlPlane.Machines[i]
+		machineMessages := []string{}
 		for _, condition := range input.machineConditions {
 			if machineCondition := v1beta2conditions.Get(machine, condition); machineCondition != nil {
 				switch machineCondition.Status {
@@ -943,24 +947,70 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 					kcpMachinesWithInfo.Insert(machine.Name)
 				case metav1.ConditionFalse:
 					kcpMachinesWithErrors.Insert(machine.Name)
+					m := machineCondition.Message
+					if m == "" {
+						m = fmt.Sprintf("condition is %s", machineCondition.Status)
+					}
+					machineMessages = append(machineMessages, fmt.Sprintf("  * %s: %s", machineCondition.Type, m))
 				case metav1.ConditionUnknown:
 					kcpMachinesWithUnknown.Insert(machine.Name)
+					m := machineCondition.Message
+					if m == "" {
+						m = fmt.Sprintf("condition is %s", machineCondition.Status)
+					}
+					machineMessages = append(machineMessages, fmt.Sprintf("  * %s: %s", machineCondition.Type, m))
 				}
 			}
 		}
+
+		if len(machineMessages) > 0 {
+			message := strings.Join(machineMessages, "\n")
+			messageMap[message] = append(messageMap[message], machine.Name)
+		}
 	}
+
+	// compute the order of messages according to the number of machines reporting the same message.
+	// Note: The list of object names is used as a secondary criteria to sort messages with the same number of objects.
+	messageIndex := make([]string, 0, len(messageMap))
+	for m := range messageMap {
+		messageIndex = append(messageIndex, m)
+	}
+
+	sort.SliceStable(messageIndex, func(i, j int) bool {
+		return len(messageMap[messageIndex[i]]) > len(messageMap[messageIndex[j]]) ||
+			(len(messageMap[messageIndex[i]]) == len(messageMap[messageIndex[j]]) && strings.Join(messageMap[messageIndex[i]], ",") < strings.Join(messageMap[messageIndex[j]], ","))
+	})
+
+	// Build the message
+	messages := []string{}
+	for _, message := range messageIndex {
+		machines := messageMap[message]
+		machinesMessage := "Machine"
+		if len(messageMap[message]) > 1 {
+			machinesMessage += "s"
+		}
+
+		sort.Strings(machines)
+		machinesMessage += " " + clog.ListToString(machines, func(s string) string { return s }, 3)
+
+		messages = append(messages, fmt.Sprintf("* %s:\n%s", machinesMessage, message))
+	}
+
+	// Append messages impacting KCP as a whole, if any
+	if len(input.kcpErrors) > 0 {
+		for _, message := range input.kcpErrors {
+			messages = append(messages, fmt.Sprintf("* %s", message))
+		}
+	}
+	message := strings.Join(messages, "\n")
 
 	// In case of at least one machine with errors or KCP level errors (nodes without machines), report false.
 	if len(input.kcpErrors) > 0 || len(kcpMachinesWithErrors) > 0 {
-		messages := input.kcpErrors
-		if len(kcpMachinesWithErrors) > 0 {
-			messages = append(messages, fmt.Sprintf("Following Machines are reporting %s errors: %s", input.note, strings.Join(sets.List(kcpMachinesWithErrors), ", ")))
-		}
 		v1beta2conditions.Set(input.controlPlane.KCP, metav1.Condition{
 			Type:    input.condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  input.falseReason,
-			Message: strings.Join(messages, ", "),
+			Message: message,
 		})
 		return
 	}
@@ -971,7 +1021,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 			Type:    input.condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.unknownReason,
-			Message: fmt.Sprintf("Following Machines are reporting %s unknown: %s", input.note, strings.Join(sets.List(kcpMachinesWithUnknown), ", ")),
+			Message: message,
 		})
 		return
 	}

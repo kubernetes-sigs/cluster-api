@@ -886,7 +886,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 		c := &clusterv1.Cluster{}
 		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(17))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("Control plane Machines: cp1, cp2, cp3; MachineDeployments: md1, md2; MachineSets: ms1, ms2; MachinePools: mp1, mp2; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal([]string{"Control plane Machines: cp1, cp2, cp3", "MachineDeployments: md1, md2", "MachineSets: ms1, ms2", "MachinePools: mp1, mp2", "Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"}))
 	})
 
 	t.Run("With a control plane object", func(t *testing.T) {
@@ -894,7 +894,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 		c := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{ControlPlaneRef: &corev1.ObjectReference{Kind: "SomeKind"}}}
 		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(14))
-		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal("MachineDeployments: md1, md2; MachineSets: ms1, ms2; MachinePools: mp1, mp2; Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal([]string{"MachineDeployments: md1, md2", "MachineSets: ms1, ms2", "MachinePools: mp1, mp2", "Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"}))
 	})
 }
 

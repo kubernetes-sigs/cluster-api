@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -128,7 +126,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 					Type:    c,
 					Status:  metav1.ConditionUnknown,
 					Reason:  NotYetReportedReason,
-					Message: fmt.Sprintf("Condition %s not yet reported", c),
+					Message: "Condition not yet reported",
 					// NOTE: LastTransitionTime and ObservedGeneration are not relevant for merge.
 				},
 			})

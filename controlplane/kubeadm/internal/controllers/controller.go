@@ -639,7 +639,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason
-		controlPlane.DeletingMessage = fmt.Sprintf("KCP deletion blocked because %s still exist", objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster))
+		names := objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster)
+		for i := range names {
+			names[i] = "* " + names[i]
+		}
+		controlPlane.DeletingMessage = fmt.Sprintf("KubeadmControlPlane deletion blocked because following objects still exist:\n%s", strings.Join(names, "\n"))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -703,7 +707,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 }
 
 // objectsPendingDeleteNames return the names of worker Machines and MachinePools pending delete.
-func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools *expv1.MachinePoolList, cluster *clusterv1.Cluster) string {
+func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools *expv1.MachinePoolList, cluster *clusterv1.Cluster) []string {
 	controlPlaneMachines := allMachines.Filter(collections.ControlPlaneMachines(cluster.Name))
 	workerMachines := allMachines.Difference(controlPlaneMachines)
 
@@ -725,9 +729,9 @@ func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools
 	}
 	if len(workerMachineNames) > 0 {
 		sort.Strings(workerMachineNames)
-		descendants = append(descendants, "worker Machines: "+clog.StringListToString(workerMachineNames))
+		descendants = append(descendants, "Machines: "+clog.StringListToString(workerMachineNames))
 	}
-	return strings.Join(descendants, "; ")
+	return descendants
 }
 
 func (r *KubeadmControlPlaneReconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Context, machine *clusterv1.Machine) error {

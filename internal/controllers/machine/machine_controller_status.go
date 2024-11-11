@@ -285,7 +285,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 
 			message := ""
 			if condition.Message != "" {
-				message = fmt.Sprintf("%s (from Node)", condition.Message)
+				message = fmt.Sprintf("* Node.Ready: %s", condition.Message)
 			}
 			reason := condition.Reason
 			if reason == "" {
@@ -394,7 +394,7 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 
-	message := ""
+	messages := []string{}
 	issueReason := ""
 	unknownReason := ""
 	for _, conditionType := range []corev1.NodeConditionType{corev1.NodeReady, corev1.NodeMemoryPressure, corev1.NodeDiskPressure, corev1.NodePIDPressure} {
@@ -405,7 +405,7 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 			}
 		}
 		if condition == nil {
-			message += fmt.Sprintf("Node %s: condition not yet reported", conditionType) + "; "
+			messages = append(messages, fmt.Sprintf("* Node.%s: Condition not yet reported", conditionType))
 			if unknownStatus == 0 {
 				unknownReason = clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason
 			} else {
@@ -418,7 +418,11 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 		switch condition.Type {
 		case corev1.NodeMemoryPressure, corev1.NodeDiskPressure, corev1.NodePIDPressure:
 			if condition.Status != corev1.ConditionFalse {
-				message += fmt.Sprintf("Node %s: condition is %s", condition.Type, condition.Status) + "; "
+				m := condition.Message
+				if m == "" {
+					m = fmt.Sprintf("Condition is %s", condition.Status)
+				}
+				messages = append(messages, fmt.Sprintf("* Node.%s: %s", condition.Type, m))
 				if condition.Status == corev1.ConditionUnknown {
 					if unknownStatus == 0 {
 						unknownReason = condition.Reason
@@ -438,7 +442,11 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 			}
 		case corev1.NodeReady:
 			if condition.Status != corev1.ConditionTrue {
-				message += fmt.Sprintf("Node %s: condition is %s", condition.Type, condition.Status) + "; "
+				m := condition.Message
+				if m == "" {
+					m = fmt.Sprintf("Condition is %s", condition.Status)
+				}
+				messages = append(messages, fmt.Sprintf("* Node.%s: %s", condition.Type, m))
 				if condition.Status == corev1.ConditionUnknown {
 					if unknownStatus == 0 {
 						unknownReason = condition.Reason
@@ -458,7 +466,7 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 		}
 	}
 
-	message = strings.TrimSuffix(message, "; ")
+	message := strings.Join(messages, "\n")
 	if semanticallyFalseStatus > 0 {
 		if issueReason == "" {
 			issueReason = v1beta2conditions.NoReasonReported

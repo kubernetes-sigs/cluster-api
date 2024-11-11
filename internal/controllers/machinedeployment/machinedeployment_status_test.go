@@ -670,7 +670,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition Ready not yet reported from Machine machine-2",
+				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
 		{
@@ -699,10 +699,12 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			},
 			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "Deleting: Machine deletion in progress, stage: DrainingNode from Machine machine-4; HealthCheckSucceeded: Some message from Machine machine-2; Some unknown message from Machine machine-3",
+				Type:   clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
+					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
+					"* Machine machine-3: Some unknown message",
 			},
 		},
 	}
@@ -789,7 +791,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "some-unknown-reason-1",
-				Message: "some unknown message from Machine unknown-1",
+				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
 		{
@@ -808,7 +810,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "some-not-up-to-date-reason",
-				Message: "some not up-to-date message from Machine not-up-to-date-machine-1",
+				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
 		{
@@ -822,7 +824,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  v1beta2conditions.NotYetReportedReason,
-				Message: "Condition UpToDate not yet reported from Machine no-condition-machine-1",
+				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
 		{
@@ -856,10 +858,11 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			},
 			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
-				Message: "This is not up-to-date message from Machines not-up-to-date-machine-1, not-up-to-date-machine-2; Condition UpToDate not yet reported from Machines no-condition-machine-1, no-condition-machine-2",
+				Type:   clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
+					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
 		},
 	}
@@ -932,7 +935,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentRemediatingV1Beta2Reason,
-				Message: "Machine deletionTimestamp set from Machine m3",
+				Message: "* Machine m3: Machine deletionTimestamp set",
 			},
 		},
 		{

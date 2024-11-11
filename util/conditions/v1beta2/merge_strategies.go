@@ -236,16 +236,16 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 				}
 			}
 
-			var m string
+			m := fmt.Sprintf("* %s:", condition.Type)
 			if condition.Message != "" {
-				m = fmt.Sprintf("%s: %s", condition.Type, condition.Message)
+				m += indentIfMultiline(condition.Message)
 			} else {
-				m = fmt.Sprintf("%s: No additional info provided", condition.Type)
+				m += " No additional info provided"
 			}
 			messages = append(messages, m)
 		}
 
-		message = strings.Join(messages, "; ")
+		message = strings.Join(messages, "\n")
 	}
 
 	// When performing the aggregate operation, we are merging one single condition from potentially many objects.
@@ -289,7 +289,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 			messages = append(messages, infoMessages...)
 		}
 
-		message = strings.Join(messages, "; ")
+		message = strings.Join(messages, "\n")
 	}
 
 	return status, reason, message, nil
@@ -359,7 +359,7 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 		messageObjMapForKind := messageObjMap[kind]
 
 		// compute the order of messages according to the number of objects reporting the same message.
-		// Note: The message text is used as a secondary criteria to sort messages with the same number of objects.
+		// Note: The list of object names is used as a secondary criteria to sort messages with the same number of objects.
 		messageIndex := make([]string, 0, len(messageObjMapForKind))
 		for m := range messageObjMapForKind {
 			messageIndex = append(messageIndex, m)
@@ -367,7 +367,7 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 
 		sort.SliceStable(messageIndex, func(i, j int) bool {
 			return len(messageObjMapForKind[messageIndex[i]]) > len(messageObjMapForKind[messageIndex[j]]) ||
-				(len(messageObjMapForKind[messageIndex[i]]) == len(messageObjMapForKind[messageIndex[j]]) && messageIndex[i] < messageIndex[j])
+				(len(messageObjMapForKind[messageIndex[i]]) == len(messageObjMapForKind[messageIndex[j]]) && strings.Join(messageObjMapForKind[messageIndex[i]], ",") < strings.Join(messageObjMapForKind[messageIndex[j]], ","))
 		})
 
 		// Pick the first n messages, decrement n.
@@ -382,33 +382,49 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 				continue
 			}
 
-			msg := m
+			msg := ""
 			allObjects := messageObjMapForKind[m]
 			sort.Strings(allObjects)
 			switch {
 			case len(allObjects) == 0:
 				// This should never happen, entry in the map exists only when an object reports a message.
 			case len(allObjects) == 1:
-				msg += fmt.Sprintf(" from %s %s", kind, strings.Join(allObjects, ", "))
+				msg += fmt.Sprintf("* %s %s:", kind, strings.Join(allObjects, ", "))
 			case len(allObjects) <= 3:
-				msg += fmt.Sprintf(" from %s %s", kindPlural, strings.Join(allObjects, ", "))
+				msg += fmt.Sprintf("* %s %s:", kindPlural, strings.Join(allObjects, ", "))
 			default:
-				msg += fmt.Sprintf(" from %s %s and %d more", kindPlural, strings.Join(allObjects[:3], ", "), len(allObjects)-3)
+				msg += fmt.Sprintf("* %s %s, ... (%d more):", kindPlural, strings.Join(allObjects[:3], ", "), len(allObjects)-3)
 			}
+			msg += indentIfMultiline(m)
 
 			messages = append(messages, msg)
 			*n--
 		}
 
 		if other == 1 {
-			messages = append(messages, fmt.Sprintf("%d %s %s", other, kind, otherMessage))
+			messages = append(messages, fmt.Sprintf("And %d %s %s", other, kind, otherMessage))
 		}
 		if other > 1 {
-			messages = append(messages, fmt.Sprintf("%d %s %s", other, kindPlural, otherMessage))
+			messages = append(messages, fmt.Sprintf("And %d %s %s", other, kindPlural, otherMessage))
 		}
 	}
 
 	return messages
+}
+
+func indentIfMultiline(m string) string {
+	msg := ""
+	if strings.Contains(m, "\n") || strings.HasPrefix(m, "* ") {
+		msg += "\n"
+		lines := strings.Split(m, "\n")
+		for i, l := range lines {
+			lines[i] = "  " + l
+		}
+		msg += strings.Join(lines, "\n")
+	} else {
+		msg += " " + m
+	}
+	return msg
 }
 
 // getConditionsWithOwnerInfo return all the conditions from an object each one with the corresponding ConditionOwnerInfo.

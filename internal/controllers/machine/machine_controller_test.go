@@ -1564,11 +1564,11 @@ func TestDrainNode(t *testing.T) {
 				Severity: clusterv1.ConditionSeverityInfo,
 				Reason:   clusterv1.DrainingReason,
 				Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: test-namespace/pod-2-delete-running-deployment-pod`,
+* Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 			},
 			wantDeletingReason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
 			wantDeletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: test-namespace/pod-2-delete-running-deployment-pod`,
+* Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 		},
 		{
 			name:     "Node does exist but is unreachable, no Pods have to be drained because they all have old deletionTimestamps",
@@ -1805,11 +1805,11 @@ func TestDrainNode_withCaching(t *testing.T) {
 		Severity: clusterv1.ConditionSeverityInfo,
 		Reason:   clusterv1.DrainingReason,
 		Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: test-namespace/pod-delete-running-deployment-pod`,
+* Pod test-namespace/pod-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 	}))
 	g.Expect(s.deletingReason).To(Equal(clusterv1.MachineDeletingDrainingNodeV1Beta2Reason))
 	g.Expect(s.deletingMessage).To(Equal(`Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: test-namespace/pod-delete-running-deployment-pod`))
+* Pod test-namespace/pod-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`))
 
 	// Node should be cordoned.
 	gotNode := &corev1.Node{}

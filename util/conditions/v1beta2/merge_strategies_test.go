@@ -32,9 +32,9 @@ func TestAggregateMessages(t *testing.T) {
 		// NOTE: objects are intentionally not in order so we can validate they are sorted by name
 		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
 		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "Message-2", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "Message-2", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "Message-3", Status: metav1.ConditionFalse}},
+		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
 		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
 		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
 		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
@@ -49,11 +49,14 @@ func TestAggregateMessages(t *testing.T) {
 
 	g.Expect(n).To(Equal(0))
 	g.Expect(messages).To(Equal([]string{
-		"Message-1 from MachineDeployments obj01, obj02, obj05 and 2 more", // MachineDeployments obj08, obj09
-		"Message-2 from MachineDeployments obj03, obj04",
-		"Message-3 from MachineDeployment obj06",
-		"2 MachineDeployments with other issues", // MachineDeployments  obj07 (Message-4), obj10 (Message-5)
-		"2 MachineSets with other issues",        // MachineSet obj11, obj12 (Message-1)
+		"* MachineDeployments obj01, obj02, obj05, ... (2 more): Message-1", // MachineDeployments obj08, obj09
+		"* MachineDeployments obj03, obj04:\n" +
+			"  * Message-2",
+		"* MachineDeployment obj06:\n" +
+			"  * Message-3A\n" +
+			"  * Message-3B",
+		"And 2 MachineDeployments with other issues", // MachineDeployments  obj07 (Message-4), obj10 (Message-5)
+		"And 2 MachineSets with other issues",        // MachineSet obj11, obj12 (Message-1)
 	}))
 }
 

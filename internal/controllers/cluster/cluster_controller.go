@@ -390,10 +390,15 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 	if descendantCount := s.descendants.objectsPendingDeleteCount(cluster); descendantCount > 0 {
 		indirect := descendantCount - len(children)
-		log.Info("Cluster still has descendants - need to requeue", "descendants", s.descendants.objectsPendingDeleteNames(cluster), "indirect descendants count", indirect)
+		names := s.descendants.objectsPendingDeleteNames(cluster)
+
+		log.Info("Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
 
 		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason
-		s.deletingMessage = s.descendants.objectsPendingDeleteNames(cluster)
+		for i := range names {
+			names[i] = "* " + names[i]
+		}
+		s.deletingMessage = strings.Join(names, "\n")
 
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
@@ -511,7 +516,7 @@ func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluste
 
 // objectsPendingDeleteNames return the names of descendants pending delete.
 // Note: infrastructure cluster, control plane object and its controlled machines are not included.
-func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluster) string {
+func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluster) []string {
 	descendants := make([]string, 0)
 	if cluster.Spec.ControlPlaneRef == nil {
 		controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines))
@@ -557,7 +562,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		sort.Strings(workerMachineNames)
 		descendants = append(descendants, "Worker Machines: "+clog.StringListToString(workerMachineNames))
 	}
-	return strings.Join(descendants, "; ")
+	return descendants
 }
 
 // getDescendants collects all MachineDeployments, MachineSets, MachinePools and Machines for the cluster.

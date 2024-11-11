@@ -60,7 +60,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	machines := collections.FromMachines(s.machines...)
 	machinesToBeRemediated := machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 	unhealthyMachines := machines.Filter(collections.IsUnhealthy)
-	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded, s.remediationPreflightCheckErrMessage)
+	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 }
@@ -285,7 +285,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	v1beta2conditions.Set(machineSet, *upToDateCondition)
 }
 
-func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesToBeRemediated, unhealthyMachines collections.Machines, getAndAdoptMachinesForMachineSetSucceeded bool, remediationPreflightCheckErrMessage string) {
+func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesToBeRemediated, unhealthyMachines collections.Machines, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
@@ -324,16 +324,11 @@ func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineS
 		return
 	}
 
-	msg := remediatingCondition.Message
-	if remediationPreflightCheckErrMessage != "" {
-		msg = fmt.Sprintf("Triggering further remediations is blocked because %s; %s", remediationPreflightCheckErrMessage, remediatingCondition.Message)
-	}
-
 	v1beta2conditions.Set(machineSet, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-		Message: msg,
+		Message: remediatingCondition.Message,
 	})
 }
 

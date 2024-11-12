@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -105,6 +106,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
+		).
+		Watches(
+			&clusterv1.MachineDeployment{},
+			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
+		).
+		Watches(
+			&expv1.MachinePool{},
+			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
@@ -724,5 +733,43 @@ func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.
 
 	return []ctrl.Request{{
 		NamespacedName: util.ObjectKey(cluster),
+	}}
+}
+
+// machineDeploymentToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
+// for Cluster to update when one of its own MachineDeployments gets updated.
+func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Object) []ctrl.Request {
+	md, ok := o.(*clusterv1.MachineDeployment)
+	if !ok {
+		panic(fmt.Sprintf("Expected a MachineDeployment but got a %T", o))
+	}
+	if md.Spec.ClusterName == "" {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: md.Namespace,
+			Name:      md.Spec.ClusterName,
+		},
+	}}
+}
+
+// machinePoolToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
+// for Cluster to update when one of its own MachinePools gets updated.
+func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []ctrl.Request {
+	mp, ok := o.(*expv1.MachinePool)
+	if !ok {
+		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
+	}
+	if mp.Spec.ClusterName == "" {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: mp.Namespace,
+			Name:      mp.Spec.ClusterName,
+		},
 	}}
 }

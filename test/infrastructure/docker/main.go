@@ -93,6 +93,7 @@ var (
 	// CAPD specific flags.
 	concurrency             int
 	clusterCacheConcurrency int
+	skipLoadBalancer        bool
 )
 
 func init() {

@@ -106,11 +106,14 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	// Create a helper for managing a docker container hosting the loadbalancer.
-	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster, dockerCluster)
-	if err != nil {
-		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+	var externalLoadBalancer *docker.LoadBalancer
+	if !dockerCluster.Spec.LoadBalancer.Disable {
+		// Create a helper for managing a docker container hosting the loadbalancer.
+		externalLoadBalancer, err = docker.NewLoadBalancer(ctx, cluster, dockerCluster)
+		if err != nil {
+			conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+		}
 	}
 
 	// Support FailureDomains
@@ -149,6 +152,13 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 }
 
 func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) error {
+	if dockerCluster.Spec.LoadBalancer.Disable {
+		// Mark the dockerCluster ready
+		dockerCluster.Status.Ready = true
+		conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableCondition)
+		return nil
+	}
+
 	// Create the docker container hosting the load balancer.
 	if err := externalLoadBalancer.Create(ctx); err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -189,9 +199,11 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 		return errors.Wrap(err, "failed to patch DockerCluster")
 	}
 
-	// Delete the docker container hosting the load balancer
-	if err := externalLoadBalancer.Delete(ctx); err != nil {
-		return errors.Wrap(err, "failed to delete load balancer")
+	if !dockerCluster.Spec.LoadBalancer.Disable {
+		// Delete the docker container hosting the load balancer
+		if err := externalLoadBalancer.Delete(ctx); err != nil {
+			return errors.Wrap(err, "failed to delete load balancer")
+		}
 	}
 
 	// Cluster is deleted so remove the finalizer.

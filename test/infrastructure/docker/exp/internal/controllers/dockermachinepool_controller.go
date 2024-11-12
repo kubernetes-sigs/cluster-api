@@ -192,9 +192,10 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 
 	r.recorder = mgr.GetEventRecorderFor(dockerMachinePoolControllerName)
 	r.externalTracker = external.ObjectTracker{
-		Controller: c,
-		Cache:      mgr.GetCache(),
-		Scheme:     mgr.GetScheme(),
+		Controller:      c,
+		Cache:           mgr.GetCache(),
+		Scheme:          mgr.GetScheme(),
+		PredicateLogger: &predicateLog,
 	}
 	r.ssaCache = ssa.NewCache()
 

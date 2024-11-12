@@ -20,15 +20,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -259,9 +262,10 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
-					Controller: externalfake.Controller{},
-					Cache:      &informertest.FakeInformers{},
-					Scheme:     c.Scheme(),
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          c.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -541,9 +545,10 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
-					Controller: externalfake.Controller{},
-					Cache:      &informertest.FakeInformers{},
-					Scheme:     c.Scheme(),
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          c.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -924,9 +929,10 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
-					Controller: externalfake.Controller{},
-					Cache:      &informertest.FakeInformers{},
-					Scheme:     c.Scheme(),
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          c.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
 			}
 

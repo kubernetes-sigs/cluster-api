@@ -173,13 +173,16 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}
 
-	// Create a helper for managing a docker container hosting the loadbalancer.
-	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
-	// docker load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
-	// updating the cluster load balancer configuration when control plane machines are added/removed
-	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster, dockerCluster)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+	var externalLoadBalancer *docker.LoadBalancer
+	if dockerCluster.Spec.LoadBalancer.Disable {
+		// Create a helper for managing a docker container hosting the loadbalancer.
+		// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
+		// docker load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
+		// updating the cluster load balancer configuration when control plane machines are added/removed
+		externalLoadBalancer, err = docker.NewLoadBalancer(ctx, cluster, dockerCluster)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+		}
 	}
 
 	// Handle deleted machines
@@ -304,17 +307,21 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		}
 	}
 
-	// if the machine is a control plane update the load balancer configuration
-	// we should only do this once, as reconfiguration more or less ensures
-	// node ref setting fails
-	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
-		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+	if !dockerCluster.Spec.LoadBalancer.Disable {
+		// if the machine is a control plane update the load balancer configuration
+		// we should only do this once, as reconfiguration more or less ensures
+		// node ref setting fails
+		if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
+			unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+			}
+			if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+			}
+			dockerMachine.Status.LoadBalancerConfigured = true
 		}
-		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
-		}
+	} else {
 		dockerMachine.Status.LoadBalancerConfigured = true
 	}
 
@@ -458,14 +465,16 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, dockerClu
 		return errors.Wrap(err, "failed to delete DockerMachine")
 	}
 
-	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
-	if util.IsControlPlaneMachine(machine) {
-		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
-		if err != nil {
-			return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
-		}
-		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
-			return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+	if !dockerCluster.Spec.LoadBalancer.Disable {
+		// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
+		if util.IsControlPlaneMachine(machine) {
+			unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+			if err != nil {
+				return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+			}
+			if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
+				return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+			}
 		}
 	}
 

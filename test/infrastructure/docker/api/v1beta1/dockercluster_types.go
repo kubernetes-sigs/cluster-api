@@ -65,6 +65,9 @@ type DockerLoadBalancer struct {
 	// node is added or removed. The template will also support the JoinHostPort function to join the host and port of the backend server.
 	// +optional
 	CustomHAProxyConfigTemplateRef *corev1.LocalObjectReference `json:"customHAProxyConfigTemplateRef,omitempty"`
+
+	// Disable allows skipping the creation of the cluster load balancer.
+	Disable bool `json:"disable,omitempty"`
 }
 
 // ImageMeta allows customizing the image used for components that are not

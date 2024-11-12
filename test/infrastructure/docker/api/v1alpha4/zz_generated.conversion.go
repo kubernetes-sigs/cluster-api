@@ -518,6 +518,7 @@ func autoConvert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in *v
 		return err
 	}
 	// WARNING: in.CustomHAProxyConfigTemplateRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.Disable requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -250,6 +250,10 @@ spec:
                                 type: string
                             type: object
                             x-kubernetes-map-type: atomic
+                          disable:
+                            description: Disable allows skipping the creation of the
+                              cluster load balancer.
+                            type: boolean
                           imageRepository:
                             description: |-
                               ImageRepository sets the container registry to pull the haproxy image from.

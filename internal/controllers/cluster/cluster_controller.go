@@ -116,9 +116,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
 	r.externalTracker = external.ObjectTracker{
-		Controller: c,
-		Cache:      mgr.GetCache(),
-		Scheme:     mgr.GetScheme(),
+		Controller:      c,
+		Cache:           mgr.GetCache(),
+		Scheme:          mgr.GetScheme(),
+		PredicateLogger: &predicateLog,
 	}
 	return nil
 }

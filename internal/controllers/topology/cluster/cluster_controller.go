@@ -21,17 +21,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -86,6 +89,8 @@ type Reconciler struct {
 	desiredStateGenerator desiredstate.Generator
 
 	patchHelperFactory structuredmerge.PatchHelperFactoryFunc
+
+	predicateLog logr.Logger
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -93,11 +98,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.New("Client, APIReader, ClusterCache and RuntimeClient must not be nil")
 	}
 
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/cluster")
+	r.predicateLog = ctrl.LoggerFrom(ctx).WithValues("controller", "topology/cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}, builder.WithPredicates(
 			// Only reconcile Cluster with topology.
-			predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
+			predicates.ClusterHasTopology(mgr.GetScheme(), r.predicateLog),
 		)).
 		Named("topology/cluster").
 		WatchesRawSource(r.ClusterCache.GetClusterSource("topology/cluster", func(_ context.Context, o client.Object) []ctrl.Request {
@@ -111,16 +116,16 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), r.predicateLog, r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -128,9 +133,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.externalTracker = external.ObjectTracker{
-		Controller: c,
-		Cache:      mgr.GetCache(),
-		Scheme:     mgr.GetScheme(),
+		Controller:      c,
+		Cache:           mgr.GetCache(),
+		Scheme:          mgr.GetScheme(),
+		PredicateLogger: &r.predicateLog,
 	}
 	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
@@ -145,9 +151,10 @@ func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
 	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
 	r.recorder = recorder
 	r.externalTracker = external.ObjectTracker{
-		Controller: externalfake.Controller{},
-		Cache:      &informertest.FakeInformers{},
-		Scheme:     r.Client.Scheme(),
+		Controller:      externalfake.Controller{},
+		Cache:           &informertest.FakeInformers{},
+		Scheme:          r.Client.Scheme(),
+		PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 	}
 	r.patchHelperFactory = dryRunPatchHelperFactory(r.Client)
 }
@@ -313,7 +320,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the InfrastructureCluster is topology owned.
-			predicates.ResourceIsTopologyOwned(scheme, ctrl.LoggerFrom(ctx))); err != nil {
+			predicates.ResourceIsTopologyOwned(scheme, r.predicateLog)); err != nil {
 			return errors.Wrap(err, "error watching Infrastructure CR")
 		}
 	}
@@ -321,7 +328,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the ControlPlane is topology owned.
-			predicates.ResourceIsTopologyOwned(scheme, ctrl.LoggerFrom(ctx))); err != nil {
+			predicates.ResourceIsTopologyOwned(scheme, r.predicateLog)); err != nil {
 			return errors.Wrap(err, "error watching ControlPlane CR")
 		}
 	}

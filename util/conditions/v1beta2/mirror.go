@@ -108,16 +108,25 @@ func SetMirrorCondition(sourceObj Getter, targetObj Setter, sourceConditionType 
 	Set(targetObj, *mirrorCondition)
 }
 
-// SetMirrorConditionFromUnstructured is a convenience method that mirror of the given condition from the unstructured source obj
-// into the target object. It combines, UnstructuredGet, NewMirrorCondition (most specifically it uses only the logic to
-// create a mirror condition), and Set.
-func SetMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, targetObj Setter, sourceConditionType string, opts ...MirrorOption) error {
+// NewMirrorConditionFromUnstructured is a convenience method create a mirror of the given condition from the unstructured source obj.
+// It combines, UnstructuredGet, NewMirrorCondition (most specifically it uses only the logic to
+// create a mirror condition).
+func NewMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, sourceConditionType string, opts ...MirrorOption) (*metav1.Condition, error) {
 	condition, err := UnstructuredGet(sourceObj, sourceConditionType)
+	if err != nil {
+		return nil, err
+	}
+	return newMirrorCondition(condition, sourceConditionType, opts), nil
+}
+
+// SetMirrorConditionFromUnstructured is a convenience method that mirror of the given condition from the unstructured source obj
+// into the target object. It combines, NewMirrorConditionFromUnstructured, and Set.
+func SetMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, targetObj Setter, sourceConditionType string, opts ...MirrorOption) error {
+	condition, err := NewMirrorConditionFromUnstructured(sourceObj, sourceConditionType, opts...)
 	if err != nil {
 		return err
 	}
-
-	Set(targetObj, *newMirrorCondition(condition, sourceConditionType, opts))
+	Set(targetObj, *condition)
 	return nil
 }
 

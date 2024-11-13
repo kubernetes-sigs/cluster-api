@@ -86,6 +86,35 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			},
 		},
 		{
+			name:    "mirror Ready condition from bootstrap config (true)",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":   "Ready",
+							"status": "True",
+							// reason not set for v1beta1 conditions
+							"message": "some message",
+						},
+					},
+				},
+			}},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineBootstrapConfigReadyV1Beta2Reason, // reason fixed up
+				Message: "some message",
+			},
+		},
+		{
 			name:    "mirror Ready condition from bootstrap config",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -100,6 +129,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 						map[string]interface{}{
 							"type":    "Ready",
 							"status":  "False",
+							"reason":  "SomeReason",
 							"message": "some message",
 						},
 					},
@@ -109,7 +139,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
+				Reason:  "SomeReason",
 				Message: "some message",
 			},
 		},
@@ -129,7 +159,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
+				Reason:  clusterv1.MachineBootstrapConfigNotReadyV1Beta2Reason,
 				Message: "GenericBootstrapConfig status.ready is false",
 			},
 		},
@@ -153,10 +183,9 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			}},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
-				Message: "GenericBootstrapConfig status.ready is true",
+				Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineBootstrapConfigReadyV1Beta2Reason,
 			},
 		},
 		{
@@ -280,6 +309,35 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		expectCondition        metav1.Condition
 	}{
 		{
+			name:    "mirror Ready condition from infra machine (true)",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-machine1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":   "Ready",
+							"status": "True",
+							// reason not set for v1beta1 conditions
+							"message": "some message",
+						},
+					},
+				},
+			}},
+			infraMachineIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineInfrastructureReadyV1Beta2Reason, // reason fixed up
+				Message: "some message",
+			},
+		},
+		{
 			name:    "mirror Ready condition from infra machine",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -294,6 +352,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 						map[string]interface{}{
 							"type":    "Ready",
 							"status":  "False",
+							"reason":  "SomeReason",
 							"message": "some message",
 						},
 					},
@@ -303,7 +362,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  "SomeReason",
 				Message: "some message",
 			},
 		},
@@ -323,7 +382,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  clusterv1.MachineInfrastructureNotReadyV1Beta2Reason,
 				Message: "GenericInfrastructureMachine status.ready is false",
 			},
 		},
@@ -347,10 +406,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			}},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
-				Message: "GenericInfrastructureMachine status.ready is true",
+				Type:   clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineInfrastructureReadyV1Beta2Reason,
 			},
 		},
 		{
@@ -1248,60 +1306,6 @@ func TestSetReadyCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyV1Beta2Reason,
 				Message: "* Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
-			},
-		},
-		{
-			name: "Drops messages from BootstrapConfigReady and Infrastructure ready when using fallback to fields",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							Kind: "KubeadmConfig",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						Kind: "AWSMachine",
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					InfrastructureReady: true,
-					BootstrapReady:      true,
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  "Foo",
-								Message: bootstrapConfigReadyFallBackMessage("KubeadmConfig", true),
-							},
-							{
-								Type:    clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  "Bar",
-								Message: infrastructureReadyFallBackMessage("AWSMachine", true),
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "AllGood",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
-							},
-						},
-					},
-				},
-			},
-			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineReadyV1Beta2Condition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineReadyV1Beta2Reason,
 			},
 		},
 		{

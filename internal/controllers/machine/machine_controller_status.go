@@ -65,14 +65,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// in reconcileDelete (e.g. status.Deletion nested fields), and also in the defer patch at the end of the main reconcile loop (status.ObservedGeneration) etc.
 	// Note: also other controllers adds conditions to the machine object (machine's owner controller sets the UpToDate condition,
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
-
-	// TODO: Set the uptodate condition for standalone pods
-
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
-
 	setReadyCondition(ctx, s.machine)
-
 	setAvailableCondition(ctx, s.machine)
+	// TODO: Set the uptodate condition for standalone pods
 
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 }
@@ -88,22 +84,31 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	}
 
 	if bootstrapConfig != nil {
-		if err := v1beta2conditions.SetMirrorConditionFromUnstructured(
-			bootstrapConfig, machine,
+		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+			bootstrapConfig,
 			contract.Bootstrap().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
 			v1beta2conditions.FallbackCondition{
 				Status:  v1beta2conditions.BoolToStatus(machine.Status.BootstrapReady),
-				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
+				Reason:  fallbackReason(machine.Status.BootstrapReady, clusterv1.MachineBootstrapConfigReadyV1Beta2Reason, clusterv1.MachineBootstrapConfigNotReadyV1Beta2Reason),
 				Message: bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, machine.Status.BootstrapReady),
 			},
-		); err != nil {
+		)
+		if err != nil {
 			v1beta2conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason,
 				Message: err.Error(),
 			})
+			return
 		}
+
+		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// and replace the reason with something less confusing.
+		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+			ready.Reason = clusterv1.MachineBootstrapConfigReadyV1Beta2Reason
+		}
+		v1beta2conditions.Set(machine, *ready)
 		return
 	}
 
@@ -142,28 +147,47 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	})
 }
 
+func fallbackReason(status bool, trueReason, falseReason string) string {
+	if status {
+		return trueReason
+	}
+	return falseReason
+}
+
 func bootstrapConfigReadyFallBackMessage(kind string, ready bool) string {
+	if ready {
+		return ""
+	}
 	return fmt.Sprintf("%s status.ready is %t", kind, ready)
 }
 
 func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured, infraMachineIsNotFound bool) {
 	if infraMachine != nil {
-		if err := v1beta2conditions.SetMirrorConditionFromUnstructured(
-			infraMachine, machine,
+		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+			infraMachine,
 			contract.InfrastructureMachine().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyV1Beta2Condition),
 			v1beta2conditions.FallbackCondition{
 				Status:  v1beta2conditions.BoolToStatus(machine.Status.InfrastructureReady),
-				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  fallbackReason(machine.Status.InfrastructureReady, clusterv1.MachineInfrastructureReadyV1Beta2Reason, clusterv1.MachineInfrastructureNotReadyV1Beta2Reason),
 				Message: infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, machine.Status.InfrastructureReady),
 			},
-		); err != nil {
+		)
+		if err != nil {
 			v1beta2conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedV1Beta2Reason,
 				Message: err.Error(),
 			})
+			return
 		}
+
+		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// and replace the reason with something less confusing.
+		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+			ready.Reason = clusterv1.MachineInfrastructureReadyV1Beta2Reason
+		}
+		v1beta2conditions.Set(machine, *ready)
 		return
 	}
 
@@ -225,6 +249,9 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 }
 
 func infrastructureReadyFallBackMessage(kind string, ready bool) string {
+	if ready {
+		return ""
+	}
 	return fmt.Sprintf("%s status.ready is %t", kind, ready)
 }
 
@@ -552,14 +579,6 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		overrideConditions = append(overrideConditions, calculateDeletingConditionForSummary(machine))
 	}
 
-	if infrastructureReadyCondition := calculateInfrastructureReadyForSummary(machine); infrastructureReadyCondition != nil {
-		overrideConditions = append(overrideConditions, *infrastructureReadyCondition)
-	}
-
-	if bootstrapReadyCondition := calculateBootstrapConfigReadyForSummary(machine); bootstrapReadyCondition != nil {
-		overrideConditions = append(overrideConditions, *bootstrapReadyCondition)
-	}
-
 	if len(overrideConditions) > 0 {
 		summaryOpts = append(summaryOpts, overrideConditions)
 	}
@@ -620,57 +639,6 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 			Status:  metav1.ConditionTrue,
 			Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 			Message: msg,
-		},
-	}
-}
-
-func calculateInfrastructureReadyForSummary(machine *clusterv1.Machine) *v1beta2conditions.ConditionWithOwnerInfo {
-	infrastructureReadyCondition := v1beta2conditions.Get(machine, clusterv1.MachineInfrastructureReadyV1Beta2Condition)
-
-	if infrastructureReadyCondition == nil {
-		return nil
-	}
-
-	message := infrastructureReadyCondition.Message
-	if infrastructureReadyCondition.Status == metav1.ConditionTrue && infrastructureReadyCondition.Message == infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, machine.Status.InfrastructureReady) {
-		message = ""
-	}
-
-	return &v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
-			Kind: "Machine",
-			Name: machine.Name,
-		},
-		Condition: metav1.Condition{
-			Type:    infrastructureReadyCondition.Type,
-			Status:  infrastructureReadyCondition.Status,
-			Reason:  infrastructureReadyCondition.Reason,
-			Message: message,
-		},
-	}
-}
-
-func calculateBootstrapConfigReadyForSummary(machine *clusterv1.Machine) *v1beta2conditions.ConditionWithOwnerInfo {
-	bootstrapConfigReadyCondition := v1beta2conditions.Get(machine, clusterv1.MachineBootstrapConfigReadyV1Beta2Condition)
-	if bootstrapConfigReadyCondition == nil {
-		return nil
-	}
-
-	message := bootstrapConfigReadyCondition.Message
-	if bootstrapConfigReadyCondition.Status == metav1.ConditionTrue && machine.Spec.Bootstrap.ConfigRef != nil && bootstrapConfigReadyCondition.Message == bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, machine.Status.BootstrapReady) {
-		message = ""
-	}
-
-	return &v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
-			Kind: "Machine",
-			Name: machine.Name,
-		},
-		Condition: metav1.Condition{
-			Type:    bootstrapConfigReadyCondition.Type,
-			Status:  bootstrapConfigReadyCondition.Status,
-			Reason:  bootstrapConfigReadyCondition.Reason,
-			Message: message,
 		},
 	}
 }

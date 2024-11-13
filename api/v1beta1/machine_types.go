@@ -152,12 +152,15 @@ const (
 	// from a BoostrapConfig object referenced from the machine).
 	MachineBootstrapDataSecretProvidedV1Beta2Reason = "DataSecretProvided"
 
+	// MachineBootstrapConfigReadyV1Beta2Reason surfaces when the machine bootstrap config is ready.
+	MachineBootstrapConfigReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// MachineBootstrapConfigNotReadyV1Beta2Reason surfaces when the machine bootstrap config is not ready.
+	MachineBootstrapConfigNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+
 	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
 	// (e.g. its status is missing).
 	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
-
-	// MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
-	MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// MachineBootstrapConfigInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
 	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -175,15 +178,18 @@ const (
 // Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: when possible, InfrastructureReady condition will use reasons surfaced from the underlying infra machine object.
 const (
-	// MachineInfrastructureReadyV1Beta2Condition mirrors the corresponding Ready condition from the Machine's Infrastructure resource.
+	// MachineInfrastructureReadyV1Beta2Condition mirrors the corresponding Ready condition from the Machine's infrastructure resource.
 	MachineInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+
+	// MachineInfrastructureReadyV1Beta2Reason surfaces when the machine infrastructure is ready.
+	MachineInfrastructureReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// MachineInfrastructureNotReadyV1Beta2Reason surfaces when the machine infrastructure is not ready.
+	MachineInfrastructureNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
 
 	// MachineInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
 	// (e.g. its status is missing).
 	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
-
-	// MachineInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
-	MachineInfrastructureReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading an infra machine object.
 	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

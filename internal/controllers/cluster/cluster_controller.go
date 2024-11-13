@@ -63,9 +63,6 @@ const (
 	// deleteRequeueAfter is how long to wait before checking again to see if the cluster still has children during
 	// deletion.
 	deleteRequeueAfter = 5 * time.Second
-
-	// remoteConnectionProbeSucceededMessage is the message to be used when remote connection probe succeeded.
-	remoteConnectionProbeSucceededMessage = "Remote connection probe succeeded"
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -203,10 +200,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		})
 	} else {
 		v1beta2conditions.Set(cluster, metav1.Condition{
-			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
-			Message: remoteConnectionProbeSucceededMessage,
+			Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
 		})
 	}
 

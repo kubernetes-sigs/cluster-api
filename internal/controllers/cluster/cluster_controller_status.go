@@ -969,10 +969,6 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 		overrideConditions = append(overrideConditions, *controlPlaneAvailableCondition)
 	}
 
-	if remoteConnectionProbeCondition := calculateRemoteConnectionProbeForSummary(cluster); remoteConnectionProbeCondition != nil {
-		overrideConditions = append(overrideConditions, *remoteConnectionProbeCondition)
-	}
-
 	if len(overrideConditions) > 0 {
 		summaryOpts = append(summaryOpts, overrideConditions)
 	}
@@ -1048,31 +1044,6 @@ func calculateControlPlaneAvailableForSummary(cluster *clusterv1.Cluster) *v1bet
 			Type:    controlPlaneAvailableCondition.Type,
 			Status:  controlPlaneAvailableCondition.Status,
 			Reason:  controlPlaneAvailableCondition.Reason,
-			Message: message,
-		},
-	}
-}
-
-func calculateRemoteConnectionProbeForSummary(cluster *clusterv1.Cluster) *v1beta2conditions.ConditionWithOwnerInfo {
-	remoteConnectionProbeCondition := v1beta2conditions.Get(cluster, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
-	if remoteConnectionProbeCondition == nil {
-		return nil
-	}
-
-	message := remoteConnectionProbeCondition.Message
-	if remoteConnectionProbeCondition.Status == metav1.ConditionTrue && remoteConnectionProbeCondition.Message == remoteConnectionProbeSucceededMessage {
-		message = ""
-	}
-
-	return &v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
-			Kind: "Cluster",
-			Name: cluster.Name,
-		},
-		Condition: metav1.Condition{
-			Type:    remoteConnectionProbeCondition.Type,
-			Status:  remoteConnectionProbeCondition.Status,
-			Reason:  remoteConnectionProbeCondition.Reason,
 			Message: message,
 		},
 	}

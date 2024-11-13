@@ -86,6 +86,13 @@ The need to add a prefix for providers not in the kubernetes-sigs org applies to
 `clusterctl`'s pre-defined list of provider starting from January 2024. This rule doesn't apply retroactively
 to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
 
+In the case of a provider being developed by an entity that owns multiple GitHub orgs, then it is up to the
+provider to specify which of GitHub org to use as a prefix and it is the responsibility of the entity to avoid
+or address provider name conflicts.
+
+If prefixing the provider with the provider's GitHub org prefix leads to stuttering, e.g. an `example` provider
+from the `example` GitHub org would lead to `example-example`, then it is acceptable to omit the prefix.
+
 Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
 changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 

@@ -101,11 +101,17 @@ const (
 // IPAM providers.
 const (
 	InClusterIPAMProviderName = "in-cluster"
+	NutanixIPAMProviderName   = "nutanix"
 )
 
 // Add-on providers.
 const (
 	HelmAddonProviderName = "helm"
+)
+
+// Runtime extensions providers.
+const (
+	NutanixRuntimeExtensionsProviderName = "nutanix"
 )
 
 // Other.
@@ -422,12 +428,24 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml",
 			providerType: clusterctlv1.IPAMProviderType,
 		},
+		&provider{
+			name:         NutanixIPAMProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix/releases/latest/ipam-components.yaml",
+			providerType: clusterctlv1.IPAMProviderType,
+		},
 
 		// Add-on providers
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
+		},
+
+		// Runtime extensions providers
+		&provider{
+			name:         NutanixRuntimeExtensionsProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/releases/latest/runtime-extensions-components.yaml",
+			providerType: clusterctlv1.RuntimeExtensionProviderType,
 		},
 	}
 

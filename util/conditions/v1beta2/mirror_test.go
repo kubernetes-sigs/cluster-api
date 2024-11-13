@@ -41,7 +41,7 @@ func TestMirrorStatusCondition(t *testing.T) {
 			},
 			conditionType: "Ready",
 			options:       []MirrorOption{},
-			want:          metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood!", Message: "We are good! (from Phase3Obj)", LastTransitionTime: now},
+			want:          metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood!", Message: "We are good!", LastTransitionTime: now},
 		},
 		{
 			name: "Mirror a condition with target type",
@@ -50,7 +50,7 @@ func TestMirrorStatusCondition(t *testing.T) {
 			},
 			conditionType: "Ready",
 			options:       []MirrorOption{TargetConditionType("SomethingReady")},
-			want:          metav1.Condition{Type: "SomethingReady", Status: metav1.ConditionTrue, Reason: "AllGood!", Message: "We are good! (from Phase3Obj)", LastTransitionTime: now},
+			want:          metav1.Condition{Type: "SomethingReady", Status: metav1.ConditionTrue, Reason: "AllGood!", Message: "We are good!", LastTransitionTime: now},
 		},
 		{
 			name: "Mirror a condition with empty message",
@@ -66,14 +66,14 @@ func TestMirrorStatusCondition(t *testing.T) {
 			conditions:    []metav1.Condition{},
 			conditionType: "Ready",
 			options:       []MirrorOption{},
-			want:          metav1.Condition{Type: "Ready", Status: metav1.ConditionUnknown, Reason: NotYetReportedReason, Message: "Condition Ready not yet reported from Phase3Obj"},
+			want:          metav1.Condition{Type: "Ready", Status: metav1.ConditionUnknown, Reason: NotYetReportedReason, Message: "Condition Ready not yet reported"},
 		},
 		{
 			name:          "Mirror a condition not yet reported with target type",
 			conditions:    []metav1.Condition{},
 			conditionType: "Ready",
 			options:       []MirrorOption{TargetConditionType("SomethingReady")},
-			want:          metav1.Condition{Type: "SomethingReady", Status: metav1.ConditionUnknown, Reason: NotYetReportedReason, Message: "Condition Ready not yet reported from Phase3Obj"},
+			want:          metav1.Condition{Type: "SomethingReady", Status: metav1.ConditionUnknown, Reason: NotYetReportedReason, Message: "Condition Ready not yet reported"},
 		},
 		{
 			name:          "Mirror a condition not yet reported with a fallback condition",

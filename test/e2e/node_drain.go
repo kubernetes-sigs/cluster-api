@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -313,18 +314,18 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			DeploymentNamePrefix:  "drain-order-1",
 			CPConditionMessageSubstrings: []string{
 				// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-				fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", cpDeploymentName("drain-order-1")),
+				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-1")),
 				// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
-				fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload/%s", cpDeploymentName("drain-order-5")),
+				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload\/%s`, cpDeploymentName("drain-order-5")),
 			},
 			MDConditionMessageSubstrings: func() map[string][]string {
 				messageSubStrings := map[string][]string{}
 				for _, md := range machineDeployments {
 					messageSubStrings[md.Name] = []string{
 						// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-						fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", mdDeploymentName("drain-order-1", md.Name)),
+						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-1", md.Name)),
 						// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
-						fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload/%s", mdDeploymentName("drain-order-5", md.Name)),
+						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload\/%s`, mdDeploymentName("drain-order-5", md.Name)),
 					}
 				}
 				return messageSubStrings
@@ -343,18 +344,18 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			DeploymentNamePrefix:  "drain-order-5",
 			CPConditionMessageSubstrings: []string{
 				// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-				fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", cpDeploymentName("drain-order-5")),
+				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-5")),
 				// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
-				fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload/%s", cpDeploymentWithPDBName()),
+				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload\/%s`, cpDeploymentWithPDBName()),
 			},
 			MDConditionMessageSubstrings: func() map[string][]string {
 				messageSubStrings := map[string][]string{}
 				for _, md := range machineDeployments {
 					messageSubStrings[md.Name] = []string{
 						// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-						fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", mdDeploymentName("drain-order-5", md.Name)),
+						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-5", md.Name)),
 						// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
-						fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload/%s", mdDeploymentWithPDBName(md.Name)),
+						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload\/%s`, mdDeploymentWithPDBName(md.Name)),
 					}
 				}
 				return messageSubStrings
@@ -391,9 +392,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 			// The evictable Pod should be gone now.
-			g.Expect(condition.Message).ToNot(ContainSubstring("Pods with deletionTimestamp that still exist"))
+			g.Expect(condition.Message).ToNot(ContainSubstring("deletionTimestamp set, but still not removed from the Node"))
 			// The unevictable Pod should still not be evicted because of the PDB.
-			g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("Cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", cpDeploymentWithPDBName())))
+			g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", cpDeploymentWithPDBName())))
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
 		for _, md := range machineDeployments {
 			Eventually(func(g Gomega) {
@@ -404,9 +405,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				g.Expect(condition).ToNot(BeNil())
 				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				// The evictable Pod should be gone now.
-				g.Expect(condition.Message).ToNot(ContainSubstring("Pods with deletionTimestamp that still exist"))
+				g.Expect(condition.Message).ToNot(ContainSubstring("deletionTimestamp set, but still not removed from the Node"))
 				// The unevictable Pod should still not be evicted because of the PDB.
-				g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("Cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", mdDeploymentWithPDBName(md.Name))))
+				g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", mdDeploymentWithPDBName(md.Name))))
 			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
 		}
 
@@ -556,7 +557,9 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 		g.Expect(condition).ToNot(BeNil())
 		g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 		for _, messageSubstring := range input.CPConditionMessageSubstrings {
-			g.Expect(condition.Message).To(ContainSubstring(messageSubstring))
+			var re = regexp.MustCompile(messageSubstring)
+			match := re.MatchString(condition.Message)
+			g.Expect(match).To(BeTrue(), fmt.Sprintf("message substring '%s' does not match %s", condition.Message, messageSubstring))
 		}
 
 		// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)
@@ -582,7 +585,9 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 			for _, messageSubstring := range input.MDConditionMessageSubstrings[md.Name] {
-				g.Expect(condition.Message).To(ContainSubstring(messageSubstring))
+				var re = regexp.MustCompile(messageSubstring)
+				match := re.MatchString(condition.Message)
+				g.Expect(match).To(BeTrue(), fmt.Sprintf("message substring '%s' does not match %s", condition.Message, messageSubstring))
 			}
 
 			// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)

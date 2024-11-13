@@ -110,7 +110,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
-				Message: "some message (from GenericBootstrapConfig)",
+				Message: "some message",
 			},
 		},
 		{
@@ -304,7 +304,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
-				Message: "some message (from GenericInfrastructureMachine)",
+				Message: "some message",
 			},
 		},
 		{
@@ -493,61 +493,67 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 		{
 			name: "all conditions are unknown",
 			conditions: []corev1.NodeCondition{
-				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
-				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionUnknown},
-				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown},
-				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
 			},
-			expectedStatus:  metav1.ConditionUnknown,
-			expectedReason:  v1beta2conditions.MultipleUnknownReportedReason,
-			expectedMessage: "Node Ready: condition is Unknown; Node MemoryPressure: condition is Unknown; Node DiskPressure: condition is Unknown; Node PIDPressure: condition is Unknown",
+			expectedStatus: metav1.ConditionUnknown,
+			expectedReason: v1beta2conditions.MultipleUnknownReportedReason,
+			expectedMessage: "* Node.Ready: Node is not reporting status\n" +
+				"* Node.MemoryPressure: Node is not reporting status\n" +
+				"* Node.DiskPressure: Node is not reporting status\n" +
+				"* Node.PIDPressure: Node is not reporting status",
 		},
 		{
 			name: "multiple semantically failed condition",
 			conditions: []corev1.NodeCondition{
-				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
-				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionTrue},
-				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionTrue},
-				{Type: corev1.NodePIDPressure, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionTrue, Message: "kubelet has NOT sufficient memory available"},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionTrue, Message: "kubelet has disk pressure"},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionTrue, Message: "kubelet has NOT sufficient PID available"},
 			},
-			expectedStatus:  metav1.ConditionFalse,
-			expectedReason:  v1beta2conditions.MultipleIssuesReportedReason,
-			expectedMessage: "Node Ready: condition is Unknown; Node MemoryPressure: condition is True; Node DiskPressure: condition is True; Node PIDPressure: condition is True",
+			expectedStatus: metav1.ConditionFalse,
+			expectedReason: v1beta2conditions.MultipleIssuesReportedReason,
+			expectedMessage: "* Node.Ready: Node is not reporting status\n" +
+				"* Node.MemoryPressure: kubelet has NOT sufficient memory available\n" +
+				"* Node.DiskPressure: kubelet has disk pressure\n" +
+				"* Node.PIDPressure: kubelet has NOT sufficient PID available",
 		},
 		{
 			name: "one semantically failed condition when the rest is healthy",
 			conditions: []corev1.NodeCondition{
-				{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason"},
-				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason", Message: "kubelet is NOT ready"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient memory available"},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse, Message: "kubelet has no disk pressure"},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient PID available"},
 			},
 			expectedStatus:  metav1.ConditionFalse,
 			expectedReason:  "SomeReason",
-			expectedMessage: "Node Ready: condition is False",
+			expectedMessage: "* Node.Ready: kubelet is NOT ready",
 		},
 		{
 			name: "one unknown condition when the rest is healthy",
 			conditions: []corev1.NodeCondition{
-				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, Reason: "SomeReason"},
-				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, Reason: "SomeReason", Message: "Node is not reporting status"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient memory available"},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse, Message: "kubelet has no disk pressure"},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient PID available"},
 			},
 			expectedStatus:  metav1.ConditionUnknown,
 			expectedReason:  "SomeReason",
-			expectedMessage: "Node Ready: condition is Unknown",
+			expectedMessage: "* Node.Ready: Node is not reporting status",
 		},
 		{
 			name: "one condition missing",
 			conditions: []corev1.NodeCondition{
-				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
-				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient memory available"},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse, Message: "kubelet has no disk pressure"},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse, Message: "kubelet has sufficient PID available"},
 			},
 			expectedStatus:  metav1.ConditionUnknown,
 			expectedReason:  clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason,
-			expectedMessage: "Node Ready: condition not yet reported",
+			expectedMessage: "* Node.Ready: Condition not yet reported",
 		},
 	}
 	for _, test := range testCases {
@@ -662,7 +668,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			node: &corev1.Node{
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
-						{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason", Message: "Some message"},
+						{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason", Message: "kubelet is NOT ready"},
 						{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
 						{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
 						{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
@@ -675,13 +681,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "SomeReason",
-					Message: "Node Ready: condition is False",
+					Message: "* Node.Ready: kubelet is NOT ready",
 				},
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "SomeReason",
-					Message: "Some message (from Node)",
+					Message: "* Node.Ready: kubelet is NOT ready",
 				},
 			},
 		},
@@ -710,7 +716,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  "KubeletReady",
-					Message: "kubelet is posting ready status (from Node)",
+					Message: "* Node.Ready: kubelet is posting ready status",
 				},
 			},
 		},
@@ -733,7 +739,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason,
-					Message: "Node Ready: condition not yet reported",
+					Message: "* Node.Ready: Condition not yet reported",
 				},
 				{
 					Type:   clusterv1.MachineNodeReadyV1Beta2Condition,
@@ -890,7 +896,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  "KubeletReady",
-					Message: "kubelet is posting ready status (from Node)",
+					Message: "kubelet is posting ready status",
 				})
 				return m
 			}(),
@@ -910,7 +916,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  "KubeletReady",
-					Message: "kubelet is posting ready status (from Node)",
+					Message: "kubelet is posting ready status",
 				},
 			},
 		},
@@ -969,7 +975,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  "KubeletReady",
-					Message: "kubelet is posting ready status (from Node)",
+					Message: "kubelet is posting ready status)",
 				})
 				return m
 			}(),
@@ -1240,7 +1246,7 @@ func TestSetReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
-				Message: "Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
+				Message: "* Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
 			},
 		},
 		{
@@ -1345,7 +1351,7 @@ func TestSetReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
-				Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
+				Message: "* Deleting: Machine deletion in progress, stage: DrainingNode",
 			},
 		},
 		{
@@ -1392,7 +1398,7 @@ func TestSetReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "SomeReason",
-				Message: "HealthCheckSucceeded: Some message",
+				Message: "* HealthCheckSucceeded: Some message",
 			},
 		},
 		{
@@ -1451,7 +1457,7 @@ func TestSetReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  "SomeReason",
-				Message: "MyReadinessGate: Some message",
+				Message: "* MyReadinessGate: Some message",
 			},
 		},
 	}

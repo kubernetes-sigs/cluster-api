@@ -2008,16 +2008,21 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
-					Message: "Following Machines are reporting etcd member unknown: machine1-test",
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+					Message: "* Machine machine1-test:\n" +
+						"  * EtcdMemberHealthy: Node does not exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
-					Message: "Following Machines are reporting control plane unknown: machine1-test",
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
+					Message: "* Machine machine1-test:\n" +
+						"  * APIServerPodHealthy: Node does not exist\n" +
+						"  * ControllerManagerPodHealthy: Node does not exist\n" +
+						"  * SchedulerPodHealthy: Node does not exist\n" +
+						"  * EtcdPodHealthy: Node does not exist",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
@@ -2083,16 +2088,21 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
-					Message: "Following Machines are reporting etcd member unknown: machine1-test",
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+					Message: "* Machine machine1-test:\n" +
+						"  * EtcdMemberHealthy: Node does not exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
-					Message: "Following Machines are reporting control plane unknown: machine1-test",
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
+					Message: "* Machine machine1-test:\n" +
+						"  * APIServerPodHealthy: Node does not exist\n" +
+						"  * ControllerManagerPodHealthy: Node does not exist\n" +
+						"  * SchedulerPodHealthy: Node does not exist\n" +
+						"  * EtcdPodHealthy: Node does not exist",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
@@ -3344,7 +3354,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KCP deletion blocked because worker Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more) still exist"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3405,7 +3415,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KCP deletion blocked because MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more) still exist"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -3489,7 +3499,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 	g := NewWithT(t)
 
-	g.Expect(objectsPendingDeleteNames(allMachines, machinePools, c)).To(Equal("MachinePools: mp1; worker Machines: w1, w2, w3, w4, w5, ... (3 more)"))
+	g.Expect(objectsPendingDeleteNames(allMachines, machinePools, c)).To(Equal([]string{"MachinePools: mp1", "Machines: w1, w2, w3, w4, w5, ... (3 more)"}))
 }
 
 // test utils.

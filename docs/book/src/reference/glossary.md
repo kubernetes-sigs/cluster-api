@@ -123,6 +123,12 @@ Cluster API Provider Azure
 ### CAIPAMIC
 Cluster API IPAM Provider In Cluster
 
+### CAIPAMX
+Cluster API IPAM Provider Nutanix
+
+### CAREX
+Cluster API Runtime Extensions Provider Nutanix
+
 ### Cloud provider
 
 Or __Cloud service provider__
@@ -179,7 +185,7 @@ See [KCP](#kcp).
 
 ### Core Cluster API
 
-With "core" Cluster API we refer to the common set of API and controllers that are required to run 
+With "core" Cluster API we refer to the common set of API and controllers that are required to run
 any Cluster API provider.
 
 Please note that in the Cluster API code base, side by side of "core" Cluster API components there

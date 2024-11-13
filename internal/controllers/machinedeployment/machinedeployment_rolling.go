@@ -21,11 +21,13 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // rolloutRolling implements the logic for rolling a new MachineSet.
@@ -72,6 +74,10 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 }
 
 func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
+		return err
+	}
+
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
 	}
@@ -292,4 +298,26 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 	}
 
 	return totalScaledDown, nil
+}
+
+// cleanupDisableMachineCreateAnnotation will remove the disable machine create annotation from new MachineSets that were created during reconcileOldMachineSetsOnDelete.
+func (r *Reconciler) cleanupDisableMachineCreateAnnotation(ctx context.Context, newMS *clusterv1.MachineSet) error {
+	log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(newMS))
+
+	if newMS.Annotations != nil {
+		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
+			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation")
+			patchHelper, err := patch.NewHelper(newMS, r.Client)
+			if err != nil {
+				return err
+			}
+			delete(newMS.Annotations, clusterv1.DisableMachineCreateAnnotation)
+			err = patchHelper.Patch(ctx, newMS)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

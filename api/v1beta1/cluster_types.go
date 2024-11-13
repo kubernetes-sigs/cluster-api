@@ -269,10 +269,10 @@ const (
 	ClusterRemoteConnectionProbeV1Beta2Condition = "RemoteConnectionProbe"
 
 	// ClusterRemoteConnectionProbeFailedV1Beta2Reason surfaces issues with the connection to the workload cluster.
-	ClusterRemoteConnectionProbeFailedV1Beta2Reason = "RemoteConnectionProbeFailed"
+	ClusterRemoteConnectionProbeFailedV1Beta2Reason = "ProbeFailed"
 
 	// ClusterRemoteConnectionProbeSucceededV1Beta2Reason is used to report a working connection with the workload cluster.
-	ClusterRemoteConnectionProbeSucceededV1Beta2Reason = "RemoteConnectionProbeSucceeded"
+	ClusterRemoteConnectionProbeSucceededV1Beta2Reason = "ProbeSucceeded"
 )
 
 // Cluster's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.

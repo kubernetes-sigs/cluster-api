@@ -1980,7 +1980,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "Drops messages from InfraCluster and ControlPlane when using fallback to fields; drop message from RemoteConnectionProbe when true",
+			name: "Drops messages from InfraCluster and ControlPlane when using fallback to fields",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine-test",
@@ -2013,10 +2013,9 @@ func TestSetAvailableCondition(t *testing.T) {
 								Reason: "Foo",
 							},
 							{
-								Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
-								Message: remoteConnectionProbeSucceededMessage,
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
 							},
 							{
 								Type:   clusterv1.ClusterDeletingV1Beta2Condition,

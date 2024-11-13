@@ -72,9 +72,9 @@ func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string,
 	}
 
 	if aggregateOpt.mergeStrategy == nil {
-		negativePolarityConditionTypes := sets.New[string](aggregateOpt.negativePolarityConditionTypes...)
-		targetConditionHasPositivePolarity := !negativePolarityConditionTypes.Has(sourceConditionType)
-		aggregateOpt.mergeStrategy = newDefaultMergeStrategy(targetConditionHasPositivePolarity, negativePolarityConditionTypes)
+		// Note: If mergeStrategy is not explicitly set, target condition has negative polarity if source condition has negative polarity
+		targetConditionHasPositivePolarity := !sets.New[string](aggregateOpt.negativePolarityConditionTypes...).Has(sourceConditionType)
+		aggregateOpt.mergeStrategy = DefaultMergeStrategy(TargetConditionHasPositivePolarity(targetConditionHasPositivePolarity), GetPriorityFunc(GetDefaultMergePriorityFunc(aggregateOpt.negativePolarityConditionTypes...)))
 	}
 
 	conditionsInScope := make([]ConditionWithOwnerInfo, 0, len(sourceObjs))

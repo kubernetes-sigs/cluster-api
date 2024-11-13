@@ -137,6 +137,16 @@ const (
 	// If not using an external etcd also EtcdPodHealthy, EtcdMemberHealthy conditions are included.
 	KubeadmControlPlaneMachinesReadyV1Beta2Condition = clusterv1.MachinesReadyV1Beta2Condition
 
+	// KubeadmControlPlaneMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
+	KubeadmControlPlaneMachinesReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesNotReadyV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is false.
+	KubeadmControlPlaneMachinesNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// and no one of the controlled machine's Ready conditions is false.
+	KubeadmControlPlaneMachinesReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+
 	// KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the KubeadmControlPlane.
 	KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason = clusterv1.NoReplicasV1Beta2Reason
 
@@ -148,6 +158,16 @@ const (
 const (
 	// KubeadmControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
 	KubeadmControlPlaneMachinesUpToDateV1Beta2Condition = clusterv1.MachinesUpToDateV1Beta2Condition
+
+	// KubeadmControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
+	KubeadmControlPlaneMachinesUpToDateV1Beta2Reason = clusterv1.UpToDateV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason = clusterv1.NotUpToDateV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and no one of the controlled machine's UpToDate conditions is false.
+	KubeadmControlPlaneMachinesUpToDateUnknownV1Beta2Reason = clusterv1.UpToDateUnknownV1Beta2Reason
 
 	// KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the KubeadmControlPlane.
 	KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason = clusterv1.NoReplicasV1Beta2Reason

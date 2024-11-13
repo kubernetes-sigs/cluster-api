@@ -93,6 +93,27 @@ const (
 	// NotAvailableV1Beta2Reason applies to a condition surfacing object not satisfying availability criteria.
 	NotAvailableV1Beta2Reason = "NotAvailable"
 
+	// AvailableUnknownV1Beta2Reason applies to a condition surfacing object availability unknown.
+	AvailableUnknownV1Beta2Reason = "AvailableUnknown"
+
+	// ReadyV1Beta2Reason applies to a condition surfacing object readiness.
+	ReadyV1Beta2Reason = "Ready"
+
+	// NotReadyV1Beta2Reason applies to a condition surfacing object not satisfying readiness criteria.
+	NotReadyV1Beta2Reason = "NotReady"
+
+	// ReadyUnknownV1Beta2Reason applies to a condition surfacing object readiness unknown.
+	ReadyUnknownV1Beta2Reason = "ReadyUnknown"
+
+	// UpToDateV1Beta2Reason applies to a condition surfacing object up-tp-date.
+	UpToDateV1Beta2Reason = "UpToDate"
+
+	// NotUpToDateV1Beta2Reason applies to a condition surfacing object not up-tp-date.
+	NotUpToDateV1Beta2Reason = "NotUpToDate"
+
+	// UpToDateUnknownV1Beta2Reason applies to a condition surfacing object up-tp-date unknown.
+	UpToDateUnknownV1Beta2Reason = "UpToDateUnknown"
+
 	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.
 	ScalingUpV1Beta2Reason = "ScalingUp"
 

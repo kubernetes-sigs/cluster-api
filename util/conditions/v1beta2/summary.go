@@ -60,7 +60,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	summarizeOpt.ApplyOptions(opts)
 	if summarizeOpt.mergeStrategy == nil {
 		// Note. Summary always assume the target condition type has positive polarity.
-		summarizeOpt.mergeStrategy = newDefaultMergeStrategy(true, sets.New[string](summarizeOpt.negativePolarityConditionTypes...))
+		summarizeOpt.mergeStrategy = DefaultMergeStrategy(GetPriorityFunc(GetDefaultMergePriorityFunc(summarizeOpt.negativePolarityConditionTypes...)))
 	}
 
 	if len(summarizeOpt.conditionTypes) == 0 {

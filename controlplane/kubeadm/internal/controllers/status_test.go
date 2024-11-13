@@ -439,11 +439,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 }
 
 func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
-	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionTrue}
-	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "SomeReason", Message: "NotReady"}
+	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineReadyV1Beta2Reason}
+	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyV1Beta2Reason, Message: "NotReady"}
 
-	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionTrue}
-	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "SomeReason", Message: "NotUpToDate"}
+	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineUpToDateV1Beta2Reason}
+	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotUpToDateV1Beta2Reason, Message: "NotUpToDate"}
 
 	tests := []struct {
 		name                            string
@@ -481,13 +481,13 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 			expectMachinesReadyCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  "SomeReason", // There is only one machine reporting issues, using the reason from that machine.
+				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotReadyV1Beta2Reason,
 				Message: "* Machine m3: NotReady",
 			},
 			expectMachinesUpToDateCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  v1beta2conditions.MultipleIssuesReportedReason, // There are many machines reporting issues, using a generic reason.
+				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
 				Message: "* Machines m2, m3: NotUpToDate",
 			},
 		},

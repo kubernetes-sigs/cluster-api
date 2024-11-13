@@ -513,7 +513,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 	readyCondition := metav1.Condition{
 		Type:   clusterv1.MachineReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
-		Reason: v1beta2conditions.MultipleInfoReportedReason,
+		Reason: clusterv1.MachineReadyV1Beta2Reason,
 	}
 
 	tests := []struct {
@@ -547,6 +547,19 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			},
 		},
 		{
+			name:       "one machine is ready",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				newMachine("machine-1", readyCondition),
+			},
+			getAndAdoptMachinesForMachineSetSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetMachinesReadyV1Beta2Reason,
+			},
+		},
+		{
 			name:       "all machines are ready",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
@@ -557,7 +570,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
-				Reason: v1beta2conditions.MultipleInfoReportedReason,
+				Reason: clusterv1.MachineSetMachinesReadyV1Beta2Reason,
 			},
 		},
 		{
@@ -571,7 +584,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.NotYetReportedReason,
+				Reason:  clusterv1.MachineSetMachinesReadyUnknownV1Beta2Reason,
 				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
@@ -603,7 +616,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Reason: clusterv1.MachineSetMachinesNotReadyV1Beta2Reason,
 				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
 					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
 					"* Machine machine-3: Some unknown message",
@@ -671,7 +684,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  "some-reason-1",
+				Reason:  clusterv1.MachineSetMachinesUpToDateV1Beta2Reason,
 				Message: "",
 			},
 		},
@@ -690,7 +703,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  "some-unknown-reason-1",
+				Reason:  clusterv1.MachineSetMachinesUpToDateUnknownV1Beta2Reason,
 				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
@@ -709,7 +722,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  "some-not-up-to-date-reason",
+				Reason:  clusterv1.MachineSetMachinesNotUpToDateV1Beta2Reason,
 				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
@@ -723,7 +736,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  v1beta2conditions.NotYetReportedReason,
+				Reason:  clusterv1.MachineSetMachinesUpToDateUnknownV1Beta2Reason,
 				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
@@ -760,7 +773,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: v1beta2conditions.MultipleIssuesReportedReason,
+				Reason: clusterv1.MachineSetMachinesNotUpToDateV1Beta2Reason,
 				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
 					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},

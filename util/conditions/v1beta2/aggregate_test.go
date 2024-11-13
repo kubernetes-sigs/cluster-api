@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -48,7 +47,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,         // False because there is one issue
-				Reason:  "Reason-1",                    // Picking the reason from the only existing issue
+				Reason:  issuesReportedReason,          // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -64,7 +63,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    clusterv1.ScalingUpV1Beta2Condition,
 				Status:  metav1.ConditionTrue,          // True because there is one issue, and the target condition has negative polarity
-				Reason:  "Reason-1",                    // Picking the reason from the only existing issue
+				Reason:  issuesReportedReason,          // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -84,11 +83,47 @@ func TestAggregate(t *testing.T) {
 				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "Reason-99", Message: "Message-99"}}, // obj1
 			},
 			conditionType: clusterv1.ScalingUpV1Beta2Condition,
-			options:       []AggregateOption{NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}, CustomMergeStrategy{newDefaultMergeStrategy(true, sets.New(clusterv1.ScalingUpV1Beta2Condition))}},
+			options: []AggregateOption{NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}, CustomMergeStrategy{
+				MergeStrategy: DefaultMergeStrategy(
+					TargetConditionHasPositivePolarity(true),
+					GetPriorityFunc(GetDefaultMergePriorityFunc(clusterv1.ScalingUpV1Beta2Condition)),
+					ComputeReasonFunc(GetDefaultComputeMergeReasonFunc(
+						"bad",
+						"unknown",
+						"good",
+					)),
+				),
+			}},
 			want: &metav1.Condition{
 				Type:    clusterv1.ScalingUpV1Beta2Condition,
 				Status:  metav1.ConditionFalse,         // False because there is one issue, and the custom merge strategy doesn't set the flag that defines that the target condition has negative polarity
-				Reason:  "Reason-1",                    // Picking the reason from the only existing issue
+				Reason:  "bad",                         // Using reason from the ComputeReasonFunc
+				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
+			},
+			wantErr: false,
+		},
+		{
+			name: "One issue with custom merge strategy (negative polarity)",
+			conditions: [][]metav1.Condition{
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionTrue, Reason: "Reason-1", Message: "Message-1"}},    // obj0
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "Reason-99", Message: "Message-99"}}, // obj1
+			},
+			conditionType: clusterv1.ScalingUpV1Beta2Condition,
+			options: []AggregateOption{NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition}, CustomMergeStrategy{
+				MergeStrategy: DefaultMergeStrategy(
+					TargetConditionHasPositivePolarity(false),
+					GetPriorityFunc(GetDefaultMergePriorityFunc(clusterv1.ScalingUpV1Beta2Condition)),
+					ComputeReasonFunc(GetDefaultComputeMergeReasonFunc(
+						"good", // Note: with negative polarity, false is good
+						"unknown",
+						"bad",
+					)),
+				),
+			}},
+			want: &metav1.Condition{
+				Type:    clusterv1.ScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionTrue,          // True because there is one issue, and the custom merge strategy sets the flag that defines that the target condition has negative polarity
+				Reason:  "good",                        // Using reason from the ComputeReasonFunc
 				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -104,7 +139,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    "SomethingAvailable",
 				Status:  metav1.ConditionFalse,         // False because there is one issue
-				Reason:  "Reason-1",                    // Picking the reason from the only existing issue
+				Reason:  issuesReportedReason,          // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -120,7 +155,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    "SomethingAvailable",
 				Status:  metav1.ConditionTrue,          // True because there is one issue, and the target condition has negative polarity
-				Reason:  "Reason-1",                    // Picking the reason from the only existing issue
+				Reason:  issuesReportedReason,          // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -138,7 +173,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,                      // False because there is one issue
-				Reason:  MultipleIssuesReportedReason,               // Using a generic reason
+				Reason:  issuesReportedReason,                       // Using a generic reason
 				Message: "* Phase3Objs obj0, obj1, obj2: Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -158,7 +193,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,                                    // False because there is one issue
-				Reason:  MultipleIssuesReportedReason,                             // Using a generic reason
+				Reason:  issuesReportedReason,                                     // Using a generic reason
 				Message: "* Phase3Objs obj0, obj1, obj2, ... (2 more): Message-1", // messages from all the issues & unknown conditions (info dropped)
 			},
 			wantErr: false,
@@ -178,8 +213,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Objs obj0, obj3, obj4: Message-1\n" +
 					"* Phase3Objs obj1, obj2: Message-2\n" +
 					"* Phase3Obj obj5: Message-3", // messages from all the issues & unknown conditions (info dropped)
@@ -201,8 +236,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Objs obj0, obj3, obj4:\n" +
 					"  * Message-1\n" +
 					"* Phase3Objs obj1, obj2:\n" +
@@ -228,8 +263,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Objs obj0, obj4: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj2: Message-4\n" +
@@ -249,8 +284,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj2: Message-3", // messages from all the issues & unknown conditions (info dropped)
@@ -270,8 +305,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj3: Message-4\n" +
@@ -294,8 +329,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionFalse,        // False because there is one issue
-				Reason: MultipleIssuesReportedReason, // Using a generic reason
+				Status: metav1.ConditionFalse, // False because there is one issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj3: Message-4\n" +
@@ -319,8 +354,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionUnknown,       // Unknown because there is at least an unknown and no issue
-				Reason: MultipleUnknownReportedReason, // Using a generic reason
+				Status: metav1.ConditionUnknown, // Unknown because there is at least an unknown and no issue
+				Reason: unknownReportedReason,   // Using a generic reason
 				Message: "* Phase3Objs obj0, obj4: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj2: Message-4\n" +
@@ -342,8 +377,8 @@ func TestAggregate(t *testing.T) {
 			options:       []AggregateOption{},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
-				Status: metav1.ConditionTrue,       // True because there are no issue and unknown
-				Reason: MultipleInfoReportedReason, // Using a generic reason
+				Status: metav1.ConditionTrue, // True because there are no issue and unknown
+				Reason: infoReportedReason,   // Using a generic reason
 				Message: "* Phase3Objs obj0, obj4: Message-1\n" +
 					"* Phase3Obj obj1: Message-2\n" +
 					"* Phase3Obj obj2: Message-4\n" +
@@ -362,7 +397,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
 				Status: metav1.ConditionFalse, // False because there is one issue
-				Reason: "Reason-1",            // Picking the reason from the only existing issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1\n" +
 					"* Phase3Obj obj1: Condition Available not yet reported", // messages from all the issues & unknown conditions (info dropped)
 			},
@@ -379,7 +414,7 @@ func TestAggregate(t *testing.T) {
 			want: &metav1.Condition{
 				Type:   "SomethingAvailable",
 				Status: metav1.ConditionFalse, // False because there is one issue
-				Reason: "Reason-1",            // Picking the reason from the only existing issue
+				Reason: issuesReportedReason,  // Using a generic reason
 				Message: "* Phase3Obj obj0: Message-1\n" +
 					"* Phase3Obj obj1: Condition Available not yet reported", // messages from all the issues & unknown conditions (info dropped)
 			},

@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -546,6 +545,16 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 	workersAvailableCondition, err := v1beta2conditions.NewAggregateCondition(
 		ws, clusterv1.AvailableV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterWorkersAvailableV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterWorkersNotAvailableV1Beta2Reason,
+					clusterv1.ClusterWorkersAvailableUnknownV1Beta2Reason,
+					clusterv1.ClusterWorkersAvailableV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate MachinePool and MachineDeployment's Available conditions")
@@ -587,6 +596,16 @@ func setMachinesReadyCondition(ctx context.Context, cluster *clusterv1.Cluster, 
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineReadyV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterMachinesReadyV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterMachinesNotReadyV1Beta2Reason,
+					clusterv1.ClusterMachinesReadyUnknownV1Beta2Reason,
+					clusterv1.ClusterMachinesReadyV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's Ready conditions")
@@ -627,6 +646,16 @@ func setMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.Cluste
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterMachinesUpToDateV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterMachinesNotUpToDateV1Beta2Reason,
+					clusterv1.ClusterMachinesUpToDateUnknownV1Beta2Reason,
+					clusterv1.ClusterMachinesUpToDateV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
@@ -667,6 +696,8 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterRemediatingV1Beta2Condition),
+		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
 		v1beta2conditions.Set(cluster, metav1.Condition{
@@ -736,7 +767,21 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	scalingUpCondition, err := v1beta2conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingUpV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterScalingUpV1Beta2Condition),
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ClusterScalingUpV1Beta2Condition},
+		// Instruct aggregate to consider ScalingUp condition with negative polarity.
+		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition},
+		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
+		// takes into account the fact the ScalingUp has negative polarity.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.TargetConditionHasPositivePolarity(false),
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterScalingUpV1Beta2Reason,
+					clusterv1.ClusterScalingUpUnknownV1Beta2Reason,
+					clusterv1.ClusterNotScalingUpV1Beta2Reason,
+				)),
+				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingUpV1Beta2Condition)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's ScalingUp conditions")
@@ -799,7 +844,21 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 	scalingDownCondition, err := v1beta2conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingDownV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.ClusterScalingDownV1Beta2Condition),
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ClusterScalingDownV1Beta2Condition},
+		// Instruct aggregate to consider ScalingDown condition with negative polarity.
+		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ScalingDownV1Beta2Condition},
+		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
+		// takes into account the fact the ScalingDown has negative polarity.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.TargetConditionHasPositivePolarity(false),
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterScalingDownV1Beta2Reason,
+					clusterv1.ClusterScalingDownUnknownV1Beta2Reason,
+					clusterv1.ClusterNotScalingDownV1Beta2Reason,
+				)),
+				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingDownV1Beta2Condition)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's ScalingDown conditions")
@@ -835,28 +894,35 @@ func setDeletingCondition(_ context.Context, cluster *clusterv1.Cluster, deletin
 
 type clusterConditionCustomMergeStrategy struct {
 	cluster                        *clusterv1.Cluster
-	negativePolarityConditionTypes sets.Set[string]
+	negativePolarityConditionTypes []string
 }
 
 func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
-	return v1beta2conditions.DefaultMergeStrategyWithCustomPriority(func(condition metav1.Condition) v1beta2conditions.MergePriority {
-		// While cluster is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
-		if !c.cluster.DeletionTimestamp.IsZero() {
-			if condition.Type == clusterv1.ClusterInfrastructureReadyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason) {
-				return v1beta2conditions.InfoMergePriority
+	return v1beta2conditions.DefaultMergeStrategy(v1beta2conditions.GetPriorityFunc(
+		func(condition metav1.Condition) v1beta2conditions.MergePriority {
+			// While cluster is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
+			if !c.cluster.DeletionTimestamp.IsZero() {
+				if condition.Type == clusterv1.ClusterInfrastructureReadyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason) {
+					return v1beta2conditions.InfoMergePriority
+				}
+				if condition.Type == clusterv1.ClusterControlPlaneAvailableV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterControlPlaneDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason) {
+					return v1beta2conditions.InfoMergePriority
+				}
 			}
-			if condition.Type == clusterv1.ClusterControlPlaneAvailableV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterControlPlaneDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason) {
-				return v1beta2conditions.InfoMergePriority
-			}
-		}
 
-		// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled condition as info.
-		if condition.Type == clusterv1.ClusterTopologyReconciledV1Beta2Condition && condition.Status == metav1.ConditionFalse &&
-			condition.Reason != clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason {
-			return v1beta2conditions.InfoMergePriority
-		}
-		return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes)(condition)
-	}).Merge(conditions, conditionTypes)
+			// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled condition as info.
+			if condition.Type == clusterv1.ClusterTopologyReconciledV1Beta2Condition && condition.Status == metav1.ConditionFalse &&
+				condition.Reason != clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason {
+				return v1beta2conditions.InfoMergePriority
+			}
+			return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
+		}),
+		v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+			clusterv1.ClusterNotAvailableV1Beta2Reason,
+			clusterv1.ClusterAvailableUnknownV1Beta2Reason,
+			clusterv1.ClusterAvailableV1Beta2Reason,
+		)),
+	).Merge(conditions, conditionTypes)
 }
 
 func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
@@ -876,13 +942,15 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 
 	summaryOpts := []v1beta2conditions.SummaryOption{
 		forConditionTypes,
-		v1beta2conditions.NegativePolarityConditionTypes{
-			clusterv1.ClusterDeletingV1Beta2Condition,
-		},
+		// Instruct summary to consider Deleting condition with negative polarity.
+		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ClusterDeletingV1Beta2Condition},
+		// Using a custom merge strategy to override reasons applied during merge and to ignore some
+		// info message so the available condition is less noisy.
 		v1beta2conditions.CustomMergeStrategy{
 			MergeStrategy: clusterConditionCustomMergeStrategy{
-				cluster:                        cluster,
-				negativePolarityConditionTypes: sets.Set[string]{}.Insert(clusterv1.ClusterDeletingV1Beta2Condition),
+				cluster: cluster,
+				// Instruct merge to consider Deleting condition with negative polarity,
+				negativePolarityConditionTypes: []string{clusterv1.ClusterDeletingV1Beta2Condition},
 			},
 		},
 	}

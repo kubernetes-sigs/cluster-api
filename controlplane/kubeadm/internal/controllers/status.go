@@ -330,6 +330,16 @@ func setMachinesReadyCondition(ctx context.Context, kcp *controlplanev1.KubeadmC
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineReadyV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					controlplanev1.KubeadmControlPlaneMachinesNotReadyV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesReadyUnknownV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
@@ -360,6 +370,16 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesUpToDateUnknownV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
@@ -399,6 +419,8 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition),
+		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{

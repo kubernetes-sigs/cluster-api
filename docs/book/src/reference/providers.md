@@ -61,9 +61,13 @@ updated info about which API version they are supporting.
 
 ## IP Address Management (IPAM)
 - [In Cluster](https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster)
+- [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix)
 
 ## Addon
 - [Helm](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/)
+
+## Runtime Extensions
+- [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/)
 
 ## API Adopters
 

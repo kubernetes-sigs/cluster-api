@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -66,7 +67,7 @@ func (c *watchCountController) Watch(_ source.Source) error {
 func TestRetryWatch(t *testing.T) {
 	g := NewWithT(t)
 	ctrl := newWatchCountController(true)
-	tracker := ObjectTracker{Controller: ctrl, Scheme: runtime.NewScheme(), Cache: &informertest.FakeInformers{}}
+	tracker := ObjectTracker{Controller: ctrl, Scheme: runtime.NewScheme(), Cache: &informertest.FakeInformers{}, PredicateLogger: ptr.To(logr.New(log.NullLogSink{}))}
 
 	err := tracker.Watch(logger, &clusterv1.Cluster{}, nil)
 	g.Expect(err).To(HaveOccurred())
@@ -80,7 +81,7 @@ func TestRetryWatch(t *testing.T) {
 func TestWatchMultipleTimes(t *testing.T) {
 	g := NewWithT(t)
 	ctrl := &watchCountController{}
-	tracker := ObjectTracker{Controller: ctrl, Scheme: runtime.NewScheme(), Cache: &informertest.FakeInformers{}}
+	tracker := ObjectTracker{Controller: ctrl, Scheme: runtime.NewScheme(), Cache: &informertest.FakeInformers{}, PredicateLogger: ptr.To(logr.New(log.NullLogSink{}))}
 
 	obj := &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{

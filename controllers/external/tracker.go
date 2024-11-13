@@ -37,15 +37,16 @@ import (
 type ObjectTracker struct {
 	m sync.Map
 
-	Controller controller.Controller
-	Cache      cache.Cache
-	Scheme     *runtime.Scheme
+	Controller      controller.Controller
+	Cache           cache.Cache
+	Scheme          *runtime.Scheme
+	PredicateLogger *logr.Logger
 }
 
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
 func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
-	if o.Controller == nil || o.Cache == nil || o.Scheme == nil {
-		return errors.New("all of controller, cache and scheme must be set for object tracker")
+	if o.Controller == nil || o.Cache == nil || o.Scheme == nil || o.PredicateLogger == nil {
+		return errors.New("all of Controller, Cache, Scheme and PredicateLogger must be set for object tracker")
 	}
 
 	gvk := obj.GetObjectKind().GroupVersionKind()
@@ -59,7 +60,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handle
 		o.Cache,
 		obj.DeepCopyObject().(client.Object),
 		handler,
-		append(p, predicates.ResourceNotPaused(o.Scheme, log))...,
+		append(p, predicates.ResourceNotPaused(o.Scheme, *o.PredicateLogger))...,
 	))
 	if err != nil {
 		o.m.Delete(key)

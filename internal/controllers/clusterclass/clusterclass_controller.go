@@ -47,7 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -371,20 +370,12 @@ func refString(ref *corev1.ObjectReference) string {
 }
 
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
-	log := ctrl.LoggerFrom(ctx)
-
 	obj, err := external.Get(ctx, r.Client, ref, clusterClass.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
 		}
 		return errors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
-	}
-
-	// If referenced object is paused, return early.
-	if annotations.HasPaused(obj) {
-		log.V(3).Info("External object referenced is paused", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
-		return nil
 	}
 
 	// Initialize the patch helper.

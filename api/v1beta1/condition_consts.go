@@ -353,4 +353,8 @@ const (
 	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
 	ClusterClassOutdatedRefVersionsReason = "OutdatedRefVersions"
+
+	// ClusterClassRefVersionsUpToDateInternalErrorReason (Severity=Warning) surfaces that an unexpected error occurred when validating
+	// if the references are up-to-date.
+	ClusterClassRefVersionsUpToDateInternalErrorReason = "InternalError"
 )

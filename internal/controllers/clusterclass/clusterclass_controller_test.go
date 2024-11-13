@@ -461,12 +461,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			}...,
 		)
 	tests := []struct {
-		name           string
-		clusterClass   *clusterv1.ClusterClass
-		want           []clusterv1.ClusterClassStatusVariable
-		patchResponse  *runtimehooksv1.DiscoverVariablesResponse
-		wantConditions clusterv1.Conditions
-		wantErrMessage string
+		name                              string
+		clusterClass                      *clusterv1.ClusterClass
+		want                              []clusterv1.ClusterClassStatusVariable
+		patchResponse                     *runtimehooksv1.DiscoverVariablesResponse
+		wantVariableDiscoveryErrorMessage string
+		wantErrMessage                    string
 	}{
 		{
 			name:         "Reconcile inline variables to ClusterClass status",
@@ -522,12 +522,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							},
 						},
 					},
-				},
-			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
 				},
 			},
 		},
@@ -742,12 +736,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
 		},
 		{
 			name: "Error if reconciling inline and external variables to ClusterClass status with conflicts",
@@ -779,15 +767,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			},
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"the following variables have conflicting schemas: cpu",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message:  "VariableDiscovery failed: the following variables have conflicting schemas: cpu",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: the following variables have conflicting schemas: cpu",
 		},
 		{
 			name: "Reconcile external variables to ClusterClass status",
@@ -957,12 +937,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
 		},
 		{
 			name: "Error if external patch defines a variable with same name multiple times",
@@ -1002,15 +976,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. " +
 				"Variable with name \"cpu\" is defined more than once",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message:  "VariableDiscovery failed: patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. Variable with name \"cpu\" is defined more than once",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. Variable with name \"cpu\" is defined more than once",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (OpenAPI schema)",
@@ -1054,16 +1020,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
 				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
-						"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
+				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (CEL)",
@@ -1123,21 +1081,13 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
 				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
 				"| ......................................................^]",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
-						"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
-						"apiextensions.ValidationRule{Rule:\"self >= 1\", Message:\"\", MessageExpression:\"'Expected integer greater or equal to 1, got ' + this does not compile\", " +
-						"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
-						"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
-						"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
-						"| ......................................................^]",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
+				"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"self >= 1\", Message:\"\", MessageExpression:\"'Expected integer greater or equal to 1, got ' + this does not compile\", " +
+				"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
+				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
+				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
+				"| ......................................................^]",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (CEL: using opts that are not available with the current compatibility version)",
@@ -1182,22 +1132,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
 				" | ip(self).family() == 6\n" +
 				" | ...............^",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
-						"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
-						"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
-						" | ip(self).family() == 6\n" +
-						" | ..^\n" +
-						"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
-						" | ip(self).family() == 6\n" +
-						" | ...............^",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
+				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ..^\n" +
+				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ...............^",
 		},
 	}
 	for _, tt := range tests {
@@ -1226,13 +1168,18 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
 			}
 
-			err := r.reconcileVariables(ctx, tt.clusterClass)
-
-			// Cleanup condition timestamps for easier comparison.
-			for i := range tt.clusterClass.Status.Conditions {
-				tt.clusterClass.Status.Conditions[i].LastTransitionTime = metav1.Time{}
+			s := &scope{
+				clusterClass: tt.clusterClass,
 			}
-			g.Expect(tt.wantConditions).To(Equal(tt.clusterClass.Status.Conditions))
+			_, err := r.reconcileVariables(ctx, s)
+
+			if tt.wantVariableDiscoveryErrorMessage != "" {
+				g.Expect(s.variableDiscoveryError).To(HaveOccurred())
+				g.Expect(s.variableDiscoveryError.Error()).To(Equal(tt.wantVariableDiscoveryErrorMessage))
+			} else {
+				g.Expect(s.variableDiscoveryError).ToNot(HaveOccurred())
+			}
+
 			if tt.wantErrMessage != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))

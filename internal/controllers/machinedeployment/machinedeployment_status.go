@@ -281,6 +281,16 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineReadyV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachineDeploymentMachinesNotReadyV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesReadyUnknownV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesReadyV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's Ready conditions")
@@ -321,6 +331,16 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachineDeploymentMachinesNotUpToDateV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesUpToDateUnknownV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
@@ -361,6 +381,8 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentRemediatingV1Beta2Condition),
+		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{

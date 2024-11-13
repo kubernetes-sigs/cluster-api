@@ -47,6 +47,16 @@ const (
 	// If conditions are defined in spec.availabilityGates, those conditions must be true as well.
 	ClusterAvailableV1Beta2Condition = AvailableV1Beta2Condition
 
+	// ClusterAvailableV1Beta2Reason surfaces when the cluster availability criteria is met.
+	ClusterAvailableV1Beta2Reason = AvailableV1Beta2Reason
+
+	// ClusterNotAvailableV1Beta2Reason surfaces when the cluster availability criteria is not met (and thus the machine is not available).
+	ClusterNotAvailableV1Beta2Reason = NotAvailableV1Beta2Reason
+
+	// ClusterAvailableUnknownV1Beta2Reason surfaces when at least one cluster availability criteria is unknown
+	// and no availability criteria is not met.
+	ClusterAvailableUnknownV1Beta2Reason = AvailableUnknownV1Beta2Reason
+
 	// ClusterAvailableInternalErrorV1Beta2Reason surfaces unexpected error when computing the Available condition.
 	ClusterAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
@@ -186,6 +196,17 @@ const (
 	// Note: Stand-alone MachineSets and stand-alone Machines are not included in this condition.
 	ClusterWorkersAvailableV1Beta2Condition = "WorkersAvailable"
 
+	// ClusterWorkersAvailableV1Beta2Reason surfaces when all  MachineDeployment and MachinePool's Available conditions are true.
+	ClusterWorkersAvailableV1Beta2Reason = AvailableV1Beta2Reason
+
+	// ClusterWorkersNotAvailableV1Beta2Reason surfaces when at least one of the  MachineDeployment and MachinePool's Available
+	// conditions is false.
+	ClusterWorkersNotAvailableV1Beta2Reason = NotAvailableV1Beta2Reason
+
+	// ClusterWorkersAvailableUnknownV1Beta2Reason surfaces when at least one of the  MachineDeployment and MachinePool's Available
+	// conditions is unknown and none of those Available conditions is false.
+	ClusterWorkersAvailableUnknownV1Beta2Reason = AvailableUnknownV1Beta2Reason
+
 	// ClusterWorkersAvailableNoWorkersV1Beta2Reason surfaces when no MachineDeployment and MachinePool exist for the Cluster.
 	ClusterWorkersAvailableNoWorkersV1Beta2Reason = "NoWorkers"
 
@@ -199,6 +220,16 @@ const (
 	// ClusterMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
 	ClusterMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
 
+	// ClusterMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
+	ClusterMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// ClusterMachinesNotReadyV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is false.
+	ClusterMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+
+	// ClusterMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// and none of the controlled machine's Ready conditions is false.
+	ClusterMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
+
 	// ClusterMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
 	ClusterMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
@@ -211,6 +242,16 @@ const (
 const (
 	// ClusterMachinesUpToDateV1Beta2Condition surfaces details of Cluster's machines not up to date, if any.
 	ClusterMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+
+	// ClusterMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
+	ClusterMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+
+	// ClusterMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	ClusterMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+
+	// ClusterMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and none of the controlled machine's UpToDate conditions is false.
+	ClusterMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
 
 	// ClusterMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
 	ClusterMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
@@ -244,9 +285,13 @@ const (
 	// MachinePools and stand-alone MachineSets are scaling up.
 	ClusterScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
 
-	// ClusterNotScalingUpV1Beta2Reason surfaces when no one of the Cluster's control plane, MachineDeployments,
+	// ClusterNotScalingUpV1Beta2Reason surfaces when none of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets are scaling up.
 	ClusterNotScalingUpV1Beta2Reason = NotScalingUpV1Beta2Reason
+
+	// ClusterScalingUpUnknownV1Beta2Reason surfaces when one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets scaling up condition is unknown, and none true.
+	ClusterScalingUpUnknownV1Beta2Reason = "ScalingUpUnknown"
 
 	// ClusterScalingUpInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
 	// or computing the ScalingUp condition.
@@ -263,9 +308,13 @@ const (
 	// MachinePools and stand-alone MachineSets are scaling down.
 	ClusterScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
 
-	// ClusterNotScalingDownV1Beta2Reason surfaces when no one of the Cluster's control plane, MachineDeployments,
+	// ClusterNotScalingDownV1Beta2Reason surfaces when none of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets are scaling down.
 	ClusterNotScalingDownV1Beta2Reason = NotScalingUpV1Beta2Reason
+
+	// ClusterScalingDownUnknownV1Beta2Reason surfaces when one of the Cluster's control plane, MachineDeployments,
+	// MachinePools and stand-alone MachineSets scaling down condition is unknown, and none true.
+	ClusterScalingDownUnknownV1Beta2Reason = "ScalingDownUnknown"
 
 	// ClusterScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
 	// or computing the ScalingDown condition.

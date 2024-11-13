@@ -129,3 +129,28 @@ type ForceOverwrite bool
 func (f ForceOverwrite) ApplyToPatchApply(opts *PatchApplyOptions) {
 	opts.forceOverwrite = bool(f)
 }
+
+// GetPriorityFunc defines priority of a given condition when processed by the DefaultMergeStrategy.
+// Note: The return value must be one of IssueMergePriority, UnknownMergePriority, InfoMergePriority.
+type GetPriorityFunc func(condition metav1.Condition) MergePriority
+
+// ApplyToDefaultMergeStrategy applies this configuration to the given DefaultMergeStrategy options.
+func (f GetPriorityFunc) ApplyToDefaultMergeStrategy(opts *DefaultMergeStrategyOptions) {
+	opts.getPriorityFunc = f
+}
+
+// TargetConditionHasPositivePolarity defines the polarity of the condition returned by the DefaultMergeStrategy.
+type TargetConditionHasPositivePolarity bool
+
+// ApplyToDefaultMergeStrategy applies this configuration to the given DefaultMergeStrategy options.
+func (t TargetConditionHasPositivePolarity) ApplyToDefaultMergeStrategy(opts *DefaultMergeStrategyOptions) {
+	opts.targetConditionHasPositivePolarity = bool(t)
+}
+
+// ComputeReasonFunc defines a function to be used when computing the reason of the condition returned by the DefaultMergeStrategy.
+type ComputeReasonFunc func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
+
+// ApplyToDefaultMergeStrategy applies this configuration to the given DefaultMergeStrategy options.
+func (f ComputeReasonFunc) ApplyToDefaultMergeStrategy(opts *DefaultMergeStrategyOptions) {
+	opts.computeReasonFunc = f
+}

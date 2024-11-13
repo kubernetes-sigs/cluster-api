@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestAggregateMessages(t *testing.T) {
@@ -112,7 +111,7 @@ func TestSplitConditionsByPriority(t *testing.T) {
 		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse}},   // info
 	}
 
-	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriorityFunc(sets.New[string]("!C")))
+	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriorityFunc("!C"))
 
 	// Check condition are grouped as expected and order is preserved.
 
@@ -196,11 +195,11 @@ func TestDefaultMergePriority(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			negativePolarityConditionTypes := sets.New[string]()
+			negativePolarityConditionTypes := []string{}
 			if tt.negativePolarity {
-				negativePolarityConditionTypes.Insert(tt.condition.Type)
+				negativePolarityConditionTypes = append(negativePolarityConditionTypes, tt.condition.Type)
 			}
-			gotPriority := GetDefaultMergePriorityFunc(negativePolarityConditionTypes)(tt.condition)
+			gotPriority := GetDefaultMergePriorityFunc(negativePolarityConditionTypes...)(tt.condition)
 
 			g.Expect(gotPriority).To(Equal(tt.wantPriority))
 		})

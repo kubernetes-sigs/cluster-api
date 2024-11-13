@@ -92,9 +92,6 @@ const (
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableV1Beta2Condition = AvailableV1Beta2Condition
 
-	// MachineNotReadyV1Beta2Reason surfaces when a machine is not ready (and thus not available).
-	MachineNotReadyV1Beta2Reason = "NotReady"
-
 	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
 	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
 
@@ -113,6 +110,17 @@ const (
 	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
 	// these conditions must be true as well.
 	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
+
+	// MachineReadyV1Beta2Reason surfaces when the machine readiness criteria is met.
+	MachineReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// MachineNotReadyV1Beta2Reason surfaces when the machine readiness criteria is not met.
+	// Note: when a machine is not ready, it is also not available.
+	MachineNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+
+	// MachineReadyUnknownV1Beta2Reason surfaces when at least one machine readiness criteria is unknown
+	// and no machine readiness criteria is not met.
+	MachineReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
 
 	// MachineReadyInternalErrorV1Beta2Reason surfaces unexpected error when computing the Ready condition.
 	MachineReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -199,8 +207,24 @@ const (
 	// MachineNodeReadyV1Beta2Condition is true if the Machine's Node is ready.
 	MachineNodeReadyV1Beta2Condition = "NodeReady"
 
-	// MachineNodeConditionNotYetReportedV1Beta2Reason surfaces when a Machine's Node doesn't have a condition reported yet.
-	MachineNodeConditionNotYetReportedV1Beta2Reason = "NodeConditionNotYetReported"
+	// MachineNodeReadyV1Beta2Reason surfaces when Machine's Node Ready condition is true.
+	MachineNodeReadyV1Beta2Reason = "NodeReady"
+
+	// MachineNodeNotReadyV1Beta2Reason surfaces when Machine's Node Ready condition is false.
+	MachineNodeNotReadyV1Beta2Reason = "NodeNotReady"
+
+	// MachineNodeReadyUnknownV1Beta2Reason surfaces when Machine's Node Ready condition is unknown.
+	MachineNodeReadyUnknownV1Beta2Reason = "NodeReadyUnknown"
+
+	// MachineNodeHealthyV1Beta2Reason surfaces when all the node conditions report healthy state.
+	MachineNodeHealthyV1Beta2Reason = "NodeHealthy"
+
+	// MachineNodeNotHealthyV1Beta2Reason surfaces when at least one node conditions report not healthy state.
+	MachineNodeNotHealthyV1Beta2Reason = "NodeNotHealthy"
+
+	// MachineNodeHealthUnknownV1Beta2Reason surfaces when at least one node conditions report healthy state unknown
+	// and no node conditions report not healthy state.
+	MachineNodeHealthUnknownV1Beta2Reason = "NodeHealthyUnknown"
 
 	// MachineNodeInternalErrorV1Beta2Reason surfaces unexpected failures when reading a Node object.
 	MachineNodeInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

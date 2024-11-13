@@ -29,21 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// TODO: Move to the API package.
-const (
-	// MultipleIssuesReportedReason is set on conditions generated during aggregate or summary operations when multiple conditions/objects are reporting issues.
-	// NOTE: If a custom merge strategy is used for the aggregate or summary operations, this might not be true anymore.
-	MultipleIssuesReportedReason = "MultipleIssuesReported"
-
-	// MultipleUnknownReportedReason is set on conditions generated during aggregate or summary operations when multiple conditions/objects are reporting unknown.
-	// NOTE: If a custom merge strategy is used for the aggregate or summary operations, this might not be true anymore.
-	MultipleUnknownReportedReason = "MultipleUnknownReported"
-
-	// MultipleInfoReportedReason is set on conditions generated during aggregate or summary operations when multiple conditions/objects are reporting info.
-	// NOTE: If a custom merge strategy is used for the aggregate or summary operations, this might not be true anymore.
-	MultipleInfoReportedReason = "MultipleInfoReported"
-)
-
 // ConditionWithOwnerInfo is a wrapper around metav1.Condition with additional ConditionOwnerInfo.
 // These infos can be used when generating the message resulting from the merge operation.
 type ConditionWithOwnerInfo struct {
@@ -73,18 +58,52 @@ type MergeStrategy interface {
 	Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error)
 }
 
-// DefaultMergeStrategyWithCustomPriority is the default merge strategy with a customized getPriority function.
-func DefaultMergeStrategyWithCustomPriority(getPriorityFunc func(condition metav1.Condition) MergePriority) MergeStrategy {
-	return &defaultMergeStrategy{
-		targetConditionHasPositivePolarity: true,
-		getPriorityFunc:                    getPriorityFunc,
-	}
+// DefaultMergeStrategyOption is some configuration that modifies the DefaultMergeStrategy behaviour.
+type DefaultMergeStrategyOption interface {
+	// ApplyToDefaultMergeStrategy applies this configuration to the given DefaultMergeStrategy options.
+	ApplyToDefaultMergeStrategy(option *DefaultMergeStrategyOptions)
 }
 
-func newDefaultMergeStrategy(targetConditionHasPositivePolarity bool, negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
+// DefaultMergeStrategyOptions allows to set options for the DefaultMergeStrategy behaviour.
+type DefaultMergeStrategyOptions struct {
+	getPriorityFunc                    func(condition metav1.Condition) MergePriority
+	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
+	targetConditionHasPositivePolarity bool
+}
+
+// ApplyOptions applies the given list options on these options,
+// and then returns itself (for convenient chaining).
+func (o *DefaultMergeStrategyOptions) ApplyOptions(opts []DefaultMergeStrategyOption) *DefaultMergeStrategyOptions {
+	for _, opt := range opts {
+		opt.ApplyToDefaultMergeStrategy(o)
+	}
+	return o
+}
+
+// DefaultMergeStrategy returns the default merge strategy.
+//
+// Use the GetPriorityFunc option to customize how the MergePriority for a given condition is computed.
+// If not specified, conditions are considered issues or not if not to their normal state given the polarity
+// (e.g. a positive polarity condition is considered to be reporting an issue when status is false,
+// otherwise the condition is considered to be reporting an info unless status is unknown).
+//
+// Use the TargetConditionHasPositivePolarity to define the polarity of the condition returned by the DefaultMergeStrategy.
+// If not specified, the generate condition will have positive polarity (status true = good).
+//
+// Use the ComputeReasonFunc to customize how the reason for the resulting condition will be computed.
+// If not specified, generic reasons will be used.
+func DefaultMergeStrategy(opts ...DefaultMergeStrategyOption) MergeStrategy {
+	strategyOpt := &DefaultMergeStrategyOptions{
+		targetConditionHasPositivePolarity: true,
+		computeReasonFunc:                  GetDefaultComputeMergeReasonFunc(issuesReportedReason, unknownReportedReason, infoReportedReason), // NOTE: when no specific reason are provided, generic ones are used.
+		getPriorityFunc:                    GetDefaultMergePriorityFunc(),
+	}
+	strategyOpt.ApplyOptions(opts)
+
 	return &defaultMergeStrategy{
-		targetConditionHasPositivePolarity: targetConditionHasPositivePolarity,
-		getPriorityFunc:                    GetDefaultMergePriorityFunc(negativePolarityConditionTypes),
+		getPriorityFunc:                    strategyOpt.getPriorityFunc,
+		computeReasonFunc:                  strategyOpt.computeReasonFunc,
+		targetConditionHasPositivePolarity: strategyOpt.targetConditionHasPositivePolarity,
 	}
 }
 
@@ -93,16 +112,17 @@ func newDefaultMergeStrategy(targetConditionHasPositivePolarity bool, negativePo
 // - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
 // - unknown: conditions with status unknown.
 // - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
-func GetDefaultMergePriorityFunc(negativePolarityConditionTypes sets.Set[string]) func(condition metav1.Condition) MergePriority {
+func GetDefaultMergePriorityFunc(negativePolarityConditionTypes ...string) func(condition metav1.Condition) MergePriority {
+	negativePolarityConditionTypesSet := sets.New[string](negativePolarityConditionTypes...)
 	return func(condition metav1.Condition) MergePriority {
 		switch condition.Status {
 		case metav1.ConditionTrue:
-			if negativePolarityConditionTypes.Has(condition.Type) {
+			if negativePolarityConditionTypesSet.Has(condition.Type) {
 				return IssueMergePriority
 			}
 			return InfoMergePriority
 		case metav1.ConditionFalse:
-			if negativePolarityConditionTypes.Has(condition.Type) {
+			if negativePolarityConditionTypesSet.Has(condition.Type) {
 				return InfoMergePriority
 			}
 			return IssueMergePriority
@@ -129,9 +149,41 @@ const (
 	InfoMergePriority
 )
 
+// GetDefaultComputeMergeReasonFunc return a function picking one of the three reasons in input depending on
+// the status of the conditions being merged.
+func GetDefaultComputeMergeReasonFunc(issueReason, unknownReason, infoReason string) func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string {
+	return func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, _ []ConditionWithOwnerInfo) string {
+		switch {
+		case len(issueConditions) > 0:
+			return issueReason
+		case len(unknownConditions) > 0:
+			return unknownReason
+		default:
+			// Note: This func can assume that there is at least one condition, so this branch is equivalent to len(infoReason) > 0,
+			// and it makes the linter happy.
+			return infoReason
+		}
+	}
+}
+
+const (
+	// issuesReportedReason is set on conditions generated during aggregate or summary operations when at least one conditions/objects are reporting issues.
+	// NOTE: This const is used by GetDefaultComputeMergeReasonFunc if no specific reasons are provided.
+	issuesReportedReason = "IssuesReported"
+
+	// unknownReportedReason is set on conditions generated during aggregate or summary operations when at least one conditions/objects are reporting unknown.
+	// NOTE: This const is used by GetDefaultComputeMergeReasonFunc if no specific reasons are provided.
+	unknownReportedReason = "UnknownReported"
+
+	// infoReportedReason is set on conditions generated during aggregate or summary operations when at least one conditions/objects are reporting info.
+	// NOTE: This const is used by GetDefaultComputeMergeReasonFunc if no specific reasons are provided.
+	infoReportedReason = "InfoReported"
+)
+
 // defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
 type defaultMergeStrategy struct {
 	getPriorityFunc                    func(condition metav1.Condition) MergePriority
+	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
 	targetConditionHasPositivePolarity bool
 }
 
@@ -190,23 +242,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// Compute the reason for the target condition:
 	// - In case there is only one condition in the top group, use the reason from this condition
 	// - In case there are more than one condition in the top group, use a generic reason (for the target group)
-	switch {
-	case len(issueConditions) == 1:
-		reason = issueConditions[0].Reason
-	case len(issueConditions) > 1:
-		reason = MultipleIssuesReportedReason
-	case len(unknownConditions) == 1:
-		reason = unknownConditions[0].Reason
-	case len(unknownConditions) > 1:
-		reason = MultipleUnknownReportedReason
-	case len(infoConditions) == 1:
-		reason = infoConditions[0].Reason
-	case len(infoConditions) > 1:
-		reason = MultipleInfoReportedReason
-	default:
-		// NOTE: this is already handled above, but repeating also here for better readability.
-		return "", "", "", errors.New("can't merge an empty list of conditions")
-	}
+	reason = d.computeReasonFunc(issueConditions, unknownConditions, infoConditions)
 
 	// Compute the message for the target condition, which is optimized for the operation being performed.
 

@@ -230,6 +230,16 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines, clusterv1.MachineReadyV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachineSetMachinesNotReadyV1Beta2Reason,
+					clusterv1.MachineSetMachinesReadyUnknownV1Beta2Reason,
+					clusterv1.MachineSetMachinesReadyV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's Ready conditions")
@@ -270,6 +280,16 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines, clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.MachineSetMachinesNotUpToDateV1Beta2Reason,
+					clusterv1.MachineSetMachinesUpToDateUnknownV1Beta2Reason,
+					clusterv1.MachineSetMachinesUpToDateV1Beta2Reason,
+				)),
+			),
+		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
@@ -310,6 +330,8 @@ func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineS
 	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetRemediatingV1Beta2Condition),
+		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
 		v1beta2conditions.Set(machineSet, metav1.Condition{

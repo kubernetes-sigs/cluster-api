@@ -131,6 +131,16 @@ const (
 	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
 	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
 
+	// MachineSetMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
+	MachineSetMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// MachineSetMachinesNotReadyV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is false.
+	MachineSetMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+
+	// MachineSetMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// and none of the controlled machine's Ready conditions is false.
+	MachineSetMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
+
 	// MachineSetMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
 	MachineSetMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
@@ -144,6 +154,16 @@ const (
 const (
 	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
 	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+
+	// MachineSetMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
+	MachineSetMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+
+	// MachineSetMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	MachineSetMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+
+	// MachineSetMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and none of the controlled machine's UpToDate conditions is false.
+	MachineSetMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
 
 	// MachineSetMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
 	MachineSetMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason

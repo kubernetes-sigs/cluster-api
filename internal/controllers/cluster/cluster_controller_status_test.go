@@ -1730,11 +1730,11 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
 				Status: metav1.ConditionUnknown,
 				Reason: clusterv1.ClusterAvailableUnknownV1Beta2Reason,
-				Message: "* InfrastructureReady: Condition not yet reported\n" +
-					"* ControlPlaneAvailable: Condition not yet reported\n" +
-					"* WorkersAvailable: Condition not yet reported\n" +
+				Message: "* Deleting: Condition not yet reported\n" +
 					"* RemoteConnectionProbe: Condition not yet reported\n" +
-					"* Deleting: Condition not yet reported",
+					"* InfrastructureReady: Condition not yet reported\n" +
+					"* ControlPlaneAvailable: Condition not yet reported\n" +
+					"* WorkersAvailable: Condition not yet reported",
 			},
 		},
 		{

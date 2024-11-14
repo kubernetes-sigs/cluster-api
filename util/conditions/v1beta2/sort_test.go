@@ -46,10 +46,10 @@ func TestDefaultSortLessFunc(t *testing.T) {
 	g.Expect(conditions).To(Equal([]metav1.Condition{
 		{Type: clusterv1.AvailableV1Beta2Condition},
 		{Type: clusterv1.ReadyV1Beta2Condition},
-		{Type: clusterv1.PausedV1Beta2Condition},
-		{Type: clusterv1.DeletingV1Beta2Condition},
 		{Type: "A"},
 		{Type: "B"},
 		{Type: "C!"},
+		{Type: clusterv1.PausedV1Beta2Condition},
+		{Type: clusterv1.DeletingV1Beta2Condition},
 	}))
 }

@@ -434,8 +434,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(s.machine, time.Now().Add(1*time.Second)))
 
 	// Set "fallback" reason and message. This is used if we don't set a more specific reason and message below.
-	s.deletingReason = clusterv1.MachineDeletingDeletionTimestampSetV1Beta2Reason
-	s.deletingMessage = ""
+	s.deletingReason = clusterv1.MachineDeletingV1Beta2Reason
+	s.deletingMessage = "Deletion started"
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
@@ -624,7 +624,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	}
 
 	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason
-	s.deletingMessage = ""
+	s.deletingMessage = "Deletion completed"
 
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil

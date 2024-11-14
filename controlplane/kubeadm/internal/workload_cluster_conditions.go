@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -100,11 +101,20 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 
 	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
 	for _, machine := range provisioningMachines {
+		var msg string
+		if ptr.Deref(machine.Spec.ProviderID, "") != "" {
+			// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
+			// for a matching Node to exists, surface this.
+			msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID)
+		} else {
+			// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
+			msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
+		}
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
-			Message: "Node does not exist",
+			Message: msg,
 		})
 	}
 
@@ -132,9 +142,10 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
 			v1beta2conditions.Set(machine, metav1.Condition{
-				Type:   controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
-				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason,
+				Message: "Machine is deleting",
 			})
 			continue
 		}
@@ -463,11 +474,20 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
 	for _, machine := range provisioningMachines {
 		for _, condition := range allMachinePodV1beta2Conditions {
+			var msg string
+			if ptr.Deref(machine.Spec.ProviderID, "") != "" {
+				// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
+				// for a matching Node to exists, surface this.
+				msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID)
+			} else {
+				// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
+				msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
+			}
 			v1beta2conditions.Set(machine, metav1.Condition{
 				Type:    condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-				Message: "Node does not exist",
+				Message: msg,
 			})
 		}
 	}
@@ -501,9 +521,10 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 
 			for _, condition := range allMachinePodV1beta2Conditions {
 				v1beta2conditions.Set(machine, metav1.Condition{
-					Type:   condition,
-					Status: metav1.ConditionFalse,
-					Reason: controlplanev1.KubeadmControlPlaneMachinePodDeletingV1Beta2Reason,
+					Type:    condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodDeletingV1Beta2Reason,
+					Message: "Machine is deleting",
 				})
 			}
 			continue

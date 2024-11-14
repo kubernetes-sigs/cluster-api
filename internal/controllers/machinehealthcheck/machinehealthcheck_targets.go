@@ -103,7 +103,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
-			Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
+			Message: "Health check failed: marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
 		})
 		return true, time.Duration(0)
 	}
@@ -129,7 +129,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
-			Message: fmt.Sprintf("Node %s has been deleted", t.Machine.Status.NodeRef.Name),
+			Message: fmt.Sprintf("Health check failed: Node %s has been deleted", t.Machine.Status.NodeRef.Name),
 		})
 		return true, time.Duration(0)
 	}
@@ -190,7 +190,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason,
-				Message: fmt.Sprintf("Node failed to report startup in %s", timeoutDuration),
+				Message: fmt.Sprintf("Health check failed: Node failed to report startup in %s", timeoutDuration),
 			})
 			return true, time.Duration(0)
 		}
@@ -221,7 +221,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason,
-				Message: fmt.Sprintf("Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String()),
+				Message: fmt.Sprintf("Health check failed: Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String()),
 			})
 			return true, time.Duration(0)
 		}

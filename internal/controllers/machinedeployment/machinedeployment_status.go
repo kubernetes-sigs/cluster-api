@@ -177,7 +177,8 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	if currentReplicas >= desiredReplicas {
 		var message string
-		if missingReferencesMessage != "" {
+		// Only surface this message if the MachineDeployment is not deleting.
+		if machineDeployment.DeletionTimestamp.IsZero() && missingReferencesMessage != "" {
 			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
 		}
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
@@ -421,7 +422,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason,
+			Reason: clusterv1.MachineDeploymentNotDeletingV1Beta2Reason,
 		})
 		return
 	}
@@ -442,10 +443,13 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		// Note: this should not happen or happen for a very short time while the finalizer is removed.
 		message = fmt.Sprintf("Deleting %d MachineSets", len(machineSets))
 	}
+	if message == "" {
+		message = "Deletion completed"
+	}
 	v1beta2conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
 		Message: message,
 	})
 }

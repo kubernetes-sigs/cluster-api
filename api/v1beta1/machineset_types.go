@@ -199,11 +199,11 @@ const (
 	// MachineSetMachineRemediationDeferredV1Beta2Reason surfaces when remediation of a MachineSet machine must be deferred.
 	MachineSetMachineRemediationDeferredV1Beta2Reason = "RemediationDeferred"
 
-	// MachineSetMachineRemediationMachineDeletedV1Beta2Reason surfaces when remediation of a MachineSet machine
+	// MachineSetMachineRemediationMachineDeletingV1Beta2Reason surfaces when remediation of a MachineSet machine
 	// has been completed by deleting the unhealthy machine.
 	// Note: After an unhealthy machine is deleted, a new one is created by the MachineSet as part of the
 	// regular reconcile loop that ensures the correct number of replicas exist.
-	MachineSetMachineRemediationMachineDeletedV1Beta2Reason = "MachineDeleted"
+	MachineSetMachineRemediationMachineDeletingV1Beta2Reason = "MachineDeleting"
 )
 
 // MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -211,13 +211,13 @@ const (
 	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
 
-	// MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the MachineSet is not deleting because the
+	// MachineSetNotDeletingV1Beta2Reason surfaces when the MachineSet is not deleting because the
 	// DeletionTimestamp is not set.
-	MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+	MachineSetNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
 
-	// MachineSetDeletingDeletionTimestampSetV1Beta2Reason surfaces when the MachineSet is deleting because the
+	// MachineSetDeletingV1Beta2Reason surfaces when the MachineSet is deleting because the
 	// DeletionTimestamp is set.
-	MachineSetDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+	MachineSetDeletingV1Beta2Reason = DeletingV1Beta2Reason
 
 	// MachineSetDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a MachineSet.
 	MachineSetDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

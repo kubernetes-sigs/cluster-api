@@ -246,7 +246,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 		}
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 			Message: message,
 		})
@@ -299,7 +299,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 		if cluster.Status.InfrastructureReady {
 			v1beta2conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
 				Message: fmt.Sprintf("%s has been deleted", cluster.Spec.InfrastructureRef.Kind),
 			})
@@ -308,7 +308,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 			Message: fmt.Sprintf("%s does not exist", cluster.Spec.InfrastructureRef.Kind),
 		})
@@ -319,7 +319,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	if cluster.Status.InfrastructureReady {
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
 			Message: fmt.Sprintf("%s has been deleted while the cluster still exists", cluster.Spec.InfrastructureRef.Kind),
 		})
@@ -331,7 +331,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	// - when applying the yaml file with the cluster and all the objects referenced by it (provisioning yet to start/started, but status.InfrastructureReady not yet set).
 	v1beta2conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
+		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 		Message: fmt.Sprintf("%s does not exist", cluster.Spec.InfrastructureRef.Kind),
 	})
@@ -346,7 +346,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 		}
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 			Message: message,
 		})
@@ -399,7 +399,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 		if cluster.Status.ControlPlaneReady {
 			v1beta2conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
 				Message: fmt.Sprintf("%s has been deleted", cluster.Spec.ControlPlaneRef.Kind),
 			})
@@ -408,7 +408,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 			Message: fmt.Sprintf("%s does not exist", cluster.Spec.ControlPlaneRef.Kind),
 		})
@@ -419,7 +419,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	if cluster.Status.ControlPlaneReady {
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
 			Message: fmt.Sprintf("%s has been deleted while the cluster still exists", cluster.Spec.ControlPlaneRef.Kind),
 		})
@@ -431,7 +431,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	// - when applying the yaml file with the cluster and all the objects referenced by it (provisioning yet to start/started, but status.ControlPlaneReady not yet set).
 	v1beta2conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
+		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 		Message: fmt.Sprintf("%s does not exist", cluster.Spec.ControlPlaneRef.Kind),
 	})
@@ -910,7 +910,7 @@ func setDeletingCondition(_ context.Context, cluster *clusterv1.Cluster, deletin
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterDeletingDeletionTimestampNotSetV1Beta2Reason,
+			Reason: clusterv1.ClusterNotDeletingV1Beta2Reason,
 		})
 		return
 	}
@@ -933,10 +933,10 @@ func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 		func(condition metav1.Condition) v1beta2conditions.MergePriority {
 			// While cluster is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
 			if !c.cluster.DeletionTimestamp.IsZero() {
-				if condition.Type == clusterv1.ClusterInfrastructureReadyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason) {
+				if condition.Type == clusterv1.ClusterInfrastructureReadyV1Beta2Condition && (condition.Reason == clusterv1.ClusterInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
 				}
-				if condition.Type == clusterv1.ClusterControlPlaneAvailableV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.ClusterControlPlaneDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason) {
+				if condition.Type == clusterv1.ClusterControlPlaneAvailableV1Beta2Condition && (condition.Reason == clusterv1.ClusterControlPlaneDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
 				}
 			}

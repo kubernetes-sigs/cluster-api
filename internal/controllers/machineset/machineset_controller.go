@@ -1367,7 +1367,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// reports that remediation has been completed and the Machine has been deleted.
 	for _, m := range machines {
 		if !m.DeletionTimestamp.IsZero() {
-			// TODO: Check for Status: False and Reason: MachineSetMachineRemediationMachineDeletedV1Beta2Reason
+			// TODO: Check for Status: False and Reason: MachineSetMachineRemediationMachineDeletingV1Beta2Reason
 			// instead when starting to use v1beta2 conditions for control flow.
 			if conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedCondition) {
 				// Remediation for this Machine has been triggered by this controller but it is still in flight,
@@ -1455,8 +1455,8 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
-		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
-		Message: "Machine deletionTimestamp set",
+		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+		Message: "Machine is deleting",
 	}, &clusterv1.Condition{
 		Type:   clusterv1.MachineOwnerRemediatedCondition,
 		Status: corev1.ConditionTrue,

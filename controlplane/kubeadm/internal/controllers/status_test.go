@@ -514,7 +514,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name            string
@@ -550,7 +550,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
-				Message: "* Machine m3: Machine deletionTimestamp set",
+				Message: "* Machine m3: Machine is deleting",
 			},
 		},
 		{
@@ -622,7 +622,7 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotDeletingV1Beta2Reason,
 			},
 		},
 		{

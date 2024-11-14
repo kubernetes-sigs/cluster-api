@@ -125,7 +125,8 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 
 	if currentReplicas >= desiredReplicas {
 		var message string
-		if missingReferencesMessage != "" {
+		// Only surface this message if the MachineSet is not deleting.
+		if ms.DeletionTimestamp.IsZero() && missingReferencesMessage != "" {
 			message = fmt.Sprintf("Scaling up would be blocked because %s", missingReferencesMessage)
 		}
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -370,7 +371,7 @@ func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, m
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason,
+			Reason: clusterv1.MachineSetNotDeletingV1Beta2Reason,
 		})
 		return
 	}
@@ -387,10 +388,13 @@ func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, m
 			message += fmt.Sprintf(" and %s", staleMessage)
 		}
 	}
+	if message == "" {
+		message = "Deletion completed"
+	}
 	v1beta2conditions.Set(machineSet, metav1.Condition{
 		Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+		Reason:  clusterv1.MachineSetDeletingV1Beta2Reason,
 		Message: message,
 	})
 }

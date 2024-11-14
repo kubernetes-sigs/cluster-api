@@ -448,7 +448,7 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 		v1beta2conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: controlplanev1.KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneNotDeletingV1Beta2Reason,
 		})
 		return
 	}

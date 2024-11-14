@@ -169,13 +169,13 @@ const (
 	// ConnectionDownV1Beta2Reason surfaces that the connection to the workload cluster is down.
 	ConnectionDownV1Beta2Reason = "ConnectionDown"
 
-	// DeletionTimestampNotSetV1Beta2Reason surfaces when an object is not deleting because the
+	// NotDeletingV1Beta2Reason surfaces when an object is not deleting because the
 	// DeletionTimestamp is not set.
-	DeletionTimestampNotSetV1Beta2Reason = "DeletionTimestampNotSet"
+	NotDeletingV1Beta2Reason = "NotDeleting"
 
-	// DeletionTimestampSetV1Beta2Reason surfaces when an object is deleting because the
+	// DeletingV1Beta2Reason surfaces when an object is deleting because the
 	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
-	DeletionTimestampSetV1Beta2Reason = "DeletionTimestampSet"
+	DeletingV1Beta2Reason = "Deleting"
 
 	// DeletionCompletedV1Beta2Reason surfaces when the deletion process has been completed.
 	// This reason is set right after the corresponding finalizer is removed.

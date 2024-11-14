@@ -1018,7 +1018,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionReason:         clusterv1.DeletedReason,
 			wantConditionMessage:        "",
 			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
-			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledDeletingV1Beta2Reason,
 			wantV1Beta2ConditionMessage: "",
 		},
 	}

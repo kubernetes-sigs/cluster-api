@@ -559,7 +559,7 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 		for _, messageSubstring := range input.CPConditionMessageSubstrings {
 			var re = regexp.MustCompile(messageSubstring)
 			match := re.MatchString(condition.Message)
-			g.Expect(match).To(BeTrue(), fmt.Sprintf("message substring '%s' does not match %s", condition.Message, messageSubstring))
+			g.Expect(match).To(BeTrue(), fmt.Sprintf("message '%s' does not match regexp %s", condition.Message, messageSubstring))
 		}
 
 		// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)
@@ -587,7 +587,7 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 			for _, messageSubstring := range input.MDConditionMessageSubstrings[md.Name] {
 				var re = regexp.MustCompile(messageSubstring)
 				match := re.MatchString(condition.Message)
-				g.Expect(match).To(BeTrue(), fmt.Sprintf("message substring '%s' does not match %s", condition.Message, messageSubstring))
+				g.Expect(match).To(BeTrue(), fmt.Sprintf("message '%s' does not match regexp %s", condition.Message, messageSubstring))
 			}
 
 			// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)

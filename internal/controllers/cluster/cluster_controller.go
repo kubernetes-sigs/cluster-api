@@ -342,7 +342,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
 		if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason
-			s.deletingMessage = ""
+			s.deletingMessage = "Waiting for BeforeClusterDelete hook"
 			return ctrl.Result{}, nil
 		}
 	}
@@ -441,7 +441,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// Return here so we don't remove the finalizer yet.
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForControlPlaneDeletionV1Beta2Reason
-			s.deletingMessage = ""
+			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.ControlPlaneRef.Kind)
 
 			log.Info("Cluster still has descendants - need to requeue", "controlPlaneRef", cluster.Spec.ControlPlaneRef.Name)
 			return ctrl.Result{}, nil
@@ -479,7 +479,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// Return here so we don't remove the finalizer yet.
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForInfrastructureDeletionV1Beta2Reason
-			s.deletingMessage = ""
+			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.InfrastructureRef.Kind)
 
 			log.Info("Cluster still has descendants - need to requeue", "infrastructureRef", cluster.Spec.InfrastructureRef.Name)
 			return ctrl.Result{}, nil
@@ -487,7 +487,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	}
 
 	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedV1Beta2Reason
-	s.deletingMessage = ""
+	s.deletingMessage = "Deletion completed"
 
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)

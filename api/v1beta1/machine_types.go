@@ -237,12 +237,12 @@ const (
 
 	// MachineNodeDoesNotExistV1Beta2Reason surfaces when the node hosted on the machine does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
-	MachineNodeDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
+	MachineNodeDoesNotExistV1Beta2Reason = "NodeDoesNotExist"
 
 	// MachineNodeDeletedV1Beta2Reason surfaces when the node hosted on the machine has been deleted.
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineNodeDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+	MachineNodeDeletedV1Beta2Reason = "NodeDeleted"
 
 	// MachineNodeInspectionFailedV1Beta2Reason documents a failure when inspecting the status of a Node.
 	MachineNodeInspectionFailedV1Beta2Reason = InspectionFailedV1Beta2Reason
@@ -317,18 +317,13 @@ const (
 	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
 	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
 
-	// MachineDeletingV1Beta2Reason surfaces when the Machine is deleting.
-	// This reason is only used for the MachineDeletingV1Beta2Condition when calculating the
-	// Ready condition when the deletionTimestamp on a Machine is set.
-	MachineDeletingV1Beta2Reason = "Deleting"
-
-	// MachineDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the Machine is not deleting because the
+	// MachineNotDeletingV1Beta2Reason surfaces when the Machine is not deleting because the
 	// DeletionTimestamp is not set.
-	MachineDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+	MachineNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
 
-	// MachineDeletingDeletionTimestampSetV1Beta2Reason surfaces when the Machine is deleting because the
+	// MachineDeletingV1Beta2Reason surfaces when the Machine is deleting because the
 	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
-	MachineDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+	MachineDeletingV1Beta2Reason = DeletingV1Beta2Reason
 
 	// MachineDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a Machine.
 	MachineDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

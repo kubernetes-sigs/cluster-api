@@ -597,7 +597,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// If no control plane machines remain, remove the finalizer
 	if len(controlPlane.Machines) == 0 {
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedV1Beta2Reason
-		controlPlane.DeletingMessage = ""
+		controlPlane.DeletingMessage = "Deletion completed"
 
 		controllerutil.RemoveFinalizer(controlPlane.KCP, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil

@@ -68,11 +68,11 @@ const (
 	ClusterTopologyReconciledV1Beta2Condition = "TopologyReconciled"
 
 	// ClusterTopologyReconcileSucceededV1Beta2Reason documents the reconciliation of a Cluster topology succeeded.
-	ClusterTopologyReconcileSucceededV1Beta2Reason = "TopologyReconcileSucceeded"
+	ClusterTopologyReconcileSucceededV1Beta2Reason = "ReconcileSucceeded"
 
 	// ClusterTopologyReconciledFailedV1Beta2Reason documents the reconciliation of a Cluster topology
 	// failing due to an error.
-	ClusterTopologyReconciledFailedV1Beta2Reason = "TopologyReconcileFailed"
+	ClusterTopologyReconciledFailedV1Beta2Reason = "ReconcileFailed"
 
 	// ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
@@ -113,9 +113,9 @@ const (
 	// with the ClusterClass surfaced in the ClusterClass status or controller logs.
 	ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason = "ClusterClassNotReconciled"
 
-	// ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason surfaces when the Cluster is deleting because the
+	// ClusterTopologyReconciledDeletingV1Beta2Reason surfaces when the Cluster is deleting because the
 	// DeletionTimestamp is set.
-	ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+	ClusterTopologyReconciledDeletingV1Beta2Reason = DeletingV1Beta2Reason
 
 	// ClusterTopologyReconcilePausedV1Beta2Reason surfaces when the Cluster is paused.
 	ClusterTopologyReconcilePausedV1Beta2Reason = PausedV1Beta2Reason
@@ -316,7 +316,7 @@ const (
 
 	// ClusterNotScalingDownV1Beta2Reason surfaces when none of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets are scaling down.
-	ClusterNotScalingDownV1Beta2Reason = NotScalingUpV1Beta2Reason
+	ClusterNotScalingDownV1Beta2Reason = NotScalingDownV1Beta2Reason
 
 	// ClusterScalingDownUnknownV1Beta2Reason surfaces when one of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets scaling down condition is unknown, and none true.
@@ -349,9 +349,9 @@ const (
 	// ClusterDeletingV1Beta2Condition surfaces details about ongoing deletion of the cluster.
 	ClusterDeletingV1Beta2Condition = DeletingV1Beta2Condition
 
-	// ClusterDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the Cluster is not deleting because the
+	// ClusterNotDeletingV1Beta2Reason surfaces when the Cluster is not deleting because the
 	// DeletionTimestamp is not set.
-	ClusterDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+	ClusterNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
 
 	// ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason surfaces when the Cluster deletion
 	// waits for the ClusterDelete hooks to allow deletion to complete.

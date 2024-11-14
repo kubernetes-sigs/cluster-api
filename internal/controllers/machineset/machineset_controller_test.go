@@ -1596,8 +1596,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(*c).To(v1beta2conditions.MatchCondition(metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
-			Message: "Machine deletionTimestamp set",
+			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+			Message: "Machine is deleting",
 		}, v1beta2conditions.IgnoreLastTransitionTime(true)))
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.
@@ -1939,8 +1939,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(*c).To(v1beta2conditions.MatchCondition(metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
-			Message: "Machine deletionTimestamp set",
+			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+			Message: "Machine is deleting",
 		}, v1beta2conditions.IgnoreLastTransitionTime(true)))
 
 		// Verify (again) the healthy machine is not deleted and does not have the OwnerRemediated condition.
@@ -2208,8 +2208,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 					g.Expect(*c).To(v1beta2conditions.MatchCondition(metav1.Condition{
 						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason,
-						Message: "Machine deletionTimestamp set",
+						Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+						Message: "Machine is deleting",
 					}, v1beta2conditions.IgnoreLastTransitionTime(true)))
 					g.Expect(m.DeletionTimestamp).ToNot(BeZero())
 

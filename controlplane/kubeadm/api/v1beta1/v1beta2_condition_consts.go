@@ -238,13 +238,13 @@ const (
 	// KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason surfaces when remediation of a control plane machine must be deferred.
 	KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason = "RemediationDeferred"
 
-	// KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason surfaces when remediation of a control plane machine
+	// KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason surfaces when remediation of a control plane machine
 	// has been completed by deleting the unhealthy machine.
 	// Note: After an unhealthy machine is deleted, a new one is created by the KubeadmControlPlaneMachine as part of the
 	// regular reconcile loop that ensures the correct number of replicas exist; KubeadmControlPlane machine waits for
 	// the new machine to exists before removing the controlplane.cluster.x-k8s.io/remediation-in-progress annotation.
 	// This is part of a series of safeguards to ensure that operation are performed sequentially on control plane machines.
-	KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason = "MachineDeleted"
+	KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason = "MachineDeleting"
 )
 
 // KubeadmControlPlane's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -252,9 +252,9 @@ const (
 	// KubeadmControlPlaneDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	KubeadmControlPlaneDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
 
-	// KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the KCP is not deleting because the
+	// KubeadmControlPlaneNotDeletingV1Beta2Reason surfaces when the KCP is not deleting because the
 	// DeletionTimestamp is not set.
-	KubeadmControlPlaneDeletingDeletionTimestampNotSetV1Beta2Reason = clusterv1.DeletionTimestampNotSetV1Beta2Reason
+	KubeadmControlPlaneNotDeletingV1Beta2Reason = clusterv1.NotDeletingV1Beta2Reason
 
 	// KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason surfaces when the KCP deletion
 	// waits for the workers to be deleted.

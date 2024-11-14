@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -87,7 +88,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			expectedEtcdMembersAndMachinesAreMatching: false, // without reading nodes, we can not make assumptions.
 		},
 		{
-			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2",
+			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (without providerID)",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"), // without NodeRef (provisioning)
 			},
@@ -105,11 +106,41 @@ func TestUpdateEtcdConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * EtcdMemberHealthy: Node does not exist",
+					"  * EtcdMemberHealthy: Waiting for GenericInfraMachine to report spec.providerID",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
-					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+				},
+			},
+			expectedEtcdMembersAgreeOnMemberList:      false, // without reading members, we can not make assumptions.
+			expectedEtcdMembersAgreeOnClusterID:       false, // without reading members, we can not make assumptions.
+			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
+		},
+		{
+			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (with providerID)",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("dummy-provider-id")), // without NodeRef (provisioning)
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{*fakeNode("n1")},
+				},
+			},
+			expectedKCPCondition: nil,
+			expectedMachineConditions: map[string]clusterv1.Conditions{
+				"m1": {},
+			},
+			expectedKCPV1Beta2Condition: &metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+				Message: "* Machine m1:\n" +
+					"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist",
+			},
+			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
 				},
 			},
 			expectedEtcdMembersAgreeOnMemberList:      false, // without reading members, we can not make assumptions.
@@ -755,7 +786,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2",
+			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (without providerID)",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"), // without NodeRef (provisioning)
 			},
@@ -773,17 +804,50 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Node does not exist\n" +
-					"  * ControllerManagerPodHealthy: Node does not exist\n" +
-					"  * SchedulerPodHealthy: Node does not exist\n" +
-					"  * EtcdPodHealthy: Node does not exist",
+					"  * APIServerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * ControllerManagerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * SchedulerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * EtcdPodHealthy: Waiting for GenericInfraMachine to report spec.providerID",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
-					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+				},
+			},
+		},
+		{
+			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (with providerID)",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("dummy-provider-id")), // without NodeRef (provisioning)
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{*fakeNode("n1")},
+				},
+			},
+			expectedKCPCondition: nil,
+			expectedMachineConditions: map[string]clusterv1.Conditions{
+				"m1": {},
+			},
+			expectedKCPV1Beta2Condition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
+				Message: "* Machine m1:\n" +
+					"  * APIServerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
+					"  * ControllerManagerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
+					"  * SchedulerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
+					"  * EtcdPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist",
+			},
+			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
 				},
 			},
 		},
@@ -858,17 +922,17 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Node does not exist\n" +
-					"  * ControllerManagerPodHealthy: Node does not exist\n" +
-					"  * SchedulerPodHealthy: Node does not exist\n" +
-					"  * EtcdPodHealthy: Node does not exist",
+					"  * APIServerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * ControllerManagerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * SchedulerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
+					"  * EtcdPodHealthy: Waiting for GenericInfraMachine to report spec.providerID",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
-					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
-					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Node does not exist"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason, Message: "Waiting for GenericInfraMachine to report spec.providerID"},
 				},
 			},
 		},
@@ -1444,6 +1508,12 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind: "GenericInfraMachine",
+				Name: fmt.Sprintf("infra-%s", name),
+			},
+		},
 	}
 	for _, opt := range options {
 		opt(p)
@@ -1457,6 +1527,12 @@ func withNodeRef(ref string) fakeMachineOption {
 			Kind: "Node",
 			Name: ref,
 		}
+	}
+}
+
+func withProviderID(providerID string) fakeMachineOption {
+	return func(machine *clusterv1.Machine) {
+		machine.Spec.ProviderID = ptr.To(providerID)
 	}
 }
 

@@ -238,7 +238,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			bootstrapConfigIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason,
 				Message: "GenericBootstrapConfig has been deleted",
 			},
@@ -254,7 +254,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			bootstrapConfigIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
 				Message: "GenericBootstrapConfig does not exist",
 			},
@@ -266,7 +266,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			bootstrapConfigIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
 				Message: "GenericBootstrapConfig does not exist",
 			},
@@ -465,7 +465,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraMachineIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
 				Message: "GenericInfrastructureMachine has been deleted",
 			},
@@ -481,7 +481,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraMachineIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
 				Message: "GenericInfrastructureMachine does not exist",
 			},
@@ -499,7 +499,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
-				Message: "GenericInfrastructureMachine has been deleted while the machine still exists",
+				Message: "GenericInfrastructureMachine has been deleted while the Machine still exists",
 			},
 		},
 		{
@@ -509,7 +509,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraMachineIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
 				Message: "GenericInfrastructureMachine does not exist",
 			},
@@ -771,10 +771,9 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Reason: clusterv1.MachineNodeHealthyV1Beta2Condition,
 				},
 				{
-					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineNodeReadyV1Beta2Reason,
-					Message: "* Node.Ready: kubelet is posting ready status",
+					Type:   clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineNodeReadyV1Beta2Reason,
 				},
 			},
 		},
@@ -823,13 +822,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
+					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
 					Message: "Node test-node-1 has been deleted",
 				},
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
+					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
 					Message: "Node test-node-1 has been deleted",
 				},
@@ -877,13 +876,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-					Message: "Node test-node-1 has been deleted while the machine still exists",
+					Message: "Node test-node-1 has been deleted while the Machine still exists",
 				},
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-					Message: "Node test-node-1 has been deleted while the machine still exists",
+					Message: "Node test-node-1 has been deleted while the Machine still exists",
 				},
 			},
 		},
@@ -901,13 +900,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo://test-node-1 to exist",
 				},
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo://test-node-1 to exist",
 				},
 			},
@@ -922,13 +921,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
 				},
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
 				},
 			},
@@ -1115,7 +1114,7 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+				Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 			},
 		},
 		{
@@ -1253,7 +1252,7 @@ func TestSetReadyCondition(t *testing.T) {
 							{
 								Type:   clusterv1.MachineDeletingV1Beta2Condition,
 								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 							},
 						},
 					},
@@ -1278,17 +1277,17 @@ func TestSetReadyCondition(t *testing.T) {
 						Conditions: []metav1.Condition{
 							{
 								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionUnknown,
+								Status: metav1.ConditionFalse,
 								Reason: clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
 							},
 							{
 								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionUnknown,
+								Status: metav1.ConditionFalse,
 								Reason: clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
 							},
 							{
 								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionUnknown,
+								Status: metav1.ConditionFalse,
 								Reason: clusterv1.MachineNodeDeletedV1Beta2Reason,
 							},
 							{
@@ -1393,7 +1392,7 @@ func TestSetReadyCondition(t *testing.T) {
 							{
 								Type:   clusterv1.MachineDeletingV1Beta2Condition,
 								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 							},
 						},
 					},
@@ -1452,7 +1451,7 @@ func TestSetReadyCondition(t *testing.T) {
 							{
 								Type:   clusterv1.MachineDeletingV1Beta2Condition,
 								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 							},
 						},
 					},

@@ -68,7 +68,6 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
 	setReadyCondition(ctx, s.machine)
 	setAvailableCondition(ctx, s.machine)
-	// TODO: Set the uptodate condition for standalone pods
 
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 }
@@ -128,7 +127,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	if !machine.DeletionTimestamp.IsZero() && machine.Status.BootstrapReady {
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason,
 			Message: fmt.Sprintf("%s has been deleted", machine.Spec.Bootstrap.ConfigRef.Kind),
 		})
@@ -141,7 +140,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	// - when the machine has been provisioned
 	v1beta2conditions.Set(machine, metav1.Condition{
 		Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
+		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
 		Message: fmt.Sprintf("%s does not exist", machine.Spec.Bootstrap.ConfigRef.Kind),
 	})
@@ -210,7 +209,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 		if machine.Status.InfrastructureReady {
 			v1beta2conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
 				Message: fmt.Sprintf("%s has been deleted", machine.Spec.InfrastructureRef.Kind),
 			})
@@ -219,7 +218,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
 			Message: fmt.Sprintf("%s does not exist", machine.Spec.InfrastructureRef.Kind),
 		})
@@ -230,9 +229,9 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	if machine.Status.InfrastructureReady {
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-			Status:  metav1.ConditionFalse, // setting to false to give more relevance in the ready condition summary.
+			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
-			Message: fmt.Sprintf("%s has been deleted while the machine still exists", machine.Spec.InfrastructureRef.Kind),
+			Message: fmt.Sprintf("%s has been deleted while the Machine still exists", machine.Spec.InfrastructureRef.Kind),
 		})
 		return
 	}
@@ -242,7 +241,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	// - when applying the yaml file with the machine and all the objects referenced by it (provisioning yet to start/started, but status.InfrastructureReady not yet set).
 	v1beta2conditions.Set(machine, metav1.Condition{
 		Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
+		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
 		Message: fmt.Sprintf("%s does not exist", machine.Spec.InfrastructureRef.Kind),
 	})
@@ -310,7 +309,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 			}
 
 			message := ""
-			if condition.Message != "" {
+			if condition.Status != corev1.ConditionTrue && condition.Message != "" {
 				message = fmt.Sprintf("* Node.Ready: %s", condition.Message)
 			}
 
@@ -358,7 +357,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	// will be considered unreachable Machine deletion will complete.
 	if !machine.DeletionTimestamp.IsZero() {
 		if machine.Status.NodeRef != nil {
-			setNodeConditions(machine, metav1.ConditionUnknown,
+			setNodeConditions(machine, metav1.ConditionFalse,
 				clusterv1.MachineNodeDeletedV1Beta2Reason,
 				fmt.Sprintf("Node %s has been deleted", machine.Status.NodeRef.Name))
 			return
@@ -376,7 +375,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		// Setting MachineNodeReadyV1Beta2Condition to False to keep it consistent with MachineNodeHealthyV1Beta2Condition.
 		setNodeConditions(machine, metav1.ConditionFalse,
 			clusterv1.MachineNodeDeletedV1Beta2Reason,
-			fmt.Sprintf("Node %s has been deleted while the machine still exists", machine.Status.NodeRef.Name))
+			fmt.Sprintf("Node %s has been deleted while the Machine still exists", machine.Status.NodeRef.Name))
 		return
 	}
 
@@ -384,14 +383,14 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	// for a matching Node to exists, surface this.
 	if ptr.Deref(machine.Spec.ProviderID, "") != "" {
 		setNodeConditions(machine, metav1.ConditionUnknown,
-			clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+			clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 			fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID))
 		return
 	}
 
 	// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
 	setNodeConditions(machine, metav1.ConditionUnknown,
-		clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+		clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
 		fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind))
 }
 
@@ -492,13 +491,13 @@ func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 		v1beta2conditions.GetPriorityFunc(func(condition metav1.Condition) v1beta2conditions.MergePriority {
 			// While machine is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
 			if !c.machine.DeletionTimestamp.IsZero() {
-				if condition.Type == clusterv1.MachineBootstrapConfigReadyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason) {
+				if condition.Type == clusterv1.MachineBootstrapConfigReadyV1Beta2Condition && (condition.Reason == clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
 				}
-				if condition.Type == clusterv1.MachineInfrastructureReadyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.MachineInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason) {
+				if condition.Type == clusterv1.MachineInfrastructureReadyV1Beta2Condition && (condition.Reason == clusterv1.MachineInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
 				}
-				if condition.Type == clusterv1.MachineNodeHealthyV1Beta2Condition && condition.Status == metav1.ConditionUnknown && (condition.Reason == clusterv1.MachineNodeDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineNodeDoesNotExistV1Beta2Reason) {
+				if condition.Type == clusterv1.MachineNodeHealthyV1Beta2Condition && (condition.Reason == clusterv1.MachineNodeDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineNodeDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
 				}
 				// Note: MachineNodeReadyV1Beta2Condition is not relevant for the summary.
@@ -518,7 +517,7 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+			Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 		})
 		return
 	}

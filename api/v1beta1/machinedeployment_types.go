@@ -208,13 +208,13 @@ const (
 	// MachineDeploymentDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachineDeploymentDeletingV1Beta2Condition = DeletingV1Beta2Condition
 
-	// MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the MachineDeployment is not deleting because the
+	// MachineDeploymentNotDeletingV1Beta2Reason surfaces when the MachineDeployment is not deleting because the
 	// DeletionTimestamp is not set.
-	MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+	MachineDeploymentNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
 
-	// MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason surfaces when the MachineDeployment is deleting because the
+	// MachineDeploymentDeletingV1Beta2Reason surfaces when the MachineDeployment is deleting because the
 	// DeletionTimestamp is set.
-	MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+	MachineDeploymentDeletingV1Beta2Reason = DeletingV1Beta2Reason
 
 	// MachineDeploymentDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a MachineDeployment.
 	MachineDeploymentDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

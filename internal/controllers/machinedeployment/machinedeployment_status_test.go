@@ -395,11 +395,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                           "deleting",
+			name:                           "deleting, don't show block message when templates are not found",
 			machineDeployment:              deletingMachineDeploymentWith3Replicas,
 			machineSets:                    []*clusterv1.MachineSet{{}, {}, {}},
-			bootstrapTemplateNotFound:      false,
-			infrastructureTemplateNotFound: false,
+			bootstrapTemplateNotFound:      true,
+			infrastructureTemplateNotFound: true,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
@@ -887,7 +887,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name                 string
@@ -935,7 +935,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentRemediatingV1Beta2Reason,
-				Message: "* Machine m3: Machine deletionTimestamp set",
+				Message: "* Machine m3: Machine is deleting",
 			},
 		},
 		{
@@ -1038,7 +1038,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason,
+				Reason: clusterv1.MachineDeploymentNotDeletingV1Beta2Reason,
 			},
 		},
 		{
@@ -1055,7 +1055,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
+				Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
 				Message: "Deleting 1 Machine",
 			},
 		},
@@ -1073,7 +1073,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
+				Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
 				Message: "Deleting 1 Machine and Machine m1 is in deletion since more than 30m",
 			},
 		},
@@ -1089,7 +1089,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
+				Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
 				Message: "Deleting 1 MachineSets",
 			},
 		},

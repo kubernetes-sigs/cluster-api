@@ -223,7 +223,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 				Message: "Waiting for cluster topology to be reconciled",
 			},
@@ -235,7 +235,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
+				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 			},
 		},
@@ -317,7 +317,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
 				Message: "FakeInfraCluster has been deleted",
 			},
@@ -329,7 +329,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 				Message: "FakeInfraCluster does not exist",
 			},
@@ -341,7 +341,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
 				Message: "FakeInfraCluster has been deleted while the cluster still exists",
 			},
@@ -353,7 +353,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
 				Message: "FakeInfraCluster does not exist",
 			},
@@ -388,7 +388,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 				Message: "Waiting for cluster topology to be reconciled",
 			},
@@ -400,7 +400,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
+				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 			},
 		},
@@ -482,7 +482,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
 				Message: "FakeControlPlane has been deleted",
 			},
@@ -494,7 +494,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 				Message: "FakeControlPlane does not exist",
 			},
@@ -506,7 +506,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
 				Message: "FakeControlPlane has been deleted while the cluster still exists",
 			},
@@ -518,7 +518,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
+				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
 				Message: "FakeControlPlane does not exist",
 			},
@@ -1547,7 +1547,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name                    string
@@ -1595,7 +1595,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.ClusterRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.ClusterRemediatingV1Beta2Reason,
-				Message: "* Machine m3: Machine deletionTimestamp set",
+				Message: "* Machine m3: Machine is deleting",
 			},
 		},
 		{
@@ -1666,7 +1666,7 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterDeletingDeletionTimestampNotSetV1Beta2Reason,
+				Reason: clusterv1.ClusterNotDeletingV1Beta2Reason,
 			},
 		},
 		{
@@ -1966,12 +1966,12 @@ func TestSetAvailableCondition(t *testing.T) {
 						Conditions: []metav1.Condition{
 							{
 								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionUnknown,
+								Status: metav1.ConditionFalse,
 								Reason: clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
 							},
 							{
 								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-								Status: metav1.ConditionUnknown,
+								Status: metav1.ConditionFalse,
 								Reason: clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
 							},
 							{

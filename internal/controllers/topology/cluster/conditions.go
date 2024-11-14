@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledDeletionTimestampSetV1Beta2Reason,
+			Reason: clusterv1.ClusterTopologyReconciledDeletingV1Beta2Reason,
 		})
 		return nil
 	}

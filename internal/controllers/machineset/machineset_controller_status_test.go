@@ -322,11 +322,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                         "deleting",
+			name:                         "deleting, don't show block message when templates are not found",
 			ms:                           deletingMachineSetWith3Replicas,
 			machines:                     []*clusterv1.Machine{{}, {}, {}},
-			bootstrapObjectNotFound:      false,
-			infrastructureObjectNotFound: false,
+			bootstrapObjectNotFound:      true,
+			infrastructureObjectNotFound: true,
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
@@ -796,7 +796,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletedV1Beta2Reason, Message: "Machine deletionTimestamp set"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 	ownerRemediatedWaitingForRemediationV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason, Message: "KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)"}
 
 	tests := []struct {
@@ -845,7 +845,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:    clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "* Machine m3: Machine deletionTimestamp set",
+				Message: "* Machine m3: Machine is deleting",
 			},
 		},
 		{
@@ -863,7 +863,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetRemediatingV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetRemediatingV1Beta2Reason,
-				Message: "* Machine m3: Machine deletionTimestamp set\n" +
+				Message: "* Machine m3: Machine is deleting\n" +
 					"* Machine m4: KubeadmControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 			},
 		},
@@ -946,7 +946,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.MachineSetDeletingDeletionTimestampNotSetV1Beta2Reason,
+				Reason: clusterv1.MachineSetNotDeletingV1Beta2Reason,
 			},
 		},
 		{
@@ -959,7 +959,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+				Reason:  clusterv1.MachineSetDeletingV1Beta2Reason,
 				Message: "Deleting 1 Machine",
 			},
 		},
@@ -975,7 +975,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetDeletingDeletionTimestampSetV1Beta2Reason,
+				Reason:  clusterv1.MachineSetDeletingV1Beta2Reason,
 				Message: "Deleting 3 Machines and Machines m1, m2 are in deletion since more than 30m",
 			},
 		},

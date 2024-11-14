@@ -116,9 +116,9 @@ func TestSummary(t *testing.T) {
 				Type:   clusterv1.AvailableV1Beta2Condition,
 				Status: metav1.ConditionFalse, // False because there are many issues
 				Reason: issuesReportedReason,  // Using a generic reason
-				Message: "* B: Message-B\n" +
-					"* !C: Message-!C\n" +
-					"* A: Message-A", // messages from all the issues & unknown conditions (info dropped)
+				Message: "* A: Message-A\n" +
+					"* B: Message-B\n" +
+					"* !C: Message-!C", // messages from all the issues & unknown conditions (info dropped); also, the order defined in ForConditionTypes must be preserved.
 			},
 		},
 		{

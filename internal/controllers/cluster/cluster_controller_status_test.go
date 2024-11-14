@@ -865,6 +865,39 @@ func TestSetMachinesReadyCondition(t *testing.T) {
 					"* Machine machine-3: Some unknown message",
 			},
 		},
+		{
+			name:    "control plane goes first",
+			cluster: fakeCluster("c"),
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", v1beta2Condition(readyCondition)),
+				fakeMachine("machine-2", v1beta2Condition(metav1.Condition{
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
+				})),
+				fakeMachine("machine-3", controlPlane(true), v1beta2Condition(metav1.Condition{ // control plane always must go first
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  "SomeUnknownReason",
+					Message: "Some unknown message",
+				})),
+				fakeMachine("machine-4", v1beta2Condition(metav1.Condition{
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
+				})),
+			},
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterMachinesNotReadyV1Beta2Reason,
+				Message: "* Machine machine-3: Some unknown message\n" +
+					"* Machines machine-2, machine-4: Deleting: Machine deletion in progress, stage: DrainingNode",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2627,4 +2660,17 @@ type topology bool
 
 func (r topology) ApplyToCluster(c *clusterv1.Cluster) {
 	c.Spec.Topology = &clusterv1.Topology{}
+}
+
+type controlPlane bool
+
+func (c controlPlane) ApplyToMachine(m *clusterv1.Machine) {
+	if c {
+		labels := m.GetLabels()
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		labels[clusterv1.MachineControlPlaneLabel] = ""
+		m.SetLabels(labels)
+	}
 }

@@ -1117,3 +1117,17 @@ func (w aggregationWrapper) GetName() string {
 	}
 	panic("not supported")
 }
+
+func (w aggregationWrapper) GetLabels() map[string]string {
+	switch {
+	case w.cp != nil:
+		return w.cp.GetLabels()
+	case w.mp != nil:
+		return w.mp.GetLabels()
+	case w.md != nil:
+		return w.md.GetLabels()
+	case w.ms != nil:
+		return w.ms.GetLabels()
+	}
+	panic("not supported")
+}

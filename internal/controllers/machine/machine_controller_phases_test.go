@@ -113,6 +113,33 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 		},
 		{
+			name:     "bootstrap data ready with no bootstrap config",
+			contract: "v1beta1",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-external",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("secret-data"),
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					BootstrapReady: false,
+				},
+			},
+			bootstrapConfig:         nil,
+			bootstrapConfigGetError: errors.New("this should not happen"),
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(m.Spec.Bootstrap.DataSecretName).NotTo(BeNil())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+			},
+		},
+		{
 			name:     "bootstrap config not ready, it should reconcile but no data should surface on the machine",
 			contract: "v1beta1",
 			machine:  defaultMachine.DeepCopy(),

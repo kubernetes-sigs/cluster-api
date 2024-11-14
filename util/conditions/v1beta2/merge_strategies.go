@@ -259,7 +259,9 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// provided by the user (it is considered as order of relevance).
 	if isSummaryOperation {
 		messages := []string{}
-		for _, condition := range append(issueConditions, append(unknownConditions, infoConditions...)...) {
+
+		// Note: use conditions because we want to preserve the order of relevance defined by the users (the order of condition types).
+		for _, condition := range conditions {
 			priority := d.getPriorityFunc(condition.Condition)
 			if priority == InfoMergePriority {
 				// Drop info messages when we are surfacing issues or unknown.

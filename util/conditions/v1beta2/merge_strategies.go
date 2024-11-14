@@ -27,6 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ConditionWithOwnerInfo is a wrapper around metav1.Condition with additional ConditionOwnerInfo.
@@ -38,8 +40,9 @@ type ConditionWithOwnerInfo struct {
 
 // ConditionOwnerInfo contains infos about the object that owns the condition.
 type ConditionOwnerInfo struct {
-	Kind string
-	Name string
+	Kind                  string
+	Name                  string
+	IsControlPlaneMachine bool
 }
 
 // String returns a string representation of the ConditionOwnerInfo.
@@ -291,7 +294,11 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// Accordingly, the resulting message is composed by only three messages from conditions classified as issues/unknown;
 	// instead three messages from conditions classified as info are included only if there are no issues/unknown.
 	//
-	// The number of objects reporting the same message determine the order used to pick the messages to be shown;
+	// Three criteria are used to pick the messages to be shown
+	// - Messages for control plane machines always go first
+	// - Messages for issues always go before messages for unknown, info messages goes last
+	// - The number of objects reporting the same message determine the order used to pick within the messages in the same bucket
+	//
 	// For each message it is reported a list of max 3 objects reporting the message; if more objects are reporting the same
 	// message, the number of those objects is surfaced.
 	//
@@ -306,22 +313,16 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 		n := 3
 		messages := []string{}
 
-		// Get max n issue messages, decrement n, and track if there are other objects reporting issues not included in the messages.
-		if len(issueConditions) > 0 {
-			issueMessages := aggregateMessages(issueConditions, &n, false, "with other issues")
+		// Get max n issue/unknown messages, decrement n, and track if there are other objects reporting issues/unknown not included in the messages.
+		if len(issueConditions) > 0 || len(unknownConditions) > 0 {
+			issueMessages := aggregateMessages(append(issueConditions, unknownConditions...), &n, false, d.getPriorityFunc, map[MergePriority]string{IssueMergePriority: "with other issues", UnknownMergePriority: "with status unknown"})
 			messages = append(messages, issueMessages...)
-		}
-
-		// Get max n unknown messages, decrement n, and track if there are other objects reporting unknown not included in the messages.
-		if len(unknownConditions) > 0 {
-			unknownMessages := aggregateMessages(unknownConditions, &n, false, "with status unknown")
-			messages = append(messages, unknownMessages...)
 		}
 
 		// Only if there are no issue or unknown,
 		// Get max n info messages, decrement n, and track if there are other objects reporting info not included in the messages.
 		if len(issueConditions) == 0 && len(unknownConditions) == 0 && len(infoConditions) > 0 {
-			infoMessages := aggregateMessages(infoConditions, &n, true, "with additional info")
+			infoMessages := aggregateMessages(infoConditions, &n, true, d.getPriorityFunc, map[MergePriority]string{InfoMergePriority: "with additional info"})
 			messages = append(messages, infoMessages...)
 		}
 
@@ -367,19 +368,50 @@ func splitConditionsByPriority(conditions []ConditionWithOwnerInfo, getPriority 
 }
 
 // aggregateMessages returns messages for the aggregate operation.
-func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bool, otherMessage string) (messages []string) {
+func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bool, getPriority func(condition metav1.Condition) MergePriority, otherMessages map[MergePriority]string) (messages []string) {
 	// create a map with all the messages and the list of objects reporting the same message.
 	messageObjMap := map[string]map[string][]string{}
+	messagePriorityMap := map[string]MergePriority{}
+	messageMustGoFirst := map[string]bool{}
 	for _, condition := range conditions {
 		if dropEmpty && condition.Message == "" {
 			continue
 		}
 
+		// Keep track of the message and the list of objects it applies to.
 		m := condition.Message
 		if _, ok := messageObjMap[condition.OwnerResource.Kind]; !ok {
 			messageObjMap[condition.OwnerResource.Kind] = map[string][]string{}
 		}
 		messageObjMap[condition.OwnerResource.Kind][m] = append(messageObjMap[condition.OwnerResource.Kind][m], condition.OwnerResource.Name)
+
+		// Keep track of the priority of the message.
+		// In case the same message exists with different priorities, the highest according to issue/unknown/info applies.
+		currentPriority, ok := messagePriorityMap[m]
+		newPriority := getPriority(condition.Condition)
+		switch {
+		case !ok:
+			messagePriorityMap[m] = newPriority
+		case currentPriority == IssueMergePriority:
+			// No-op, issue is already the highest priority.
+		case currentPriority == UnknownMergePriority:
+			// If current priority is unknown, use new one only if higher.
+			if newPriority == IssueMergePriority {
+				messagePriorityMap[m] = newPriority
+			}
+		case currentPriority == InfoMergePriority:
+			// if current priority is info, new one can be equal or higher, use it.
+			messagePriorityMap[m] = newPriority
+		}
+
+		// Keep track if this message belongs to control plane machines, and thus it should go first.
+		// Note: it is enough that on object is a control plane machine to move the message as first.
+		first, ok := messageMustGoFirst[m]
+		if !ok || !first {
+			if condition.OwnerResource.IsControlPlaneMachine {
+				messageMustGoFirst[m] = true
+			}
+		}
 	}
 
 	// Gets the objects kind (with a stable order).
@@ -394,7 +426,10 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 		kindPlural := flect.Pluralize(kind)
 		messageObjMapForKind := messageObjMap[kind]
 
-		// compute the order of messages according to the number of objects reporting the same message.
+		// compute the order of messages according to:
+		// - message should go first (e.g. it applies to a control plane machine)
+		// - message priority (e.g. first issues, then unknown)
+		// - the number of objects reporting the same message.
 		// Note: The list of object names is used as a secondary criteria to sort messages with the same number of objects.
 		messageIndex := make([]string, 0, len(messageObjMapForKind))
 		for m := range messageObjMapForKind {
@@ -402,8 +437,7 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 		}
 
 		sort.SliceStable(messageIndex, func(i, j int) bool {
-			return len(messageObjMapForKind[messageIndex[i]]) > len(messageObjMapForKind[messageIndex[j]]) ||
-				(len(messageObjMapForKind[messageIndex[i]]) == len(messageObjMapForKind[messageIndex[j]]) && strings.Join(messageObjMapForKind[messageIndex[i]], ",") < strings.Join(messageObjMapForKind[messageIndex[j]], ","))
+			return sortMessage(messageIndex[i], messageIndex[j], messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
 		})
 
 		// Pick the first n messages, decrement n.
@@ -411,10 +445,10 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 		// Count the number of objects reporting messages not included in the above.
 		// Note: we are showing up to three objects because usually control plane has 3 machines, and we want to show all issues
 		// to control plane machines if any,
-		var other = 0
+		others := map[MergePriority]int{}
 		for _, m := range messageIndex {
 			if *n == 0 {
-				other += len(messageObjMapForKind[m])
+				others[messagePriorityMap[m]] += len(messageObjMapForKind[m])
 				continue
 			}
 
@@ -437,15 +471,51 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 			*n--
 		}
 
-		if other == 1 {
-			messages = append(messages, fmt.Sprintf("And %d %s %s", other, kind, otherMessage))
-		}
-		if other > 1 {
-			messages = append(messages, fmt.Sprintf("And %d %s %s", other, kindPlural, otherMessage))
+		for _, p := range []MergePriority{IssueMergePriority, UnknownMergePriority, InfoMergePriority} {
+			other, ok := others[p]
+			if !ok {
+				continue
+			}
+
+			otherMessage, ok := otherMessages[p]
+			if !ok {
+				continue
+			}
+			if other == 1 {
+				messages = append(messages, fmt.Sprintf("And %d %s %s", other, kind, otherMessage))
+			}
+			if other > 1 {
+				messages = append(messages, fmt.Sprintf("And %d %s %s", other, kindPlural, otherMessage))
+			}
 		}
 	}
 
 	return messages
+}
+
+func sortMessage(i, j string, messageMustGoFirst map[string]bool, messagePriorityMap map[string]MergePriority, messageObjMapForKind map[string][]string) bool {
+	if messageMustGoFirst[i] && !messageMustGoFirst[j] {
+		return true
+	}
+	if !messageMustGoFirst[i] && messageMustGoFirst[j] {
+		return false
+	}
+
+	if messagePriorityMap[i] < messagePriorityMap[j] {
+		return true
+	}
+	if messagePriorityMap[i] > messagePriorityMap[j] {
+		return false
+	}
+
+	if len(messageObjMapForKind[i]) > len(messageObjMapForKind[j]) {
+		return true
+	}
+	if len(messageObjMapForKind[i]) < len(messageObjMapForKind[j]) {
+		return false
+	}
+
+	return strings.Join(messageObjMapForKind[i], ",") < strings.Join(messageObjMapForKind[j], ",")
 }
 
 func indentIfMultiline(m string) string {
@@ -483,6 +553,7 @@ func getConditionsWithOwnerInfo(obj Getter) []ConditionWithOwnerInfo {
 // is the same as kind.
 func getConditionOwnerInfo(obj any) ConditionOwnerInfo {
 	var kind, name string
+	var isControlPlaneMachine bool
 	if runtimeObject, ok := obj.(runtime.Object); ok {
 		kind = runtimeObject.GetObjectKind().GroupVersionKind().Kind
 	}
@@ -496,17 +567,22 @@ func getConditionOwnerInfo(obj any) ConditionOwnerInfo {
 		}
 	}
 
-	if objMeta, ok := obj.(objectWithName); ok {
+	if objMeta, ok := obj.(objectWithNameAndLabels); ok {
 		name = objMeta.GetName()
+		if kind == "Machine" {
+			_, isControlPlaneMachine = objMeta.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		}
 	}
 
 	return ConditionOwnerInfo{
-		Kind: kind,
-		Name: name,
+		Kind:                  kind,
+		Name:                  name,
+		IsControlPlaneMachine: isControlPlaneMachine,
 	}
 }
 
-// objectWithName is a subset of metav1.Object.
-type objectWithName interface {
+// objectWithNameAndLabels is a subset of metav1.Object.
+type objectWithNameAndLabels interface {
 	GetName() string
+	GetLabels() map[string]string
 }

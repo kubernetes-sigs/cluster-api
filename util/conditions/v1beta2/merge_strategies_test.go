@@ -24,39 +24,145 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestAggregateMessages(t *testing.T) {
+func TestSortMessages(t *testing.T) {
 	g := NewWithT(t)
+	messageMustGoFirst := map[string]bool{"m1": true}
+	messagePriorityMap := map[string]MergePriority{"m1": InfoMergePriority, "m2": IssueMergePriority, "m3": UnknownMergePriority, "m4": InfoMergePriority, "m5": UnknownMergePriority, "m6": UnknownMergePriority, "m7": UnknownMergePriority}
+	messageObjMapForKind := map[string][]string{"m1": {}, "m2": {"foo"}, "m3": {"foo", "bar"}, "m4": {"foo", "bar", "baz"}, "m5": {"a", "b"}, "m6": {"a"}, "m7": {"b"}}
 
-	conditions := []ConditionWithOwnerInfo{
-		// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj11"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj12"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-	}
+	// Control plane goes before not control planes
+	got := sortMessage("m1", "m2", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	got = sortMessage("m1", "m5", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	// Not control plane goes after control planes
+	got = sortMessage("m2", "m1", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
+	got = sortMessage("m5", "m1", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
 
-	n := 3
-	messages := aggregateMessages(conditions, &n, false, "with other issues")
+	// issues goes before unknown
+	got = sortMessage("m2", "m3", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	// unknown goes after issues
+	got = sortMessage("m3", "m2", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
 
-	g.Expect(n).To(Equal(0))
-	g.Expect(messages).To(Equal([]string{
-		"* MachineDeployments obj01, obj02, obj05, ... (2 more): Message-1", // MachineDeployments obj08, obj09
-		"* MachineDeployments obj03, obj04:\n" +
-			"  * Message-2",
-		"* MachineDeployment obj06:\n" +
-			"  * Message-3A\n" +
-			"  * Message-3B",
-		"And 2 MachineDeployments with other issues", // MachineDeployments  obj07 (Message-4), obj10 (Message-5)
-		"And 2 MachineSets with other issues",        // MachineSet obj11, obj12 (Message-1)
-	}))
+	// unknown goes before info
+	got = sortMessage("m3", "m4", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	// info goes after unknown
+	got = sortMessage("m4", "m3", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
+
+	// 2 objects goes before 1 object
+	got = sortMessage("m5", "m6", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	// 1 object goes after 2 objects
+	got = sortMessage("m6", "m5", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
+
+	// 1 object "a" goes before 1 object "b"
+	got = sortMessage("m6", "m7", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeTrue())
+	// 1 object "b" goes after 1 object "a"
+	got = sortMessage("m7", "m6", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
+}
+
+func TestAggregateMessages(t *testing.T) {
+	t.Run("Groups by kind, return max 3 messages, aggregate objects, count others", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj11"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj12"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+		}
+
+		n := 3
+		messages := aggregateMessages(conditions, &n, false, GetDefaultMergePriorityFunc(), map[MergePriority]string{IssueMergePriority: "with other issues"})
+
+		g.Expect(n).To(Equal(0))
+		g.Expect(messages).To(Equal([]string{
+			"* MachineDeployments obj01, obj02, obj05, ... (2 more): Message-1", // MachineDeployments obj08, obj09
+			"* MachineDeployments obj03, obj04:\n" +
+				"  * Message-2",
+			"* MachineDeployment obj06:\n" +
+				"  * Message-3A\n" +
+				"  * Message-3B",
+			"And 2 MachineDeployments with other issues", // MachineDeployments  obj07 (Message-4), obj10 (Message-5)
+			"And 2 MachineSets with other issues",        // MachineSet obj11, obj12 (Message-1)
+		}))
+	})
+	t.Run("Issue messages goes before unknown", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
+		}
+
+		n := 3
+		messages := aggregateMessages(conditions, &n, false, GetDefaultMergePriorityFunc(), map[MergePriority]string{IssueMergePriority: "with other issues", UnknownMergePriority: "with status unknown"})
+
+		g.Expect(n).To(Equal(0))
+		g.Expect(messages).To(Equal([]string{
+			"* MachineDeployments obj03, obj04:\n" +
+				"  * Message-2",
+			"* MachineDeployment obj06:\n" +
+				"  * Message-3A\n" +
+				"  * Message-3B",
+			"* MachineDeployment obj07: Message-4",
+			"And 1 MachineDeployment with other issues",    // MachineDeployments obj10 (Message-5)
+			"And 5 MachineDeployments with status unknown", // MachineDeployments obj01, obj02, obj05, obj08, obj09 (Message 1) << This doesn't show up because even if it applies to 5 machines because it has merge priority unknown
+		}))
+	})
+	t.Run("Control plane machines always goes before unknown", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj02", IsControlPlaneMachine: true}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+		}
+
+		n := 3
+		messages := aggregateMessages(conditions, &n, false, GetDefaultMergePriorityFunc(), map[MergePriority]string{IssueMergePriority: "with other issues", UnknownMergePriority: "with status unknown"})
+
+		g.Expect(n).To(Equal(0))
+		g.Expect(messages).To(Equal([]string{
+			"* Machine obj02: Message-1", // control plane always go first, no matter if priority or number of objects
+			"* Machines obj01, obj03, obj04, ... (1 more):\n" +
+				"  * Message-2",
+			"* Machine obj06:\n" +
+				"  * Message-3A\n" +
+				"  * Message-3B",
+		}))
+	})
 }
 
 func TestSortConditions(t *testing.T) {

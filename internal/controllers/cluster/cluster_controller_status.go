@@ -254,22 +254,31 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	}
 
 	if infraCluster != nil {
-		if err := v1beta2conditions.SetMirrorConditionFromUnstructured(
-			infraCluster, cluster,
+		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+			infraCluster,
 			contract.InfrastructureCluster().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.ClusterInfrastructureReadyV1Beta2Condition),
 			v1beta2conditions.FallbackCondition{
 				Status:  v1beta2conditions.BoolToStatus(cluster.Status.InfrastructureReady),
-				Reason:  clusterv1.ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  fallbackReason(cluster.Status.InfrastructureReady, clusterv1.ClusterInfrastructureReadyV1Beta2Reason, clusterv1.ClusterInfrastructureNotReadyV1Beta2Reason),
 				Message: infrastructureReadyFallBackMessage(cluster.Spec.InfrastructureRef.Kind, cluster.Status.InfrastructureReady),
 			},
-		); err != nil {
+		)
+		if err != nil {
 			v1beta2conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterInfrastructureInvalidConditionReportedV1Beta2Reason,
 				Message: err.Error(),
 			})
+			return
 		}
+
+		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// and replace the reason with something less confusing.
+		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+			ready.Reason = clusterv1.ClusterInfrastructureReadyV1Beta2Reason
+		}
+		v1beta2conditions.Set(cluster, *ready)
 		return
 	}
 
@@ -345,22 +354,31 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	}
 
 	if controlPlane != nil {
-		if err := v1beta2conditions.SetMirrorConditionFromUnstructured(
-			controlPlane, cluster,
+		available, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+			controlPlane,
 			contract.ControlPlane().AvailableConditionType(), v1beta2conditions.TargetConditionType(clusterv1.ClusterControlPlaneAvailableV1Beta2Condition),
 			v1beta2conditions.FallbackCondition{
 				Status:  v1beta2conditions.BoolToStatus(cluster.Status.ControlPlaneReady),
-				Reason:  clusterv1.ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason,
+				Reason:  fallbackReason(cluster.Status.ControlPlaneReady, clusterv1.ClusterControlPlaneAvailableV1Beta2Reason, clusterv1.ClusterControlPlaneNotAvailableV1Beta2Reason),
 				Message: controlPlaneAvailableFallBackMessage(cluster.Spec.ControlPlaneRef.Kind, cluster.Status.ControlPlaneReady),
 			},
-		); err != nil {
+		)
+		if err != nil {
 			v1beta2conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterControlPlaneInvalidConditionReportedV1Beta2Reason,
 				Message: err.Error(),
 			})
+			return
 		}
+
+		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// and replace the reason with something less confusing.
+		if available.Reason == v1beta2conditions.NoReasonReported && available.Status == metav1.ConditionTrue {
+			available.Reason = clusterv1.ClusterControlPlaneAvailableV1Beta2Reason
+		}
+		v1beta2conditions.Set(cluster, *available)
 		return
 	}
 
@@ -971,21 +989,6 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 		summaryOpts = append(summaryOpts, v1beta2conditions.IgnoreTypesIfMissing{clusterv1.ClusterTopologyReconciledV1Beta2Condition})
 	}
 
-	// Add overrides for conditions we want to surface in the Available condition with slightly different messages.
-	var overrideConditions v1beta2conditions.OverrideConditions
-
-	if infrastructureReadyCondition := calculateInfrastructureReadyForSummary(cluster); infrastructureReadyCondition != nil {
-		overrideConditions = append(overrideConditions, *infrastructureReadyCondition)
-	}
-
-	if controlPlaneAvailableCondition := calculateControlPlaneAvailableForSummary(cluster); controlPlaneAvailableCondition != nil {
-		overrideConditions = append(overrideConditions, *controlPlaneAvailableCondition)
-	}
-
-	if len(overrideConditions) > 0 {
-		summaryOpts = append(summaryOpts, overrideConditions)
-	}
-
 	availableCondition, err := v1beta2conditions.NewSummaryCondition(cluster, clusterv1.ClusterAvailableV1Beta2Condition, summaryOpts...)
 
 	if err != nil {
@@ -1003,63 +1006,25 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 	v1beta2conditions.Set(cluster, *availableCondition)
 }
 
+func fallbackReason(status bool, trueReason, falseReason string) string {
+	if status {
+		return trueReason
+	}
+	return falseReason
+}
+
 func infrastructureReadyFallBackMessage(kind string, ready bool) string {
+	if ready {
+		return ""
+	}
 	return fmt.Sprintf("%s status.ready is %t", kind, ready)
 }
 
 func controlPlaneAvailableFallBackMessage(kind string, ready bool) string {
+	if ready {
+		return ""
+	}
 	return fmt.Sprintf("%s status.ready is %t", kind, ready)
-}
-
-func calculateInfrastructureReadyForSummary(cluster *clusterv1.Cluster) *v1beta2conditions.ConditionWithOwnerInfo {
-	infrastructureReadyCondition := v1beta2conditions.Get(cluster, clusterv1.ClusterInfrastructureReadyV1Beta2Condition)
-
-	if infrastructureReadyCondition == nil {
-		return nil
-	}
-
-	message := infrastructureReadyCondition.Message
-	if infrastructureReadyCondition.Status == metav1.ConditionTrue && cluster.Spec.InfrastructureRef != nil && infrastructureReadyCondition.Message == infrastructureReadyFallBackMessage(cluster.Spec.InfrastructureRef.Kind, cluster.Status.InfrastructureReady) {
-		message = ""
-	}
-
-	return &v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
-			Kind: "Cluster",
-			Name: cluster.Name,
-		},
-		Condition: metav1.Condition{
-			Type:    infrastructureReadyCondition.Type,
-			Status:  infrastructureReadyCondition.Status,
-			Reason:  infrastructureReadyCondition.Reason,
-			Message: message,
-		},
-	}
-}
-
-func calculateControlPlaneAvailableForSummary(cluster *clusterv1.Cluster) *v1beta2conditions.ConditionWithOwnerInfo {
-	controlPlaneAvailableCondition := v1beta2conditions.Get(cluster, clusterv1.ClusterControlPlaneAvailableV1Beta2Condition)
-	if controlPlaneAvailableCondition == nil {
-		return nil
-	}
-
-	message := controlPlaneAvailableCondition.Message
-	if controlPlaneAvailableCondition.Status == metav1.ConditionTrue && cluster.Spec.ControlPlaneRef != nil && controlPlaneAvailableCondition.Message == controlPlaneAvailableFallBackMessage(cluster.Spec.ControlPlaneRef.Kind, cluster.Status.ControlPlaneReady) {
-		message = ""
-	}
-
-	return &v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
-			Kind: "Cluster",
-			Name: cluster.Name,
-		},
-		Condition: metav1.Condition{
-			Type:    controlPlaneAvailableCondition.Type,
-			Status:  controlPlaneAvailableCondition.Status,
-			Reason:  controlPlaneAvailableCondition.Reason,
-			Message: message,
-		},
-	}
 }
 
 func aggregateUnhealthyMachines(machines collections.Machines) string {

@@ -126,12 +126,15 @@ const (
 	// ClusterInfrastructureReadyV1Beta2Condition mirrors Cluster's infrastructure Ready condition.
 	ClusterInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
 
+	// ClusterInfrastructureReadyV1Beta2Reason surfaces when the cluster infrastructure is ready.
+	ClusterInfrastructureReadyV1Beta2Reason = ReadyV1Beta2Reason
+
+	// ClusterInfrastructureNotReadyV1Beta2Reason surfaces when the cluster infrastructure is not ready.
+	ClusterInfrastructureNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+
 	// ClusterInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra cluster object) which is invalid
 	// (e.g. its status is missing).
 	ClusterInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
-
-	// ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra cluster object) that reports no reason.
-	ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// ClusterInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading an infra cluster object.
 	ClusterInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -170,12 +173,15 @@ const (
 	// ClusterControlPlaneAvailableV1Beta2Condition is a mirror of Cluster's control plane Available condition.
 	ClusterControlPlaneAvailableV1Beta2Condition = "ControlPlaneAvailable"
 
+	// ClusterControlPlaneAvailableV1Beta2Reason surfaces when the cluster control plane is available.
+	ClusterControlPlaneAvailableV1Beta2Reason = AvailableV1Beta2Reason
+
+	// ClusterControlPlaneNotAvailableV1Beta2Reason surfaces when the cluster control plane is not available.
+	ClusterControlPlaneNotAvailableV1Beta2Reason = NotAvailableV1Beta2Reason
+
 	// ClusterControlPlaneInvalidConditionReportedV1Beta2Reason surfaces a control plane Available condition (read from a control plane object) which is invalid.
 	// (e.g. its status is missing).
 	ClusterControlPlaneInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
-
-	// ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason applies to a control plane Available condition (read from a control plane object) that reports no reason.
-	ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// ClusterControlPlaneInternalErrorV1Beta2Reason surfaces unexpected failures when reading a control plane object.
 	ClusterControlPlaneInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

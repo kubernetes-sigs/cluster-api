@@ -242,12 +242,24 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:                   "mirror Ready condition from infra cluster",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
-			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready", Status: "False", Message: "some message"}),
+			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready", Status: "False", Message: "some message", Reason: "SomeReason"}),
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  "SomeReason",
+				Message: "some message",
+			},
+		},
+		{
+			name:                   "mirror Ready condition from infra cluster (true)",
+			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
+			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready", Status: "True", Message: "some message"}), // reason not set for v1beta1 conditions
+			infraClusterIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterInfrastructureReadyV1Beta2Reason, // reason fixed up
 				Message: "some message",
 			},
 		},
@@ -259,7 +271,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureNotReadyV1Beta2Reason,
 				Message: "FakeInfraCluster status.ready is false",
 			},
 		},
@@ -269,10 +281,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraCluster:           fakeInfraCluster("i1", ready(true)),
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterInfrastructureReadyNoReasonReportedV1Beta2Reason,
-				Message: "FakeInfraCluster status.ready is true",
+				Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterInfrastructureReadyV1Beta2Reason,
 			},
 		},
 		{
@@ -396,12 +407,24 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		{
 			name:                   "mirror Available condition from control plane",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
-			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available", Status: "False", Message: "some message"}),
+			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available", Status: "False", Message: "some message", Reason: "SomeReason"}),
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason,
+				Reason:  "SomeReason",
+				Message: "some message",
+			},
+		},
+		{
+			name:                   "mirror Available condition from control plane (true)",
+			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
+			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available", Status: "True", Message: "some message"}), // reason not set for v1beta1 conditions
+			controlPlaneIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterControlPlaneAvailableV1Beta2Reason, // reason fixed up
 				Message: "some message",
 			},
 		},
@@ -413,7 +436,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneNotAvailableV1Beta2Reason,
 				Message: "FakeControlPlane status.ready is false",
 			},
 		},
@@ -423,10 +446,9 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			controlPlane:           fakeControlPlane("cp1", ready(true)),
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterControlPlaneAvailableNoReasonReportedV1Beta2Reason,
-				Message: "FakeControlPlane status.ready is true",
+				Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterControlPlaneAvailableV1Beta2Reason,
 			},
 		},
 		{
@@ -1977,65 +1999,6 @@ func TestSetAvailableCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
 				Message: "* Deleting: Some message",
-			},
-		},
-		{
-			name: "Drops messages from InfraCluster and ControlPlane when using fallback to fields",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{Kind: "AWSCluster"},
-					ControlPlaneRef:   &corev1.ObjectReference{Kind: "KubeadmControlPlane"},
-				},
-				Status: clusterv1.ClusterStatus{
-					InfrastructureReady: true,
-					ControlPlaneReady:   true,
-					V1Beta2: &clusterv1.ClusterV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  "Foo",
-								Message: infrastructureReadyFallBackMessage("AWSCluster", true),
-							},
-							{
-								Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  "Foo",
-								Message: controlPlaneAvailableFallBackMessage("KubeadmControlPlane", true),
-							},
-							{
-								Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
-							},
-							{
-								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: "Foo",
-							},
-							{
-								Type:    "MyAvailabilityGate",
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some message",
-							},
-						},
-					},
-				},
-			},
-			expectCondition: metav1.Condition{
-				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterAvailableV1Beta2Reason,
 			},
 		},
 		{

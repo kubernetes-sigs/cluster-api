@@ -42,20 +42,33 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Always reconcile the Status.Phase field.
 	r.reconcilePhase(ctx, s.cluster)
 
+	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters
+	// and Available, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
+
+	// TODO: This should be removed once the UpToDate condition has been implemented for MachinePool Machines
+	isMachinePoolMachine := func(machine *clusterv1.Machine) bool {
+		_, isMachinePoolMachine := machine.Labels[clusterv1.MachinePoolNameLabel]
+		return isMachinePoolMachine
+	}
+	allMachines := s.descendants.allMachines.Filter(collections.Not(isMachinePoolMachine))
+	workerMachines := s.descendants.workerMachines.Filter(collections.Not(isMachinePoolMachine))
+	machinesToBeRemediated := s.descendants.machinesToBeRemediated.Filter(collections.Not(isMachinePoolMachine))
+	unhealthyMachines := s.descendants.unhealthyMachines.Filter(collections.Not(isMachinePoolMachine))
+
 	// replica counters
 	setControlPlaneReplicas(ctx, s.cluster, s.controlPlane, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setWorkersReplicas(ctx, s.cluster, s.descendants.machinePools, s.descendants.machineDeployments, s.descendants.machineSets, s.descendants.workerMachines, s.getDescendantsSucceeded)
+	setWorkersReplicas(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
 
 	// conditions
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
 	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
-	setWorkersAvailableCondition(ctx, s.cluster, s.descendants.machinePools, s.descendants.machineDeployments, s.getDescendantsSucceeded)
-	setMachinesReadyCondition(ctx, s.cluster, s.descendants.allMachines, s.getDescendantsSucceeded)
-	setMachinesUpToDateCondition(ctx, s.cluster, s.descendants.allMachines, s.getDescendantsSucceeded)
-	setScalingUpCondition(ctx, s.cluster, s.controlPlane, s.descendants.machinePools, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setScalingDownCondition(ctx, s.cluster, s.controlPlane, s.descendants.machinePools, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setRemediatingCondition(ctx, s.cluster, s.descendants.machinesToBeRemediated, s.descendants.unhealthyMachines, s.getDescendantsSucceeded)
+	setWorkersAvailableCondition(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
+	setMachinesReadyCondition(ctx, s.cluster, allMachines, s.getDescendantsSucceeded)
+	setMachinesUpToDateCondition(ctx, s.cluster, allMachines, s.getDescendantsSucceeded)
+	setScalingUpCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setScalingDownCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
 	setDeletingCondition(ctx, s.cluster, s.deletingReason, s.deletingMessage)
 	setAvailableCondition(ctx, s.cluster)
 }

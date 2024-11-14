@@ -474,6 +474,20 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 
 	if etcdIsManaged {
 		if etcdMembers == nil {
+			// In case the control plane just initialized, give some more time before reporting failed to get etcd members.
+			// Note: Two minutes is the time after which we assume that not getting the list of etcd members is an actual problem.
+			if c := v1beta2conditions.Get(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition); c != nil &&
+				c.Status == metav1.ConditionTrue &&
+				time.Since(c.LastTransitionTime.Time) < 2*time.Minute {
+				v1beta2conditions.Set(kcp, metav1.Condition{
+					Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+					Message: "Waiting for etcd to report the list of members",
+				})
+				return
+			}
+
 			v1beta2conditions.Set(kcp, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -520,7 +534,9 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	// etcd members might not match with machines, e.g. while provisioning a new machine.
 	etcdQuorum := (len(etcdMembers) / 2.0) + 1
 	k8sControlPlaneHealthy := 0
+	k8sControlPlaneNotHealthy := 0
 	etcdMembersHealthy := 0
+	etcdMembersNotHealthy := 0
 	for _, machine := range machines {
 		// if external etcd, only look at the status of the K8s control plane components on this machine.
 		if !etcdIsManaged {
@@ -528,6 +544,11 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 				v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition) &&
 				v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) {
 				k8sControlPlaneHealthy++
+			} else if shouldSurfaceWhenAvailableTrue(machine,
+				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) {
+				k8sControlPlaneNotHealthy++
 			}
 			continue
 		}
@@ -541,6 +562,9 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 
 		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
 			etcdMembersHealthy++
+		} else if shouldSurfaceWhenAvailableTrue(machine,
+			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
+			etcdMembersNotHealthy++
 		}
 
 		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition) &&
@@ -549,6 +573,13 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) &&
 			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition) {
 			k8sControlPlaneHealthy++
+		} else if shouldSurfaceWhenAvailableTrue(machine,
+			controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition) {
+			k8sControlPlaneNotHealthy++
 		}
 	}
 
@@ -556,44 +587,101 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		(!etcdIsManaged || etcdMembersHealthy >= etcdQuorum) &&
 		k8sControlPlaneHealthy >= 1 &&
 		v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition) {
+		messages := []string{}
+
+		if etcdIsManaged && etcdMembersNotHealthy > 0 {
+			switch len(etcdMembers) - etcdMembersNotHealthy {
+			case 1:
+				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
+			default:
+				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", len(etcdMembers)-etcdMembersNotHealthy, len(etcdMembers), etcdQuorum))
+			}
+		}
+
+		if k8sControlPlaneNotHealthy > 0 {
+			switch len(machines) - k8sControlPlaneNotHealthy {
+			case 1:
+				messages = append(messages, fmt.Sprintf("* 1 of %d Machines has healthy control plane components, at least 1 required", len(machines)))
+			default:
+				messages = append(messages, fmt.Sprintf("* %d of %d Machines have healthy control plane components, at least 1 required", len(machines)-k8sControlPlaneNotHealthy, len(machines)))
+			}
+		}
+
 		v1beta2conditions.Set(kcp, metav1.Condition{
-			Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-			Status: metav1.ConditionTrue,
-			Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+			Status:  metav1.ConditionTrue,
+			Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			Message: strings.Join(messages, "\n"),
 		})
 		return
 	}
 
 	messages := []string{}
 	if !kcp.DeletionTimestamp.IsZero() {
-		messages = append(messages, "Control plane metadata.deletionTimestamp is set")
+		messages = append(messages, "* Control plane metadata.deletionTimestamp is set")
 	}
 
 	if !v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition) {
-		messages = append(messages, "Control plane certificates are not available")
+		messages = append(messages, "* Control plane certificates are not available")
 	}
 
 	if etcdIsManaged && etcdMembersHealthy < etcdQuorum {
 		switch etcdMembersHealthy {
 		case 0:
-			messages = append(messages, fmt.Sprintf("There are no healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* There are no healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
 		case 1:
-			messages = append(messages, fmt.Sprintf("There is 1 healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
 		default:
-			messages = append(messages, fmt.Sprintf("There are %d healthy etcd members, at least %d required for etcd quorum", etcdMembersHealthy, etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", etcdMembersHealthy, len(etcdMembers), etcdQuorum))
 		}
 	}
 
 	if k8sControlPlaneHealthy < 1 {
-		messages = append(messages, "There are no Machines with healthy control plane components, at least 1 required")
+		messages = append(messages, "* There are no Machines with healthy control plane components, at least 1 required")
 	}
 
 	v1beta2conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-		Message: strings.Join(messages, ";"),
+		Message: strings.Join(messages, "\n"),
 	})
+}
+
+// shouldSurfaceWhenAvailableTrue defines when a control plane components/etcd issue should surface when
+// Available condition is true.
+// The main goal of this check is to avoid to surface false negatives/flakes, and thus it requires that
+// an issue exists for at least more than 10 seconds before surfacing it.
+func shouldSurfaceWhenAvailableTrue(machine *clusterv1.Machine, conditionTypes ...string) bool {
+	// Get the min time when one of the conditions in input transitioned to false or unknown.
+	var t *time.Time
+	for _, conditionType := range conditionTypes {
+		c := v1beta2conditions.Get(machine, conditionType)
+		if c == nil {
+			continue
+		}
+		if c.Status == metav1.ConditionTrue {
+			continue
+		}
+		if t == nil {
+			t = ptr.To(c.LastTransitionTime.Time)
+		}
+		t = ptr.To(minTime(*t, c.LastTransitionTime.Time))
+	}
+
+	if t != nil {
+		if time.Since(*t) > 10*time.Second {
+			return true
+		}
+	}
+	return false
+}
+
+func minTime(t1, t2 time.Time) time.Time {
+	if t1.After(t2) {
+		return t2
+	}
+	return t1
 }
 
 func aggregateStaleMachines(machines collections.Machines) string {

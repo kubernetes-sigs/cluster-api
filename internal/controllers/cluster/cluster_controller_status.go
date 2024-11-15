@@ -960,12 +960,12 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 	log := ctrl.LoggerFrom(ctx)
 
 	forConditionTypes := v1beta2conditions.ForConditionTypes{
+		clusterv1.ClusterDeletingV1Beta2Condition,
+		clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 		clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 		clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 		clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-		clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 		clusterv1.ClusterTopologyReconciledV1Beta2Condition,
-		clusterv1.ClusterDeletingV1Beta2Condition,
 	}
 	for _, g := range cluster.Spec.AvailabilityGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)

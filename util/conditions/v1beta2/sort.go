@@ -36,17 +36,15 @@ func init() {
 // and all the other conditions are sorted by Type.
 func defaultSortLessFunc(i, j metav1.Condition) bool {
 	fi, oki := orderMap[i.Type]
-	fj, okj := orderMap[j.Type]
-	switch {
-	case oki && !okj:
-		return true
-	case !oki && okj:
-		return false
-	case oki && okj:
-		return fi < fj
+	if !oki {
+		fi = orderMap[readinessAndAvailabilityGates]
 	}
-
-	return i.Type < j.Type
+	fj, okj := orderMap[j.Type]
+	if !okj {
+		fj = orderMap[readinessAndAvailabilityGates]
+	}
+	return fi < fj ||
+		(fi == fj && i.Type < j.Type)
 }
 
 // The order array below leads to the following condition ordering:
@@ -84,6 +82,8 @@ func defaultSortLessFunc(i, j metav1.Condition) bool {
 // | -- Aggregated from Machines -- |         |     |    |    |    |         |
 // | MachinesReady                  | x       | x   | x  | x  | x  |         |
 // | MachinesUpToDate               | x       | x   | x  | x  | x  |         |
+// | -- From other controllers --   |         |     |    |    |    |         |
+// | Readiness/Availability gates   | x       |     |    |    |    | x       |
 // | -- Misc --                     |         |     |    |    |    |         |
 // | Paused                         | x       | x   | x  | x  | x  | x       |
 // | Deleting                       | x       | x   | x  | x  | x  | x       |
@@ -117,9 +117,15 @@ var order = []string{
 	clusterv1.ScalingUpV1Beta2Condition,
 	clusterv1.MachinesReadyV1Beta2Condition,
 	clusterv1.MachinesUpToDateV1Beta2Condition,
+	readinessAndAvailabilityGates,
 	clusterv1.PausedV1Beta2Condition,
 	clusterv1.DeletingV1Beta2Condition,
 }
+
+// Constants defining a placeholder for readiness and availability gates.
+const (
+	readinessAndAvailabilityGates = ""
+)
 
 // Constants inlined for ordering (we want to avoid importing the KCP API package).
 const (

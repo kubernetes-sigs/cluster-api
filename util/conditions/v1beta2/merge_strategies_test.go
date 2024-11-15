@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestSortMessages(t *testing.T) {
@@ -67,6 +68,24 @@ func TestSortMessages(t *testing.T) {
 	g.Expect(got).To(BeTrue())
 	// 1 object "b" goes after 1 object "a"
 	got = sortMessage("m7", "m6", messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+	g.Expect(got).To(BeFalse())
+}
+
+func TestSortObj(t *testing.T) {
+	g := NewWithT(t)
+	cpMachines := sets.Set[string]{}
+	cpMachines.Insert("m3")
+
+	// Control plane goes before not control planes
+	got := sortObj("m3", "m1", cpMachines)
+	g.Expect(got).To(BeTrue())
+	got = sortObj("m1", "m3", cpMachines)
+	g.Expect(got).To(BeFalse())
+
+	// machines must be sorted alphabetically
+	got = sortObj("m1", "m2", cpMachines)
+	g.Expect(got).To(BeTrue())
+	got = sortObj("m2", "m1", cpMachines)
 	g.Expect(got).To(BeFalse())
 }
 
@@ -137,13 +156,13 @@ func TestAggregateMessages(t *testing.T) {
 			"And 5 MachineDeployments with status unknown", // MachineDeployments obj01, obj02, obj05, obj08, obj09 (Message 1) << This doesn't show up because even if it applies to 5 machines because it has merge priority unknown
 		}))
 	})
-	t.Run("Control plane machines always goes before unknown", func(t *testing.T) {
+	t.Run("Control plane machines always goes before other machines", func(t *testing.T) {
 		g := NewWithT(t)
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj02", IsControlPlaneMachine: true}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj02", IsControlPlaneMachine: true}, Condition: metav1.Condition{Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
@@ -155,8 +174,9 @@ func TestAggregateMessages(t *testing.T) {
 
 		g.Expect(n).To(Equal(0))
 		g.Expect(messages).To(Equal([]string{
-			"* Machine obj02: Message-1", // control plane always go first, no matter if priority or number of objects
-			"* Machines obj01, obj03, obj04, ... (1 more):\n" +
+			"* Machines obj02, obj01:\n" + // control plane machines always go first, no matter if priority or number of objects (note, cp machine also go first in the machine list)
+				"  * Message-1",
+			"* Machines obj03, obj04, obj05:\n" +
 				"  * Message-2",
 			"* Machine obj06:\n" +
 				"  * Message-3A\n" +

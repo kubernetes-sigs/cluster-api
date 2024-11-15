@@ -44,7 +44,8 @@ func FailureDomainLabel(failureDomain *string) map[string]string {
 	return nil
 }
 
-func machineContainerName(cluster, machine string) string {
+// MachineContainerName computes the name of a container for a given machine.
+func MachineContainerName(cluster, machine string) string {
 	if strings.HasPrefix(machine, cluster) {
 		return machine
 	}

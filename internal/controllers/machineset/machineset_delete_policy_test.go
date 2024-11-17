@@ -200,9 +200,9 @@ func TestMachineToDelete(t *testing.T) {
 			desc: "func=randomDeletePolicy, DeleteMachineAnnotation, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
-				healthyMachine,
+				betterDeleteMachine,
 				deleteMachineWithMachineAnnotation,
-				healthyMachine,
+				betterDeleteMachine,
 			},
 			expect: []*clusterv1.Machine{
 				deleteMachineWithMachineAnnotation,

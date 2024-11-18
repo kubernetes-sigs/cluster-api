@@ -272,7 +272,7 @@ type scope struct {
 	infrastructureObjectNotFound              bool
 	getAndAdoptMachinesForMachineSetSucceeded bool
 	owningMachineDeployment                   *clusterv1.MachineDeployment
-	scaleUpPreflightCheckErrMessage           string
+	scaleUpPreflightCheckErrMessages          []string
 	reconciliationTime                        time.Time
 }
 
@@ -673,15 +673,19 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 		}
 
-		result, preflightCheckErrMessage, err := r.runPreflightChecks(ctx, cluster, ms, "Scale up")
-		if err != nil || !result.IsZero() {
+		preflightCheckErrMessages, err := r.runPreflightChecks(ctx, cluster, ms, "Scale up")
+		if err != nil || len(preflightCheckErrMessages) > 0 {
 			if err != nil {
-				// If the error is not nil use that as the message for the condition.
-				preflightCheckErrMessage = err.Error()
+				// If err is not nil use that as the preflightCheckErrMessage
+				preflightCheckErrMessages = append(preflightCheckErrMessages, err.Error())
 			}
-			s.scaleUpPreflightCheckErrMessage = preflightCheckErrMessage
-			conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, preflightCheckErrMessage)
-			return result, err
+
+			s.scaleUpPreflightCheckErrMessages = preflightCheckErrMessages
+			conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, strings.Join(preflightCheckErrMessages, "; "))
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 		}
 
 		var (
@@ -1418,31 +1422,39 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	}
 
 	// Run preflight checks.
-	preflightChecksResult, preflightCheckErrMessage, err := r.runPreflightChecks(ctx, cluster, ms, "Machine remediation")
-	if err != nil {
-		// If err is not nil use that as the preflightCheckErrMessage
-		preflightCheckErrMessage = err.Error()
-	}
+	preflightCheckErrMessages, err := r.runPreflightChecks(ctx, cluster, ms, "Machine remediation")
+	if err != nil || len(preflightCheckErrMessages) > 0 {
+		if err != nil {
+			// If err is not nil use that as the preflightCheckErrMessage
+			preflightCheckErrMessages = append(preflightCheckErrMessages, err.Error())
+		}
 
-	preflightChecksFailed := err != nil || !preflightChecksResult.IsZero()
-	if preflightChecksFailed {
+		listMessages := make([]string, len(preflightCheckErrMessages))
+		for i, msg := range preflightCheckErrMessages {
+			listMessages[i] = fmt.Sprintf("* %s", msg)
+		}
+
 		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
 		// WaitingForRemediationReason reason.
-		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+		if patchErr := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
-			Message: preflightCheckErrMessage,
+			Message: strings.Join(listMessages, "\n"),
 		}, &clusterv1.Condition{
 			Type:     clusterv1.MachineOwnerRemediatedCondition,
 			Status:   corev1.ConditionFalse,
 			Reason:   clusterv1.WaitingForRemediationReason,
 			Severity: clusterv1.ConditionSeverityWarning,
-			Message:  preflightCheckErrMessage,
-		}); err != nil {
+			Message:  strings.Join(preflightCheckErrMessages, "; "),
+		}); patchErr != nil {
+			return ctrl.Result{}, kerrors.NewAggregate([]error{err, patchErr})
+		}
+
+		if err != nil {
 			return ctrl.Result{}, err
 		}
-		return preflightChecksResult, nil
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 	}
 
 	// PreflightChecks passed, so it is safe to remediate unhealthy machines by deleting them.

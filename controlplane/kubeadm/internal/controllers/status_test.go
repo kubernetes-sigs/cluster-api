@@ -233,10 +233,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 				InfraMachineTemplateIsNotFound: true,
 			},
 			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
-				Message: "Scaling up from 3 to 5 replicas is blocked because AWSTemplate does not exist",
+				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
+					"* AWSTemplate does not exist",
 			},
 		},
 		{
@@ -258,10 +259,13 @@ func Test_setScalingUpCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
-				Message: "Scaling up from 3 to 5 replicas; waiting for Machine being deleted; waiting for control plane components to be healthy; waiting for etcd cluster to be healthy",
+				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
+					"* waiting for a control plane Machine to complete deletion\n" +
+					"* waiting for control plane components to be healthy\n" +
+					"* waiting for etcd cluster to be healthy",
 			},
 		},
 	}
@@ -373,10 +377,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 				),
 			},
 			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
-				Message: "Scaling down from 3 to 1 replicas; Machine m1 is in deletion since more than 30m",
+				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
+					"* Machine m1 is in deletion since more than 30m",
 			},
 		},
 		{
@@ -393,10 +398,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 				),
 			},
 			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
-				Message: "Scaling down from 3 to 1 replicas; Machines m1, m2 are in deletion since more than 30m",
+				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
+					"* Machines m1, m2 are in deletion since more than 30m",
 			},
 		},
 		{
@@ -418,10 +424,13 @@ func Test_setScalingDownCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
-				Message: "Scaling down from 3 to 1 replicas; waiting for Machine being deleted; waiting for control plane components to be healthy; waiting for etcd cluster to be healthy",
+				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
+					"* waiting for a control plane Machine to complete deletion\n" +
+					"* waiting for control plane components to be healthy\n" +
+					"* waiting for etcd cluster to be healthy",
 			},
 		},
 	}

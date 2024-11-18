@@ -1731,7 +1731,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
-			Message: "GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+			Message: "* GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 		}, v1beta2conditions.IgnoreLastTransitionTime(true)))
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.

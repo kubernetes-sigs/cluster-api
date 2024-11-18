@@ -513,6 +513,12 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cl
 		return errors.New(err.Error())
 	}
 
+	// Ensure the ref namespace is populated for objects not yet defaulted by webhook
+	if ref.Namespace == "" {
+		ref = ref.DeepCopy()
+		ref.Namespace = cluster.Namespace
+	}
+
 	obj, err := external.Get(ctx, c, ref)
 	if err != nil {
 		return err

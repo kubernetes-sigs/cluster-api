@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -237,7 +238,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 		if getMachinesSucceeded {
 			staleMessage := aggregateStaleMachines(machines)
 			if staleMessage != "" {
-				message += fmt.Sprintf(" and %s", staleMessage)
+				message += fmt.Sprintf("\n* %s", staleMessage)
 			}
 		}
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
@@ -443,7 +444,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf(" and %s", staleMessage)
+			message += fmt.Sprintf("\n* %s", staleMessage)
 		}
 	}
 	if len(machines) == 0 && len(machineSets) > 0 {
@@ -487,9 +488,26 @@ func aggregateStaleMachines(machines collections.Machines) string {
 	}
 
 	machineNames := []string{}
+	delayReasons := sets.Set[string]{}
 	for _, machine := range machines {
-		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*30 {
+		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
 			machineNames = append(machineNames, machine.GetName())
+
+			deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
+			if deletingCondition != nil &&
+				deletingCondition.Status == metav1.ConditionTrue &&
+				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
+				machine.Status.Deletion != nil && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
+					delayReasons.Insert("PodDisruptionBudgets")
+				}
+				if strings.Contains(deletingCondition.Message, "deletionTimestamp set, but still not removed from the Node") {
+					delayReasons.Insert("Pods not terminating")
+				}
+				if strings.Contains(deletingCondition.Message, "failed to evict Pod") {
+					delayReasons.Insert("Pod eviction errors")
+				}
+			}
 		}
 	}
 
@@ -510,7 +528,16 @@ func aggregateStaleMachines(machines collections.Machines) string {
 	} else {
 		message += " are "
 	}
-	message += "in deletion since more than 30m"
+	message += "in deletion since more than 15m"
+	if len(delayReasons) > 0 {
+		reasonList := []string{}
+		for _, r := range []string{"PodDisruptionBudgets", "Pods not terminating", "Pod eviction errors"} {
+			if delayReasons.Has(r) {
+				reasonList = append(reasonList, r)
+			}
+		}
+		message += fmt.Sprintf(", delay likely due to %s", strings.Join(reasonList, ", "))
+	}
 
 	return message
 }

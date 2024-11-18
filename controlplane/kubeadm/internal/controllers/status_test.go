@@ -381,7 +381,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* Machine m1 is in deletion since more than 30m",
+					"* Machine m1 is in deletion since more than 15m",
 			},
 		},
 		{
@@ -402,7 +402,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* Machines m1, m2 are in deletion since more than 30m",
+					"* Machines m1, m2 are in deletion since more than 15m",
 			},
 		},
 		{

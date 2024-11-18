@@ -518,10 +518,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
-				Message: "Scaling down from 2 to 1 replicas and Machine stale-machine-1 is in deletion since more than 30m",
+				Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
+				Message: "Scaling down from 2 to 1 replicas\n" +
+					"* Machine stale-machine-1 is in deletion since more than 15m",
 			},
 		},
 		{
@@ -539,10 +540,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
-				Message: "Scaling down from 4 to 1 replicas and Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 30m",
+				Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
+				Message: "Scaling down from 4 to 1 replicas\n" +
+					"* Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
 			},
 		},
 		{
@@ -562,10 +564,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
-				Message: "Scaling down from 6 to 1 replicas and Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 30m",
+				Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
+				Message: "Scaling down from 6 to 1 replicas\n" +
+					"* Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
 			},
 		},
 		{
@@ -1072,10 +1075,11 @@ func Test_setDeletingCondition(t *testing.T) {
 			},
 			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
-				Message: "Deleting 1 Machine and Machine m1 is in deletion since more than 30m",
+				Type:   clusterv1.MachineDeploymentDeletingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentDeletingV1Beta2Reason,
+				Message: "Deleting 1 Machine\n" +
+					"* Machine m1 is in deletion since more than 15m",
 			},
 		},
 		{

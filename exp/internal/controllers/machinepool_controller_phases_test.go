@@ -78,12 +78,14 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 				},
 			},
@@ -808,6 +810,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 				},
@@ -949,6 +952,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									APIVersion: builder.BootstrapGroupVersion.String(),
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
+									Namespace:  metav1.NamespaceDefault,
 								},
 								DataSecretName: ptr.To("data"),
 							},
@@ -1032,6 +1036,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									APIVersion: builder.BootstrapGroupVersion.String(),
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
+									Namespace:  metav1.NamespaceDefault,
 								},
 								DataSecretName: ptr.To("data"),
 							},
@@ -1107,12 +1112,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 				},
 			},
@@ -1186,12 +1193,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 									APIVersion: builder.BootstrapGroupVersion.String(),
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
+									Namespace:  metav1.NamespaceDefault,
 								},
 							},
 							InfrastructureRef: corev1.ObjectReference{
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
+								Namespace:  metav1.NamespaceDefault,
 							},
 						},
 					},
@@ -1245,12 +1254,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 									APIVersion: builder.BootstrapGroupVersion.String(),
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
+									Namespace:  metav1.NamespaceDefault,
 								},
 							},
 							InfrastructureRef: corev1.ObjectReference{
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
+								Namespace:  metav1.NamespaceDefault,
 							},
 						},
 					},
@@ -1437,7 +1448,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1508,7 +1519,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1755,12 +1766,14 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
+							Namespace:  ns.Name,
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
+						Namespace:  ns.Name,
 					},
 				},
 			},
@@ -2181,12 +2194,14 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) expv1.Mach
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.GenericBootstrapConfigKind,
 							Name:       "bootstrap-config1",
+							Namespace:  nsName,
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.GenericInfrastructureMachineKind,
 						Name:       "infra-config1",
+						Namespace:  nsName,
 					},
 				},
 			},

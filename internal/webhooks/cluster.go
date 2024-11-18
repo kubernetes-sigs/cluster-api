@@ -509,7 +509,7 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 }
 
 func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
-	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef, oldCluster.Namespace)
+	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef)
 	if err != nil {
 		return errors.Wrap(err, "failed to get ControlPlane object")
 	}

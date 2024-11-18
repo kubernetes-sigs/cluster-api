@@ -1399,7 +1399,7 @@ kubernetesVersion: metav1.16.1
 		machine := machineList.Items[0]
 		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 		// Newly cloned infra objects should have the infraref annotation.
-		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Spec.InfrastructureRef.Namespace)
+		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))

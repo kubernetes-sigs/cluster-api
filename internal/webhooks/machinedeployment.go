@@ -158,6 +158,15 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 		m.Spec.Template.Spec.Version = &normalizedVersion
 	}
 
+	// Make sure the namespace of the referent is populated
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
+		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
+	}
+
+	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
+		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
+
 	return nil
 }
 

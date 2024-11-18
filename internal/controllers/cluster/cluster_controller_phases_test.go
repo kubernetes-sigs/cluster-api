@@ -59,6 +59,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "test",
+				Namespace:  "test-namespace",
 			},
 		},
 	}
@@ -75,6 +76,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "test",
+				Namespace:  "test-namespace",
 			},
 		},
 	}
@@ -305,6 +307,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericControlPlane",
 				Name:       "test",
+				Namespace:  "test-namespace",
 			},
 		},
 	}
@@ -321,6 +324,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericControlPlane",
 				Name:       "test",
+				Namespace:  "test-namespace",
 			},
 		},
 	}
@@ -836,6 +840,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureCluster",
 				Name:       "test",
+				Namespace:  "test-namespace",
 			},
 		},
 	}

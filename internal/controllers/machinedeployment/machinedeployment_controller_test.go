@@ -127,6 +127,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       "md-template",
+							Namespace:  namespace.Name,
 						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To("data-secret-name"),
@@ -203,7 +204,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, &deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
+			obj, err := external.Get(ctx, env, &deployment.Spec.Template.Spec.InfrastructureRef)
 			if err != nil {
 				return false
 			}
@@ -310,6 +311,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			Kind:       "GenericInfrastructureMachineTemplate",
 			Name:       "md-template-2",
+			Namespace:  namespace.Name,
 		}
 		modifyFunc = func(d *clusterv1.MachineDeployment) { d.Spec.Template.Spec.InfrastructureRef = infraTmpl2Ref }
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
@@ -549,6 +551,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "GenericInfrastructureMachineTemplate",
 						Name:       "md-template",
+						Namespace:  namespace.Name,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret-name"),
@@ -619,6 +622,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "GenericInfrastructureMachineTemplate",
 						Name:       "md-template",
+						Namespace:  testCluster.Namespace,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret-name"),

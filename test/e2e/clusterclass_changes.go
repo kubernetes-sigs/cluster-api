@@ -260,7 +260,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 
 	// Get ControlPlaneTemplate object.
 	controlPlaneTemplateRef := input.ClusterClass.Spec.ControlPlane.Ref
-	controlPlaneTemplate, err := external.Get(ctx, mgmtClient, controlPlaneTemplateRef, input.ClusterClass.Namespace)
+	controlPlaneTemplate, err := external.Get(ctx, mgmtClient, controlPlaneTemplateRef)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a new ControlPlaneTemplate object with a new name and ModifyControlPlaneFields set.
@@ -287,7 +287,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		// Get the ControlPlane.
 		controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
 		controlPlaneTopology := input.Cluster.Spec.Topology.ControlPlane
-		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef, input.ClusterClass.Namespace)
+		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify that the fields from Cluster topology are set on the control plane.
@@ -366,7 +366,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 			// Retrieve BootstrapConfigTemplate object.
 			bootstrapConfigTemplateRef = mdClass.Template.Bootstrap.Ref
-			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef, input.Cluster.Namespace)
+			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 			Expect(err).ToNot(HaveOccurred())
 			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
 			newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
@@ -383,7 +383,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 		// Retrieve InfrastructureMachineTemplate object.
 		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.Ref
-		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef, input.Cluster.Namespace)
+		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachineTemplate object with a new name and ModifyInfrastructureMachineTemplateFields set.
 		newInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
@@ -429,7 +429,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 				if mdClass.Template.Bootstrap.Ref != nil {
 					// Get the corresponding BootstrapConfigTemplate.
 					bootstrapConfigTemplateRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef, input.Cluster.Namespace)
+					bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 					g.Expect(err).ToNot(HaveOccurred())
 
 					// Verify that ModifyBootstrapConfigTemplateFields have been set.
@@ -443,7 +443,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 				// Get the corresponding InfrastructureMachineTemplate.
 				infrastructureMachineTemplateRef := md.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachineTemplateRef, input.Cluster.Namespace)
+				infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachineTemplateRef)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachineTemplateFields have been set.
@@ -489,7 +489,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 			// Retrieve BootstrapConfigTemplate object.
 			bootstrapConfigTemplateRef = mpClass.Template.Bootstrap.Ref
-			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef, input.Cluster.Namespace)
+			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 			Expect(err).ToNot(HaveOccurred())
 			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
 			newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
@@ -506,7 +506,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 		// Retrieve InfrastructureMachineTemplate object.
 		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.Ref
-		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef, input.Cluster.Namespace)
+		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachinePoolTemplate object with a new name and ModifyInfrastructureMachinePoolTemplateFields set.
 		newInfrastructureMachinePoolTemplate := infrastructureMachinePoolTemplate.DeepCopy()
@@ -552,7 +552,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 				if mpClass.Template.Bootstrap.Ref != nil {
 					// Get the corresponding BootstrapConfig object.
 					bootstrapConfigObjectRef := mp.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigObject, err := external.Get(ctx, mgmtClient, bootstrapConfigObjectRef, input.Cluster.Namespace)
+					bootstrapConfigObject, err := external.Get(ctx, mgmtClient, bootstrapConfigObjectRef)
 					g.Expect(err).ToNot(HaveOccurred())
 
 					// Verify that ModifyBootstrapConfigTemplateFields have been set and propagates to the BootstrapConfig.
@@ -568,7 +568,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 				// Get the corresponding InfrastructureMachinePoolTemplate.
 				infrastructureMachinePoolRef := mp.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachinePool, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolRef, input.Cluster.Namespace)
+				infrastructureMachinePool, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolRef)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachinePoolTemplateFields have been set.
@@ -695,7 +695,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	// Get the current ControlPlane, we will later verify that it has not changed.
 	controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
-	beforeControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef, input.ClusterClass.Namespace)
+	beforeControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Rebase the Cluster to the new ClusterClass.
@@ -741,7 +741,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	// Verify that the ControlPlane has not been changed.
 	// NOTE: MachineDeployments are rolled out before the ControlPlane. Thus, we know that the
 	// ControlPlane would have been updated by now, if there have been any changes.
-	afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef, input.ClusterClass.Namespace)
+	afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(afterControlPlane.GetGeneration()).To(Equal(beforeControlPlane.GetGeneration()),
 		"ControlPlane generation should not be incremented during the rebase because ControlPlane should not be affected.")

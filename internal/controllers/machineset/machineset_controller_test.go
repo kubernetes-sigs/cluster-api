@@ -106,12 +106,14 @@ func TestMachineSetReconciler(t *testing.T) {
 						APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 						Kind:       "GenericBootstrapConfigTemplate",
 						Name:       "ms-template",
+						Namespace:  namespace.Name,
 					},
 				},
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericInfrastructureMachineTemplate",
 					Name:       "ms-template",
+					Namespace:  namespace.Name,
 				},
 				NodeDrainTimeout:        duration10m,
 				NodeDeletionTimeout:     duration10m,
@@ -224,7 +226,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
+			obj, err := external.Get(ctx, env, instance.Spec.Template.Spec.Bootstrap.ConfigRef)
 			if err != nil {
 				return false
 			}
@@ -239,7 +241,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
+			obj, err := external.Get(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef)
 			if err != nil {
 				return false
 			}

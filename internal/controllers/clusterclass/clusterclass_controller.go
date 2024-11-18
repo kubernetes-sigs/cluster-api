@@ -407,12 +407,12 @@ func refString(ref *corev1.ObjectReference) string {
 }
 
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
-	obj, err := external.Get(ctx, r.Client, ref, clusterClass.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return errors.Wrapf(err, "could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
+			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
 		}
-		return errors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
+		return errors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s, refNamespace: %s", ref.GroupVersionKind(), ref.Name, ref.Namespace)
 	}
 
 	// Initialize the patch helper.

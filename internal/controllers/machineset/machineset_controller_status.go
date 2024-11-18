@@ -107,9 +107,10 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if ms.Spec.Replicas == nil {
 		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineSetScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}
@@ -172,9 +173,10 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if ms.Spec.Replicas == nil {
 		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}

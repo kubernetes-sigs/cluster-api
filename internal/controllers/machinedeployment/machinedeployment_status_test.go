@@ -105,9 +105,10 @@ func Test_setAvailableCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
+				Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
+				Message: "Waiting for spec.replicas set",
 			},
 		},
 		{
@@ -117,9 +118,10 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
+				Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
+				Message: "Waiting for status.v1beta2.availableReplicas set",
 			},
 		},
 		{
@@ -266,9 +268,10 @@ func Test_setScalingUpCondition(t *testing.T) {
 			infrastructureTemplateNotFound:               false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+				Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+				Message: "Waiting for spec.replicas set",
 			},
 		},
 		{
@@ -464,9 +467,10 @@ func Test_setScalingDownCondition(t *testing.T) {
 			}(),
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+				Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+				Message: "Waiting for spec.replicas set",
 			},
 		},
 		{

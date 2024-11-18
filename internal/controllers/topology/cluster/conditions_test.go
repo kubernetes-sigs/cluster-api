@@ -1019,7 +1019,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage:        "",
 			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
 			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledDeletingV1Beta2Reason,
-			wantV1Beta2ConditionMessage: "",
+			wantV1Beta2ConditionMessage: "Cluster is deleting",
 		},
 	}
 

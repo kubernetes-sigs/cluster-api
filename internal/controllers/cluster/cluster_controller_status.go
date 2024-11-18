@@ -508,7 +508,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 			Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
-			Message: fmt.Sprintf("Waiting for the %s to have status.initialized set to true", cluster.Spec.ControlPlaneRef.Kind),
+			Message: "Control plane not yet initialized",
 		})
 		return
 	}

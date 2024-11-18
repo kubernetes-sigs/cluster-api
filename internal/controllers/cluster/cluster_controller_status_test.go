@@ -603,7 +603,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 				Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
-				Message: "Waiting for the FakeControlPlane to have status.initialized set to true",
+				Message: "Control plane not yet initialized",
 			},
 		},
 		{

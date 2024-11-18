@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -654,6 +655,7 @@ func setMachinesReadyCondition(ctx context.Context, cluster *clusterv1.Cluster, 
 
 func setMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.Cluster, machines collections.Machines, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
+
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getDescendantsSucceeded {
 		v1beta2conditions.Set(cluster, metav1.Condition{
@@ -664,6 +666,13 @@ func setMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.Cluste
 		})
 		return
 	}
+
+	// Only consider Machines that have an UpToDate condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
+		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+	})
 
 	if len(machines) == 0 {
 		v1beta2conditions.Set(cluster, metav1.Condition{

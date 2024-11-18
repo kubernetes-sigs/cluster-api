@@ -1005,10 +1005,11 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "One machine without up-to-date condition",
+			name:    "One machine without up-to-date condition, one new Machines without up-to-date condition",
 			cluster: fakeCluster("c"),
 			machines: []*clusterv1.Machine{
 				fakeMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-2-new", creationTimestamp{Time: time.Now().Add(-5 * time.Second)}), // ignored because it's new
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -2648,6 +2649,12 @@ type initialized bool
 
 func (r initialized) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().Initialized().Set(cp, bool(r))
+}
+
+type creationTimestamp metav1.Time
+
+func (t creationTimestamp) ApplyToMachine(m *clusterv1.Machine) {
+	m.CreationTimestamp = metav1.Time(t)
 }
 
 type nodeRef corev1.ObjectReference

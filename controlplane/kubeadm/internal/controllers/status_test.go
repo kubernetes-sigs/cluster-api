@@ -476,19 +476,22 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateTrue}}}},
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateFalse}}}},
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, upToDateFalse}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse}}}},                                                                         // Machine without UpToDate condition
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5", CreationTimestamp: metav1.Time{Time: time.Now().Add(-5 * time.Second)}}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse}}}}, // New Machine without UpToDate condition (should be ignored)
 				),
 			},
 			expectMachinesReadyCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotReadyV1Beta2Reason,
-				Message: "* Machine m3: NotReady",
+				Message: "* Machines m3, m4, m5: NotReady",
 			},
 			expectMachinesUpToDateCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
-				Message: "* Machines m2, m3: NotUpToDate",
+				Type:   controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
+				Message: "* Machines m2, m3: NotUpToDate\n" +
+					"* Machine m4: Condition UpToDate not yet reported",
 			},
 		},
 	}

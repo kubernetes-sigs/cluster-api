@@ -1221,6 +1221,121 @@ func TestDeletingCondition(t *testing.T) {
 	}
 }
 
+func TestTransformControlPlaneAndEtcdConditions(t *testing.T) {
+	testCases := []struct {
+		name           string
+		messages       []string
+		expectMessages []string
+	}{
+		{
+			name: "no-op without control plane conditions",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.InfrastructureReadyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineNodeHealthyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineDeletingV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineHealthCheckSucceededV1Beta2Condition),
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.InfrastructureReadyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineNodeHealthyV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineDeletingV1Beta2Condition),
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineHealthCheckSucceededV1Beta2Condition),
+			},
+		},
+		{
+			name: "group control plane conditions when msg are all equal",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething: Waiting for AWSMachine to report spec.providerID",
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* Control plane components: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething: Waiting for AWSMachine to report spec.providerID",
+			},
+		},
+		{
+			name: "don't group control plane conditions when msg are not all equal",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Some message",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething:Some message",
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Some message",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething:Some message",
+			},
+		},
+		{
+			name: "don't group control plane conditions when there is only one condition",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething:Some message",
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething:Some message",
+			},
+		},
+		{
+			name: "Treat EtcdPodHealthy as a special case (it groups with control plane components)",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdPodHealthy: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething: Some message",
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* Control plane components: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdSomething: Some message",
+			},
+		},
+		{
+			name: "Treat EtcdPodHealthy as a special case (it does not group with other etcd conditions)",
+			messages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdPodHealthy: Some message",
+				"* EtcdSomething: Some message",
+			},
+			expectMessages: []string{
+				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+				"* APIServerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* ControllerManagerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* SchedulerSomething: Waiting for AWSMachine to report spec.providerID",
+				"* EtcdPodHealthy: Some message",
+				"* EtcdSomething: Some message",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got := transformControlPlaneAndEtcdConditions(tc.messages)
+			g.Expect(got).To(Equal(tc.expectMessages))
+		})
+	}
+}
+
 func TestSetReadyCondition(t *testing.T) {
 	testCases := []struct {
 		name            string
@@ -1417,9 +1532,7 @@ func TestSetReadyCondition(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ReadinessGates: []clusterv1.MachineReadinessGate{
-						{
-							ConditionType: "MyReadinessGate",
-						},
+						{ConditionType: "MyReadinessGate"},
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1465,6 +1578,78 @@ func TestSetReadyCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyV1Beta2Reason,
 				Message: "* MyReadinessGate: Some message",
+			},
+		},
+		{
+			name: "Groups readiness gates for control plane components and etcd member when possible and there is more than one condition for each category",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					ReadinessGates: []clusterv1.MachineReadinessGate{
+						{ConditionType: "APIServerSomething"},
+						{ConditionType: "ControllerManagerSomething"},
+						{ConditionType: "EtcdSomething"},
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:    "APIServerSomething",
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some control plane message",
+							},
+							{
+								Type:    "ControllerManagerSomething",
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some control plane message",
+							},
+							{
+								Type:    "EtcdSomething",
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some etcd message",
+							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotReadyV1Beta2Reason,
+				Message: "* Control plane components: Some control plane message\n" +
+					"* EtcdSomething: Some etcd message",
 			},
 		},
 	}

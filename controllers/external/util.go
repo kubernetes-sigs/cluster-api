@@ -55,7 +55,7 @@ func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) e
 	obj.SetName(ref.Name)
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Delete(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to delete %s external object %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
+		return errors.Wrapf(err, "failed to delete %s %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
 	}
 	return nil
 }

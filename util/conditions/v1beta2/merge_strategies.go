@@ -375,6 +375,7 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 	messageObjMap := map[string]map[string][]string{}
 	messagePriorityMap := map[string]MergePriority{}
 	messageMustGoFirst := map[string]bool{}
+	cpMachines := sets.Set[string]{}
 	for _, condition := range conditions {
 		if dropEmpty && condition.Message == "" {
 			continue
@@ -386,6 +387,11 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 			messageObjMap[condition.OwnerResource.Kind] = map[string][]string{}
 		}
 		messageObjMap[condition.OwnerResource.Kind][m] = append(messageObjMap[condition.OwnerResource.Kind][m], condition.OwnerResource.Name)
+
+		// Keep track of CP machines
+		if condition.OwnerResource.IsControlPlaneMachine {
+			cpMachines.Insert(condition.OwnerResource.Name)
+		}
 
 		// Keep track of the priority of the message.
 		// In case the same message exists with different priorities, the highest according to issue/unknown/info applies.
@@ -456,7 +462,9 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 
 			msg := ""
 			allObjects := messageObjMapForKind[m]
-			sort.Strings(allObjects)
+			sort.Slice(allObjects, func(i, j int) bool {
+				return sortObj(allObjects[i], allObjects[j], cpMachines)
+			})
 			switch {
 			case len(allObjects) == 0:
 				// This should never happen, entry in the map exists only when an object reports a message.
@@ -518,6 +526,16 @@ func sortMessage(i, j string, messageMustGoFirst map[string]bool, messagePriorit
 	}
 
 	return strings.Join(messageObjMapForKind[i], ",") < strings.Join(messageObjMapForKind[j], ",")
+}
+
+func sortObj(i, j string, cpMachines sets.Set[string]) bool {
+	if cpMachines.Has(i) && !cpMachines.Has(j) {
+		return true
+	}
+	if !cpMachines.Has(i) && cpMachines.Has(j) {
+		return false
+	}
+	return i < j
 }
 
 func indentIfMultiline(m string) string {

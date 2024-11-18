@@ -28,17 +28,40 @@ import (
 // ClusterClassKind represents the Kind of ClusterClass.
 const ClusterClassKind = "ClusterClass"
 
-// Conditions that will be used for the ClusterClass object in v1Beta2 API version.
+// ClusterClass VariablesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// ClusterClassVariablesReadyV1Beta2Condition is true if the ClusterClass variables, including both inline and external
 	// variables, have been successfully reconciled and thus ready to be used to default and validate variables on Clusters using
 	// this ClusterClass.
 	ClusterClassVariablesReadyV1Beta2Condition = "VariablesReady"
 
+	// ClusterClassVariablesReadyV1Beta2Reason surfaces that the variables are ready.
+	ClusterClassVariablesReadyV1Beta2Reason = "VariablesReady"
+
+	// ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason surfaces that variable discovery failed.
+	ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason = "VariableDiscoveryFailed"
+)
+
+// ClusterClass RefVersionsUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
 	// ClusterClassRefVersionsUpToDateV1Beta2Condition documents if the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
 	ClusterClassRefVersionsUpToDateV1Beta2Condition = "RefVersionsUpToDate"
+
+	// ClusterClassRefVersionsUpToDateV1Beta2Reason surfaces that the references in the ClusterClass are
+	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
+	// the corresponding CRD).
+	ClusterClassRefVersionsUpToDateV1Beta2Reason = "RefVersionsUpToDate"
+
+	// ClusterClassRefVersionsNotUpToDateV1Beta2Reason surfaces that the references in the ClusterClass are not
+	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from
+	// the corresponding CRD).
+	ClusterClassRefVersionsNotUpToDateV1Beta2Reason = "RefVersionsNotUpToDate"
+
+	// ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason surfaces that an unexpected error occurred when validating
+	// if the references are up-to-date.
+	ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // +kubebuilder:object:root=true

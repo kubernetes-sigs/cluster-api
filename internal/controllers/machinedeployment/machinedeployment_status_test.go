@@ -814,10 +814,11 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name:              "One machine without up-to-date condition",
+			name:              "One machine without up-to-date condition, one new Machines without up-to-date condition",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machines: []*clusterv1.Machine{
 				fakeMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-2-new", withCreationTimestamp(time.Now().Add(-5*time.Second))), // ignored because it's new
 			},
 			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -1170,6 +1171,12 @@ func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine 
 		opt(p)
 	}
 	return p
+}
+
+func withCreationTimestamp(t time.Time) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.CreationTimestamp = metav1.Time{Time: t}
+	}
 }
 
 func withStaleDeletion() fakeMachinesOption {

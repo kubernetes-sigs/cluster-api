@@ -256,7 +256,7 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 	v1beta2conditions.Set(machineSet, *readyCondition)
 }
 
-func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesSlice []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
@@ -269,6 +269,13 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 		return
 	}
 
+	// Only consider Machines that have an UpToDate condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	machines := collections.FromMachines(machinesSlice...).Filter(func(machine *clusterv1.Machine) bool {
+		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+	})
+
 	if len(machines) == 0 {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:   clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
@@ -279,7 +286,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	}
 
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
-		machines, clusterv1.MachineUpToDateV1Beta2Condition,
+		machines.UnsortedList(), clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
 		// Using a custom merge strategy to override reasons applied during merge.
 		v1beta2conditions.CustomMergeStrategy{

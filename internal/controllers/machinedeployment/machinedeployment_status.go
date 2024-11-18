@@ -320,6 +320,13 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		return
 	}
 
+	// Only consider Machines that have an UpToDate condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
+		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+	})
+
 	if len(machines) == 0 {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,

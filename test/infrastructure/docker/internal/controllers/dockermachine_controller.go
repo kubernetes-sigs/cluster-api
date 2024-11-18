@@ -183,7 +183,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle deleted machines
-	if !dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !dockerMachine.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
 	}
 
@@ -464,11 +464,11 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, cluster *
 
 	// delete the machine
 	if err := externalMachine.Delete(ctx); err != nil {
-		return errors.Wrap(err, "failed to delete DockerMachine")
+		return errors.Wrap(err, "failed to delete external DockerMachine")
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
-	if util.IsControlPlaneMachine(machine) {
+	if machine != nil && util.IsControlPlaneMachine(machine) {
 		if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
 			return err
 		}

@@ -69,19 +69,19 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 
 	t.Run("should run preflight checks if the feature gate is enabled", func(t *testing.T) {
 		tests := []struct {
-			name                         string
-			cluster                      *clusterv1.Cluster
-			controlPlane                 *unstructured.Unstructured
-			machineSet                   *clusterv1.MachineSet
-			wantPass                     bool
-			wantPreflightCheckErrMessage string
-			wantErr                      bool
+			name         string
+			cluster      *clusterv1.Cluster
+			controlPlane *unstructured.Unstructured
+			machineSet   *clusterv1.MachineSet
+			wantMessages []string
+			wantErr      bool
 		}{
 			{
-				name:       "should pass if cluster has no control plane",
-				cluster:    &clusterv1.Cluster{},
-				machineSet: &clusterv1.MachineSet{},
-				wantPass:   true,
+				name:         "should pass if cluster has no control plane",
+				cluster:      &clusterv1.Cluster{},
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "should pass if the control plane version is not defined",
@@ -95,7 +95,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneWithNoVersion,
 				machineSet:   &clusterv1.MachineSet{},
-				wantPass:     true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "should error if the control plane version is invalid",
@@ -109,6 +110,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneWithInvalidVersion,
 				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: nil,
 				wantErr:      true,
 			},
 			{
@@ -130,7 +132,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "control plane preflight check: should fail if the control plane is provisioning",
@@ -142,10 +145,12 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						ControlPlaneRef: contract.ObjToRef(controlPlaneProvisioning),
 					},
 				},
-				controlPlane:                 controlPlaneProvisioning,
-				machineSet:                   &clusterv1.MachineSet{},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "GenericControlPlane ns1/cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
+				controlPlane: controlPlaneProvisioning,
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: []string{
+					"GenericControlPlane ns1/cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "control plane preflight check: should fail if the control plane is upgrading",
@@ -157,10 +162,12 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
 					},
 				},
-				controlPlane:                 controlPlaneUpgrading,
-				machineSet:                   &clusterv1.MachineSet{},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "GenericControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+				controlPlane: controlPlaneUpgrading,
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: []string{
+					"GenericControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "control plane preflight check: should pass if the control plane is upgrading but the preflight check is skipped",
@@ -189,7 +196,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "control plane preflight check: should pass if the control plane is stable",
@@ -203,7 +211,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
-				wantPass:     true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "should pass if the machine set version is not defined",
@@ -222,7 +231,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSetSpec{},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "should error if the machine set version is invalid",
@@ -247,7 +257,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantErr: true,
+				wantMessages: nil,
+				wantErr:      true,
 			},
 			{
 				name: "kubernetes version preflight check: should fail if the machine set minor version is greater than control plane minor version",
@@ -272,8 +283,10 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "MachineSet version (1.27.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				wantMessages: []string{
+					"MachineSet version (1.27.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "kubernetes version preflight check: should fail if the machine set minor version is 4 older than control plane minor version for >= v1.28",
@@ -298,8 +311,10 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "MachineSet version (1.24.0) and ControlPlane version (1.28.0) do not conform to the kubernetes version skew policy as MachineSet version is more than 3 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				wantMessages: []string{
+					"MachineSet version (1.24.0) and ControlPlane version (1.28.0) do not conform to the kubernetes version skew policy as MachineSet version is more than 3 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "kubernetes version preflight check: should fail if the machine set minor version is 3 older than control plane minor version for < v1.28",
@@ -324,8 +339,10 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "MachineSet version (1.23.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is more than 2 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				wantMessages: []string{
+					"MachineSet version (1.23.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is more than 2 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "kubernetes version preflight check: should pass if the machine set minor version is greater than control plane minor version but the preflight check is skipped",
@@ -353,7 +370,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy >= v1.28",
@@ -378,7 +396,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy < v1.28",
@@ -403,7 +422,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubeadm version preflight check: should fail if the machine set version is not equal (major+minor) to control plane version when using kubeadm bootstrap provider",
@@ -432,8 +452,10 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass:                     false,
-				wantPreflightCheckErrMessage: "MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+				wantMessages: []string{
+					"MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+				},
+				wantErr: false,
 			},
 			{
 				name: "kubeadm version preflight check: should pass if the machine set is not using kubeadm bootstrap provider",
@@ -458,7 +480,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubeadm version preflight check: should pass if the machine set version and control plane version do not conform to kubeadm version skew policy but the preflight check is skipped",
@@ -490,7 +513,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubeadm version preflight check: should pass if the machine set version and control plane version conform to kubeadm version skew when using kubeadm bootstrap provider",
@@ -519,7 +543,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantPass: true,
+				wantMessages: nil,
+				wantErr:      false,
 			},
 			{
 				name: "kubeadm version preflight check: should error if the bootstrap ref APIVersion is invalid",
@@ -548,7 +573,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						},
 					},
 				},
-				wantErr: true,
+				wantMessages: nil,
+				wantErr:      true,
 			},
 		}
 
@@ -563,14 +589,13 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				r := &Reconciler{
 					Client: fakeClient,
 				}
-				result, preflightCheckErrMessage, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
+				preflightCheckErrMessage, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
 					g.Expect(err).ToNot(HaveOccurred())
-					g.Expect(result.IsZero()).To(Equal(tt.wantPass))
 				}
-				g.Expect(preflightCheckErrMessage).To(BeComparableTo(tt.wantPreflightCheckErrMessage))
+				g.Expect(preflightCheckErrMessage).To(BeComparableTo(tt.wantMessages))
 			})
 		}
 	})
@@ -606,8 +631,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 		}
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlane).Build()
 		r := &Reconciler{Client: fakeClient}
-		result, _, err := r.runPreflightChecks(ctx, cluster, machineSet, "")
+		messages, err := r.runPreflightChecks(ctx, cluster, machineSet, "")
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result.IsZero()).To(BeTrue())
+		g.Expect(messages).To(BeNil())
 	})
 }

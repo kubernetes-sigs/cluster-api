@@ -230,7 +230,7 @@ func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	if currentReplicas >= desiredReplicas {
 		var message string
 		if missingReferencesMessage != "" {
-			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
+			message = fmt.Sprintf("Scaling up would be blocked because %s", missingReferencesMessage)
 		}
 		v1beta2conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
@@ -242,28 +242,21 @@ func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	}
 
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
+
+	additionalMessages := getPreflightMessages(preflightChecks)
 	if missingReferencesMessage != "" {
-		message = fmt.Sprintf("%s is blocked %s", message, missingReferencesMessage)
-	}
-	messages := []string{message}
-
-	if preflightChecks.HasDeletingMachine {
-		messages = append(messages, "waiting for Machine being deleted")
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", missingReferencesMessage))
 	}
 
-	if preflightChecks.ControlPlaneComponentsNotHealthy {
-		messages = append(messages, "waiting for control plane components to be healthy")
-	}
-
-	if preflightChecks.EtcdClusterNotHealthy {
-		messages = append(messages, "waiting for etcd cluster to be healthy")
+	if len(additionalMessages) > 0 {
+		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(additionalMessages, "\n"))
 	}
 
 	v1beta2conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
-		Message: strings.Join(messages, "; "),
+		Message: message,
 	})
 }
 
@@ -292,28 +285,22 @@ func setScalingDownCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 		return
 	}
 
-	messages := []string{fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)}
-	if preflightChecks.HasDeletingMachine {
-		messages = append(messages, "waiting for Machine being deleted")
-	}
+	message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
 
+	additionalMessages := getPreflightMessages(preflightChecks)
 	if staleMessage := aggregateStaleMachines(machines); staleMessage != "" {
-		messages = append(messages, staleMessage)
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", staleMessage))
 	}
 
-	if preflightChecks.ControlPlaneComponentsNotHealthy {
-		messages = append(messages, "waiting for control plane components to be healthy")
-	}
-
-	if preflightChecks.EtcdClusterNotHealthy {
-		messages = append(messages, "waiting for etcd cluster to be healthy")
+	if len(additionalMessages) > 0 {
+		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(additionalMessages, "\n"))
 	}
 
 	v1beta2conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
-		Message: strings.Join(messages, "; "),
+		Message: message,
 	})
 }
 
@@ -399,7 +386,7 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 
 func calculateMissingReferencesMessage(kcp *controlplanev1.KubeadmControlPlane, infraMachineTemplateNotFound bool) string {
 	if infraMachineTemplateNotFound {
-		return fmt.Sprintf("because %s does not exist", kcp.Spec.MachineTemplate.InfrastructureRef.Kind)
+		return fmt.Sprintf("%s does not exist", kcp.Spec.MachineTemplate.InfrastructureRef.Kind)
 	}
 	return ""
 }
@@ -682,6 +669,22 @@ func minTime(t1, t2 time.Time) time.Time {
 		return t2
 	}
 	return t1
+}
+
+func getPreflightMessages(preflightChecks internal.PreflightCheckResults) []string {
+	additionalMessages := []string{}
+	if preflightChecks.HasDeletingMachine {
+		additionalMessages = append(additionalMessages, "* waiting for a control plane Machine to complete deletion")
+	}
+
+	if preflightChecks.ControlPlaneComponentsNotHealthy {
+		additionalMessages = append(additionalMessages, "* waiting for control plane components to be healthy")
+	}
+
+	if preflightChecks.EtcdClusterNotHealthy {
+		additionalMessages = append(additionalMessages, "* waiting for etcd cluster to be healthy")
+	}
+	return additionalMessages
 }
 
 func aggregateStaleMachines(machines collections.Machines) string {

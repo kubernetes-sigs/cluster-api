@@ -194,7 +194,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		bootstrapObjectNotFound                   bool
 		infrastructureObjectNotFound              bool
 		getAndAdoptMachinesForMachineSetSucceeded bool
-		scaleUpPreflightCheckErrMessage           string
+		scaleUpPreflightCheckErrMessages          []string
 		expectCondition                           metav1.Condition
 	}{
 		{
@@ -281,10 +281,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 			infrastructureObjectNotFound: false,
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because KubeadmBootstrapTemplate does not exist",
+				Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
+				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
+					"* KubeadmBootstrapTemplate does not exist",
 			},
 		},
 		{
@@ -294,10 +295,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 			infrastructureObjectNotFound: true,
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because DockerMachineTemplate does not exist",
+				Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
+				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
+					"* DockerMachineTemplate does not exist",
 			},
 		},
 		{
@@ -308,17 +310,14 @@ func Test_setScalingUpCondition(t *testing.T) {
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			// This preflight check error can happen when a MachineSet is scaling up while the control plane
 			// already has a newer Kubernetes version.
-			scaleUpPreflightCheckErrMessage: "MachineSet version (1.25.5) and ControlPlane version (1.26.2) " +
-				"do not conform to kubeadm version skew policy as kubeadm only supports joining with the same " +
-				"major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+			scaleUpPreflightCheckErrMessages: []string{"MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)"},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because KubeadmBootstrapTemplate and DockerMachineTemplate " +
-					"do not exist and MachineSet version (1.25.5) and ControlPlane version (1.26.2) " +
-					"do not conform to kubeadm version skew policy as kubeadm only supports joining with the same " +
-					"major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
+				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
+					"* MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)\n" +
+					"* KubeadmBootstrapTemplate and DockerMachineTemplate do not exist",
 			},
 		},
 		{
@@ -339,7 +338,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingUpCondition(ctx, tt.ms, tt.machines, tt.bootstrapObjectNotFound, tt.infrastructureObjectNotFound, tt.getAndAdoptMachinesForMachineSetSucceeded, tt.scaleUpPreflightCheckErrMessage)
+			setScalingUpCondition(ctx, tt.ms, tt.machines, tt.bootstrapObjectNotFound, tt.infrastructureObjectNotFound, tt.getAndAdoptMachinesForMachineSetSucceeded, tt.scaleUpPreflightCheckErrMessages)
 
 			condition := v1beta2conditions.Get(tt.ms, clusterv1.MachineSetScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())

@@ -19,7 +19,6 @@ package machineset
 import (
 	"context"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -48,7 +47,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Conditions
 
 	// Update the ScalingUp and ScalingDown condition.
-	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded, s.scaleUpPreflightCheckErrMessage)
+	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded, s.scaleUpPreflightCheckErrMessages)
 	setScalingDownCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition.
@@ -93,7 +92,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 	ms.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
-func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool, scaleUpPreflightCheckErrMessage string) {
+func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool, scaleUpPreflightCheckErrMessages []string) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -140,11 +139,15 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 
 	// Scaling up.
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
-	if missingReferencesMessage != "" || scaleUpPreflightCheckErrMessage != "" {
-		blockMessages := slices.DeleteFunc([]string{missingReferencesMessage, scaleUpPreflightCheckErrMessage}, func(s string) bool {
-			return s == ""
-		})
-		message += fmt.Sprintf(" is blocked because %s", strings.Join(blockMessages, " and "))
+	if missingReferencesMessage != "" || len(scaleUpPreflightCheckErrMessages) > 0 {
+		listMessages := make([]string, len(scaleUpPreflightCheckErrMessages))
+		for i, msg := range scaleUpPreflightCheckErrMessages {
+			listMessages[i] = fmt.Sprintf("* %s", msg)
+		}
+		if missingReferencesMessage != "" {
+			listMessages = append(listMessages, fmt.Sprintf("* %s", missingReferencesMessage))
+		}
+		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(listMessages, "\n"))
 	}
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,

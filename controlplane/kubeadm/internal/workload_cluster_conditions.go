@@ -961,8 +961,12 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 	for i := range input.controlPlane.Machines {
 		machine := input.controlPlane.Machines[i]
 		machineMessages := []string{}
+		conditionCount := 0
+		conditionMessages := sets.Set[string]{}
 		for _, condition := range input.machineConditions {
 			if machineCondition := v1beta2conditions.Get(machine, condition); machineCondition != nil {
+				conditionCount++
+				conditionMessages.Insert(machineCondition.Message)
 				switch machineCondition.Status {
 				case metav1.ConditionTrue:
 					kcpMachinesWithInfo.Insert(machine.Name)
@@ -985,6 +989,12 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 		}
 
 		if len(machineMessages) > 0 {
+			if conditionCount > 1 && len(conditionMessages) == 1 {
+				message := fmt.Sprintf("  * Control plane components: %s", conditionMessages.UnsortedList()[0])
+				messageMap[message] = append(messageMap[message], machine.Name)
+				continue
+			}
+
 			message := strings.Join(machineMessages, "\n")
 			messageMap[message] = append(messageMap[message], machine.Name)
 		}

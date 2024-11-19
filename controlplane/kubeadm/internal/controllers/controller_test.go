@@ -2019,10 +2019,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * APIServerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * ControllerManagerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * SchedulerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * EtcdPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * Control plane components: Waiting for GenericInfrastructureMachine to report spec.providerID",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
@@ -2099,10 +2096,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * APIServerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * ControllerManagerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * SchedulerPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID\n" +
-						"  * EtcdPodHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * Control plane components: Waiting for GenericInfrastructureMachine to report spec.providerID",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{

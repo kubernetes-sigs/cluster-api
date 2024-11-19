@@ -726,6 +726,7 @@ func Test_setAvailableCondition(t *testing.T) {
 
 	etcdMemberHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: reconcileTime}}
 	etcdMemberNotHealthy := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: reconcileTime}}
+	etcdMemberNotHealthy11s := metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-11 * time.Second)}}
 
 	tests := []struct {
 		name            string
@@ -1047,6 +1048,35 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "Learning etcd members should not be considered for quorum",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{
+						Initialized: true,
+						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+							Conditions: []metav1.Condition{certificatesReady},
+						},
+					},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}}}},
+				),
+				EtcdMembers:                       []*etcd.Member{{}, {}, {IsLearner: true}},
+				EtcdMembersAgreeOnMemberList:      true,
+				EtcdMembersAgreeOnClusterID:       true,
+				EtcdMembersAndMachinesAreMatching: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Message: "* 1 of 3 etcd members is healthy, 1 member in learner mode, at least 2 healthy required for etcd quorum\n" +
+					"* 2 of 3 Machines have healthy control plane components, at least 1 required",
+			},
+		},
+		{
 			name: "Not enough healthy etcd members",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
@@ -1071,7 +1101,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-				Message: "* 1 of 3 etcd members is healthy, at least 2 required for etcd quorum",
+				Message: "* 1 of 3 etcd members is healthy, at least 2 healthy required for etcd quorum",
 			},
 		},
 		{

@@ -526,7 +526,16 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	// already surfacing status from etcd member and all control plane pods hosted on every machine.
 	// Note: we intentionally use the number of etcd members to determine the etcd quorum because
 	// etcd members might not match with machines, e.g. while provisioning a new machine.
-	etcdQuorum := (len(etcdMembers) / 2.0) + 1
+	activeEtcdMembers := 0
+	learnerEtcdMembers := 0
+	for _, etcdMember := range etcdMembers {
+		if etcdMember.IsLearner {
+			learnerEtcdMembers++
+			continue
+		}
+		activeEtcdMembers++
+	}
+	etcdQuorum := (activeEtcdMembers / 2.0) + 1
 	k8sControlPlaneHealthy := 0
 	k8sControlPlaneNotHealthy := 0
 	etcdMembersHealthy := 0
@@ -584,11 +593,15 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		messages := []string{}
 
 		if etcdIsManaged && etcdMembersNotHealthy > 0 {
-			switch len(etcdMembers) - etcdMembersNotHealthy {
+			learnerMsg := ""
+			if learnerEtcdMembers > 0 {
+				learnerMsg = fmt.Sprintf(" %d member in learner mode,", learnerEtcdMembers)
+			}
+			switch len(etcdMembers) - etcdMembersNotHealthy - learnerEtcdMembers {
 			case 1:
-				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
+				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy,%s at least %d healthy required for etcd quorum", len(etcdMembers), learnerMsg, etcdQuorum))
 			default:
-				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", len(etcdMembers)-etcdMembersNotHealthy, len(etcdMembers), etcdQuorum))
+				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy,%s at least %d healthy required for etcd quorum", len(etcdMembers)-etcdMembersNotHealthy-learnerEtcdMembers, len(etcdMembers), learnerMsg, etcdQuorum))
 			}
 		}
 
@@ -620,13 +633,17 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	}
 
 	if etcdIsManaged && etcdMembersHealthy < etcdQuorum {
+		learnerMsg := ""
+		if learnerEtcdMembers > 0 {
+			learnerMsg = fmt.Sprintf(" %d member in learner mode,", learnerEtcdMembers)
+		}
 		switch etcdMembersHealthy {
 		case 0:
-			messages = append(messages, fmt.Sprintf("* There are no healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* There are no healthy etcd member,%s at least %d healthy required for etcd quorum", learnerMsg, etcdQuorum))
 		case 1:
-			messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy,%s at least %d healthy required for etcd quorum", len(etcdMembers), learnerMsg, etcdQuorum))
 		default:
-			messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", etcdMembersHealthy, len(etcdMembers), etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy,%s at least %d healthy required for etcd quorum", etcdMembersHealthy, len(etcdMembers), learnerMsg, etcdQuorum))
 		}
 	}
 

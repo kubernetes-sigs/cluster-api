@@ -1193,7 +1193,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 				Type:    v1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodDoesNotExistV1Beta2Reason,
-				Message: "Pod kube-component-node does not exist",
+				Message: "Pod does not exist",
 			},
 		},
 		{

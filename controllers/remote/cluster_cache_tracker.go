@@ -512,7 +512,9 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 		return nil, errors.Wrapf(err, "error creating cached client for remote cluster %q: error creating cache", cluster.String())
 	}
 
-	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)
+	// Use a context that is independent of the passed in context, so the cache doesn't get stopped
+	// when the passed in context is canceled.
+	cacheCtx, cacheCtxCancel := context.WithCancel(context.Background())
 
 	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
 	cache := &stoppableCache{
@@ -549,7 +551,7 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 	defer cacheSyncCtxCancel()
 	if !cache.WaitForCacheSync(cacheSyncCtx) {
 		cache.Stop()
-		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
+		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheSyncCtx.Err())
 	}
 
 	// Wrap the cached client with a client that sets timeouts on all Get and List calls

@@ -804,10 +804,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * ControllerManagerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * SchedulerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * EtcdPodHealthy: Waiting for GenericInfraMachine to report spec.providerID",
+					"  * Control plane components: Waiting for GenericInfraMachine to report spec.providerID",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
@@ -837,10 +834,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
-					"  * ControllerManagerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
-					"  * SchedulerPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist\n" +
-					"  * EtcdPodHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist",
+					"  * Control plane components: Waiting for a Node with spec.providerID dummy-provider-id to exist",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
@@ -891,10 +885,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Node n1 is unreachable\n" +
-					"  * ControllerManagerPodHealthy: Node n1 is unreachable\n" +
-					"  * SchedulerPodHealthy: Node n1 is unreachable\n" +
-					"  * EtcdPodHealthy: Node n1 is unreachable",
+					"  * Control plane components: Node n1 is unreachable",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
@@ -922,10 +913,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * ControllerManagerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * SchedulerPodHealthy: Waiting for GenericInfraMachine to report spec.providerID\n" +
-					"  * EtcdPodHealthy: Waiting for GenericInfraMachine to report spec.providerID",
+					"  * Control plane components: Waiting for GenericInfraMachine to report spec.providerID",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {
@@ -958,10 +946,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Status: metav1.ConditionUnknown,
 				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 				Message: "* Machine m1:\n" +
-					"  * APIServerPodHealthy: Node n1 does not exist\n" +
-					"  * ControllerManagerPodHealthy: Node n1 does not exist\n" +
-					"  * SchedulerPodHealthy: Node n1 does not exist\n" +
-					"  * EtcdPodHealthy: Node n1 does not exist",
+					"  * Control plane components: Node n1 does not exist",
 			},
 			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
 				"m1": {

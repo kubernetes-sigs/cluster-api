@@ -583,12 +583,12 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition) {
 		messages := []string{}
 
-		if etcdIsManaged && etcdMembersNotHealthy > 0 {
-			switch len(etcdMembers) - etcdMembersNotHealthy {
+		if etcdIsManaged && etcdMembersNotHealthy > 0 && len(etcdMembers) != etcdMembersHealthy {
+			switch etcdMembersHealthy {
 			case 1:
 				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
 			default:
-				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", len(etcdMembers)-etcdMembersNotHealthy, len(etcdMembers), etcdQuorum))
+				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", etcdMembersHealthy, len(etcdMembers), etcdQuorum))
 			}
 		}
 

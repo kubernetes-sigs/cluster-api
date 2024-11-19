@@ -678,28 +678,33 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 // message in the summary.
 // This is also important to ensure we have a limited amount of unique messages across Machines thus allowing to
 // nicely aggregate Ready conditions from many Machines into the MachinesReady condition of e.g. the MachineSet.
-// For the same reason we are only surfacing messages with "more than 30m" instead of using the exact durations.
-// 30 minutes is a duration after which we assume it makes sense to emphasize that Node drains and waiting for volume
+// For the same reason we are only surfacing messages with "more than 15m" instead of using the exact durations.
+// 15 minutes is a duration after which we assume it makes sense to emphasize that Node drains and waiting for volume
 // detach are still in progress.
 func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2conditions.ConditionWithOwnerInfo {
 	deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
 
-	var msg string
-	switch {
-	case deletingCondition == nil:
-		// NOTE: this should never happen given that setDeletingCondition is called before this method and
-		// it always adds a Deleting condition.
-		msg = "Machine deletion in progress"
-	case deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
-		machine.Status.Deletion != nil && machine.Status.Deletion.NodeDrainStartTime != nil &&
-		time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 30*time.Minute:
-		msg = fmt.Sprintf("Machine deletion in progress, stage: %s (since more than 30m)", deletingCondition.Reason)
-	case deletingCondition.Reason == clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason &&
-		machine.Status.Deletion != nil && machine.Status.Deletion.WaitForNodeVolumeDetachStartTime != nil &&
-		time.Since(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time) > 30*time.Minute:
-		msg = fmt.Sprintf("Machine deletion in progress, stage: %s (since more than 30m)", deletingCondition.Reason)
-	default:
+	msg := "Machine deletion in progress"
+	if deletingCondition != nil {
 		msg = fmt.Sprintf("Machine deletion in progress, stage: %s", deletingCondition.Reason)
+		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
+			msg = fmt.Sprintf("Machine deletion in progress since more than 15m, stage: %s", deletingCondition.Reason)
+			if deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+				delayReasons := []string{}
+				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
+					delayReasons = append(delayReasons, "PodDisruptionBudgets")
+				}
+				if strings.Contains(deletingCondition.Message, "deletionTimestamp set, but still not removed from the Node") {
+					delayReasons = append(delayReasons, "Pods not terminating")
+				}
+				if strings.Contains(deletingCondition.Message, "failed to evict Pod") {
+					delayReasons = append(delayReasons, "Pod eviction errors")
+				}
+				if len(delayReasons) > 0 {
+					msg += fmt.Sprintf(", delay likely due to %s", strings.Join(delayReasons, ", "))
+				}
+			}
+		}
 	}
 
 	return v1beta2conditions.ConditionWithOwnerInfo{

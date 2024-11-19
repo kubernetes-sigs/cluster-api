@@ -406,7 +406,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "scaling down to zero",
 			ms:   machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1"),
+				fakeMachine("machine-1"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -420,51 +420,54 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "scaling down with 1 stale machine",
 			ms:   machineSet1Replica,
 			machines: []*clusterv1.Machine{
-				newStaleDeletingMachine("stale-machine-1"),
-				newMachine("machine-2"),
+				fakeMachine("stale-machine-1", withStaleDeletionTimestamp()),
+				fakeMachine("machine-2"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetScalingDownV1Beta2Reason,
-				Message: "Scaling down from 2 to 1 replicas and Machine stale-machine-1 is in deletion since more than 30m",
+				Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingDownV1Beta2Reason,
+				Message: "Scaling down from 2 to 1 replicas\n" +
+					"* Machine stale-machine-1 is in deletion since more than 15m",
 			},
 		},
 		{
 			name: "scaling down with 3 stale machines",
 			ms:   machineSet1Replica,
 			machines: []*clusterv1.Machine{
-				newStaleDeletingMachine("stale-machine-2"),
-				newStaleDeletingMachine("stale-machine-1"),
-				newStaleDeletingMachine("stale-machine-3"),
-				newMachine("machine-4"),
+				fakeMachine("stale-machine-2", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-1", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-3", withStaleDeletionTimestamp()),
+				fakeMachine("machine-4"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetScalingDownV1Beta2Reason,
-				Message: "Scaling down from 4 to 1 replicas and Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 30m",
+				Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingDownV1Beta2Reason,
+				Message: "Scaling down from 4 to 1 replicas\n" +
+					"* Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
 			},
 		},
 		{
 			name: "scaling down with 5 stale machines",
 			ms:   machineSet1Replica,
 			machines: []*clusterv1.Machine{
-				newStaleDeletingMachine("stale-machine-5"),
-				newStaleDeletingMachine("stale-machine-4"),
-				newStaleDeletingMachine("stale-machine-2"),
-				newStaleDeletingMachine("stale-machine-3"),
-				newStaleDeletingMachine("stale-machine-1"),
-				newMachine("machine-6"),
+				fakeMachine("stale-machine-5", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-4", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-2", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-3", withStaleDeletionTimestamp()),
+				fakeMachine("stale-machine-1", withStaleDeletionTimestamp()),
+				fakeMachine("machine-6"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetScalingDownV1Beta2Reason,
-				Message: "Scaling down from 6 to 1 replicas and Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 30m",
+				Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetScalingDownV1Beta2Reason,
+				Message: "Scaling down from 6 to 1 replicas\n" +
+					"* Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
 			},
 		},
 		{
@@ -482,7 +485,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "deleting machineset having 1 replica",
 			ms:   deletingMachineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1"),
+				fakeMachine("machine-1"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -549,7 +552,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			name:       "one machine is ready",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1", readyCondition),
+				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -562,8 +565,8 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			name:       "all machines are ready",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1", readyCondition),
-				newMachine("machine-2", readyCondition),
+				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
+				fakeMachine("machine-2", withV1Beta2Condition(readyCondition)),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -576,8 +579,8 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			name:       "one ready, one has nothing reported",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1", readyCondition),
-				newMachine("machine-2"),
+				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
+				fakeMachine("machine-2"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -591,25 +594,25 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			name:       "one ready, one reporting not ready, one reporting unknown, one reporting deleting",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("machine-1", readyCondition),
-				newMachine("machine-2", metav1.Condition{
+				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
+				fakeMachine("machine-2", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineReadyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "SomeReason",
 					Message: "HealthCheckSucceeded: Some message",
-				}),
-				newMachine("machine-3", metav1.Condition{
+				})),
+				fakeMachine("machine-3", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineReadyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  "SomeUnknownReason",
 					Message: "Some unknown message",
-				}),
-				newMachine("machine-4", metav1.Condition{
+				})),
+				fakeMachine("machine-4", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineReadyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
-				}),
+				})),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -673,11 +676,11 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name:       "One machine up-to-date",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("up-to-date-1", metav1.Condition{
+				fakeMachine("up-to-date-1", withV1Beta2Condition(metav1.Condition{
 					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: "some-reason-1",
-				}),
+				})),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -691,12 +694,12 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name:       "One machine unknown",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("unknown-1", metav1.Condition{
+				fakeMachine("unknown-1", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  "some-unknown-reason-1",
 					Message: "some unknown message",
-				}),
+				})),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -710,12 +713,12 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name:       "One machine not up-to-date",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("not-up-to-date-machine-1", metav1.Condition{
+				fakeMachine("not-up-to-date-machine-1", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "some-not-up-to-date-reason",
 					Message: "some not up-to-date message",
-				}),
+				})),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -729,7 +732,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name:       "One machine without up-to-date condition, one new Machines without up-to-date condition",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-1"),
 				fakeMachine("no-condition-machine-2-new", withCreationTimestamp(time.Now().Add(-5*time.Second))), // ignored because it's new
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
@@ -744,30 +747,30 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name:       "Two machines not up-to-date, two up-to-date, two not reported",
 			machineSet: machineSet,
 			machines: []*clusterv1.Machine{
-				newMachine("up-to-date-1", metav1.Condition{
+				fakeMachine("up-to-date-1", withV1Beta2Condition(metav1.Condition{
 					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: "TestUpToDate",
-				}),
-				newMachine("up-to-date-2", metav1.Condition{
+				})),
+				fakeMachine("up-to-date-2", withV1Beta2Condition(metav1.Condition{
 					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: "TestUpToDate",
-				}),
-				newMachine("not-up-to-date-machine-1", metav1.Condition{
+				})),
+				fakeMachine("not-up-to-date-machine-1", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "TestNotUpToDate",
 					Message: "This is not up-to-date message",
-				}),
-				newMachine("not-up-to-date-machine-2", metav1.Condition{
+				})),
+				fakeMachine("not-up-to-date-machine-2", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  "TestNotUpToDate",
 					Message: "This is not up-to-date message",
-				}),
-				newMachine("no-condition-machine-1"),
-				newMachine("no-condition-machine-2"),
+				})),
+				fakeMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-2"),
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -954,7 +957,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			machines: []*clusterv1.Machine{
-				newMachine("m1"),
+				fakeMachine("m1"),
 			},
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
@@ -968,15 +971,16 @@ func Test_setDeletingCondition(t *testing.T) {
 			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			machines: []*clusterv1.Machine{
-				newStaleDeletingMachine("m1"),
-				newStaleDeletingMachine("m2"),
-				newMachine("m3"),
+				fakeMachine("m1", withStaleDeletionTimestamp()),
+				fakeMachine("m2", withStaleDeletionTimestamp()),
+				fakeMachine("m3"),
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineSetDeletingV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineSetDeletingV1Beta2Reason,
-				Message: "Deleting 3 Machines and Machines m1, m2 are in deletion since more than 30m",
+				Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetDeletingV1Beta2Reason,
+				Message: "Deleting 3 Machines\n" +
+					"* Machines m1, m2 are in deletion since more than 15m",
 			},
 		},
 	}
@@ -993,25 +997,112 @@ func Test_setDeletingCondition(t *testing.T) {
 	}
 }
 
-func newMachine(name string, conditions ...metav1.Condition) *clusterv1.Machine {
-	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: metav1.NamespaceDefault,
+func Test_aggregateStaleMachines(t *testing.T) {
+	tests := []struct {
+		name          string
+		machines      []*clusterv1.Machine
+		expectMessage string
+	}{
+		{
+			name:          "Empty when there are no machines",
+			machines:      nil,
+			expectMessage: "",
+		},
+		{
+			name: "Empty when there are no deleting machines",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1"),
+				fakeMachine("m2"),
+				fakeMachine("m3"),
+			},
+			expectMessage: "",
+		},
+		{
+			name: "Empty when there are deleting machines but not yet stale",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withDeletionTimestamp()),
+				fakeMachine("m2", withDeletionTimestamp()),
+				fakeMachine("m3"),
+			},
+			expectMessage: "",
+		},
+		{
+			name: "Report stale machine not draining",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withDeletionTimestamp()),
+				fakeMachine("m2", withStaleDeletionTimestamp()),
+				fakeMachine("m3"),
+			},
+			expectMessage: "Machine m2 is in deletion since more than 15m",
+		},
+		{
+			name: "Report stale machines not draining",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withStaleDeletionTimestamp()),
+				fakeMachine("m2", withStaleDeletionTimestamp()),
+				fakeMachine("m3"),
+			},
+			expectMessage: "Machines m1, m2 are in deletion since more than 15m",
+		},
+		{
+			name: "Does not report details about stale machines draining since less than 5 minutes",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withStaleDeletionTimestamp(), withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineDeletingV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+					Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+* Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
+* Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
+				})),
+				fakeMachine("m2", withStaleDeletionTimestamp(), withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineDeletingV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+					Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
+				})),
+				fakeMachine("m3"),
+			},
+			expectMessage: "Machines m1, m2 are in deletion since more than 15m",
+		},
+		{
+			name: "Report details about stale machines draining since more than 5 minutes",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withStaleDeletionTimestamp(), withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineDeletingV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+					Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+* Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
+* Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
+				}), withStaleDrain()),
+				fakeMachine("m2", withStaleDeletionTimestamp(), withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineDeletingV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+					Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
+				}), withStaleDrain()),
+				fakeMachine("m3"),
+			},
+			expectMessage: "Machines m1, m2 are in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors",
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
-	for _, condition := range conditions {
-		v1beta2conditions.Set(m, condition)
+			got := aggregateStaleMachines(tt.machines)
+			g.Expect(got).To(Equal(tt.expectMessage))
+		})
 	}
-
-	return m
-}
-
-func newStaleDeletingMachine(name string) *clusterv1.Machine {
-	m := newMachine(name)
-	m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
-	return m
 }
 
 type fakeMachinesOption func(m *clusterv1.Machine)
@@ -1031,6 +1122,27 @@ func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine 
 func withCreationTimestamp(t time.Time) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.Time{Time: t}
+	}
+}
+
+func withDeletionTimestamp() fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now()})
+	}
+}
+
+func withStaleDeletionTimestamp() fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
+	}
+}
+
+func withStaleDrain() fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		if m.Status.Deletion == nil {
+			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+		}
+		m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Time{Time: time.Now().Add(-6 * time.Minute)})
 	}
 }
 

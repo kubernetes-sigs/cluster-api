@@ -1700,11 +1700,12 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 			},
 		},
 		{
-			name: "Deleting condition with DrainingNode since more than 30m",
+			name: "Deleting condition with DrainingNode since more than 15m",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				},
 				Status: clusterv1.MachineStatus{
 					V1Beta2: &clusterv1.MachineV1Beta2Status{
@@ -1714,19 +1715,15 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 								Status: metav1.ConditionTrue,
 								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
 								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
-* Pods with eviction failed:
-  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
-  * some other error 1: pod-6-to-trigger-eviction-some-other-error
-  * some other error 2: pod-7-to-trigger-eviction-some-other-error
-  * some other error 3: pod-8-to-trigger-eviction-some-other-error
-  * some other error 4: pod-9-to-trigger-eviction-some-other-error
-  * ... (1 more error applying to 1 Pod)`,
+* Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
+* Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
+* Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
 							},
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
-						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-31 * time.Minute)},
+						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 					},
 				},
 			},
@@ -1739,16 +1736,17 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
-					Message: "Machine deletion in progress, stage: DrainingNode (since more than 30m)",
+					Message: "Machine deletion in progress since more than 15m, stage: DrainingNode, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors",
 				},
 			},
 		},
 		{
-			name: "Deleting condition with WaitingForVolumeDetach since more than 30m",
+			name: "Deleting condition with WaitingForVolumeDetach since more than 15m",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				},
 				Status: clusterv1.MachineStatus{
 					V1Beta2: &clusterv1.MachineV1Beta2Status{
@@ -1762,7 +1760,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
-						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-31 * time.Minute)},
+						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 					},
 				},
 			},
@@ -1775,7 +1773,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
-					Message: "Machine deletion in progress, stage: WaitingForVolumeDetach (since more than 30m)",
+					Message: "Machine deletion in progress since more than 15m, stage: WaitingForVolumeDetach",
 				},
 			},
 		},

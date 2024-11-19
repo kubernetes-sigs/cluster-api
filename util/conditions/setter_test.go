@@ -152,6 +152,65 @@ func TestSet(t *testing.T) {
 
 func TestSetLastTransitionTime(t *testing.T) {
 	x := metav1.Date(2012, time.January, 1, 12, 15, 30, 5e8, time.UTC)
+
+	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
+	fooWithLastTransitionTime := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
+	fooWithLastTransitionTime.LastTransitionTime = x
+	fooWithAnotherState := TrueCondition("foo")
+
+	tests := []struct {
+		name                    string
+		to                      Setter
+		new                     *clusterv1.Condition
+		LastTransitionTimeCheck func(*WithT, metav1.Time)
+	}{
+		{
+			name: "Set a condition that does not exists should set the last transition time if not defined",
+			to:   setterWithConditions(),
+			new:  foo,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).ToNot(BeZero())
+			},
+		},
+		{
+			name: "Set a condition that does not exists should preserve the last transition time if defined",
+			to:   setterWithConditions(),
+			new:  fooWithLastTransitionTime,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists with the same state should preserves the last transition time",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  foo,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists but with different state should changes the last transition time",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithAnotherState,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).ToNot(Equal(x))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			Set(tt.to, tt.new)
+
+			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
+		})
+	}
+}
+
+func TestSetWithCustomLastTransitionTime(t *testing.T) {
+	x := metav1.Date(2012, time.January, 1, 12, 15, 30, 5e8, time.UTC)
 	y := metav1.Date(2012, time.January, 2, 12, 15, 30, 5e8, time.UTC)
 
 	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
@@ -233,7 +292,7 @@ func TestSetLastTransitionTime(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			Set(tt.to, tt.new)
+			SetWithCustomLastTransitionTime(tt.to, tt.new)
 
 			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
 		})

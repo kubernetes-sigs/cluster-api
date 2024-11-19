@@ -36,10 +36,53 @@ type Setter interface {
 
 // Set sets the given condition.
 //
+// NOTE: If a condition already exists, the LastTransitionTime is updated only if a change is detected
+// in any of the following fields: Status, Reason, Severity and Message.
+func Set(to Setter, condition *clusterv1.Condition) {
+	if to == nil || condition == nil {
+		return
+	}
+
+	// Check if the new conditions already exists, and change it only if there is a status
+	// transition (otherwise we should preserve the current last transition time)-
+	conditions := to.GetConditions()
+	exists := false
+	for i := range conditions {
+		existingCondition := conditions[i]
+		if existingCondition.Type == condition.Type {
+			exists = true
+			if !HasSameState(&existingCondition, condition) {
+				condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+				conditions[i] = *condition
+				break
+			}
+			condition.LastTransitionTime = existingCondition.LastTransitionTime
+			break
+		}
+	}
+
+	// If the condition does not exist, add it, setting the transition time only if not already set
+	if !exists {
+		if condition.LastTransitionTime.IsZero() {
+			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+		}
+		conditions = append(conditions, *condition)
+	}
+
+	// Sorts conditions for convenience of the consumer, i.e. kubectl.
+	sort.Slice(conditions, func(i, j int) bool {
+		return lexicographicLess(&conditions[i], &conditions[j])
+	})
+
+	to.SetConditions(conditions)
+}
+
+// SetWithCustomLastTransitionTime is similar to Set function which sets the given condition but following changes for LastTransitionTime.
+//
 //  1. if the condition of the specified type already exists (all fields of the existing condition are updated to
 //     new condition, LastTransitionTime is set to current time if unset and new status differs from the old status)
 //  2. if a condition of the specified type does not exist (LastTransitionTime is set to current time if unset, and newCondition is appended)
-func Set(to Setter, condition *clusterv1.Condition) {
+func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) {
 	if to == nil || condition == nil {
 		return
 	}

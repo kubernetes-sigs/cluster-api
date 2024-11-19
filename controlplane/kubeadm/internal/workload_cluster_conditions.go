@@ -655,7 +655,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodDoesNotExistV1Beta2Reason,
-				Message: fmt.Sprintf("Pod %s does not exist", podKey.Name),
+				Message: "Pod does not exist",
 			})
 			return
 		}

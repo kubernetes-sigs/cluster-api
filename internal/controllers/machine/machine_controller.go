@@ -220,6 +220,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Check reconcileDeleteCache to ensure we won't run reconcileDelete too frequently.
+		// Note: The reconcileDelete func will add entries to the cache.
+		if cacheEntry, ok := r.reconcileDeleteCache.Has(cache.NewReconcileEntryKey(m)); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				return ctrl.Result{RequeueAfter: requeueAfter}, nil
+			}
+		}
+	}
+
 	s := &scope{
 		cluster: cluster,
 		machine: m,
@@ -417,13 +427,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 	m := s.machine
-
-	// Check reconcileDeleteCache to ensure we won't run reconcileDelete too frequently.
-	if cacheEntry, ok := r.reconcileDeleteCache.Has(cache.NewReconcileEntryKey(s.machine)); ok {
-		if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
-			return ctrl.Result{RequeueAfter: requeueAfter}, nil
-		}
-	}
 
 	s.reconcileDeleteExecuted = true
 

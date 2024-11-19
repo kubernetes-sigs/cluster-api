@@ -212,9 +212,10 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, infrastructureObjectNotFound bool, preflightChecks internal.PreflightCheckResults) {
 	if kcp.Spec.Replicas == nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
-			Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}
@@ -263,9 +264,10 @@ func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 func setScalingDownCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, preflightChecks internal.PreflightCheckResults) {
 	if kcp.Spec.Replicas == nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
-			Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}
@@ -685,11 +687,11 @@ func getPreflightMessages(preflightChecks internal.PreflightCheckResults) []stri
 	}
 
 	if preflightChecks.ControlPlaneComponentsNotHealthy {
-		additionalMessages = append(additionalMessages, "* waiting for control plane components to be healthy")
+		additionalMessages = append(additionalMessages, "* waiting for control plane components to become healthy")
 	}
 
 	if preflightChecks.EtcdClusterNotHealthy {
-		additionalMessages = append(additionalMessages, "* waiting for etcd cluster to be healthy")
+		additionalMessages = append(additionalMessages, "* waiting for etcd cluster to become healthy")
 	}
 	return additionalMessages
 }

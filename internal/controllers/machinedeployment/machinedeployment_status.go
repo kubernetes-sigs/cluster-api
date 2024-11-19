@@ -104,9 +104,10 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
-			Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}
@@ -114,9 +115,10 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	// Surface if .status.v1beta2.availableReplicas is not yet set.
 	if machineDeployment.Status.V1Beta2 == nil || machineDeployment.Status.V1Beta2.AvailableReplicas == nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
-			Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
+			Message: "Waiting for status.v1beta2.availableReplicas set",
 		})
 		return
 	}
@@ -160,9 +162,10 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
-			Type:   clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}
@@ -218,9 +221,10 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
-			Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Message: "Waiting for spec.replicas set",
 		})
 		return
 	}

@@ -133,9 +133,10 @@ func Test_setScalingUpCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{},
 			},
 			expectCondition: metav1.Condition{
-				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+				Message: "Waiting for spec.replicas set",
 			},
 		},
 		{
@@ -264,8 +265,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
-					"* waiting for control plane components to be healthy\n" +
-					"* waiting for etcd cluster to be healthy",
+					"* waiting for control plane components to become healthy\n" +
+					"* waiting for etcd cluster to become healthy",
 			},
 		},
 	}
@@ -294,9 +295,10 @@ func Test_setScalingDownCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{},
 			},
 			expectCondition: metav1.Condition{
-				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-				Status: metav1.ConditionUnknown,
-				Reason: controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+				Message: "Waiting for spec.replicas set",
 			},
 		},
 		{
@@ -429,8 +431,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
-					"* waiting for control plane components to be healthy\n" +
-					"* waiting for etcd cluster to be healthy",
+					"* waiting for control plane components to become healthy\n" +
+					"* waiting for etcd cluster to become healthy",
 			},
 		},
 	}

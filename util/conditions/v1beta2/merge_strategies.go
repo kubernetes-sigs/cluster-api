@@ -70,8 +70,9 @@ type DefaultMergeStrategyOption interface {
 // DefaultMergeStrategyOptions allows to set options for the DefaultMergeStrategy behaviour.
 type DefaultMergeStrategyOptions struct {
 	getPriorityFunc                    func(condition metav1.Condition) MergePriority
-	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
 	targetConditionHasPositivePolarity bool
+	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
+	summaryMessageTransformFunc        func([]string) []string
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -100,6 +101,7 @@ func DefaultMergeStrategy(opts ...DefaultMergeStrategyOption) MergeStrategy {
 		targetConditionHasPositivePolarity: true,
 		computeReasonFunc:                  GetDefaultComputeMergeReasonFunc(issuesReportedReason, unknownReportedReason, infoReportedReason), // NOTE: when no specific reason are provided, generic ones are used.
 		getPriorityFunc:                    GetDefaultMergePriorityFunc(),
+		summaryMessageTransformFunc:        nil,
 	}
 	strategyOpt.ApplyOptions(opts)
 
@@ -107,6 +109,7 @@ func DefaultMergeStrategy(opts ...DefaultMergeStrategyOption) MergeStrategy {
 		getPriorityFunc:                    strategyOpt.getPriorityFunc,
 		computeReasonFunc:                  strategyOpt.computeReasonFunc,
 		targetConditionHasPositivePolarity: strategyOpt.targetConditionHasPositivePolarity,
+		summaryMessageTransformFunc:        strategyOpt.summaryMessageTransformFunc,
 	}
 }
 
@@ -186,8 +189,9 @@ const (
 // defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
 type defaultMergeStrategy struct {
 	getPriorityFunc                    func(condition metav1.Condition) MergePriority
-	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
 	targetConditionHasPositivePolarity bool
+	computeReasonFunc                  func(issueConditions []ConditionWithOwnerInfo, unknownConditions []ConditionWithOwnerInfo, infoConditions []ConditionWithOwnerInfo) string
+	summaryMessageTransformFunc        func([]string) []string
 }
 
 // Merge all conditions in input based on a strategy that surfaces issues first, then unknown conditions, then info (if none of issues and unknown condition exists).
@@ -284,6 +288,10 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 				m += " No additional info provided"
 			}
 			messages = append(messages, m)
+		}
+
+		if d.summaryMessageTransformFunc != nil {
+			messages = d.summaryMessageTransformFunc(messages)
 		}
 
 		message = strings.Join(messages, "\n")

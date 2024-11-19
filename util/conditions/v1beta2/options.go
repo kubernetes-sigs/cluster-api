@@ -154,3 +154,11 @@ type ComputeReasonFunc func(issueConditions []ConditionWithOwnerInfo, unknownCon
 func (f ComputeReasonFunc) ApplyToDefaultMergeStrategy(opts *DefaultMergeStrategyOptions) {
 	opts.computeReasonFunc = f
 }
+
+// SummaryMessageTransformFunc defines a function to be used when computing the message for a summary condition returned by the DefaultMergeStrategy.
+type SummaryMessageTransformFunc func([]string) []string
+
+// ApplyToDefaultMergeStrategy applies this configuration to the given DefaultMergeStrategy options.
+func (f SummaryMessageTransformFunc) ApplyToDefaultMergeStrategy(opts *DefaultMergeStrategyOptions) {
+	opts.summaryMessageTransformFunc = f
+}

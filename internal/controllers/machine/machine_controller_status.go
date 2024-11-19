@@ -488,8 +488,8 @@ type machineConditionCustomMergeStrategy struct {
 
 func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
 	return v1beta2conditions.DefaultMergeStrategy(
+		// While machine is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
 		v1beta2conditions.GetPriorityFunc(func(condition metav1.Condition) v1beta2conditions.MergePriority {
-			// While machine is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
 			if !c.machine.DeletionTimestamp.IsZero() {
 				if condition.Type == clusterv1.MachineBootstrapConfigReadyV1Beta2Condition && (condition.Reason == clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason) {
 					return v1beta2conditions.InfoMergePriority
@@ -504,12 +504,86 @@ func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 			}
 			return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
+		// Group readiness gates for control plane and etcd conditions when they have the same messages.
+		v1beta2conditions.SummaryMessageTransformFunc(transformControlPlaneAndEtcdConditions),
+		// Use custom reasons.
 		v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
 			clusterv1.MachineNotReadyV1Beta2Reason,
 			clusterv1.MachineReadyUnknownV1Beta2Reason,
 			clusterv1.MachineReadyV1Beta2Reason,
 		)),
 	).Merge(conditions, conditionTypes)
+}
+
+// transformControlPlaneAndEtcdConditions Group readiness gates for control plane conditions when they have the same messages.
+// Note: the implementation is based on KCP conditions, but ideally other control plane implementation could
+// take benefit from this optimization by naming conditions with APIServer, ControllerManager, Scheduler prefix.
+// In future we might consider to do something similar for etcd conditions.
+func transformControlPlaneAndEtcdConditions(messages []string) []string {
+	isControlPlaneCondition := func(c string) bool {
+		if strings.HasPrefix(c, "* APIServer") {
+			return true
+		}
+		if strings.HasPrefix(c, "* ControllerManager") {
+			return true
+		}
+		if strings.HasPrefix(c, "* Scheduler") {
+			return true
+		}
+		// Note. Etcd pod healthy is considered as part of control plane components in KCP
+		// because it is not part of the etcd cluster.
+		// Might be in future we want to make this check more strictly tight to KCP machines e.g. by checking the machine's owner;
+		// for now, we consider checking for the exact condition name as an acceptable trade off (same below).
+		if c == "* EtcdPodHealthy" {
+			return true
+		}
+		return false
+	}
+
+	// Loop trough summary message.
+	out := []string{}
+	controlPlaneConditionsCount := 0
+	controlPlaneMsg := ""
+	for _, m := range messages {
+		// Summary message are in the form of "* Condition: Message"; the following code
+		// figure out if this is a control plane condition.
+		sep := strings.Index(m, ":")
+		if sep == -1 {
+			out = append(out, m)
+			continue
+		}
+		c, msg := m[:sep], m[sep+1:]
+		if !isControlPlaneCondition(c) {
+			// If the condition isn't a control plane condition, add to the output the message as is.
+			out = append(out, m)
+			continue
+		}
+
+		// If the condition is the first control plane condition we meet, add to the output
+		// a message replacing the condition name with a placeholder for the control plane components
+		if controlPlaneMsg == "" {
+			controlPlaneMsg = msg
+			out = append(out, fmt.Sprintf("* Control plane components:%s", msg))
+			controlPlaneConditionsCount++
+			continue
+		}
+
+		// If the condition is not the first control plane condition we meet, if the message is
+		// different from the previous control plane condition, we can't group control plane components
+		// so we return the same list of messages we got in input.
+		// otherwise, continue looping into conditions.
+		if controlPlaneMsg != msg {
+			return messages
+		}
+		controlPlaneConditionsCount++
+	}
+
+	// If we met only 1 control plane component, return the same list of messages we got in input
+	// so we are going to show the condition name instead of the placeholder for the control plane components.
+	if controlPlaneConditionsCount == 1 {
+		return messages
+	}
+	return out
 }
 
 func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconcileDeleteExecuted bool, deletingReason, deletingMessage string) {

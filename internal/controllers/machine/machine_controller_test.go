@@ -1357,6 +1357,55 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			expected: false,
 		},
 		{
+			name: "KCP machine with the pre terminate hook should drain",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-machine",
+					Namespace:   metav1.NamespaceDefault,
+					Labels:      map[string]string{clusterv1.MachineControlPlaneLabel: ""},
+					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "Foo",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: true,
+		},
+		{
+			name: "KCP machine without the pre terminate hook should stop draining",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: metav1.NamespaceDefault,
+					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "Foo",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: false,
+		},
+		{
 			name: "Node draining timeout is over",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1858,6 +1907,55 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Namespace:   metav1.NamespaceDefault,
 					Finalizers:  []string{clusterv1.MachineFinalizer},
 					Annotations: map[string]string{clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "existed!!"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: false,
+		},
+		{
+			name: "KCP machine with the pre terminate hook should wait",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-machine",
+					Namespace:   metav1.NamespaceDefault,
+					Labels:      map[string]string{clusterv1.MachineControlPlaneLabel: ""},
+					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "Foo",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: true,
+		},
+		{
+			name: "KCP machine without the pre terminate hook should stop waiting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: metav1.NamespaceDefault,
+					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "Foo",
+						},
+					},
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",

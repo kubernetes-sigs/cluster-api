@@ -527,13 +527,10 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 
 	// Determine control plane availability looking at machines conditions, which at this stage are
 	// already surfacing status from etcd member and all control plane pods hosted on every machine.
-	// Note: we intentionally use the number of etcd members to determine the etcd quorum because
-	// etcd members might not match with machines, e.g. while provisioning a new machine.
-	etcdQuorum := (len(etcdMembers) / 2.0) + 1
 	k8sControlPlaneHealthy := 0
 	k8sControlPlaneNotHealthy := 0
-	etcdMembersHealthy := 0
-	etcdMembersNotHealthy := 0
+	k8sControlPlaneNotHealthyButNotReportedYet := 0
+
 	for _, machine := range machines {
 		// if external etcd, only look at the status of the K8s control plane components on this machine.
 		if !etcdIsManaged {
@@ -546,6 +543,8 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) {
 				k8sControlPlaneNotHealthy++
+			} else {
+				k8sControlPlaneNotHealthyButNotReportedYet++
 			}
 			continue
 		}
@@ -556,14 +555,6 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		// - API server on one machine only connect to the local etcd member
 		// - ControllerManager and scheduler on a machine connect to the local API server (not to the control plane endpoint)
 		// As a consequence, we consider the K8s control plane on this machine healthy only if everything is healthy.
-
-		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
-			etcdMembersHealthy++
-		} else if shouldSurfaceWhenAvailableTrue(machine,
-			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
-			etcdMembersNotHealthy++
-		}
-
 		if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition) &&
 			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition) &&
 			v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition) &&
@@ -577,9 +568,83 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition) {
 			k8sControlPlaneNotHealthy++
+		} else {
+			k8sControlPlaneNotHealthyButNotReportedYet++
 		}
 	}
 
+	// Determine etcd members availability by using etcd members as a source of truth because
+	// etcd members might not match with machines, e.g. while provisioning a new machine.
+	// Also in this case, we leverage info on machines to determine member health.
+	votingEtcdMembers := 0
+	learnerEtcdMembers := 0
+	etcdMembersHealthy := 0
+	etcdMembersNotHealthy := 0
+	etcdMembersNotHealthyButNotReportedYet := 0
+
+	if etcdIsManaged {
+		// Maps machines to members
+		memberToMachineMap := map[string]*clusterv1.Machine{}
+		provisioningMachines := []*clusterv1.Machine{}
+		for _, machine := range machines {
+			if machine.Status.NodeRef == nil {
+				provisioningMachines = append(provisioningMachines, machine)
+				continue
+			}
+			for _, member := range etcdMembers {
+				if machine.Status.NodeRef.Name == member.Name {
+					memberToMachineMap[member.Name] = machine
+					break
+				}
+			}
+		}
+
+		for _, etcdMember := range etcdMembers {
+			// Note. We consider etcd without a name yet as learners, because this prevents them to impact quorum (this is
+			// a temporary state that usually goes away very quickly).
+			if etcdMember.IsLearner || etcdMember.Name == "" {
+				learnerEtcdMembers++
+			} else {
+				votingEtcdMembers++
+			}
+
+			// In case the etcd member does not have yet a name it is not possible to find a corresponding machine,
+			// but we consider the node being healthy because this is a transient state that usually goes away quickly.
+			if etcdMember.Name == "" {
+				etcdMembersHealthy++
+				continue
+			}
+
+			// Look for the corresponding machine.
+			machine := memberToMachineMap[etcdMember.Name]
+			if machine == nil {
+				// If there is only one provisioning machine (a machine yet without the node name), considering that KCP
+				// only creates one machine at time, we can make the assumption this is the machine hosting the etcd member without a match
+				if len(provisioningMachines) == 1 {
+					machine = provisioningMachines[0]
+					provisioningMachines = nil
+				} else {
+					// In case we cannot match an etcd member with a machine, we consider this an issue (it should
+					// never happen with KCP).
+					etcdMembersNotHealthy++
+					continue
+				}
+			}
+
+			// Otherwise read the status of the etcd member from he EtcdMemberHealthy condition.
+			if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
+				etcdMembersHealthy++
+			} else if shouldSurfaceWhenAvailableTrue(machine,
+				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition) {
+				etcdMembersNotHealthy++
+			} else {
+				etcdMembersNotHealthyButNotReportedYet++
+			}
+		}
+	}
+	etcdQuorum := (votingEtcdMembers / 2.0) + 1
+
+	// If the control plane and etcd (if managed are available), set the condition to true taking care of surfacing partial unavailability if any.
 	if kcp.DeletionTimestamp.IsZero() &&
 		(!etcdIsManaged || etcdMembersHealthy >= etcdQuorum) &&
 		k8sControlPlaneHealthy >= 1 &&
@@ -587,20 +652,31 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		messages := []string{}
 
 		if etcdIsManaged && etcdMembersNotHealthy > 0 {
-			switch len(etcdMembers) - etcdMembersNotHealthy {
+			etcdLearnersMsg := ""
+			if learnerEtcdMembers > 0 {
+				etcdLearnersMsg = fmt.Sprintf(" %d learner etcd member,", learnerEtcdMembers)
+			}
+
+			// Note: When Available is true, we surface failures only after 10s they exist to avoid flakes;
+			// Accordingly for this message NotHealthyButNotReportedYet sums up to Healthy.
+			etcdMembersHealthyAndNotHealthyButNotReportedYet := etcdMembersHealthy + etcdMembersNotHealthyButNotReportedYet
+			switch etcdMembersHealthyAndNotHealthyButNotReportedYet {
 			case 1:
-				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
+				messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy,%s at least %d healthy member required for etcd quorum", len(etcdMembers), etcdLearnersMsg, etcdQuorum))
 			default:
-				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", len(etcdMembers)-etcdMembersNotHealthy, len(etcdMembers), etcdQuorum))
+				messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy,%s at least %d healthy member required for etcd quorum", etcdMembersHealthyAndNotHealthyButNotReportedYet, len(etcdMembers), etcdLearnersMsg, etcdQuorum))
 			}
 		}
 
 		if k8sControlPlaneNotHealthy > 0 {
-			switch len(machines) - k8sControlPlaneNotHealthy {
+			// Note: When Available is true, we surface failures only after 10s they exist to avoid flakes;
+			// Accordingly for this message NotHealthyButNotReportedYet sums up to Healthy.
+			k8sControlPlaneHealthyAndNotHealthyButNotReportedYet := k8sControlPlaneHealthy + k8sControlPlaneNotHealthyButNotReportedYet
+			switch k8sControlPlaneHealthyAndNotHealthyButNotReportedYet {
 			case 1:
 				messages = append(messages, fmt.Sprintf("* 1 of %d Machines has healthy control plane components, at least 1 required", len(machines)))
 			default:
-				messages = append(messages, fmt.Sprintf("* %d of %d Machines have healthy control plane components, at least 1 required", len(machines)-k8sControlPlaneNotHealthy, len(machines)))
+				messages = append(messages, fmt.Sprintf("* %d of %d Machines have healthy control plane components, at least 1 required", k8sControlPlaneHealthyAndNotHealthyButNotReportedYet, len(machines)))
 			}
 		}
 
@@ -623,13 +699,17 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	}
 
 	if etcdIsManaged && etcdMembersHealthy < etcdQuorum {
+		etcdLearnersMsg := ""
+		if learnerEtcdMembers > 0 {
+			etcdLearnersMsg = fmt.Sprintf(" %d learner etcd member,", learnerEtcdMembers)
+		}
 		switch etcdMembersHealthy {
 		case 0:
-			messages = append(messages, fmt.Sprintf("* There are no healthy etcd member, at least %d required for etcd quorum", etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* There are no healthy etcd member,%s at least %d healthy member required for etcd quorum", etcdLearnersMsg, etcdQuorum))
 		case 1:
-			messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy, at least %d required for etcd quorum", len(etcdMembers), etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* 1 of %d etcd members is healthy,%s at least %d healthy member required for etcd quorum", len(etcdMembers), etcdLearnersMsg, etcdQuorum))
 		default:
-			messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy, at least %d required for etcd quorum", etcdMembersHealthy, len(etcdMembers), etcdQuorum))
+			messages = append(messages, fmt.Sprintf("* %d of %d etcd members are healthy,%s at least %d healthy member required for etcd quorum", etcdMembersHealthy, len(etcdMembers), etcdLearnersMsg, etcdQuorum))
 		}
 	}
 

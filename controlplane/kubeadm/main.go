@@ -30,6 +30,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -341,9 +342,31 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	must := func(r *labels.Requirement, err error) labels.Requirement {
+		if err != nil {
+			panic(err)
+		}
+		return *r
+	}
+	podSelector := labels.NewSelector().Add(
+		must(labels.NewRequirement("tier", selection.Equals, []string{"control-plane"})),
+		must(labels.NewRequirement("component", selection.In, []string{"kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd"})),
+	)
+
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
 		SecretClient: secretCachingClient,
-		Cache:        clustercache.CacheOptions{},
+		Cache: clustercache.CacheOptions{
+			// Only cache kubeadm static pods
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Pod{}: {
+					Namespaces: map[string]cache.Config{
+						metav1.NamespaceSystem: {
+							LabelSelector: podSelector,
+						},
+					},
+				},
+			},
+		},
 		Client: clustercache.ClientOptions{
 			QPS:       clusterCacheClientQPS,
 			Burst:     clusterCacheClientBurst,
@@ -352,7 +375,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 				DisableFor: []client.Object{
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
-					&corev1.Pod{},
 					&appsv1.Deployment{},
 					&appsv1.DaemonSet{},
 				},

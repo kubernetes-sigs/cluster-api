@@ -18,16 +18,44 @@ package v1beta1
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-// Conditions that will be used for the KubeadmConfig object in v1Beta2 API version.
+// KubeadmConfig's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmConfigReadyV1Beta2Condition is true if the KubeadmConfig is not deleted,
 	// and both DataSecretCreated, CertificatesAvailable conditions are true.
 	KubeadmConfigReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
 
-	// CertificatesAvailableV1Beta2Condition documents that cluster certificates required
-	// for generating the bootstrap data secret are available.
-	CertificatesAvailableV1Beta2Condition = "CertificatesAvailable"
+	// KubeadmConfigReadyV1Beta2Reason surfaces when the KubeadmConfig is ready.
+	KubeadmConfigReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
 
-	// DataSecretAvailableV1Beta2Condition is true if the bootstrap secret is available.
-	DataSecretAvailableV1Beta2Condition = "DataSecretAvailable"
+	// KubeadmConfigNotReadyV1Beta2Reason surfaces when the KubeadmConfig is not ready.
+	KubeadmConfigNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// KubeadmConfigReadyUnknownV1Beta2Reason surfaces when KubeadmConfig readiness is unknown.
+	KubeadmConfigReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+)
+
+// KubeadmConfig's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmConfigCertificatesAvailableV1Beta2Condition documents that cluster certificates required
+	// for generating the bootstrap data secret are available.
+	KubeadmConfigCertificatesAvailableV1Beta2Condition = "CertificatesAvailable"
+
+	// KubeadmConfigCertificatesAvailableV1Beta2Reason surfaces when certificates required for machine bootstrap are is available.
+	KubeadmConfigCertificatesAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason surfaces unexpected failures when reading or
+	// generating certificates required for machine bootstrap.
+	KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
+// KubeadmConfig's DataSecretAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmConfigDataSecretAvailableV1Beta2Condition is true if the bootstrap secret is available.
+	KubeadmConfigDataSecretAvailableV1Beta2Condition = "DataSecretAvailable"
+
+	// KubeadmConfigDataSecretAvailableV1Beta2Reason surfaces when the bootstrap secret is available.
+	KubeadmConfigDataSecretAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// KubeadmConfigDataSecretNotAvailableV1Beta2Reason surfaces when the bootstrap secret is not available.
+	KubeadmConfigDataSecretNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
 )

@@ -109,6 +109,8 @@ type ClusterProxy interface {
 // createOrUpdateConfig contains options for use with CreateOrUpdate.
 type createOrUpdateConfig struct {
 	labelSelector labels.Selector
+	createOpts    []client.CreateOption
+	updateOpts    []client.UpdateOption
 }
 
 // CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
@@ -118,6 +120,20 @@ type CreateOrUpdateOption func(*createOrUpdateConfig)
 func WithLabelSelector(labelSelector labels.Selector) CreateOrUpdateOption {
 	return func(c *createOrUpdateConfig) {
 		c.labelSelector = labelSelector
+	}
+}
+
+// WithCreateOpts allows definition of the Create options to be used in resource Create.
+func WithCreateOpts(createOpts ...client.CreateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.createOpts = createOpts
+	}
+}
+
+// WithUpdateOpts allows definition of the Update options to be used in resource Update.
+func WithUpdateOpts(updateOpts ...client.UpdateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.updateOpts = updateOpts
 	}
 }
 
@@ -320,7 +336,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
 				// Expected error -- if the object does not exist, create it
 				if apierrors.IsNotFound(err) {
-					if err := p.GetClient().Create(ctx, &o); err != nil {
+					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
 						retErrs = append(retErrs, err)
 					}
 				} else {
@@ -328,7 +344,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 				}
 			} else {
 				o.SetResourceVersion(existingObject.GetResourceVersion())
-				if err := p.GetClient().Update(ctx, &o); err != nil {
+				if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
 					retErrs = append(retErrs, err)
 				}
 			}

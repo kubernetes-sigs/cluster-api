@@ -281,6 +281,29 @@ const (
 	ClusterRemoteConnectionProbeSucceededV1Beta2Reason = "ProbeSucceeded"
 )
 
+// Cluster's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterRollingOutV1Beta2Condition is the summary of `RollingOut` conditions from ControlPlane, MachineDeployments
+	// and MachinePools.
+	ClusterRollingOutV1Beta2Condition = RollingOutV1Beta2Condition
+
+	// ClusterRollingOutV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
+	// or MachinePools are rolling out.
+	ClusterRollingOutV1Beta2Reason = RollingOutV1Beta2Reason
+
+	// ClusterNotRollingOutV1Beta2Reason surfaces when none of the Cluster's control plane, MachineDeployments,
+	// or MachinePools are rolling out.
+	ClusterNotRollingOutV1Beta2Reason = NotRollingOutV1Beta2Reason
+
+	// ClusterRollingOutUnknownV1Beta2Reason surfaces when one of the Cluster's control plane, MachineDeployments,
+	// or MachinePools rolling out condition is unknown, and none true.
+	ClusterRollingOutUnknownV1Beta2Reason = "RollingOutUnknown"
+
+	// ClusterRollingOutInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or computing the RollingOut condition.
+	ClusterRollingOutInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
 // Cluster's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// ClusterScalingUpV1Beta2Condition is the summary of `ScalingUp` conditions from ControlPlane, MachineDeployments,

@@ -161,6 +161,7 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
+	setRollingOutCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setScalingUpCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
 	setScalingDownCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -207,6 +208,63 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 		Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+	})
+}
+
+func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
+	// Count machines rolling out and collect reasons why a rollout is happening.
+	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
+	// all the machines are rolling out for the same reasons, however, in case of changes to KCP
+	// before a previous changes is not fully rolled out, there could be machines rolling out for
+	// different reasons.
+	rollingOutReplicas := 0
+	rolloutReasons := sets.Set[string]{}
+	for _, machine := range machines {
+		upToDateCondition := v1beta2conditions.Get(machine, clusterv1.MachineUpToDateV1Beta2Condition)
+		if upToDateCondition == nil || upToDateCondition.Status != metav1.ConditionFalse {
+			continue
+		}
+		rollingOutReplicas++
+		if upToDateCondition.Message != "" {
+			rolloutReasons.Insert(strings.Split(upToDateCondition.Message, "; ")...)
+		}
+	}
+
+	if rollingOutReplicas == 0 {
+		var message string
+		v1beta2conditions.Set(kcp, metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+			Message: message,
+		})
+		return
+	}
+
+	// Rolling out.
+	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+	if rolloutReasons.Len() > 0 {
+		// Surface rollout reasons ensuring that if there is a version change, it goes first.
+		reasons := rolloutReasons.UnsortedList()
+		sort.Slice(reasons, func(i, j int) bool {
+			if strings.HasPrefix(reasons[i], "Version") && !strings.HasPrefix(reasons[j], "Version") {
+				return true
+			}
+			if !strings.HasPrefix(reasons[i], "Version") && strings.HasPrefix(reasons[j], "Version") {
+				return false
+			}
+			return reasons[i] < reasons[j]
+		})
+		for i := range reasons {
+			reasons[i] = fmt.Sprintf("* %s", reasons[i])
+		}
+		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
+	}
+	v1beta2conditions.Set(kcp, metav1.Condition{
+		Type:    controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Reason,
+		Message: message,
 	})
 }
 

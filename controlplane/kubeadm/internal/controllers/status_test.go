@@ -121,6 +121,99 @@ func Test_setInitializedCondition(t *testing.T) {
 	}
 }
 
+func Test_setRollingOutCondition(t *testing.T) {
+	upToDateCondition := metav1.Condition{
+		Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+	}
+
+	tests := []struct {
+		name            string
+		kcp             *controlplanev1.KubeadmControlPlane
+		machines        []*clusterv1.Machine
+		expectCondition metav1.Condition
+	}{
+		{
+			name:     "no machines",
+			kcp:      &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name: "all machines are up to date",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name: "one up-to-date, two not up-to-date, one reporting up-to-date unknown",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+						Status: metav1.ConditionUnknown,
+						Reason: clusterv1.InternalErrorV1Beta2Reason,
+					},
+				}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+						Message: "Version v1.25.0, v1.26.0 required",
+					},
+				}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+						Message: "Failure domain failure-domain1, failure-domain2 required; InfrastructureMachine is not up-to-date",
+					},
+				}}}},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Reason,
+				Message: "Rolling out 2 not up-to-date replicas\n" +
+					"* Version v1.25.0, v1.26.0 required\n" +
+					"* Failure domain failure-domain1, failure-domain2 required\n" +
+					"* InfrastructureMachine is not up-to-date",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var machines collections.Machines
+			if tt.machines != nil {
+				machines = collections.FromMachines(tt.machines...)
+			}
+			setRollingOutCondition(ctx, tt.kcp, machines)
+
+			condition := v1beta2conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func Test_setScalingUpCondition(t *testing.T) {
 	tests := []struct {
 		name            string

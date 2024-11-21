@@ -148,6 +148,21 @@ const (
 	MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
+// MachineDeployment's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentRollingOutV1Beta2Condition is true if there is at least one machine not up-to-date.
+	MachineDeploymentRollingOutV1Beta2Condition = RollingOutV1Beta2Condition
+
+	// MachineDeploymentRollingOutV1Beta2Reason surfaces when there is at least one machine not up-to-date.
+	MachineDeploymentRollingOutV1Beta2Reason = RollingOutV1Beta2Reason
+
+	// MachineDeploymentNotRollingOutV1Beta2Reason surfaces when all the machines are up-to-date.
+	MachineDeploymentNotRollingOutV1Beta2Reason = NotRollingOutV1Beta2Reason
+
+	// MachineDeploymentRollingOutInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
+	MachineDeploymentRollingOutInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
 // MachineDeployment's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// MachineDeploymentScalingUpV1Beta2Condition is true if actual replicas < desired replicas.

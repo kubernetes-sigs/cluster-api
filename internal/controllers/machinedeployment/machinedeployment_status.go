@@ -61,6 +61,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
+	setRollingOutCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
 
@@ -144,6 +145,74 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineDeploymentNotAvailableV1Beta2Reason,
+		Message: message,
+	})
+}
+
+func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, getMachinesSucceeded bool) {
+	// If we got unexpected errors in listing the machines (this should never happen), surface them.
+	if !getMachinesSucceeded {
+		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+			Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	// Count machines rolling out and collect reasons why a rollout is happening.
+	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
+	// all the machines are rolling out for the same reasons, however, in case of changes to
+	// the MD before a previous changes is not fully rolled out, there could be machines rolling out for
+	// different reasons.
+	rollingOutReplicas := 0
+	rolloutReasons := sets.Set[string]{}
+	for _, machine := range machines {
+		upToDateCondition := v1beta2conditions.Get(machine, clusterv1.MachineUpToDateV1Beta2Condition)
+		if upToDateCondition == nil || upToDateCondition.Status != metav1.ConditionFalse {
+			continue
+		}
+		rollingOutReplicas++
+		if upToDateCondition.Message != "" {
+			rolloutReasons.Insert(strings.Split(upToDateCondition.Message, "; ")...)
+		}
+	}
+
+	if rollingOutReplicas == 0 {
+		var message string
+		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+			Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineDeploymentNotRollingOutV1Beta2Reason,
+			Message: message,
+		})
+		return
+	}
+
+	// Rolling out.
+	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+	if rolloutReasons.Len() > 0 {
+		// Surface rollout reasons ensuring that if there is a version change, it goes first.
+		reasons := rolloutReasons.UnsortedList()
+		sort.Slice(reasons, func(i, j int) bool {
+			if strings.HasPrefix(reasons[i], "Version") && !strings.HasPrefix(reasons[j], "Version") {
+				return true
+			}
+			if !strings.HasPrefix(reasons[i], "Version") && strings.HasPrefix(reasons[j], "Version") {
+				return false
+			}
+			return reasons[i] < reasons[j]
+		})
+		for i := range reasons {
+			reasons[i] = fmt.Sprintf("* %s", reasons[i])
+		}
+		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
+	}
+	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
 		Message: message,
 	})
 }

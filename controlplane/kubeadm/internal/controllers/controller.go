@@ -353,6 +353,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,

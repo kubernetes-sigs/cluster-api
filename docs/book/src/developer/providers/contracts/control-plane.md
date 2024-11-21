@@ -578,10 +578,11 @@ Last, but not least, in order to ensure a consistent users experience, it is als
 ControlPlane conditions to conditions existing on other Cluster API objects.  
 
 For example `KubeadmControlPlane` is going to implement following conditions on top of the `Available` defined by this contract:
-`CertificatesAvailable`, `EtcdClusterAvailable`, `MachinesReady`, `MachinesUpToDate`, `ScalingUp`, `ScalingDown`, `Remediating`, `Deleting`, `Paused`.
+`CertificatesAvailable`, `EtcdClusterAvailable`, `MachinesReady`, `MachinesUpToDate`, `RollingOut`, `ScalingUp`, `ScalingDown`,
+`Remediating`, `Deleting`, `Paused`.
 
-Most notably, the Cluster controller is going to read `ScalingUp`, `ScalingDown` conditions, if existing, and use
-them to compute a Cluster level `ScalingUp`, `ScalingDown` condition including all the scalable resources.
+Most notably, If `RollingOut`, `ScalingUp`, `ScalingDown` conditions are implemented, the Cluster controller is going to read 
+them to compute a Cluster level `RollingOut`, `ScalingUp`, `ScalingDown` condition including all the scalable resources.
 
 See [Improving status in CAPI resources] for more context.
 

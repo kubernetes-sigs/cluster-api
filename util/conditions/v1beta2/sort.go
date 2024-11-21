@@ -81,8 +81,12 @@ func defaultSortLessFunc(i, j metav1.Condition) bool {
 // | ScalingDown                    | x       | x   | x  | x  | x  |         |
 // | ScalingUp                      | x       | x   | x  | x  | x  |         |
 // | -- Aggregated from Machines -- |         |     |    |    |    |         |
-// | MachinesReady                  | x       | x   | x  | x  | x  |         |
-// | MachinesUpToDate               | x       | x   | x  | x  | x  |         |
+// | MachinesReady                  |         | x   | x  | x  | x  |         |
+// | ControlPlaneMachinesReady      | x       |     |    |    |    |         |
+// | WorkerMachinesReady            | x       |     |    |    |    |         |
+// | MachinesUpToDate               |         | x   | x  | x  | x  |         |
+// | ControlPlaneMachinesUpToDate   | x       |     |    |    |    |         |
+// | WorkerMachinesUpToDate         | x       |     |    |    |    |         |
 // | -- From other controllers --   |         |     |    |    |    |         |
 // | Readiness/Availability gates   | x       |     |    |    |    | x       |
 // | -- Misc --                     |         |     |    |    |    |         |
@@ -118,7 +122,11 @@ var order = []string{
 	clusterv1.ScalingDownV1Beta2Condition,
 	clusterv1.ScalingUpV1Beta2Condition,
 	clusterv1.MachinesReadyV1Beta2Condition,
+	clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Condition,
+	clusterv1.ClusterWorkerMachinesReadyV1Beta2Condition,
 	clusterv1.MachinesUpToDateV1Beta2Condition,
+	clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Condition,
+	clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Condition,
 	readinessAndAvailabilityGates,
 	clusterv1.PausedV1Beta2Condition,
 	clusterv1.DeletingV1Beta2Condition,

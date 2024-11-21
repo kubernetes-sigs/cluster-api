@@ -221,50 +221,96 @@ const (
 	ClusterWorkersAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// Cluster's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ControlPlaneMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	ClusterMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+	// ClusterControlPlaneMachinesReadyV1Beta2Condition surfaces detail of issues on control plane machines, if any.
+	ClusterControlPlaneMachinesReadyV1Beta2Condition = "ControlPlaneMachinesReady"
 
-	// ClusterMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
-	ClusterMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
+	// ClusterControlPlaneMachinesReadyV1Beta2Reason surfaces when all control plane machine's Ready conditions are true.
+	ClusterControlPlaneMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
 
-	// ClusterMachinesNotReadyV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is false.
-	ClusterMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+	// ClusterControlPlaneMachinesNotReadyV1Beta2Reason surfaces when at least one of control plane machine's Ready conditions is false.
+	ClusterControlPlaneMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
 
-	// ClusterMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is unknown
-	// and none of the controlled machine's Ready conditions is false.
-	ClusterMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
+	// ClusterControlPlaneMachinesReadyUnknownV1Beta2Reason surfaces when at least one of control plane machine's Ready conditions is unknown
+	// and none of control plane machine's Ready conditions is false.
+	ClusterControlPlaneMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
 
-	// ClusterMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
-	ClusterMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+	// ClusterControlPlaneMachinesReadyNoReplicasV1Beta2Reason surfaces when no control plane machines exist for the Cluster.
+	ClusterControlPlaneMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
-	// ClusterMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
-	// or aggregating machine's conditions.
-	ClusterMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// ClusterControlPlaneMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing control plane machines
+	// or aggregating control plane machine's conditions.
+	ClusterControlPlaneMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// Cluster's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's WorkerMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterMachinesUpToDateV1Beta2Condition surfaces details of Cluster's machines not up to date, if any.
-	ClusterMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+	// ClusterWorkerMachinesReadyV1Beta2Condition surfaces detail of issues on the worker machines, if any.
+	ClusterWorkerMachinesReadyV1Beta2Condition = "WorkerMachinesReady"
 
-	// ClusterMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
-	ClusterMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+	// ClusterWorkerMachinesReadyV1Beta2Reason surfaces when all the worker machine's Ready conditions are true.
+	ClusterWorkerMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
 
-	// ClusterMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is false.
-	ClusterMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+	// ClusterWorkerMachinesNotReadyV1Beta2Reason surfaces when at least one of the worker machine's Ready conditions is false.
+	ClusterWorkerMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
 
-	// ClusterMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
-	// and none of the controlled machine's UpToDate conditions is false.
-	ClusterMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
+	// ClusterWorkerMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the worker machine's Ready conditions is unknown
+	// and none of the worker machine's Ready conditions is false.
+	ClusterWorkerMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
 
-	// ClusterMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the Cluster.
-	ClusterMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+	// ClusterWorkerMachinesReadyNoReplicasV1Beta2Reason surfaces when no worker machines exist for the Cluster.
+	ClusterWorkerMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
-	// ClusterMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// ClusterWorkerMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing worker machines
+	// or aggregating worker machine's conditions.
+	ClusterWorkerMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's ControlPlaneMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of control plane machines not up to date, if any.
+	ClusterControlPlaneMachinesUpToDateV1Beta2Condition = "ControlPlaneMachinesUpToDate"
+
+	// ClusterControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the control plane machine's UpToDate conditions are true.
+	ClusterControlPlaneMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+
+	// ClusterControlPlaneMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the control plane machine's UpToDate conditions is false.
+	ClusterControlPlaneMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+
+	// ClusterControlPlaneMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the control plane machine's UpToDate conditions is unknown
+	// and none of the control plane machine's UpToDate conditions is false.
+	ClusterControlPlaneMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
+
+	// ClusterControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no control plane machines exist for the Cluster.
+	ClusterControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// ClusterControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing control plane machines
 	// or aggregating status.
-	ClusterMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	ClusterControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Cluster's WorkerMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ClusterWorkerMachinesUpToDateV1Beta2Condition surfaces details of worker machines not up to date, if any.
+	ClusterWorkerMachinesUpToDateV1Beta2Condition = "WorkerMachinesUpToDate"
+
+	// ClusterWorkerMachinesUpToDateV1Beta2Reason surfaces when all the worker machine's UpToDate conditions are true.
+	ClusterWorkerMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+
+	// ClusterWorkerMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the worker machine's UpToDate conditions is false.
+	ClusterWorkerMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+
+	// ClusterWorkerMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the worker machine's UpToDate conditions is unknown
+	// and none of the worker machine's UpToDate conditions is false.
+	ClusterWorkerMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
+
+	// ClusterWorkerMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no worker machines exist for the Cluster.
+	ClusterWorkerMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// ClusterWorkerMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing worker machines
+	// or aggregating status.
+	ClusterWorkerMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // Cluster's RemoteConnectionProbe condition and corresponding reasons that will be used in v1Beta2 API version.

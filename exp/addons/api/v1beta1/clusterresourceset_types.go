@@ -23,6 +23,32 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// ClusterResourceSet's ResourcesApplied condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ResourcesAppliedV1beta2Condition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
+	// This indicates all resources exist, and no errors during applying them to all clusters.
+	ResourcesAppliedV1beta2Condition = "ResourcesApplied"
+
+	// ResourcesAppliedV1beta2Reason is the reason used when all resources in the ClusterResourceSet object got applied
+	// to all matching clusters.
+	ResourcesAppliedV1beta2Reason = "Applied"
+
+	// ResourcesAppliedApplyFailedV1beta2Reason is the reason used when applying at least one of the resources to one of the matching clusters failed.
+	ResourcesAppliedApplyFailedV1beta2Reason = "ApplyFailed"
+
+	// ResourcesAppliedRemoteClusterClientFailedV1beta2Reason is the reason used on failures during getting the remote cluster client.
+	ResourcesAppliedRemoteClusterClientFailedV1beta2Reason = "RemoteClusterClientFailed"
+
+	// ResourcesAppliedClusterMatchFailedV1beta2Reason is the reason used on failure getting clusters that match the clusterSelector.
+	ResourcesAppliedClusterMatchFailedV1beta2Reason = "ClusterMatchFailed"
+
+	// ResourcesAppliedRetrievingResourceFailedV1beta2Reason is the reason used when resources are not successfully retrieved.
+	ResourcesAppliedRetrievingResourceFailedV1beta2Reason = "RetrievingResourceFailed"
+
+	// ResourcesAppliedWrongSecretTypeV1beta2Reason is the reason used when the the Secret's type in the resource list is not supported.
+	ResourcesAppliedWrongSecretTypeV1beta2Reason = "WrongSecretType"
+)
+
 const (
 	// ClusterResourceSetSecretType is the only accepted type of secret in resources.
 	ClusterResourceSetSecretType corev1.SecretType = "addons.cluster.x-k8s.io/resource-set" //nolint:gosec

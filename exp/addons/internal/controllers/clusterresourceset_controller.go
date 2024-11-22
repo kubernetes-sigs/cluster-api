@@ -46,6 +46,7 @@ import (
 	resourcepredicates "sigs.k8s.io/cluster-api/exp/addons/internal/controllers/predicates"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -158,6 +159,12 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		log.Error(err, "Failed fetching clusters that matches ClusterResourceSet labels", "ClusterResourceSet", klog.KObj(clusterResourceSet))
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ClusterMatchFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+			Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  addonsv1.ResourcesAppliedClusterMatchFailedV1beta2Reason,
+			Message: "Failed to get Clusters by ClusterSelector",
+		})
 		return ctrl.Result{}, err
 	}
 
@@ -309,8 +316,20 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		if err != nil {
 			if err == ErrSecretTypeNotSupported {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
+				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+					Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeV1beta2Reason,
+					Message: fmt.Sprintf("Secret type of resource %s is not supported", resource.Name),
+				})
 			} else {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+					Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  addonsv1.ResourcesAppliedRetrievingResourceFailedV1beta2Reason,
+					Message: "Failed to get resource",
+				})
 
 				// Continue without adding the error to the aggregate if we can't find the resource.
 				if apierrors.IsNotFound(err) {
@@ -363,6 +382,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+			Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  addonsv1.ResourcesAppliedRemoteClusterClientFailedV1beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
 		return err
 	}
 
@@ -414,6 +439,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			isSuccessful = false
 			log.Error(err, "Failed to apply ClusterResourceSet resource", resource.Kind, klog.KRef(clusterResourceSet.Namespace, resource.Name))
 			conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+				Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  addonsv1.ResourcesAppliedApplyFailedV1beta2Reason,
+				Message: "Failed to apply ClusterResourceSet resources to Cluster",
+			})
 			errList = append(errList, err)
 		}
 
@@ -429,6 +460,11 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	}
 
 	conditions.MarkTrue(clusterResourceSet, addonsv1.ResourcesAppliedCondition)
+	v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+		Type:   addonsv1.ResourcesAppliedV1beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: addonsv1.ResourcesAppliedV1beta2Reason,
+	})
 
 	return nil
 }

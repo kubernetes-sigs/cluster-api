@@ -105,9 +105,13 @@ type VersionState struct {
 // version is the same or greater it returns nothing.
 func (v *versionChecker) Check(ctx context.Context) (string, error) {
 	log := logf.Log
-	cliVer, err := semver.ParseTolerant(v.cliVersion().GitVersion)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to semver parse clusterctl GitVersion")
+	var cliVer semver.Version
+	var err error
+	if v.cliVersion().GitVersion != "" {
+		cliVer, err = semver.ParseTolerant(v.cliVersion().GitVersion)
+		if err != nil {
+			return "", errors.Wrap(err, "unable to semver parse clusterctl GitVersion")
+		}
 	}
 
 	release, err := v.getLatestRelease(ctx)
@@ -122,8 +126,8 @@ func (v *versionChecker) Check(ctx context.Context) (string, error) {
 		return "", errors.Wrap(err, "unable to semver parse latest release version")
 	}
 
-	// if we are using a dirty dev build, just log it out
-	if strings.HasSuffix(cliVer.String(), "-dirty") {
+	// if we are using a dirty dev build or go build, just log it out
+	if v.cliVersion().GitVersion == "" || strings.HasSuffix(cliVer.String(), "-dirty") {
 		log.V(1).Info("⚠️  Using a development build of clusterctl.", "cliVersion", cliVer.String(), "latestGithubRelease", release.Version)
 		return "", nil
 	}

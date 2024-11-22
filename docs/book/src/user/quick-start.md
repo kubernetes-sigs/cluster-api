@@ -255,6 +255,20 @@ clusterctl.exe version
 ```
 
 {{#/tab }}
+{{#tab Go}}
+
+#### Install clusterctl with Go
+Install the latest version of clusterctl using Go:
+```bash
+go install sigs.k8s.io/cluster-api/cmd/clusterctl@latest
+```
+
+Test to ensure the version you installed is up-to-date:
+```bash
+clusterctl version
+```
+
+{{#/tab }}
 {{#/tabs }}
 
 ### Initialize the management cluster

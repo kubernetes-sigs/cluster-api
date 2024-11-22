@@ -216,6 +216,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
+			clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
 			clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
 			clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
 			clusterv1.MachineDeploymentRemediatingV1Beta2Condition,

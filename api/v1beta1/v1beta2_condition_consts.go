@@ -54,6 +54,13 @@ const (
 	// the same condition type exists.
 	MachinesUpToDateV1Beta2Condition = "MachinesUpToDate"
 
+	// RollingOutV1Beta2Condition reports if an object is rolling out changes to machines; Cluster API usually
+	// rolls out changes to machines by replacing not up-to-date machines with new ones.
+	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
+	// Please use object specific variants of this condition which provides more details for each context where
+	// the same condition type exists.
+	RollingOutV1Beta2Condition = "RollingOut"
+
 	// ScalingUpV1Beta2Condition reports if an object is scaling up.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
@@ -113,6 +120,12 @@ const (
 
 	// UpToDateUnknownV1Beta2Reason applies to a condition surfacing object up-tp-date unknown.
 	UpToDateUnknownV1Beta2Reason = "UpToDateUnknown"
+
+	// RollingOutV1Beta2Reason surfaces when an object is rolling out.
+	RollingOutV1Beta2Reason = "RollingOut"
+
+	// NotRollingOutV1Beta2Reason surfaces when an object is not rolling out.
+	NotRollingOutV1Beta2Reason = "NotRollingOut"
 
 	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.
 	ScalingUpV1Beta2Reason = "ScalingUp"

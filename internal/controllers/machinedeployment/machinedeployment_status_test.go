@@ -205,6 +205,109 @@ func Test_setAvailableCondition(t *testing.T) {
 	}
 }
 
+func Test_setRollingOutCondition(t *testing.T) {
+	upToDateCondition := metav1.Condition{
+		Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+	}
+
+	tests := []struct {
+		name                 string
+		machineDeployment    *clusterv1.MachineDeployment
+		machines             []*clusterv1.Machine
+		getMachinesSucceeded bool
+		expectCondition      metav1.Condition
+	}{
+		{
+			name:                 "get machines failed",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             nil,
+			getMachinesSucceeded: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:                 "no machines",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineDeploymentNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name:              "all machines are up to date",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withV1Beta2Condition(upToDateCondition)),
+				fakeMachine("machine-2", withV1Beta2Condition(upToDateCondition)),
+			},
+			getMachinesSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineDeploymentNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name:              "one up-to-date, two not up-to-date, one reporting up-to-date unknown",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines: []*clusterv1.Machine{
+				fakeMachine("machine-1", withV1Beta2Condition(upToDateCondition)),
+				fakeMachine("machine-2", withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: clusterv1.InternalErrorV1Beta2Reason,
+				})),
+				fakeMachine("machine-3", withV1Beta2Condition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+					Message: "Version v1.25.0, v1.26.0 required",
+				})),
+				fakeMachine("machine-4", withV1Beta2Condition(metav1.Condition{
+					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+					Message: "Failure domain failure-domain1, failure-domain2 required; InfrastructureMachine is not up-to-date",
+				})),
+			},
+			getMachinesSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+				Message: "Rolling out 2 not up-to-date replicas\n" +
+					"* Version v1.25.0, v1.26.0 required\n" +
+					"* Failure domain failure-domain1, failure-domain2 required\n" +
+					"* InfrastructureMachine is not up-to-date",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var machines collections.Machines
+			if tt.machines != nil {
+				machines = collections.FromMachines(tt.machines...)
+			}
+			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
+
+			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func Test_setScalingUpCondition(t *testing.T) {
 	defaultMachineDeployment := &clusterv1.MachineDeployment{
 		Spec: clusterv1.MachineDeploymentSpec{

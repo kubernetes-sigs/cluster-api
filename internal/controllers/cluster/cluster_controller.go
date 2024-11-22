@@ -265,6 +265,7 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 			clusterv1.ClusterMachinesReadyV1Beta2Condition,
 			clusterv1.ClusterMachinesUpToDateV1Beta2Condition,
 			clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			clusterv1.ClusterRollingOutV1Beta2Condition,
 			clusterv1.ClusterScalingUpV1Beta2Condition,
 			clusterv1.ClusterScalingDownV1Beta2Condition,
 			clusterv1.ClusterRemediatingV1Beta2Condition,

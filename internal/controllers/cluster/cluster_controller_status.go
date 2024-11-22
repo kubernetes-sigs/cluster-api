@@ -67,6 +67,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setWorkersAvailableCondition(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
 	setMachinesReadyCondition(ctx, s.cluster, allMachines, s.getDescendantsSucceeded)
 	setMachinesUpToDateCondition(ctx, s.cluster, allMachines, s.getDescendantsSucceeded)
+	setRollingOutCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setScalingUpCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setScalingDownCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
@@ -758,6 +759,77 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 		Reason:  clusterv1.ClusterRemediatingV1Beta2Reason,
 		Message: remediatingCondition.Message,
 	})
+}
+
+func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
+	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
+		v1beta2conditions.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	if controlPlane == nil && len(machinePools.Items)+len(machineDeployments.Items) == 0 {
+		v1beta2conditions.Set(cluster, metav1.Condition{
+			Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
+		})
+		return
+	}
+
+	ws := make([]aggregationWrapper, 0, len(machinePools.Items)+len(machineDeployments.Items)+1)
+	if controlPlane != nil {
+		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
+		// Note: this implies that it won't surface as "Conditions RollingOut not yet reported from ...".
+		if c, err := v1beta2conditions.UnstructuredGet(controlPlane, clusterv1.RollingOutV1Beta2Condition); err == nil && c != nil {
+			ws = append(ws, aggregationWrapper{cp: controlPlane})
+		}
+	}
+	for _, mp := range machinePools.Items {
+		ws = append(ws, aggregationWrapper{mp: &mp})
+	}
+	for _, md := range machineDeployments.Items {
+		ws = append(ws, aggregationWrapper{md: &md})
+	}
+
+	rollingOutCondition, err := v1beta2conditions.NewAggregateCondition(
+		ws, clusterv1.RollingOutV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.ClusterRollingOutV1Beta2Condition),
+		// Instruct aggregate to consider RollingOut condition with negative polarity.
+		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.RollingOutV1Beta2Condition},
+		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
+		// takes into account the fact the RollingOut has negative polarity.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				v1beta2conditions.TargetConditionHasPositivePolarity(false),
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					clusterv1.ClusterRollingOutV1Beta2Reason,
+					clusterv1.ClusterRollingOutUnknownV1Beta2Reason,
+					clusterv1.ClusterNotRollingOutV1Beta2Reason,
+				)),
+				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.RollingOutV1Beta2Condition)),
+			),
+		},
+	)
+	if err != nil {
+		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's RollingOut conditions")
+		v1beta2conditions.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	v1beta2conditions.Set(cluster, *rollingOutCondition)
 }
 
 func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {

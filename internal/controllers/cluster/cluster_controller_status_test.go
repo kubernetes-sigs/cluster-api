@@ -1075,6 +1075,201 @@ func TestSetMachinesUpToDateCondition(t *testing.T) {
 	}
 }
 
+func TestSetRollingOutCondition(t *testing.T) {
+	tests := []struct {
+		name                    string
+		cluster                 *clusterv1.Cluster
+		controlPlane            *unstructured.Unstructured
+		controlPlaneIsNotFound  bool
+		machinePools            expv1.MachinePoolList
+		machineDeployments      clusterv1.MachineDeploymentList
+		getDescendantsSucceeded bool
+		expectCondition         metav1.Condition
+	}{
+		{
+			name:                    "cluster with controlplane, unknown if failed to get descendants",
+			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			controlPlane:            nil,
+			controlPlaneIsNotFound:  true,
+			getDescendantsSucceeded: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:                    "cluster with controlplane, unknown if failed to get control plane",
+			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			controlPlane:            nil,
+			controlPlaneIsNotFound:  false,
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:                    "cluster with controlplane, false if no control plane & descendants",
+			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			controlPlaneIsNotFound:  true,
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name:         "cluster with controlplane, control plane & descendants do not report rolling out",
+			cluster:      fakeCluster("c", controlPlaneRef{}),
+			controlPlane: fakeControlPlane("cp1"),
+			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+				*fakeMachinePool("mp1"),
+			}},
+			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
+				*fakeMachineDeployment("md1"),
+			}},
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: clusterv1.ClusterRollingOutUnknownV1Beta2Reason,
+				Message: "* MachineDeployment md1: Condition RollingOut not yet reported\n" +
+					"* MachinePool mp1: Condition RollingOut not yet reported",
+			},
+		},
+		{
+			name:    "cluster with controlplane, control plane and descendants report rolling out",
+			cluster: fakeCluster("c", controlPlaneRef{}),
+			controlPlane: fakeControlPlane("cp1", condition{
+				Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status:  corev1.ConditionTrue,
+				Reason:  clusterv1.RollingOutV1Beta2Reason,
+				Message: "Rolling out 3 not up-to-date replicas",
+			}),
+			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+				*fakeMachinePool("mp1", v1beta2Condition{
+					Type:    clusterv1.RollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Message: "Rolling out 5 not up-to-date replicas",
+				}),
+			}},
+			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
+				*fakeMachineDeployment("md1", v1beta2Condition{
+					Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Message: "Rolling out 4 not up-to-date replicas",
+				}),
+			}},
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Message: "* FakeControlPlane cp1: Rolling out 3 not up-to-date replicas\n" +
+					"* MachineDeployment md1: Rolling out 4 not up-to-date replicas\n" +
+					"* MachinePool mp1: Rolling out 5 not up-to-date replicas",
+			},
+		},
+		{
+			name:         "cluster with controlplane, control plane not reporting conditions, descendants report rolling out",
+			cluster:      fakeCluster("c", controlPlaneRef{}),
+			controlPlane: fakeControlPlane("cp1"),
+			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+				*fakeMachinePool("mp1", v1beta2Condition{
+					Type:    clusterv1.RollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Message: "Rolling out 3 not up-to-date replicas",
+				}),
+			}},
+			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
+				*fakeMachineDeployment("md1", v1beta2Condition{
+					Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Message: "Rolling out 5 not up-to-date replicas",
+				}),
+			}},
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Message: "* MachineDeployment md1: Rolling out 5 not up-to-date replicas\n" +
+					"* MachinePool mp1: Rolling out 3 not up-to-date replicas",
+			},
+		},
+		{
+			name:                    "cluster without controlplane, unknown if failed to get descendants",
+			cluster:                 fakeCluster("c"),
+			getDescendantsSucceeded: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:                    "cluster without controlplane, false if no descendants",
+			cluster:                 fakeCluster("c"),
+			controlPlaneIsNotFound:  true,
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
+			},
+		},
+		{
+			name:    "cluster without controlplane, descendants report scaling up",
+			cluster: fakeCluster("c"),
+			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+				*fakeMachinePool("mp1", v1beta2Condition{
+					Type:    clusterv1.RollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Message: "Rolling out 3 not up-to-date replicas",
+				}),
+			}},
+			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
+				*fakeMachineDeployment("md1", v1beta2Condition{
+					Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Message: "Rolling out 5 not up-to-date replicas",
+				}),
+			}},
+			getDescendantsSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Message: "* MachineDeployment md1: Rolling out 5 not up-to-date replicas\n" +
+					"* MachinePool mp1: Rolling out 3 not up-to-date replicas",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setRollingOutCondition(ctx, tt.cluster, tt.controlPlane, tt.machinePools, tt.machineDeployments, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
+
+			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterRollingOutV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func TestSetScalingUpCondition(t *testing.T) {
 	tests := []struct {
 		name                    string

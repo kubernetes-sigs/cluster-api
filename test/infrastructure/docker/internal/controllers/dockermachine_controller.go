@@ -184,7 +184,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted machines
 	if !dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
+		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
 	}
 
 	// Handle non-deleted machines
@@ -251,6 +251,19 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		version = machine.Spec.Version
 	}
 
+	// if the corresponding machine is deleted but the docker machine not yet, update load balancer configuration to divert all traffic from this instance
+	if util.IsControlPlaneMachine(machine) && !machine.DeletionTimestamp.IsZero() && dockerMachine.DeletionTimestamp.IsZero() {
+		if _, ok := dockerMachine.Annotations["dockermachine.infrastructure.cluster.x-k8s.io/weight"]; !ok {
+			if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if dockerMachine.Annotations == nil {
+			dockerMachine.Annotations = map[string]string{}
+		}
+		dockerMachine.Annotations["dockermachine.infrastructure.cluster.x-k8s.io/weight"] = "0"
+	}
+
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.
@@ -308,12 +321,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// we should only do this once, as reconfiguration more or less ensures
 	// node ref setting fails
 	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
-		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
-		}
-		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+		if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
+			return ctrl.Result{}, err
 		}
 		dockerMachine.Status.LoadBalancerConfigured = true
 	}
@@ -439,7 +448,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) error {
+func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) error {
 	// Set the ContainerProvisionedCondition reporting delete is started, and issue a patch in order to make
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
@@ -460,17 +469,42 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, dockerClu
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
-		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
-		if err != nil {
-			return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
-		}
-		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
-			return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+		if err := r.reconcileLoadBalancerConfiguration(ctx, cluster, dockerCluster, externalLoadBalancer); err != nil {
+			return err
 		}
 	}
 
 	// Machine is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(dockerMachine, infrav1.MachineFinalizer)
+	return nil
+}
+
+func (r *DockerMachineReconciler) reconcileLoadBalancerConfiguration(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) error {
+	controlPlaneWeight := map[string]int{}
+
+	controlPlaneMachineList := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, controlPlaneMachineList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
+		clusterv1.MachineControlPlaneLabel: "",
+		clusterv1.ClusterNameLabel:         cluster.Name,
+	}); err != nil {
+		return errors.Wrap(err, "failed to list control plane machines")
+	}
+
+	for _, m := range controlPlaneMachineList.Items {
+		containerName := docker.MachineContainerName(cluster.Name, m.Name)
+		controlPlaneWeight[containerName] = 100
+		if !m.DeletionTimestamp.IsZero() && len(controlPlaneMachineList.Items) > 1 {
+			controlPlaneWeight[containerName] = 0
+		}
+	}
+
+	unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+	}
+	if err := externalLoadBalancer.UpdateConfiguration(ctx, controlPlaneWeight, unsafeLoadBalancerConfigTemplate); err != nil {
+		return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+	}
 	return nil
 }
 

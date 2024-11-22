@@ -36,6 +36,9 @@ const KubeadmContainerPort = 6443
 // ControlPlanePort is the port for accessing the control plane API in the container.
 const ControlPlanePort = 6443
 
+// HAProxyPort is the port for accessing HA proxy stats.
+const HAProxyPort = 8404
+
 // DefaultNetwork is the default network name to use in kind.
 const DefaultNetwork = "kind"
 
@@ -106,12 +109,20 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string
 // This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME' if the load balancer container is restarted.
 func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ clusterv1.ClusterIPFamily) (*types.Node, error) {
 	// load balancer port mapping
-	portMappings := []v1alpha4.PortMapping{{
-		ListenAddress: listenAddress,
-		HostPort:      port,
-		ContainerPort: ControlPlanePort,
-		Protocol:      v1alpha4.PortMappingProtocolTCP,
-	}}
+	portMappings := []v1alpha4.PortMapping{
+		{
+			ListenAddress: listenAddress,
+			HostPort:      port,
+			ContainerPort: ControlPlanePort,
+			Protocol:      v1alpha4.PortMappingProtocolTCP,
+		},
+		{
+			ListenAddress: listenAddress,
+			HostPort:      0,
+			ContainerPort: HAProxyPort,
+			Protocol:      v1alpha4.PortMappingProtocolTCP,
+		},
+	}
 	createOpts := &nodeCreateOpts{
 		Name:         name,
 		ClusterName:  clusterName,

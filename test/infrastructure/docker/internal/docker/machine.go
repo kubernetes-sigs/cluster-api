@@ -82,7 +82,7 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string,
 
 	filters := container.FilterBuilder{}
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster.Name)
-	filters.AddKeyValue(filterName, fmt.Sprintf("^%s$", machineContainerName(cluster.Name, machine)))
+	filters.AddKeyValue(filterName, fmt.Sprintf("^%s$", MachineContainerName(cluster.Name, machine)))
 	for key, val := range filterLabels {
 		filters.AddKeyNameValue(filterLabel, key, val)
 	}
@@ -171,7 +171,7 @@ func (m *Machine) Name() string {
 
 // ContainerName return the name of the container for this machine.
 func (m *Machine) ContainerName() string {
-	return machineContainerName(m.cluster, m.machine)
+	return MachineContainerName(m.cluster, m.machine)
 }
 
 // ProviderID return the provider identifier for this machine.

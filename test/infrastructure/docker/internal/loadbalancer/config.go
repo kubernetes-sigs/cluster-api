@@ -28,8 +28,14 @@ import (
 type ConfigData struct {
 	FrontendControlPlanePort string
 	BackendControlPlanePort  string
-	BackendServers           map[string]string
+	BackendServers           map[string]BackendServer
 	IPv6                     bool
+}
+
+// BackendServer defines a loadbalancer backend.
+type BackendServer struct {
+	Address string
+	Weight  int
 }
 
 // DefaultTemplate is the loadbalancer config template.
@@ -56,6 +62,14 @@ defaults
   # allow to boot despite dns don't resolve backends
   default-server init-addr none
 
+frontend stats
+  mode http
+  bind *:8404
+  stats enable
+  stats uri /stats
+  stats refresh 1s
+  stats admin if TRUE
+
 frontend control-plane
   bind *:{{ .FrontendControlPlanePort }}
   {{ if .IPv6 -}}
@@ -65,9 +79,8 @@ frontend control-plane
 
 backend kube-apiservers
   option httpchk GET /healthz
-  # TODO: we should be verifying (!)
-  {{range $server, $address := .BackendServers}}
-  server {{ $server }} {{ JoinHostPort $address $.BackendControlPlanePort }} check check-ssl verify none resolvers docker resolve-prefer {{ if $.IPv6 -}} ipv6 {{- else -}} ipv4 {{- end }}
+  {{range $server, $backend := .BackendServers}}
+  server {{ $server }} {{ JoinHostPort $backend.Address $.BackendControlPlanePort }} weight {{ $backend.Weight }} check check-ssl verify none resolvers docker resolve-prefer {{ if $.IPv6 -}} ipv6 {{- else -}} ipv4 {{- end }}
   {{- end}}
 `
 

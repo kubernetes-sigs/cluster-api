@@ -496,7 +496,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					Status: metav1.ConditionFalse,
 					Reason: clusterv1.MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason,
 				})
-			} else {
+			} else if t.Machine.DeletionTimestamp.IsZero() { // Only setting the OwnerRemediated conditions when machine is not already in deletion.
 				logger.Info("Target has failed health check, marking for remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)
 				// NOTE: MHC is responsible for creating MachineOwnerRemediatedCondition if missing or to trigger another remediation if the previous one is completed;
 				// instead, if a remediation is in already progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.

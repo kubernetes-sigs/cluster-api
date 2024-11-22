@@ -376,7 +376,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesNotHealthy(g, mhc, 0)
 	})
 
-	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine", func(t *testing.T) {
+	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine and skips deleting machines", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -404,7 +404,16 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			machineLabels(mhc.Spec.Selector.MatchLabels),
 		)
 		defer cleanup2()
-		machines = append(machines, unhealthyMachines...)
+		// Unhealthy nodes and machines but already in deletion.
+		_, unhealthyMachinesDeleting, cleanup3 := createMachinesWithNodes(g, cluster,
+			count(1),
+			createNodeRefForMachine(true),
+			nodeStatus(corev1.ConditionUnknown),
+			machineLabels(mhc.Spec.Selector.MatchLabels),
+			machineDeleting(),
+		)
+		defer cleanup3()
+		machines = append(append(machines, unhealthyMachines...), unhealthyMachinesDeleting...)
 		targetMachines := make([]string, len(machines))
 		for i, m := range machines {
 			targetMachines[i] = m.Name
@@ -419,7 +428,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
+			ExpectedMachines:    4,
 			CurrentHealthy:      2,
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
@@ -441,7 +450,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 		}))
 
-		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesNotHealthy(g, mhc, 2)
 		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
@@ -2450,6 +2459,8 @@ type machinesWithNodes struct {
 	labels                     map[string]string
 	failureReason              string
 	failureMessage             string
+	finalizers                 []string
+	deleted                    bool
 }
 
 type machineWithNodesOption func(m *machinesWithNodes)
@@ -2496,6 +2507,13 @@ func machineFailureMessage(s string) machineWithNodesOption {
 	}
 }
 
+func machineDeleting() machineWithNodesOption {
+	return func(m *machinesWithNodes) {
+		m.finalizers = append(m.finalizers, "test.cluster.io/deleting")
+		m.deleted = true
+	}
+}
+
 func createMachinesWithNodes(
 	g *WithT,
 	c *clusterv1.Cluster,
@@ -2535,8 +2553,17 @@ func createMachinesWithNodes(
 			Name:       infraMachine.GetName(),
 			Namespace:  infraMachine.GetNamespace(),
 		}
+		if len(o.finalizers) > 0 {
+			machine.Finalizers = o.finalizers
+		}
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		fmt.Printf("machine created: %s\n", machine.GetName())
+
+		// Set deletiontimestamp before updating status to ensure its not reconciled
+		// without having the deletionTimestamp set.
+		if o.deleted {
+			g.Expect(env.Delete(ctx, machine)).To(Succeed())
+		}
 
 		// Before moving on we want to ensure that the machine has a valid
 		// status. That is, LastUpdated should not be nil.
@@ -2618,7 +2645,16 @@ func createMachinesWithNodes(
 			}
 		}
 		for _, m := range machines {
-			g.Expect(env.Delete(ctx, m)).To(Succeed())
+			if m.DeletionTimestamp.IsZero() {
+				g.Expect(env.Delete(ctx, m)).To(Succeed())
+			}
+			if len(m.Finalizers) > 1 {
+				g.Expect(env.Get(ctx, util.ObjectKey(m), m)).To(Succeed())
+				machinePatchHelper, err := patch.NewHelper(m, env.Client)
+				g.Expect(err).ToNot(HaveOccurred())
+				m.Finalizers = nil
+				g.Expect(machinePatchHelper.Patch(ctx, m)).To(Succeed())
+			}
 		}
 		for _, im := range infraMachines {
 			if err := env.Delete(ctx, im); !apierrors.IsNotFound(err) {

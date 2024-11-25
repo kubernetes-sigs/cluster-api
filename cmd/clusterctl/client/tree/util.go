@@ -53,10 +53,20 @@ func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(v1beta2conditions.Getter); ok {
 		return v1beta2conditions.Get(getter, clusterv1.AvailableV1Beta2Condition)
 	}
+
+	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
+		c, err := v1beta2conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableV1Beta2Condition)
+		if err != nil {
+			return nil
+		}
+		return c
+	}
+
 	return nil
 }
 
 // GetMachineUpToDateV1Beta2Condition returns machine's UpToDate condition, if defined.
+// Note: The UpToDate condition only exist on machines, so no need to support reading from unstructured.
 func GetMachineUpToDateV1Beta2Condition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(v1beta2conditions.Getter); ok {
 		return v1beta2conditions.Get(getter, clusterv1.MachineUpToDateV1Beta2Condition)

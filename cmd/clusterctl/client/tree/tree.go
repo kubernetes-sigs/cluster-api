@@ -265,18 +265,22 @@ func (od ObjectTree) GetObjectsByParent(id types.UID) []client.Object {
 }
 
 func hasSameAvailableReadyUptoDateStatusAndReason(availableA, availableB, readyA, readyB, upToDateA, upToDateB *metav1.Condition) bool {
-	if ((availableA == nil) != (availableB == nil)) || ((availableA != nil && availableB != nil) && (availableA.Status != availableB.Status || availableA.Reason != availableB.Reason)) {
+	if !hasSameStatusAndReason(availableA, availableB) {
 		return false
 	}
-
-	if ((readyA == nil) != (readyB == nil)) || ((readyA != nil && readyB != nil) && (readyA.Status != readyB.Status || readyA.Reason != readyB.Reason)) {
+	if !hasSameStatusAndReason(readyA, readyB) {
 		return false
 	}
-
-	if ((upToDateA == nil) != (upToDateB == nil)) || ((upToDateA != nil && upToDateB != nil) && (upToDateA.Status != upToDateB.Status || upToDateA.Reason != upToDateB.Reason)) {
+	if !hasSameStatusAndReason(upToDateA, upToDateB) {
 		return false
 	}
+	return true
+}
 
+func hasSameStatusAndReason(a, b *metav1.Condition) bool {
+	if ((a == nil) != (b == nil)) || ((a != nil && b != nil) && (a.Status != b.Status || a.Reason != b.Reason)) {
+		return false
+	}
 	return true
 }
 

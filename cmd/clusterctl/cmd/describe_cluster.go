@@ -274,7 +274,7 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 	// NOTE: The object name gets manipulated in order to improve readability.
 	name := getRowName(obj)
 
-	// If we are going to should all conditions from this object, let's drop the condition picked in the rowDescriptor.
+	// If we are going to show all conditions from this object, let's drop the condition picked in the rowDescriptor.
 	if tree.IsShowConditionsObject(obj) {
 		rowDescriptor.status = ""
 		rowDescriptor.reason = ""

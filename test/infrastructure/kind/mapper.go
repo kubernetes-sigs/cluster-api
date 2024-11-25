@@ -79,6 +79,38 @@ type Mapping struct {
 var preBuiltMappings = []Mapping{
 
 	// TODO: Add pre-built images for newer Kind versions on top
+	// Pre-built images for Kind v1.25.
+	{
+		KubernetesVersion: semver.MustParse("1.31.2"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.31.2@sha256:18fbefc20a7113353c7b75b5c869d7145a6abd6269154825872dc59c1329912e",
+	},
+	{
+		KubernetesVersion: semver.MustParse("1.30.6"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.30.6@sha256:b6d08db72079ba5ae1f4a88a09025c0a904af3b52387643c285442afb05ab994",
+	},
+	{
+		KubernetesVersion: semver.MustParse("1.29.10"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.29.10@sha256:3b2d8c31753e6c8069d4fc4517264cd20e86fd36220671fb7d0a5855103aa84b",
+	},
+	{
+		KubernetesVersion: semver.MustParse("1.28.15"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.28.15@sha256:a7c05c7ae043a0b8c818f5a06188bc2c4098f6cb59ca7d1856df00375d839251",
+	},
+	{
+		KubernetesVersion: semver.MustParse("1.27.16"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.27.16@sha256:2d21a61643eafc439905e18705b8186f3296384750a835ad7a005dceb9546d20",
+	},
+	{
+		KubernetesVersion: semver.MustParse("1.26.15"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.26.15@sha256:c79602a44b4056d7e48dc20f7504350f1e87530fe953428b792def00bc1076dd",
+	},
+
 	// Pre-built images for Kind v1.24.
 	{
 		KubernetesVersion: semver.MustParse("1.31.0"),

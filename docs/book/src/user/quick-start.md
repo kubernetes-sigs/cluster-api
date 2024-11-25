@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -575,6 +575,13 @@ clusterctl init --infrastructure gcp
 ```
 
 {{#/tab }}
+{{#tab Harvester}}
+
+```bash
+clusterctl init --infrastructure harvester
+```
+
+Please visit the [Harvester project][Harvester provider].
 {{#tab Hetzner}}
 
 Please visit the [Hetzner project][Hetzner provider].
@@ -871,7 +878,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1049,6 +1056,46 @@ export CLUSTER_NAME="<CLUSTER_NAME>"
 ```
 
 See the [GCP provider] for more information.
+
+{{#/tab }}
+{{#tab Harvester}}
+
+
+```bash
+# Cloud Provider credentials, which are a Kubeconfig generated using this process: https://docs.harvesterhci.io/v1.3/rancher/cloud-provider/#deploying-to-the-rke2-custom-cluster-experimental
+# Since v0.1.5, this can be left "", because the controller can update it automatically
+export CLOUD_CONFIG_KUBECONFIG_B64=""
+# Name of the CAPI Cluster
+export CLUSTER_NAME="<CLUSTER_NAME>"
+# Number of Control Plane machines
+export CONTROL_PLANE_MACHINE_COUNT=3
+# URL to access the Harvester Cluster, this will be overriden by the controller
+export HARVESTER_ENDPOINT=""
+# Base64-Encoded Kubeconfig to access Harvester, which can be downloaded from Harvester's UI or from a Harvester Manager Node.
+export HARVESTER_KUBECONFIG_B64="<HARVESTER_KUBECONFIG_ENCODED_IN_BASE64>"
+# Namespace for all resources in the Management Cluster
+export NAMESPACE="test"
+# Pod CIDR for the Workload Cluster, it should have the format: 192.168.0.0/16 
+export POD_CIDR="10.42.0.0/16"
+# Service CIDR for the Workload Cluster, it should have the format : 192.168.0.0/16 and be different from POD_CIDR
+export SERVICE_CIDR="10.43.0.0/16"
+# Reference to SSH Keypair in Harvester. It should follow the format <NAMESPACE>/<NAME>
+export SSH_KEYPAIR="default/ssk-key-pair"
+# Namespace in Harvester where the VMs will be created.
+export TARGET_HARVESTER_NAMESPACE="default"
+# Disk Size to be used by the VMs
+export VM_DISK_SIZE="50Gi"
+# Reference to OS Image in Harvester which will be used for creating VMs, It must follow the format <NAMESPACE>/<NAME>
+export VM_IMAGE_NAME="default/jammy-server"
+# Reference to VM Network in Harvester. It must follow the format <NAMESPACE>/<NAME>
+export VM_NETWORK="default/untagged"
+# Linux Username for the VMs
+export VM_SSH_USER="ubuntu"
+# Number of Worker nodes in the target Workload cluster
+export WORKER_MACHINE_COUNT=2
+```
+
+See the [Harvester provider] for more information.
 
 {{#/tab }}
 {{#tab IBM Cloud}}
@@ -1817,6 +1864,7 @@ kind delete cluster
 [Docker]: https://www.docker.com/
 [GCP provider]: https://cluster-api-gcp.sigs.k8s.io/
 [Helm]: https://helm.sh/docs/intro/install/
+[Harvester provider]: https://github.com/rancher-sandbox/cluster-api-provider-harvester
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud

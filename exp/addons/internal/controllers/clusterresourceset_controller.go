@@ -160,10 +160,10 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 		log.Error(err, "Failed fetching clusters that matches ClusterResourceSet labels", "ClusterResourceSet", klog.KObj(clusterResourceSet))
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ClusterMatchFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-			Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+			Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  addonsv1.ResourcesAppliedClusterMatchFailedV1beta2Reason,
-			Message: "Failed to get Clusters by ClusterSelector",
+			Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
 		})
 		return ctrl.Result{}, err
 	}
@@ -317,18 +317,18 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			if err == ErrSecretTypeNotSupported {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
 				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-					Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+					Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeV1beta2Reason,
+					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeV1Beta2Reason,
 					Message: fmt.Sprintf("Secret type of resource %s is not supported", resource.Name),
 				})
 			} else {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-					Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+					Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  addonsv1.ResourcesAppliedRetrievingResourceFailedV1beta2Reason,
-					Message: "Failed to get resource",
+					Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
+					Message: "Please check controller logs for errors",
 				})
 
 				// Continue without adding the error to the aggregate if we can't find the resource.
@@ -383,9 +383,9 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-			Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+			Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  addonsv1.ResourcesAppliedRemoteClusterClientFailedV1beta2Reason,
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return err
@@ -440,9 +440,9 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			log.Error(err, "Failed to apply ClusterResourceSet resource", resource.Kind, klog.KRef(clusterResourceSet.Namespace, resource.Name))
 			conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-				Type:    addonsv1.ResourcesAppliedV1beta2Condition,
+				Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  addonsv1.ResourcesAppliedApplyFailedV1beta2Reason,
+				Reason:  addonsv1.ResourcesNotAppliedV1Beta2Reason,
 				Message: "Failed to apply ClusterResourceSet resources to Cluster",
 			})
 			errList = append(errList, err)
@@ -461,7 +461,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 	conditions.MarkTrue(clusterResourceSet, addonsv1.ResourcesAppliedCondition)
 	v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
-		Type:   addonsv1.ResourcesAppliedV1beta2Condition,
+		Type:   addonsv1.ResourcesAppliedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: addonsv1.ResourcesAppliedV1beta2Reason,
 	})

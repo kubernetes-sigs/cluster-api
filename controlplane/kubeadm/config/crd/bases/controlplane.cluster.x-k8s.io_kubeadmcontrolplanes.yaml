@@ -946,13 +946,13 @@ spec:
                         type: array
                     type: object
                   postKubeadmCommands:
-                    description: PostKubeadmCommands specifies extra commands to run
+                    description: postKubeadmCommands specifies extra commands to run
                       after kubeadm runs
                     items:
                       type: string
                     type: array
                   preKubeadmCommands:
-                    description: PreKubeadmCommands specifies extra commands to run
+                    description: preKubeadmCommands specifies extra commands to run
                       before kubeadm runs
                     items:
                       type: string
@@ -2096,7 +2096,7 @@ spec:
                       type: string
                     type: array
                   preKubeadmCommands:
-                    description: PreKubeadmCommands specifies extra commands to run
+                    description: preKubeadmCommands specifies extra commands to run
                       before kubeadm runs
                     items:
                       type: string
@@ -2512,7 +2512,7 @@ spec:
                 properties:
                   bootCommands:
                     description: |-
-                      BootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd
+                      bootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd
                       module. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
                     items:
                       description: BootCommand defines input for each bootcmd command
@@ -4088,7 +4088,7 @@ spec:
                     type: object
                   postKubeadmCommands:
                     description: |-
-                      PostKubeadmCommands specifies extra commands to run after kubeadm runs.
+                      postKubeadmCommands specifies extra commands to run after kubeadm runs.
                       With cloud-init, this is appended to the runcmd module configuration, and is typically executed in
                       the cloud-final.service systemd unit. In Ignition, this is appended to /etc/kubeadm.sh.
                     items:
@@ -4096,7 +4096,7 @@ spec:
                     type: array
                   preKubeadmCommands:
                     description: |-
-                      PreKubeadmCommands specifies extra commands to run before kubeadm runs.
+                      preKubeadmCommands specifies extra commands to run before kubeadm runs.
                       With cloud-init, this is prepended to the runcmd module configuration, and is typically executed in
                       the cloud-final.service systemd unit. In Ignition, this is prepended to /etc/kubeadm.sh.
                     items:

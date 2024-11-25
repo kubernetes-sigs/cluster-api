@@ -405,14 +405,26 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		)
 		defer cleanup2()
 		// Unhealthy nodes and machines but already in deletion.
+		// Note: deletionTimestamp gets set by deletion below which also removes the skip remediation annotation.
 		_, unhealthyMachinesDeleting, cleanup3 := createMachinesWithNodes(g, cluster,
 			count(1),
 			createNodeRefForMachine(true),
 			nodeStatus(corev1.ConditionUnknown),
 			machineLabels(mhc.Spec.Selector.MatchLabels),
-			machineDeleting(),
+			machineFinalizers("test.cluster.io/delete-protection"),
+			machineAnnotations(map[string]string{clusterv1.MachineSkipRemediationAnnotation: ""}),
 		)
 		defer cleanup3()
+		// Mark machines for deletion and drop skip remediation annotation
+		// Note: without the skip remediation annotation the MHC controller might already reconcile the condition leading to a flaky test.
+		for _, m := range unhealthyMachinesDeleting {
+			g.Expect(env.Delete(ctx, m)).To(Succeed())
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(m), m)).To(Succeed())
+			deletingMachinePatchHelper, err := patch.NewHelper(m, env.GetClient())
+			g.Expect(err).ToNot(HaveOccurred())
+			m.Annotations = map[string]string{}
+			g.Expect(deletingMachinePatchHelper.Patch(ctx, m)).To(Succeed())
+		}
 		machines = append(append(machines, unhealthyMachines...), unhealthyMachinesDeleting...)
 		targetMachines := make([]string, len(machines))
 		for i, m := range machines {
@@ -2456,11 +2468,11 @@ type machinesWithNodes struct {
 	nodeStatus                 corev1.ConditionStatus
 	createNodeRefForMachine    bool
 	firstMachineAsControlPlane bool
+	annotations                map[string]string
 	labels                     map[string]string
 	failureReason              string
 	failureMessage             string
 	finalizers                 []string
-	deleted                    bool
 }
 
 type machineWithNodesOption func(m *machinesWithNodes)
@@ -2507,10 +2519,15 @@ func machineFailureMessage(s string) machineWithNodesOption {
 	}
 }
 
-func machineDeleting() machineWithNodesOption {
+func machineAnnotations(a map[string]string) machineWithNodesOption {
 	return func(m *machinesWithNodes) {
-		m.finalizers = append(m.finalizers, "test.cluster.io/deleting")
-		m.deleted = true
+		m.annotations = a
+	}
+}
+
+func machineFinalizers(f ...string) machineWithNodesOption {
+	return func(m *machinesWithNodes) {
+		m.finalizers = append(m.finalizers, f...)
 	}
 }
 
@@ -2556,14 +2573,11 @@ func createMachinesWithNodes(
 		if len(o.finalizers) > 0 {
 			machine.Finalizers = o.finalizers
 		}
+		if o.annotations != nil {
+			machine.ObjectMeta.Annotations = o.annotations
+		}
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		fmt.Printf("machine created: %s\n", machine.GetName())
-
-		// Set deletiontimestamp before updating status to ensure its not reconciled
-		// without having the deletionTimestamp set.
-		if o.deleted {
-			g.Expect(env.Delete(ctx, machine)).To(Succeed())
-		}
 
 		// Before moving on we want to ensure that the machine has a valid
 		// status. That is, LastUpdated should not be nil.

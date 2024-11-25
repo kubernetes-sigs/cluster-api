@@ -25,14 +25,10 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -48,16 +44,9 @@ const (
 )
 
 var (
-	env        *envtest.Environment
-	ctx        = ctrl.SetupSignalHandler()
-	fakeScheme = runtime.NewScheme()
+	env *envtest.Environment
+	ctx = ctrl.SetupSignalHandler()
 )
-
-func init() {
-	_ = clientgoscheme.AddToScheme(fakeScheme)
-	_ = clusterv1.AddToScheme(fakeScheme)
-	_ = apiextensionsv1.AddToScheme(fakeScheme)
-}
 
 func TestMain(m *testing.M) {
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {

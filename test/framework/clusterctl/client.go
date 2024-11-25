@@ -203,7 +203,7 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 }
 
 // UpgradeWithBinary calls clusterctl upgrade apply with the list of providers defined in the local repository.
-func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) {
+func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) error {
 	if len(input.ClusterctlVariables) > 0 {
 		outputPath := filepath.Join(filepath.Dir(input.ClusterctlConfigPath), fmt.Sprintf("clusterctl-upgrade-config-%s.yaml", input.ClusterName))
 		Expect(CopyAndAmendClusterctlConfig(ctx, CopyAndAmendClusterctlConfigInput{
@@ -227,8 +227,9 @@ func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) {
 		if errors.As(err, &exitErr) {
 			stdErr = string(exitErr.Stderr)
 		}
+		return fmt.Errorf("failed to run clusterctl upgrade apply:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
 	}
-	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade apply:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
+	return nil
 }
 
 func calculateClusterCtlUpgradeArgs(input UpgradeInput) []string {

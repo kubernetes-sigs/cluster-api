@@ -44,6 +44,7 @@ const (
 	DockerProviderName         = "docker"
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
+	HarvesterProviderName      = "harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"
 	OutscaleProviderName       = "outscale"
@@ -255,6 +256,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         BYOHProviderName,
 			url:          "https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         HarvesterProviderName,
+			url:          "https://github.com/rancher-sandbox/cluster-api-provider-harvester/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

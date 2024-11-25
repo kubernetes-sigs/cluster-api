@@ -4,7 +4,6 @@ Cluster API now ships with a new experimental package that lives under the `exp/
 temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
 
 Currently Cluster API has the following experimental features:
-* `ClusterResourceSet` (env var: `EXP_CLUSTER_RESOURCE_SET`): [ClusterResourceSet](./cluster-resource-set.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
 * `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):

@@ -902,7 +902,7 @@ metadata:
 			appliedConditionV1Beta2 := v1beta2conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta2Condition)
 			g.Expect(appliedConditionV1Beta2).NotTo(BeNil())
 			g.Expect(appliedConditionV1Beta2.Status).To(BeEquivalentTo(corev1.ConditionFalse))
-			g.Expect(appliedConditionV1Beta2.Reason).To(Equal(addonsv1.ApplyFailedReason))
+			g.Expect(appliedConditionV1Beta2.Reason).To(Equal(addonsv1.ResourcesNotAppliedV1Beta2Reason))
 			g.Expect(appliedConditionV1Beta2.Message).To(Equal("Failed to apply ClusterResourceSet resources to Cluster"))
 		}, timeout).Should(Succeed())
 

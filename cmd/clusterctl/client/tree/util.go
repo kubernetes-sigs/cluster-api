@@ -21,12 +21,58 @@ import (
 	"sort"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
+
+// GetReadyV1Beta2Condition returns the ReadyCondition for an object, if defined.
+func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
+	if getter, ok := obj.(v1beta2conditions.Getter); ok {
+		return v1beta2conditions.Get(getter, clusterv1.ReadyV1Beta2Condition)
+	}
+
+	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
+		c, err := v1beta2conditions.UnstructuredGet(objUnstructured, clusterv1.ReadyV1Beta2Condition)
+		if err != nil {
+			return nil
+		}
+		return c
+	}
+
+	return nil
+}
+
+// GetAvailableV1Beta2Condition returns the AvailableCondition for an object, if defined.
+func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
+	if getter, ok := obj.(v1beta2conditions.Getter); ok {
+		return v1beta2conditions.Get(getter, clusterv1.AvailableV1Beta2Condition)
+	}
+
+	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
+		c, err := v1beta2conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableV1Beta2Condition)
+		if err != nil {
+			return nil
+		}
+		return c
+	}
+
+	return nil
+}
+
+// GetMachineUpToDateV1Beta2Condition returns machine's UpToDate condition, if defined.
+// Note: The UpToDate condition only exist on machines, so no need to support reading from unstructured.
+func GetMachineUpToDateV1Beta2Condition(obj client.Object) *metav1.Condition {
+	if getter, ok := obj.(v1beta2conditions.Getter); ok {
+		return v1beta2conditions.Get(getter, clusterv1.MachineUpToDateV1Beta2Condition)
+	}
+	return nil
+}
 
 // GetReadyCondition returns the ReadyCondition for an object, if defined.
 func GetReadyCondition(obj client.Object) *clusterv1.Condition {
@@ -35,6 +81,23 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 		return nil
 	}
 	return conditions.Get(getter, clusterv1.ReadyCondition)
+}
+
+// GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
+func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
+	if getter, ok := obj.(v1beta2conditions.Getter); ok {
+		return getter.GetV1Beta2Conditions()
+	}
+
+	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
+		conditionList, err := v1beta2conditions.UnstructuredGetAll(objUnstructured)
+		if err != nil {
+			return nil
+		}
+		return conditionList
+	}
+
+	return nil
 }
 
 // GetOtherConditions returns the other conditions (all the conditions except ready) for an object, if defined.
@@ -53,6 +116,24 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 		return conditions[i].Type < conditions[j].Type
 	})
 	return conditions
+}
+
+func setAvailableV1Beta2Condition(obj client.Object, available *metav1.Condition) {
+	if setter, ok := obj.(v1beta2conditions.Setter); ok {
+		v1beta2conditions.Set(setter, *available)
+	}
+}
+
+func setReadyV1Beta2Condition(obj client.Object, ready *metav1.Condition) {
+	if setter, ok := obj.(v1beta2conditions.Setter); ok {
+		v1beta2conditions.Set(setter, *ready)
+	}
+}
+
+func setUpToDateV1Beta2Condition(obj client.Object, upToDate *metav1.Condition) {
+	if setter, ok := obj.(v1beta2conditions.Setter); ok {
+		v1beta2conditions.Set(setter, *upToDate)
+	}
 }
 
 func setReadyCondition(obj client.Object, ready *clusterv1.Condition) {
@@ -90,35 +171,37 @@ func objToSetter(obj client.Object) conditions.Setter {
 }
 
 // VirtualObject returns a new virtual object.
-func VirtualObject(namespace, kind, name string) *unstructured.Unstructured {
+func VirtualObject(namespace, kind, name string) *NodeObject {
 	gk := "virtual.cluster.x-k8s.io/v1beta1"
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": gk,
-			"kind":       kind,
-			"metadata": map[string]interface{}{
-				"namespace": namespace,
-				"name":      name,
-				"annotations": map[string]interface{}{
-					VirtualObjectAnnotation: "True",
-				},
-				"uid": fmt.Sprintf("%s, Kind=%s, %s/%s", gk, kind, namespace, name),
-			},
+	return &NodeObject{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       kind,
+			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
 		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Annotations: map[string]string{
+				VirtualObjectAnnotation: "True",
+			},
+			UID: types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", gk, kind, namespace, name)),
+		},
+		Status: NodeStatus{},
 	}
 }
 
 // ObjectReferenceObject returns a new object referenced by the objectRef.
-func ObjectReferenceObject(objectRef *corev1.ObjectReference) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": objectRef.APIVersion,
-			"kind":       objectRef.Kind,
-			"metadata": map[string]interface{}{
-				"namespace": objectRef.Namespace,
-				"name":      objectRef.Name,
-				"uid":       fmt.Sprintf("%s, Kind=%s, %s/%s", objectRef.APIVersion, objectRef.Kind, objectRef.Namespace, objectRef.Name),
-			},
+func ObjectReferenceObject(objectRef *corev1.ObjectReference) *NodeObject {
+	return &NodeObject{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       objectRef.APIVersion,
+			APIVersion: objectRef.Kind,
 		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: objectRef.Namespace,
+			Name:      objectRef.Name,
+			UID:       types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", objectRef.APIVersion, objectRef.Kind, objectRef.Namespace, objectRef.Name)),
+		},
+		Status: NodeStatus{},
 	}
 }

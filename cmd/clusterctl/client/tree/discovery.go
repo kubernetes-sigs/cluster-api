@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -56,6 +56,9 @@ type DiscoverOptions struct {
 	// Grouping groups machine objects in case the ready conditions
 	// have the same Status, Severity and Reason.
 	Grouping bool
+
+	// V1Beta2 instructs tree to use V1Beta2 conditions.
+	V1Beta2 bool
 }
 
 func (d DiscoverOptions) toObjectTreeOptions() ObjectTreeOptions {
@@ -97,6 +100,10 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	// Adds control plane
 	controlPlane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef)
 	if err == nil {
+		// Keep track that this objects abides to the Cluster API control plane contract,
+		// so the consumers of the ObjectTree will know which info are available on this unstructured object
+		// and how to extract them.
+		addAnnotation(controlPlane, ObjectContractAnnotation, "ControlPlane")
 		addControlPlane(cluster, controlPlane, tree, options)
 	}
 
@@ -217,7 +224,7 @@ func addControlPlane(cluster *clusterv1.Cluster, controlPlane *unstructured.Unst
 	}
 }
 
-func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workers *unstructured.Unstructured, machinesList *clusterv1.MachineList, tree *ObjectTree, options DiscoverOptions, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) error {
+func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workers *NodeObject, machinesList *clusterv1.MachineList, tree *ObjectTree, options DiscoverOptions, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) error {
 	// Adds worker machines.
 	machinesDeploymentList, err := getMachineDeploymentsInCluster(ctx, c, cluster.Namespace, cluster.Name)
 	if err != nil {
@@ -275,7 +282,7 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 	return nil
 }
 
-func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, workers *unstructured.Unstructured, machinePoolList *expv1.MachinePoolList, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) {
+func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, workers *NodeObject, machinePoolList *expv1.MachinePoolList, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) {
 	for i := range machinePoolList.Items {
 		mp := &machinePoolList.Items[i]
 		_, visible := tree.Add(workers, mp, GroupingObject(true))

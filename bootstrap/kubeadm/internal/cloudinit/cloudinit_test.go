@@ -199,9 +199,7 @@ func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
 
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
-			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "hello"},
-			},
+			BootCommands:        nil,
 			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,

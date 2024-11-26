@@ -331,3 +331,51 @@ func Test_useKubeadmBootstrapScriptPre1_31(t *testing.T) {
 		})
 	}
 }
+
+func TestNewJoinControlPlaneCommands(t *testing.T) {
+	g := NewWithT(t)
+
+	cpinput := &ControlPlaneJoinInput{
+		BaseUserData: BaseUserData{
+			BootCommands: []bootstrapv1.BootCommand{
+				{"echo", "$(date) hello world!"},
+			},
+			Header:              "test",
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			AdditionalFiles:     nil,
+			WriteFiles:          nil,
+			Users:               nil,
+			NTP:                 nil,
+		},
+		Certificates:      secret.Certificates{},
+		JoinConfiguration: "my-join-config",
+	}
+
+	for _, certificate := range cpinput.Certificates {
+		certificate.KeyPair = &certs.KeyPair{
+			Cert: []byte("some certificate"),
+			Key:  []byte("some key"),
+		}
+	}
+
+	out, err := NewJoinControlPlane(cpinput)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	expectedBootCommands := []string{
+		`echo`,
+		`$(date) hello world!`,
+	}
+	g.Expect(out).To(ContainSubstring(`bootcmd:`))
+	for _, f := range expectedBootCommands {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+
+	expectedCommands := []string{
+		`"\"echo $(date) ': hello world!'\""`,
+		`"echo $(date) ': hello world!'"`,
+	}
+	for _, f := range expectedCommands {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+}

@@ -379,3 +379,43 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 		g.Expect(out).To(ContainSubstring(f))
 	}
 }
+
+func TestNewJoinNodeCommands(t *testing.T) {
+	g := NewWithT(t)
+
+	nodeinput := &NodeInput{
+		BaseUserData: BaseUserData{
+			BootCommands: []bootstrapv1.BootCommand{
+				{"echo", "$(date) hello world!"},
+			},
+			Header:              "test",
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			AdditionalFiles:     nil,
+			WriteFiles:          nil,
+			Users:               nil,
+			NTP:                 nil,
+		},
+		JoinConfiguration: "my-join-config",
+	}
+
+	out, err := NewNode(nodeinput)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	expectedBootCommands := []string{
+		`echo`,
+		`$(date) hello world!`,
+	}
+	g.Expect(out).To(ContainSubstring(`bootcmd:`))
+	for _, f := range expectedBootCommands {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+
+	expectedCommands := []string{
+		`"\"echo $(date) ': hello world!'\""`,
+		`"echo $(date) ': hello world!'"`,
+	}
+	for _, f := range expectedCommands {
+		g.Expect(out).To(ContainSubstring(f))
+	}
+}

@@ -578,10 +578,10 @@ clusterctl init --infrastructure gcp
 {{#tab Harvester}}
 
 ```bash
-clusterctl init --infrastructure harvester
+clusterctl init --infrastructure harvester-harvester
 ```
 
-Please visit the [Harvester project][Harvester provider].
+For more information, please visit the [Harvester project][Harvester provider].
 {{#tab Hetzner}}
 
 Please visit the [Hetzner project][Hetzner provider].

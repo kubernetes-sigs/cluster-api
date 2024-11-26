@@ -44,7 +44,7 @@ const (
 	DockerProviderName         = "docker"
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
-	HarvesterProviderName      = "harvester"
+	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"
 	OutscaleProviderName       = "outscale"

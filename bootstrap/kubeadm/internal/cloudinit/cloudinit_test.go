@@ -96,7 +96,7 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "hello"},
+				{"echo", "$(date) hello world!"},
 			},
 			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
@@ -120,6 +120,15 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 
 	out, err := NewInitControlPlane(cpinput)
 	g.Expect(err).ToNot(HaveOccurred())
+
+	expectedBootCommands := []string{
+		`echo`,
+		`$(date) hello world!`,
+	}
+	g.Expect(out).To(ContainSubstring(`bootcmd:`))
+	for _, f := range expectedBootCommands {
+		g.Expect(out).To(ContainSubstring(f))
+	}
 
 	expectedCommands := []string{
 		`"\"echo $(date) ': hello world!'\""`,

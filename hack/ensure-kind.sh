@@ -30,7 +30,8 @@ goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
 
 # Note: When updating the MINIMUM_KIND_VERSION new shas MUST be added in `preBuiltMappings` at `test/infrastructure/kind/mapper.go`
-MINIMUM_KIND_VERSION=v0.25.0
+# Note: The kind version here is out of sync with our go dependency which is 0.25.0 due to issues building images <= kubernetes v1.30.
+MINIMUM_KIND_VERSION=v0.24.0
 
 
 # Ensure the kind tool exists and is a viable version, or installs it

@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -85,7 +86,7 @@ func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluste
 	return nil
 }
 
-func (f *fakeWorkloadCluster) ReconcileEtcdMembers(_ context.Context, _ []string) ([]string, error) {
+func (f *fakeWorkloadCluster) ReconcileEtcdMembersAndControlPlaneNodes(_ context.Context, _ []*etcd.Member, _ []string) ([]string, error) {
 	return nil, nil
 }
 

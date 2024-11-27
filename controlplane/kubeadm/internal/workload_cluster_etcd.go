@@ -33,37 +33,14 @@ type etcdClientFor interface {
 	forLeader(ctx context.Context, nodeNames []string) (*etcd.Client, error)
 }
 
-// ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.
+// ReconcileEtcdMembersAndControlPlaneNodes iterates over all etcd members and finds members that do not have corresponding nodes.
 // If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
-func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error) {
-	allRemovedMembers := []string{}
-	allErrs := []error{}
-	for _, nodeName := range nodeNames {
-		removedMembers, errs := w.reconcileEtcdMember(ctx, nodeNames, nodeName)
-		allRemovedMembers = append(allRemovedMembers, removedMembers...)
-		allErrs = append(allErrs, errs...)
-	}
-
-	return allRemovedMembers, kerrors.NewAggregate(allErrs)
-}
-
-func (w *Workload) reconcileEtcdMember(ctx context.Context, nodeNames []string, nodeName string) ([]string, []error) {
-	// Create the etcd Client for the etcd Pod scheduled on the Node
-	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
-	if err != nil {
-		return nil, nil
-	}
-	defer etcdClient.Close()
-
-	members, err := etcdClient.Members(ctx)
-	if err != nil {
-		return nil, nil
-	}
-
+func (w *Workload) ReconcileEtcdMembersAndControlPlaneNodes(ctx context.Context, members []*etcd.Member, nodeNames []string) ([]string, error) {
 	// Check if any member's node is missing from workload cluster
 	// If any, delete it with best effort
 	removedMembers := []string{}
 	errs := []error{}
+
 loopmembers:
 	for _, member := range members {
 		// If this member is just added, it has a empty name until the etcd pod starts. Ignore it.
@@ -84,7 +61,8 @@ loopmembers:
 			errs = append(errs, err)
 		}
 	}
-	return removedMembers, errs
+
+	return removedMembers, kerrors.NewAggregate(errs)
 }
 
 // UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.

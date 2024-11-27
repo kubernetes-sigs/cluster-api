@@ -510,8 +510,11 @@ type Topology struct {
 	Class string `json:"class"`
 
 	// The namespace of the ClusterClass object to create the topology.
-	//
+	// Empty namespace assumes the namespace of the cluster object.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern="^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$"
 	ClassNamespace string `json:"classNamespace,omitempty"`
 
 	// The Kubernetes version of the cluster.
@@ -1043,16 +1046,12 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 		return types.NamespacedName{}
 	}
 
-	return types.NamespacedName{Namespace: c.GetInfrastructureNamespace(), Name: c.Spec.Topology.Class}
-}
-
-// GetInfrastructureNamespace returns common namespace for the cluster infrastructure.
-func (c *Cluster) GetInfrastructureNamespace() string {
+	namespace := c.Spec.Topology.ClassNamespace
 	if c.Spec.Topology == nil || c.Spec.Topology.ClassNamespace == "" {
-		return c.Namespace
+		namespace = c.Namespace
 	}
 
-	return c.Spec.Topology.ClassNamespace
+	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.Class}
 }
 
 // GetConditions returns the set of conditions for this object.

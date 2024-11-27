@@ -471,7 +471,7 @@ spec:
 
 <h1>Cluster rebase across namespaces</h1>
 
-Class namespace referenced in the `Cluster` object is equivalent to a cluster being located in the referenced namespace from the validation perspective. Changing `classNamespace` is not allowed, while using a different `CluterClass` from the same namespace is permitted in the Cluster rebase procedure.
+Changing `classNamespace` is not supported in rebase procedure, while chanding `class` reference to a different `ClusterClass` from the same namespace performs regular `Cluster` rebase procedure.
 
 </aside>
 
@@ -508,14 +508,14 @@ spec:
   policyName: "cluster-class-ref.cluster.x-k8s.io"
   validationActions: [Deny]
   paramRef:
-    name: "ref-list"
+    name: "allowed-namespaces.cluster-class-ref.cluster.x-k8s.io"
     namespace: "default"
     parameterNotFoundAction: Deny
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: "ref-list"
+  name: "allowed-namespaces.cluster-class-ref.cluster.x-k8s.io"
   namespace: "default"
 data:
   default: ""

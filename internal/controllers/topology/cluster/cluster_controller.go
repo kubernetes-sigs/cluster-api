@@ -381,7 +381,7 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 	// create a request for each of the clusters.
 	requests := []ctrl.Request{}
 	for i := range clusterList.Items {
-		if clusterList.Items[i].GetInfrastructureNamespace() == clusterClass.Namespace {
+		if clusterList.Items[i].GetClassKey().Namespace == clusterClass.Namespace {
 			requests = append(requests, ctrl.Request{NamespacedName: util.ObjectKey(&clusterList.Items[i])})
 		}
 	}

@@ -387,7 +387,7 @@ func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, c
 
 	referencedClusters := []clusterv1.Cluster{}
 	for _, cluster := range clusters.Items {
-		if cluster.GetInfrastructureNamespace() == clusterClass.Namespace {
+		if cluster.GetClassKey().Namespace == clusterClass.Namespace {
 			referencedClusters = append(referencedClusters, cluster)
 		}
 	}

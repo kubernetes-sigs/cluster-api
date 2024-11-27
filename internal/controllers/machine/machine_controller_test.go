@@ -1366,7 +1366,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: KubeadmControlPlaneAPIVersion,
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1390,7 +1390,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: KubeadmControlPlaneAPIVersion,
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1927,7 +1927,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: KubeadmControlPlaneAPIVersion,
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1951,7 +1951,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: KubeadmControlPlaneAPIVersion,
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},

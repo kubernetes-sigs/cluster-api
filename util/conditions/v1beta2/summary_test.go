@@ -70,9 +70,9 @@ func TestSummary(t *testing.T) {
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,               // False because there is one issue
-				Reason:  issuesReportedReason,                // Using a generic reason
-				Message: "* !C: No additional info provided", // messages from all the issues & unknown conditions (info dropped); since message is empty, a default one is added
+				Status:  metav1.ConditionFalse, // False because there is one issue
+				Reason:  issuesReportedReason,  // Using a generic reason
+				Message: "* !C: Reason-!C",     // messages from all the issues & unknown conditions (info dropped); since message is empty, a default one is added
 			},
 		},
 		{

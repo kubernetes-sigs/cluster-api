@@ -979,7 +979,10 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 		if machinesNotUptoDateNames.Has(machine.Name) {
 			message := ""
 			if reasons, ok := machinesNotUptoDateConditionMessages[machine.Name]; ok {
-				message = strings.Join(reasons, "; ")
+				for i := range reasons {
+					reasons[i] = fmt.Sprintf("* %s", reasons[i])
+				}
+				message = strings.Join(reasons, "\n")
 			}
 
 			v1beta2conditions.Set(machine, metav1.Condition{

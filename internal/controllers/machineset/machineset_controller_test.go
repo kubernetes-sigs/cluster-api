@@ -2659,7 +2659,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-				Message: "Version v1.30.0, v1.31.0 required",
+				Message: "* Version v1.30.0, v1.31.0 required",
 			},
 		},
 		{
@@ -2720,7 +2720,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-				Message: "MachineDeployment spec.rolloutAfter expired",
+				Message: "* MachineDeployment spec.rolloutAfter expired",
 			},
 		},
 		{
@@ -2751,6 +2751,38 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+			},
+		},
+		{
+			name: "not up-to-date, version changed, rollout After expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					RolloutAfter: &metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: ptr.To("v1.30.0"),
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // MS created before rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: ptr.To("v1.31.0"),
+						},
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+				Message: "* Version v1.31.0, v1.30.0 required\n" +
+					"* MachineDeployment spec.rolloutAfter expired",
 			},
 		},
 	}

@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -265,36 +266,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// When including messages from conditions, they are sorted by issue/unknown and by the implicit order of condition types
 	// provided by the user (it is considered as order of relevance).
 	if isSummaryOperation {
-		messages := []string{}
-
-		// Note: use conditions because we want to preserve the order of relevance defined by the users (the order of condition types).
-		for _, condition := range conditions {
-			priority := d.getPriorityFunc(condition.Condition)
-			if priority == InfoMergePriority {
-				// Drop info messages when we are surfacing issues or unknown.
-				if status != metav1.ConditionTrue {
-					continue
-				}
-				// Drop info conditions with empty messages.
-				if condition.Message == "" {
-					continue
-				}
-			}
-
-			m := fmt.Sprintf("* %s:", condition.Type)
-			if condition.Message != "" {
-				m += indentIfMultiline(condition.Message)
-			} else {
-				m += fmt.Sprintf(" %s", condition.Reason)
-			}
-			messages = append(messages, m)
-		}
-
-		if d.summaryMessageTransformFunc != nil {
-			messages = d.summaryMessageTransformFunc(messages)
-		}
-
-		message = strings.Join(messages, "\n")
+		message = summaryMessage(conditions, d, status)
 	}
 
 	// When performing the aggregate operation, we are merging one single condition from potentially many objects.
@@ -375,6 +347,40 @@ func splitConditionsByPriority(conditions []ConditionWithOwnerInfo, getPriority 
 		}
 	}
 	return issueConditions, unknownConditions, infoConditions
+}
+
+// summaryMessage returns message for the summary operation.
+func summaryMessage(conditions []ConditionWithOwnerInfo, d *defaultMergeStrategy, status metav1.ConditionStatus) string {
+	messages := []string{}
+
+	// Note: use conditions because we want to preserve the order of relevance defined by the users (the order of condition types).
+	for _, condition := range conditions {
+		priority := d.getPriorityFunc(condition.Condition)
+		if priority == InfoMergePriority {
+			// Drop info messages when we are surfacing issues or unknown.
+			if status != metav1.ConditionTrue {
+				continue
+			}
+			// Drop info conditions with empty messages.
+			if condition.Message == "" {
+				continue
+			}
+		}
+
+		m := fmt.Sprintf("* %s:", condition.Type)
+		if condition.Message != "" {
+			m += indentIfMultiline(condition.Message)
+		} else {
+			m += fmt.Sprintf(" %s", condition.Reason)
+		}
+		messages = append(messages, m)
+	}
+
+	if d.summaryMessageTransformFunc != nil {
+		messages = d.summaryMessageTransformFunc(messages)
+	}
+
+	return strings.Join(messages, "\n")
 }
 
 // aggregateMessages returns messages for the aggregate operation.
@@ -546,13 +552,37 @@ func sortObj(i, j string, cpMachines sets.Set[string]) bool {
 	return i < j
 }
 
+var re = regexp.MustCompile(`\s*\*\s+`)
+
 func indentIfMultiline(m string) string {
 	msg := ""
-	if strings.Contains(m, "\n") || strings.HasPrefix(m, "* ") {
+	// If it is a multiline string or if it start with a bullet, indent the message.
+	if strings.Contains(m, "\n") || re.MatchString(m) {
 		msg += "\n"
+
+		// Split the message in lines, and add a prefix; prefix can be
+		// "  " when indenting a line starting in a bullet
+		// "  * " when indenting a line starting without a bullet (indent + add a bullet)
+		// "    " when indenting a line starting with a bullet, but other lines required adding a bullet
 		lines := strings.Split(m, "\n")
+		prefix := "  "
+		hasLinesWithoutBullet := false
+		for i := range lines {
+			if !re.MatchString(lines[i]) {
+				hasLinesWithoutBullet = true
+				break
+			}
+		}
 		for i, l := range lines {
-			lines[i] = "  " + l
+			prefix := prefix
+			if hasLinesWithoutBullet {
+				if !re.MatchString(lines[i]) {
+					prefix += "* "
+				} else {
+					prefix += "  "
+				}
+			}
+			lines[i] = prefix + l
 		}
 		msg += strings.Join(lines, "\n")
 	} else {

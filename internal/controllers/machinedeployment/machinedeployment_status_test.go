@@ -292,17 +292,18 @@ func Test_setRollingOutCondition(t *testing.T) {
 					Status: metav1.ConditionUnknown,
 					Reason: clusterv1.InternalErrorV1Beta2Reason,
 				})),
+				fakeMachine("machine-4", withV1Beta2Condition(metav1.Condition{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+					Message: "* Failure domain failure-domain1, failure-domain2 required\n" +
+						"* InfrastructureMachine is not up-to-date",
+				})),
 				fakeMachine("machine-3", withV1Beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-					Message: "Version v1.25.0, v1.26.0 required",
-				})),
-				fakeMachine("machine-4", withV1Beta2Condition(metav1.Condition{
-					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
-					Status:  metav1.ConditionFalse,
-					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-					Message: "Failure domain failure-domain1, failure-domain2 required; InfrastructureMachine is not up-to-date",
+					Message: "* Version v1.25.0, v1.26.0 required",
 				})),
 			},
 			getMachinesSucceeded: true,

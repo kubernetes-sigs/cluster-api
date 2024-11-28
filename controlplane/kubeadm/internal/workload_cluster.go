@@ -46,6 +46,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util"
@@ -117,7 +118,7 @@ type WorkloadCluster interface {
 	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 
 	// State recovery tasks.
-	ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error)
+	ReconcileEtcdMembersAndControlPlaneNodes(ctx context.Context, members []*etcd.Member, nodeNames []string) ([]string, error)
 }
 
 // Workload defines operations on workload clusters.

@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -426,6 +427,8 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 
+	conditionCount := 0
+	conditionMessages := sets.Set[string]{}
 	messages := []string{}
 	for _, conditionType := range []corev1.NodeConditionType{corev1.NodeReady, corev1.NodeMemoryPressure, corev1.NodeDiskPressure, corev1.NodePIDPressure} {
 		var condition *corev1.NodeCondition
@@ -447,6 +450,8 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 				if m == "" {
 					m = fmt.Sprintf("Condition is %s", condition.Status)
 				}
+				conditionCount++
+				conditionMessages.Insert(m)
 				messages = append(messages, fmt.Sprintf("* Node.%s: %s", condition.Type, m))
 				if condition.Status == corev1.ConditionUnknown {
 					unknownStatus++
@@ -461,6 +466,8 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 				if m == "" {
 					m = fmt.Sprintf("Condition is %s", condition.Status)
 				}
+				conditionCount++
+				conditionMessages.Insert(m)
 				messages = append(messages, fmt.Sprintf("* Node.%s: %s", condition.Type, m))
 				if condition.Status == corev1.ConditionUnknown {
 					unknownStatus++
@@ -471,6 +478,9 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 		}
 	}
 
+	if conditionCount > 1 && len(conditionMessages) == 1 {
+		messages = []string{fmt.Sprintf("* Node.AllConditions: %s", conditionMessages.UnsortedList()[0])}
+	}
 	message := strings.Join(messages, "\n")
 	if semanticallyFalseStatus > 0 {
 		return metav1.ConditionFalse, clusterv1.MachineNodeNotHealthyV1Beta2Reason, message

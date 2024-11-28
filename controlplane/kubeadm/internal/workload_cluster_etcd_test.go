@@ -552,7 +552,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 	})
 }
 
-func TestReconcileEtcdMembers(t *testing.T) {
+func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 	kubeadmConfig := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeadmConfigKey,
@@ -590,13 +590,15 @@ func TestReconcileEtcdMembers(t *testing.T) {
 	}
 	node2 := node1.DeepCopy()
 	node2.Name = "ip-10-0-0-2.ec2.internal"
+	node3 := node1.DeepCopy()
+	node3.Name = "ip-10-0-0-3.ec2.internal"
 
 	fakeEtcdClient := &fake2.FakeEtcdClient{
 		MemberListResponse: &clientv3.MemberListResponse{
 			Members: []*pb.Member{
-				{Name: "ip-10-0-0-1.ec2.internal", ID: uint64(1)},
-				{Name: "ip-10-0-0-2.ec2.internal", ID: uint64(2)},
-				{Name: "ip-10-0-0-3.ec2.internal", ID: uint64(3)},
+				{Name: node1.Name, ID: uint64(1)},
+				{Name: node2.Name, ID: uint64(2)},
+				{Name: node3.Name, ID: uint64(3)},
 			},
 		},
 		AlarmResponse: &clientv3.AlarmResponse{
@@ -607,16 +609,51 @@ func TestReconcileEtcdMembers(t *testing.T) {
 	tests := []struct {
 		name                string
 		objs                []client.Object
+		members             []*etcd.Member
 		nodes               []string
 		etcdClientGenerator etcdClientFor
 		expectErr           bool
 		assert              func(*WithT, client.Client)
 	}{
 		{
+			// no op if nodes and members match
+			name: "no op if nodes and members match",
+			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), node3.DeepCopy(), kubeadmConfigWithoutClusterStatus.DeepCopy()},
+			members: []*etcd.Member{
+				{Name: node1.Name, ID: uint64(1)},
+				{Name: node2.Name, ID: uint64(2)},
+				{Name: node3.Name, ID: uint64(3)},
+			},
+			nodes: []string{node1.Name, node2.Name, node3.Name},
+			etcdClientGenerator: &fakeEtcdClientGenerator{
+				forNodesClient: &etcd.Client{
+					EtcdClient: fakeEtcdClient,
+				},
+			},
+			expectErr: false,
+			assert: func(g *WithT, c client.Client) {
+				g.Expect(fakeEtcdClient.RemovedMember).To(Equal(uint64(0))) // no member removed
+
+				var actualConfig corev1.ConfigMap
+				g.Expect(c.Get(
+					ctx,
+					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+					&actualConfig,
+				)).To(Succeed())
+				// Kubernetes version >= 1.22.0 does not have ClusterStatus
+				g.Expect(actualConfig.Data).ToNot(HaveKey(clusterStatusKey))
+			},
+		},
+		{
 			// the node to be removed is ip-10-0-0-3.ec2.internal since the
 			// other two have nodes
-			name:  "successfully removes the etcd member without a node",
-			objs:  []client.Object{node1.DeepCopy(), node2.DeepCopy(), kubeadmConfigWithoutClusterStatus.DeepCopy()},
+			name: "successfully removes the etcd member without a node",
+			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), kubeadmConfigWithoutClusterStatus.DeepCopy()},
+			members: []*etcd.Member{
+				{Name: node1.Name, ID: uint64(1)},
+				{Name: node2.Name, ID: uint64(2)},
+				{Name: node3.Name, ID: uint64(3)},
+			},
 			nodes: []string{node1.Name, node2.Name},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
@@ -638,8 +675,13 @@ func TestReconcileEtcdMembers(t *testing.T) {
 			},
 		},
 		{
-			name:  "return error if there aren't enough control plane nodes",
-			objs:  []client.Object{node1.DeepCopy(), kubeadmConfig.DeepCopy()},
+			// only one node left, no removal should happen
+			name: "return error if there aren't enough control plane nodes",
+			objs: []client.Object{node1.DeepCopy(), kubeadmConfig.DeepCopy()},
+			members: []*etcd.Member{
+				{Name: "ip-10-0-0-1.ec2.internal", ID: uint64(1)},
+				{Name: "ip-10-0-0-2.ec2.internal", ID: uint64(2)},
+			},
 			nodes: []string{node1.Name},
 			etcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesClient: &etcd.Client{
@@ -666,7 +708,7 @@ func TestReconcileEtcdMembers(t *testing.T) {
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
 			ctx := context.TODO()
-			_, err := w.ReconcileEtcdMembers(ctx, tt.nodes)
+			_, err := w.ReconcileEtcdMembersAndControlPlaneNodes(ctx, tt.members, tt.nodes)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

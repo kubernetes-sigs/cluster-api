@@ -558,12 +558,9 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
 				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown, Message: "Node is not reporting status"},
 			},
-			expectedStatus: metav1.ConditionUnknown,
-			expectedReason: clusterv1.MachineNodeHealthUnknownV1Beta2Reason,
-			expectedMessage: "* Node.Ready: Node is not reporting status\n" +
-				"* Node.MemoryPressure: Node is not reporting status\n" +
-				"* Node.DiskPressure: Node is not reporting status\n" +
-				"* Node.PIDPressure: Node is not reporting status",
+			expectedStatus:  metav1.ConditionUnknown,
+			expectedReason:  clusterv1.MachineNodeHealthUnknownV1Beta2Reason,
+			expectedMessage: "* Node.AllConditions: Node is not reporting status",
 		},
 		{
 			name: "multiple semantically failed condition",

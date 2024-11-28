@@ -285,7 +285,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 			if condition.Message != "" {
 				m += indentIfMultiline(condition.Message)
 			} else {
-				m += " No additional info provided"
+				m += fmt.Sprintf(" %s", condition.Reason)
 			}
 			messages = append(messages, m)
 		}

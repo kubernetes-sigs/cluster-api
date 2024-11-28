@@ -63,7 +63,7 @@ func TestFirstAvailableNode(t *testing.T) {
 			name:        "Fails when called with an empty node list",
 			nodes:       nil,
 			cc:          nil,
-			expectedErr: "invalid argument: forLeader can't be called with an empty list of nodes",
+			expectedErr: "invalid argument: forFirstAvailableNode can't be called with an empty list of nodes",
 		},
 		{
 			name:  "Returns error from client",
@@ -97,7 +97,7 @@ func TestFirstAvailableNode(t *testing.T) {
 
 			if tt.expectedErr != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).Should(Equal(tt.expectedErr))
+				g.Expect(err.Error()).Should(BeComparableTo(tt.expectedErr))
 			} else {
 				g.Expect(*client).Should(BeComparableTo(tt.expectedClient))
 			}

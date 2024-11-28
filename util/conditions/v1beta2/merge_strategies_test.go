@@ -89,6 +89,79 @@ func TestSortObj(t *testing.T) {
 	g.Expect(got).To(BeFalse())
 }
 
+func TestSummaryMessages(t *testing.T) {
+	d := &defaultMergeStrategy{
+		getPriorityFunc: GetDefaultMergePriorityFunc(),
+	}
+	t.Run("Drops info messages when status is not true", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Message: "Message-C", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "D", Reason: "Reason-D", Status: metav1.ConditionFalse}},
+		}
+
+		message := summaryMessage(conditions, d, metav1.ConditionFalse)
+
+		g.Expect(message).To(Equal("* A: Message-A\n" +
+			"* B: Message-B\n" +
+			"* D: Reason-D")) // False conditions without messages must show the reason
+	})
+	t.Run("When status is not true, surface only not empty messages", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Status: metav1.ConditionTrue}},
+		}
+
+		message := summaryMessage(conditions, d, metav1.ConditionTrue)
+
+		g.Expect(message).To(Equal("* A: Message-A\n" +
+			"* B: Message-B"))
+	})
+	t.Run("Handles multiline messages", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []ConditionWithOwnerInfo{
+			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "* Message-B", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Message: "* Message-C1\n* Message-C2", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "D", Reason: "Reason-D", Message: "Message-D\n* More Message-D", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "E", Reason: "Reason-E", Message: "* Message-E1\n  * More Message-E1\n* Message-E2", Status: metav1.ConditionTrue}},
+		}
+
+		message := summaryMessage(conditions, d, metav1.ConditionTrue)
+
+		expected :=
+			// not multiline messages stay on a single line.
+			"* A: Message-A\n" +
+				// single line messages but starting with a bullet gets nested.
+				"* B:\n" +
+				"  * Message-B\n" +
+				// multiline messages gets nested.
+				"* C:\n" +
+				"  * Message-C1\n" +
+				"  * Message-C2\n" +
+				// multiline messages with some lines without bullets gets a bulled and nested.
+				"* D:\n" +
+				"  * Message-D\n" +
+				"    * More Message-D\n" +
+				// nesting in multiline messages is preserved.
+				"* E:\n" +
+				"  * Message-E1\n" +
+				"    * More Message-E1\n" +
+				"  * Message-E2"
+		g.Expect(message).To(Equal(expected))
+	})
+}
+
 func TestAggregateMessages(t *testing.T) {
 	t.Run("Groups by kind, return max 3 messages, aggregate objects, count others", func(t *testing.T) {
 		g := NewWithT(t)
@@ -136,7 +209,7 @@ func TestAggregateMessages(t *testing.T) {
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4\n* More Message-4", Status: metav1.ConditionFalse}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
 		}
@@ -151,7 +224,9 @@ func TestAggregateMessages(t *testing.T) {
 			"* MachineDeployment obj06:\n" +
 				"  * Message-3A\n" +
 				"  * Message-3B",
-			"* MachineDeployment obj07: Message-4",
+			"* MachineDeployment obj07:\n" +
+				"  * Message-4\n" +
+				"    * More Message-4",
 			"And 1 MachineDeployment with other issues",    // MachineDeployments obj10 (Message-5)
 			"And 5 MachineDeployments with status unknown", // MachineDeployments obj01, obj02, obj05, obj08, obj09 (Message 1) << This doesn't show up because even if it applies to 5 machines because it has merge priority unknown
 		}))

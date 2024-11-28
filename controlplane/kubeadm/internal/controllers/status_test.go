@@ -169,20 +169,21 @@ func Test_setRollingOutCondition(t *testing.T) {
 						Reason: clusterv1.InternalErrorV1Beta2Reason,
 					},
 				}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+						Message: "* Failure domain failure-domain1, failure-domain2 required\n" +
+							"* InfrastructureMachine is not up-to-date",
+					},
+				}}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-						Message: "Version v1.25.0, v1.26.0 required",
-					},
-				}}}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
-					{
-						Type:    clusterv1.MachineUpToDateV1Beta2Condition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-						Message: "Failure domain failure-domain1, failure-domain2 required; InfrastructureMachine is not up-to-date",
+						Message: "* Version v1.25.0, v1.26.0 required",
 					},
 				}}}},
 			},

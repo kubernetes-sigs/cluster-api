@@ -641,11 +641,14 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 	}
 
 	if !upToDate {
+		for i := range conditionMessages {
+			conditionMessages[i] = fmt.Sprintf("* %s", conditionMessages[i])
+		}
 		return &metav1.Condition{
 			Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-			Message: strings.Join(conditionMessages, "; "),
+			Message: strings.Join(conditionMessages, "\n"),
 		}
 	}
 

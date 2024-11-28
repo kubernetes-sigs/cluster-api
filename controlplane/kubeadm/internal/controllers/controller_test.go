@@ -2134,7 +2134,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
-					Message: "Version v1.30.0, v1.31.0 required",
+					Message: "* Version v1.30.0, v1.31.0 required",
 				},
 			},
 		},

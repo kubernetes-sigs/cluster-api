@@ -42,6 +42,49 @@ import (
 )
 
 func TestGetMachineToBeRemediated(t *testing.T) {
+	t.Run("returns the oldest machine with RemediateMachineAnnotation even if there are provisioning machines", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "ns1")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
+		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed())
+		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withMachineHealthCheckFailed(), withoutNodeRef())
+		m4 := createMachine(ctx, g, ns.Name, "m4-unhealthy-", withMachineHealthCheckFailed(), withoutNodeRef())
+
+		m1.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
+		m2.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
+
+		unhealthyMachines := collections.FromMachines(m2, m1, m3, m4)
+
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, false).Name).To(HavePrefix("m1-unhealthy-"))
+	})
+
+	t.Run("returns the oldest machine with RemediateMachineAnnotation if there are no provisioning machines", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "ns1")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
+		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed())
+		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withMachineHealthCheckFailed())
+
+		m1.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
+		m2.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
+
+		unhealthyMachines := collections.FromMachines(m2, m1, m3)
+
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, false).Name).To(HavePrefix("m1-unhealthy-"))
+	})
+
 	t.Run("returns provisioning machines first", func(t *testing.T) {
 		g := NewWithT(t)
 

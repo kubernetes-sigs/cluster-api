@@ -590,6 +590,14 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	k8sControlPlaneNotHealthyButNotReportedYet := 0
 
 	for _, machine := range machines {
+		// Ignore machines without a provider ID yet (which also implies infrastructure not ready).
+		// Note: this avoids some noise when a new machine is provisioning; it is not possible to delay further
+		// because the etcd member might join the cluster / control plane components might start even before
+		// kubelet registers the node to the API server (e.g. in case kubelet has issues to register itself).
+		if machine.Spec.ProviderID == nil {
+			continue
+		}
+
 		// if external etcd, only look at the status of the K8s control plane components on this machine.
 		if !etcdIsManaged {
 			if v1beta2conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition) &&

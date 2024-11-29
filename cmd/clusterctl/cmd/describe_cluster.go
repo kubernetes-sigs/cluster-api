@@ -780,6 +780,10 @@ func formatParagraph(text string, maxWidth int) string {
 			}
 			break
 		}
+		indent := tmp
+		if strings.HasPrefix(strings.TrimSpace(l), "* ") {
+			indent += "  "
+		}
 		for _, w := range re.Split(l, -1) {
 			if len(tmp)+len(w) < maxWidth {
 				if strings.TrimSpace(tmp) != "" {
@@ -789,7 +793,7 @@ func formatParagraph(text string, maxWidth int) string {
 				continue
 			}
 			lines = append(lines, tmp)
-			tmp = w
+			tmp = indent + w
 		}
 		lines = append(lines, tmp)
 	}

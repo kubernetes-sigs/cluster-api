@@ -1026,6 +1026,15 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 					}
 					machineMessages = append(machineMessages, fmt.Sprintf("  * %s: %s", machineCondition.Type, m))
 				case metav1.ConditionUnknown:
+					// Ignore unknown when the machine doesn't have a provider ID yet (which also implies infrastructure not ready).
+					// Note: this avoids some noise when a new machine is provisioning; it is not possible to delay further
+					// because the etcd member might join the cluster / control plane components might start even before
+					// kubelet registers the node to the API server (e.g. in case kubelet has issues to register itself).
+					if machine.Spec.ProviderID == nil {
+						kcpMachinesWithInfo.Insert(machine.Name)
+						break
+					}
+
 					kcpMachinesWithUnknown.Insert(machine.Name)
 					m := machineCondition.Message
 					if m == "" {

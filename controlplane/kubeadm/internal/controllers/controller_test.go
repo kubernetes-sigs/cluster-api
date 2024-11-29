@@ -1852,6 +1852,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		},
 		Spec: clusterv1.MachineSpec{
 			Version:           ptr.To("v1.31.0"),
+			ProviderID:        ptr.To("foo"),
 			InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
 		},
 	}
@@ -2012,14 +2013,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * EtcdMemberHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * Control plane components: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * Control plane components: Waiting for a Node with spec.providerID foo to exist",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
@@ -2027,31 +2028,31 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
@@ -2089,14 +2090,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * EtcdMemberHealthy: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
-						"  * Control plane components: Waiting for GenericInfrastructureMachine to report spec.providerID",
+						"  * Control plane components: Waiting for a Node with spec.providerID foo to exist",
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
@@ -2104,31 +2105,31 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
-					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
 					Type:    clusterv1.MachineUpToDateV1Beta2Condition,

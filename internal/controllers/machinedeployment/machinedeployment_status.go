@@ -141,6 +141,10 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if machineDeployment.Spec.Strategy != nil && mdutil.IsRollingUpdate(machineDeployment) && machineDeployment.Spec.Strategy.RollingUpdate != nil {
 		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s, spec.replicas is %d)", machineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *machineDeployment.Spec.Replicas)
 	}
+
+	if !machineDeployment.DeletionTimestamp.IsZero() {
+		message = "Deletion in progress"
+	}
 	v1beta2conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 		Status:  metav1.ConditionFalse,

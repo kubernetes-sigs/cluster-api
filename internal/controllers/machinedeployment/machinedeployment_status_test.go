@@ -191,6 +191,32 @@ func Test_setAvailableCondition(t *testing.T) {
 				Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5)",
 			},
 		},
+		{
+			name: "When deleting, don't show required replicas",
+			machineDeployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					DeletionTimestamp: ptr.To(metav1.Now()),
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Replicas: ptr.To(int32(5)),
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxUnavailable: ptr.To(intstr.FromInt32(1)),
+						},
+					},
+				},
+				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(0))}},
+			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineDeploymentNotAvailableV1Beta2Reason,
+				Message: "Deletion in progress",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

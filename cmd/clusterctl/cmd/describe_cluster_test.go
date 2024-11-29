@@ -365,3 +365,41 @@ func (t *Table) NegatedFailureMessage(actual interface{}) string {
 	actualTable := strings.Split(actual.(string), "\n")
 	return fmt.Sprintf("Expected %v and received %v", t.tableData, actualTable)
 }
+
+func Test_formatParagraph(t *testing.T) {
+	tests := []struct {
+		text     string
+		maxWidth int
+		want     string
+	}{
+		{
+			text:     "",
+			maxWidth: 254,
+			want:     "",
+		},
+		{
+			text:     "* a b c d e f",
+			maxWidth: 5,
+			want:     "* a b\n  c d\n  e f",
+		},
+		{
+			text: "* a b c d e f\n" +
+				"  * g h\n" +
+				"  * i j",
+			maxWidth: 5,
+			want: "* a b\n" +
+				"  c d\n" +
+				"  e f\n" +
+				"  * g\n" +
+				"    h\n" +
+				"  * i\n" +
+				"    j",
+		},
+	}
+	for ti, tt := range tests {
+		t.Run(fmt.Sprintf("%d", ti), func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect("\n" + formatParagraph(tt.text, tt.maxWidth)).To(BeEquivalentTo("\n" + tt.want))
+		})
+	}
+}

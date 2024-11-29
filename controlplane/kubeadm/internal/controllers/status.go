@@ -226,7 +226,7 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 		}
 		rollingOutReplicas++
 		if upToDateCondition.Message != "" {
-			rolloutReasons.Insert(strings.Split(upToDateCondition.Message, "; ")...)
+			rolloutReasons.Insert(strings.Split(upToDateCondition.Message, "\n")...)
 		}
 	}
 
@@ -247,17 +247,14 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
 		reasons := rolloutReasons.UnsortedList()
 		sort.Slice(reasons, func(i, j int) bool {
-			if strings.HasPrefix(reasons[i], "Version") && !strings.HasPrefix(reasons[j], "Version") {
+			if strings.HasPrefix(reasons[i], "* Version") && !strings.HasPrefix(reasons[j], "* Version") {
 				return true
 			}
-			if !strings.HasPrefix(reasons[i], "Version") && strings.HasPrefix(reasons[j], "Version") {
+			if !strings.HasPrefix(reasons[i], "* Version") && strings.HasPrefix(reasons[j], "* Version") {
 				return false
 			}
 			return reasons[i] < reasons[j]
 		})
-		for i := range reasons {
-			reasons[i] = fmt.Sprintf("* %s", reasons[i])
-		}
 		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
 	}
 	v1beta2conditions.Set(kcp, metav1.Condition{

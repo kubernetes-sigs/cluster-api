@@ -98,9 +98,10 @@ func TestSummary(t *testing.T) {
 				{Type: "B", Status: metav1.ConditionFalse, Reason: "Reason-B", Message: "Message-B"},                     // issue
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},                      // info
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-!C", Message: "* Message-!C1\n* Message-!C2"}, // issue
+				{Type: "D", Status: metav1.ConditionFalse, Reason: "Reason-D", Message: "Message-D\n* More message-D"},   // issue
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
+			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C", "D"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
 				Type:   clusterv1.AvailableV1Beta2Condition,
 				Status: metav1.ConditionFalse, // False because there are many issues
@@ -108,7 +109,10 @@ func TestSummary(t *testing.T) {
 				Message: "* B: Message-B\n" +
 					"* !C:\n" +
 					"  * Message-!C1\n" +
-					"  * Message-!C2", // messages from all the issues & unknown conditions (info dropped)
+					"  * Message-!C2\n" +
+					"* D:\n" +
+					"  * Message-D\n" +
+					"    * More message-D", // messages from all the issues & unknown conditions (info dropped)
 			},
 		},
 		{

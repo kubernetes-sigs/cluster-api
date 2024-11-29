@@ -316,6 +316,17 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	return retryableError
 }
 
+func unwrapAll(err error) error {
+	for {
+		newErr := errors.Unwrap(err)
+		if newErr == nil {
+			break
+		}
+		err = newErr
+	}
+	return err
+}
+
 func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1.Machine, nodeName string) ([]*etcd.Member, error) {
 	// Create the etcd Client for the etcd Pod scheduled on the Node
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
@@ -326,7 +337,7 @@ func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1
 			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
-			Message: fmt.Sprintf("Failed to connect to the etcd Pod on the %s Node: %s", nodeName, err),
+			Message: fmt.Sprintf("Failed to connect to the etcd Pod on the %s Node: %s", nodeName, unwrapAll(err)),
 		})
 		return nil, errors.Wrapf(err, "failed to get current etcd members: failed to connect to the etcd Pod on the %s Node", nodeName)
 	}

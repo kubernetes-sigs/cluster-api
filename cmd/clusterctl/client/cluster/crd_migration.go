@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -83,12 +84,8 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 
 	// Gets the list of version supported by the new CRD
 	newVersions := sets.Set[string]{}
-	servedVersions := sets.Set[string]{}
 	for _, version := range newCRD.Spec.Versions {
 		newVersions.Insert(version.Name)
-		if version.Served {
-			servedVersions.Insert(version.Name)
-		}
 	}
 
 	// Get the current CRD.
@@ -115,23 +112,22 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	}
 
 	currentStatusStoredVersions := sets.Set[string]{}.Insert(currentCRD.Status.StoredVersions...)
-	// If the new CRD still contains all current stored versions, nothing to do
-	// as no previous storage version will be dropped.
-	if servedVersions.HasAll(currentStatusStoredVersions.UnsortedList()...) {
+	// If the old CRD only contains its current storageVersion as storedVersion,
+	// nothing to do as all objects are already on the current storageVersion.
+	// Note: We want to migrate objects to new storage versions as soon as possible
+	// to prevent unnecessary conversion webhook calls.
+	if currentStatusStoredVersions.Len() == 1 && currentCRD.Status.StoredVersions[0] == currentStorageVersion {
 		log.V(2).Info("CRD migration check passed", "name", newCRD.Name)
 		return false, nil
 	}
 
-	// Otherwise a version that has been used as storage version will be dropped, so it is necessary to migrate all the
-	// objects and drop the storage version from the current CRD status before installing the new CRD.
-	// Ref https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/#writing-reading-and-updating-versioned-customresourcedefinition-objects
 	// Note: We are simply migrating all CR objects independent of the version in which they are actually stored in etcd.
 	// This way we can make sure that all CR objects are now stored in the current storage version.
 	// Alternatively, we would have to figure out which objects are stored in which version but this information is not
 	// exposed by the apiserver.
-	storedVersionsToDelete := currentStatusStoredVersions.Difference(servedVersions)
-	storedVersionsToPreserve := currentStatusStoredVersions.Intersection(servedVersions)
-	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionsToPreserve", strings.Join(sets.List(storedVersionsToPreserve), ","))
+	// Ref https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/#writing-reading-and-updating-versioned-customresourcedefinition-objects
+	storedVersionsToDelete := currentStatusStoredVersions.Delete(currentStorageVersion)
+	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionToPreserve", currentStorageVersion)
 
 	if err := m.migrateResourcesForCRD(ctx, currentCRD, currentStorageVersion); err != nil {
 		return false, err
@@ -157,7 +153,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 
 	var i int
 	for {
-		if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
+		if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 			return m.Client.List(ctx, list, client.Continue(list.GetContinue()))
 		}); err != nil {
 			return errors.Wrapf(err, "failed to list %q", list.GetKind())
@@ -167,7 +163,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 			obj := list.Items[i]
 
 			log.V(5).Info("Migrating", logf.UnstructuredToValues(obj)...)
-			if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
+			if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 				return handleMigrateErr(m.Client.Update(ctx, &obj))
 			}); err != nil {
 				return errors.Wrapf(err, "failed to migrate %s/%s", obj.GetNamespace(), obj.GetName())
@@ -229,4 +225,21 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 		}
 	}
 	return "", errors.Errorf("could not find storage version for CRD %q", crd.Name)
+}
+
+// newCRDMigrationBackoff creates a new API Machinery backoff parameter set suitable for use with crd migration operations.
+// Clusterctl upgrades cert-manager right before doing CRD migration. This may lead to rollout of new certificates.
+// The time between new certificate creation + injection into objects (CRD, Webhooks) and the new secrets getting propagated
+// to the controller can be 60-90s, because the kubelet only periodically syncs secret contents to pods.
+// During this timespan conversion, validating- or mutating-webhooks may be unavailable and cause a failure.
+func newCRDMigrationBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which returns durations for a total time of ~1m30s + some buffer.
+	// Example: 0, .25s, .6s, 1.1s, 1.8s, 2.7s, 4s, 6s, 9s, 12s, 17s, 25s, 35s, 49s, 69s, 97s, 135s
+	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
+	return wait.Backoff{
+		Duration: 250 * time.Millisecond,
+		Factor:   1.4,
+		Steps:    17,
+		Jitter:   0.1,
+	}
 }

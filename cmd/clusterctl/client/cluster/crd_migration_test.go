@@ -69,7 +69,7 @@ func Test_CRDMigrator(t *testing.T) {
 			wantIsMigrated: false,
 		},
 		{
-			name: "No-op if new CRD supports same versions",
+			name: "No-op if new CRD uses the same storage version",
 			currentCRD: &apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
@@ -90,7 +90,7 @@ func Test_CRDMigrator(t *testing.T) {
 			wantIsMigrated: false,
 		},
 		{
-			name: "No-op if new CRD adds a new versions",
+			name: "No-op if new CRD adds a new versions and stored versions is only the old storage version",
 			currentCRD: &apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
@@ -104,8 +104,8 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true, Served: true}, // v1beta1 is being added
-						{Name: "v1alpha1", Served: true},               // v1alpha1 still exists
+						{Name: "v1beta1", Storage: true, Served: false}, // v1beta1 is being added
+						{Name: "v1alpha1", Served: true},                // v1alpha1 still exists
 					},
 				},
 			},
@@ -133,7 +133,7 @@ func Test_CRDMigrator(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Migrate CRs if their storage version is removed from the CRD",
+			name: "Migrate CRs if there are stored versions is not only the current storage version",
 			CRs: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
@@ -185,69 +185,8 @@ func Test_CRDMigrator(t *testing.T) {
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 						{Name: "v1", Storage: true, Served: true}, // v1 is being added
-						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
+						{Name: "v1beta1", Served: true},           // v1beta1 still there
 						// v1alpha1 is being dropped
-					},
-				},
-			},
-			wantStoredVersions: []string{"v1beta1"}, // v1alpha1 should be dropped from current CRD's stored versions
-			wantIsMigrated:     true,
-		},
-		{
-			name: "Migrate the CR if their storage version is no longer served by the CRD",
-			CRs: []unstructured.Unstructured{
-				{
-					Object: map[string]interface{}{
-						"apiVersion": "foo/v1beta1",
-						"kind":       "Foo",
-						"metadata": map[string]interface{}{
-							"name":      "cr1",
-							"namespace": metav1.NamespaceDefault,
-						},
-					},
-				},
-				{
-					Object: map[string]interface{}{
-						"apiVersion": "foo/v1beta1",
-						"kind":       "Foo",
-						"metadata": map[string]interface{}{
-							"name":      "cr2",
-							"namespace": metav1.NamespaceDefault,
-						},
-					},
-				},
-				{
-					Object: map[string]interface{}{
-						"apiVersion": "foo/v1beta1",
-						"kind":       "Foo",
-						"metadata": map[string]interface{}{
-							"name":      "cr3",
-							"namespace": metav1.NamespaceDefault,
-						},
-					},
-				},
-			},
-			currentCRD: &apiextensionsv1.CustomResourceDefinition{
-				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-					Group: "foo",
-					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
-					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true, Served: true},
-						{Name: "v1alpha1", Served: true},
-					},
-				},
-				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1beta1", "v1alpha1"}},
-			},
-			newCRD: &apiextensionsv1.CustomResourceDefinition{
-				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-					Group: "foo",
-					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
-					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1", Storage: true, Served: true}, // v1 is being added
-						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
-						{Name: "v1alpha1", Served: false},         // v1alpha1 is no longer being served (required for migration)
 					},
 				},
 			},

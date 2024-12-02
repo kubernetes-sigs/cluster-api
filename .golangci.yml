@@ -244,7 +244,11 @@ issues:
   - linters:
       - staticcheck
     text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
-  # Deprecations for MHC MaxUnhealthy, UnhealthyRange
+    # Deprecations for MD revision management
+  - linters:
+      - staticcheck
+    text: "SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details."
+    # Deprecations for MHC MaxUnhealthy, UnhealthyRange
   - linters:
       - staticcheck
     text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"

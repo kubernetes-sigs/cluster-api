@@ -50,6 +50,7 @@ func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 			machineVersion = *machine.Spec.Version
 		}
 		logMessages = append(logMessages, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
+		// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
 		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", machineVersion, kcp.Spec.Version))
 	}
 

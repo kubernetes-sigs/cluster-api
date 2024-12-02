@@ -379,6 +379,7 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (u
 
 	if !reflect.DeepEqual(currentCopy.Spec.Version, desiredCopy.Spec.Version) {
 		logMessages = append(logMessages, fmt.Sprintf("spec.version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
+		// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
 		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
 	}
 

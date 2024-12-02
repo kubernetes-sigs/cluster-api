@@ -30,6 +30,9 @@ const (
 	//    plane cannot be considered operational (if etcd is not operational on a machine, most likely also API server,
 	//    scheduler and controller manager on the same machine will be impacted).
 	// -  In case of external etcd, KCP cannot make any assumption on etcd status, so all the etcd checks are skipped.
+	//
+	// Please note that when this condition is true, partial unavailability will be surfaced in the condition message,
+	// but with a 10s delay to ensure flakes do not impact condition stability.
 	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
 
 	// KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
@@ -157,6 +160,7 @@ const (
 // KubeadmControlPlane's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
 	KubeadmControlPlaneMachinesUpToDateV1Beta2Condition = clusterv1.MachinesUpToDateV1Beta2Condition
 
 	// KubeadmControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
@@ -194,6 +198,7 @@ const (
 // KubeadmControlPlane's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
+	// Note: In case a KubeadmControlPlane preflight check is preventing scale up, this will surface in the condition message.
 	KubeadmControlPlaneScalingUpV1Beta2Condition = clusterv1.ScalingUpV1Beta2Condition
 
 	// KubeadmControlPlaneScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
@@ -210,6 +215,7 @@ const (
 // KubeadmControlPlane's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
+	// Note: In case a KubeadmControlPlane preflight check is preventing scale down, this will surface in the condition message.
 	KubeadmControlPlaneScalingDownV1Beta2Condition = clusterv1.ScalingDownV1Beta2Condition
 
 	// KubeadmControlPlaneScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.

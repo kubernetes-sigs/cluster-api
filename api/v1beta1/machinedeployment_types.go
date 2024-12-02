@@ -128,6 +128,7 @@ const (
 // MachineDeployment's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// MachineDeploymentMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
 	MachineDeploymentMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
 
 	// MachineDeploymentMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.

@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+/*
+NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
+However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
+counters at cluster level is already implemented.
 
 // Conditions that will be used for the MachinePool object in v1Beta2 API version.
 const (
@@ -46,4 +49,5 @@ const (
 
 	// MachinePoolDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachinePoolDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-)
+).
+*/

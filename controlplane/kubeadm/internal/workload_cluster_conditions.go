@@ -67,8 +67,11 @@ func (w *Workload) UpdateEtcdConditions(ctx context.Context, controlPlane *Contr
 	if controlPlane.IsEtcdManaged() {
 		// Update etcd conditions.
 		// In case of well known temporary errors + control plane scaling up/down or rolling out, retry a few times.
-		// Note: this is required because there isn't a watch mechanism on etcd.
-		maxRetry := 3
+		// Note: it seems that reducing the number of them during every reconciles also improves stability,
+		// thus we are stopping doing retries (we only try once).
+		// However, we keep the code implementing retry support so we can easily revert this decision in a patch
+		// release if we need to.
+		maxRetry := 1
 		for i := range maxRetry {
 			retryableError := w.updateManagedEtcdConditions(ctx, controlPlane)
 			// if we should retry and there is a retry left, wait a bit.

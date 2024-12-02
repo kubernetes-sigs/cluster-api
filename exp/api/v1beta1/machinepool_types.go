@@ -89,6 +89,9 @@ type MachinePoolStatus struct {
 	// the machine pool to have 100% available capacity. They may either
 	// be machine instances that are running but not yet available or machine instances
 	// that still have not been created.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 

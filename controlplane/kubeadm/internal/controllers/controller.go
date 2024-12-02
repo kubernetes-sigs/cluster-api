@@ -977,6 +977,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 
 	for _, machine := range controlPlane.Machines {
 		if machinesNotUptoDateNames.Has(machine.Name) {
+			// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
 			message := ""
 			if reasons, ok := machinesNotUptoDateConditionMessages[machine.Name]; ok {
 				for i := range reasons {

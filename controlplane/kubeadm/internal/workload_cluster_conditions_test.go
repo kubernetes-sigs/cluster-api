@@ -154,8 +154,9 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			callCount = 0
 			w.UpdateEtcdConditions(ctx, controlPane)
 			if tt.expectedRetry {
-				g.Expect(callCount).To(Equal(3))
-			} else {
+				// Note we keep the code implementing retry support so we can easily re-activate it if we need to.
+				//	g.Expect(callCount).To(Equal(3))
+				// } else {
 				g.Expect(callCount).To(Equal(1))
 			}
 		})

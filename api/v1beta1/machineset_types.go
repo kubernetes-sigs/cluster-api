@@ -284,6 +284,9 @@ type MachineSetStatus struct {
 	Replicas int32 `json:"replicas"`
 
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 

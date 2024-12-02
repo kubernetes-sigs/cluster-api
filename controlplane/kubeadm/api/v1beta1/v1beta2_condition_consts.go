@@ -186,9 +186,6 @@ const (
 
 	// KubeadmControlPlaneNotRollingOutV1Beta2Reason surfaces when all the machines are up-to-date.
 	KubeadmControlPlaneNotRollingOutV1Beta2Reason = clusterv1.NotRollingOutV1Beta2Reason
-
-	// KubeadmControlPlaneRollingOutInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
-	KubeadmControlPlaneRollingOutInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // KubeadmControlPlane's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.

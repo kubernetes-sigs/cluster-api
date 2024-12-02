@@ -252,10 +252,13 @@ issues:
   - linters:
       - staticcheck
     text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
-  # Deprecations for FailureMessage and FailureReason
+  # Deprecations for FailureMessage, FailureReason, UnavailableReplicas and FullyLabeledReplicas
   - linters:
       - staticcheck
-    text: "SA1019: .*\\.Status\\.(FailureMessage|FailureReason) is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
+    text: "SA1019: .*\\.Status\\.(FailureMessage|FailureReason|UnavailableReplicas|FullyLabeledReplicas) is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
+  - linters:
+      - staticcheck
+    text: "SA1019: newStatus.FullyLabeledReplicas is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
   # Specific exclude rules for deprecated packages that are still part of the codebase. These
   # should be removed as the referenced deprecated packages are removed from the project.
   - linters:

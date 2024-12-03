@@ -8,16 +8,17 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 
 * [Quick Start](./user/quick-start.md)
 * [Concepts](./user/concepts.md)
-* [Developer guide](./developer/guide.md)
+* [Developer guide](./developer/getting-started.md)
 * [Contributing](./CONTRIBUTING.md)
-* [Videos explaining Cluster API architecture](./developer/guide.md#videos-explaining-capi-architecture-and-code-walkthroughs)
+* [Videos explaining Cluster API architecture](./developer/getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 
 <aside class="note">
 
 <h1>ClusterAPI documentation versions</h1>
 
-This book documents ClusterAPI v1.8. For other Cluster API versions please see the corresponding documentation:
+This book documents ClusterAPI v1.9. For other Cluster API versions please see the corresponding documentation:
 * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
+* [release-1-8.cluster-api.sigs.k8s.io](https://release-1-8.cluster-api.sigs.k8s.io)
 * [release-1-7.cluster-api.sigs.k8s.io](https://release-1-7.cluster-api.sigs.k8s.io)
 * [release-1-6.cluster-api.sigs.k8s.io](https://release-1-6.cluster-api.sigs.k8s.io)
 * [release-1-5.cluster-api.sigs.k8s.io](https://release-1-5.cluster-api.sigs.k8s.io)

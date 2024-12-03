@@ -104,11 +104,19 @@ const (
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
-// Note: when possible, Ready condition will use reasons from the conditions it summarizes.
 const (
 	// MachineReadyV1Beta2Condition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
 	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
 	// these conditions must be true as well.
+	// Note:
+	// - When summarizing the Deleting condition:
+	//   - Details about Pods stuck in draining or volumes waiting for detach are dropped, in order to improve readability & reduce flickering
+	//     of the condition that bubbles up to the owning resources/ to the Cluster (it also makes it more likely this condition might be aggregated with
+	//     conditions reported by other machines).
+	//   - If deletion is in progress for more than 15m, this surfaces on the summary condition (hint about a possible stale deletion).
+	//     - if drain is in progress for more than 5 minutes, a summery of what is blocking drain also surfaces in the message.
+	// - When summarizing BootstrapConfigReady, InfrastructureReady, NodeHealthy, in case the Machine is deleting, the absence of the
+	//   referenced object won't be considered as an issue.
 	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
 
 	// MachineReadyV1Beta2Reason surfaces when the machine readiness criteria is met.
@@ -420,7 +428,11 @@ type MachineSpec struct {
 	// Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
 	// they can include the status of those components with a new condition and add this condition to ReadinessGates.
 	//
-	// NOTE: this field is considered only for computing v1beta2 conditions.
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
+	// readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+	// readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
+	// This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType

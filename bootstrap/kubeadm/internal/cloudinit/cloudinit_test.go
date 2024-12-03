@@ -96,11 +96,11 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "$(date) hello world!"},
+				{"echo", "$(date) hello BootCommands!"},
 			},
 			Header:              "test",
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
 			AdditionalFiles:     nil,
 			WriteFiles:          nil,
 			Users:               nil,
@@ -121,22 +121,18 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	out, err := NewInitControlPlane(cpinput)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	expectedBootCommands := []string{
-		`echo`,
-		`$(date) hello world!`,
-	}
-	g.Expect(out).To(ContainSubstring(`bootcmd:`))
-	for _, f := range expectedBootCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	expectedBootCmd := `bootcmd:
+  - - echo
+    - $(date) hello BootCommands!`
 
-	expectedCommands := []string{
-		`"\"echo $(date) ': hello world!'\""`,
-		`"echo $(date) ': hello world!'"`,
-	}
-	for _, f := range expectedCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	g.Expect(out).To(ContainSubstring(expectedBootCmd))
+
+	expectedRunCmd := `runcmd:
+  - "\"echo $(date) ': hello PreKubeadmCommands!'\""
+  - 'kubeadm init --config /run/kubeadm/kubeadm.yaml  && echo success > /run/cluster-api/bootstrap-success.complete'
+  - "echo $(date) ': hello PostKubeadmCommands!'"`
+
+	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }
 
 func TestNewInitControlPlaneDiskMounts(t *testing.T) {
@@ -338,11 +334,11 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "$(date) hello world!"},
+				{"echo", "$(date) hello BootCommands!"},
 			},
 			Header:              "test",
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
 			AdditionalFiles:     nil,
 			WriteFiles:          nil,
 			Users:               nil,
@@ -362,22 +358,18 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 	out, err := NewJoinControlPlane(cpinput)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	expectedBootCommands := []string{
-		`echo`,
-		`$(date) hello world!`,
-	}
-	g.Expect(out).To(ContainSubstring(`bootcmd:`))
-	for _, f := range expectedBootCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	expectedBootCmd := `bootcmd:
+  - - echo
+    - $(date) hello BootCommands!`
 
-	expectedCommands := []string{
-		`"\"echo $(date) ': hello world!'\""`,
-		`"echo $(date) ': hello world!'"`,
-	}
-	for _, f := range expectedCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	g.Expect(out).To(ContainSubstring(expectedBootCmd))
+
+	expectedRunCmd := `runcmd:
+  - "\"echo $(date) ': hello PreKubeadmCommands!'\""
+  - kubeadm join --config /run/kubeadm/kubeadm-join-config.yaml  && echo success > /run/cluster-api/bootstrap-success.complete
+  - "echo $(date) ': hello PostKubeadmCommands!'"`
+
+	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }
 
 func TestNewJoinNodeCommands(t *testing.T) {
@@ -386,11 +378,11 @@ func TestNewJoinNodeCommands(t *testing.T) {
 	nodeinput := &NodeInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "$(date) hello world!"},
+				{"echo", "$(date) hello BootCommands!"},
 			},
 			Header:              "test",
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
 			AdditionalFiles:     nil,
 			WriteFiles:          nil,
 			Users:               nil,
@@ -402,20 +394,16 @@ func TestNewJoinNodeCommands(t *testing.T) {
 	out, err := NewNode(nodeinput)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	expectedBootCommands := []string{
-		`echo`,
-		`$(date) hello world!`,
-	}
-	g.Expect(out).To(ContainSubstring(`bootcmd:`))
-	for _, f := range expectedBootCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	expectedBootCmd := `bootcmd:
+  - - echo
+    - $(date) hello BootCommands!`
 
-	expectedCommands := []string{
-		`"\"echo $(date) ': hello world!'\""`,
-		`"echo $(date) ': hello world!'"`,
-	}
-	for _, f := range expectedCommands {
-		g.Expect(out).To(ContainSubstring(f))
-	}
+	g.Expect(out).To(ContainSubstring(expectedBootCmd))
+
+	expectedRunCmd := `runcmd:
+  - "\"echo $(date) ': hello PreKubeadmCommands!'\""
+  - kubeadm join --config /run/kubeadm/kubeadm-join-config.yaml  && echo success > /run/cluster-api/bootstrap-success.complete
+  - "echo $(date) ': hello PostKubeadmCommands!'"`
+
+	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }

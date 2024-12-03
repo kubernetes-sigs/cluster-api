@@ -452,6 +452,8 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 		if len(r.PodsDeletionTimestampSet) > 1 {
 			kind = "Pods"
 		}
+		// Note: the code computing stale warning for the machine deleting condition is making assumptions on the format/content of this message.
+		// Same applies for other conditions where deleting is involved, e.g. MachineSet's Deleting and ScalingDown condition.
 		conditionMessage = fmt.Sprintf("%s\n* %s %s: deletionTimestamp set, but still not removed from the Node",
 			conditionMessage, kind, PodListToString(r.PodsDeletionTimestampSet, 3))
 	}
@@ -470,6 +472,8 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 			if len(pods) > 1 {
 				kind = "Pods"
 			}
+			// Note: the code computing stale warning for the machine deleting condition is making assumptions on the format/content of this message.
+			// Same applies for other conditions where deleting is involved, e.g. MachineSet's Deleting and ScalingDown condition.
 			failureMessage = strings.Replace(failureMessage, "Cannot evict pod as it would violate the pod's disruption budget.", "cannot evict pod as it would violate the pod's disruption budget.", -1)
 			if !strings.HasPrefix(failureMessage, "cannot evict pod as it would violate the pod's disruption budget.") {
 				failureMessage = "failed to evict Pod, " + failureMessage

@@ -45,6 +45,12 @@ const (
 	// ClusterAvailableV1Beta2Condition is true if the Cluster is not deleted, and RemoteConnectionProbe, InfrastructureReady,
 	// ControlPlaneAvailable, WorkersAvailable, TopologyReconciled (if present) conditions are true.
 	// If conditions are defined in spec.availabilityGates, those conditions must be true as well.
+	// Note:
+	// - When summarizing TopologyReconciled, all reasons except TopologyReconcileFailed and ClusterClassNotReconciled will
+	//   be treated as info. This is because even if topology is not fully reconciled, this is an expected temporary state
+	//   and it doesn't impact availability.
+	// - When summarizing InfrastructureReady, ControlPlaneAvailable, in case the Cluster is deleting, the absence of the
+	//   referenced object won't be considered as an issue.
 	ClusterAvailableV1Beta2Condition = AvailableV1Beta2Condition
 
 	// ClusterAvailableV1Beta2Reason surfaces when the cluster availability criteria is met.
@@ -270,6 +276,7 @@ const (
 // Cluster's ControlPlaneMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// ClusterControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of control plane machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
 	ClusterControlPlaneMachinesUpToDateV1Beta2Condition = "ControlPlaneMachinesUpToDate"
 
 	// ClusterControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the control plane machine's UpToDate conditions are true.
@@ -293,6 +300,7 @@ const (
 // Cluster's WorkerMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// ClusterWorkerMachinesUpToDateV1Beta2Condition surfaces details of worker machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
 	ClusterWorkerMachinesUpToDateV1Beta2Condition = "WorkerMachinesUpToDate"
 
 	// ClusterWorkerMachinesUpToDateV1Beta2Reason surfaces when all the worker machine's UpToDate conditions are true.

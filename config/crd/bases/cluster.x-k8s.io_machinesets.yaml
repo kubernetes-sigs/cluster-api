@@ -1246,7 +1246,11 @@ spec:
                           Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
                           they can include the status of those components with a new condition and add this condition to ReadinessGates.
 
-                          NOTE: this field is considered only for computing v1beta2 conditions.
+                          NOTE: This field is considered only for computing v1beta2 conditions.
+                          NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
+                          readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+                          readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
+                          This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
                         items:
                           description: MachineReadinessGate contains the type of a
                             Machine condition to be used as a readiness gate.

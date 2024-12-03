@@ -1,4 +1,4 @@
-name: PR golangci-lint
+name: golangci-lint
 
 on:
   pull_request:
@@ -19,17 +19,16 @@ jobs:
           - test
           - hack/tools
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # tag=v4.1.0
+      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # tag=v3.5.0
       - name: Calculate go version
         id: vars
         run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
       - name: Set up Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # tag=v4.1.0
+        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # tag=v3.5.0
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # tag=v3.7.0
+        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # tag=v3.4.0
         with:
-          version: v1.54.1
-          args: --out-format=colored-line-number
+          version: v1.51.1
           working-directory: ${{matrix.working-directory}}

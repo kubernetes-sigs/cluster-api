@@ -1,65 +1,107 @@
-<a href="https://cluster-api.sigs.k8s.io"><img alt="capi" src="./logos/kubernetes-cluster-logos_final-02.svg" width="160x" /></a>
-<p>
-<a href="https://godoc.org/sigs.k8s.io/cluster-api"><img src="https://godoc.org/sigs.k8s.io/cluster-api?status.svg"></a>
-<!-- join kubernetes slack channel for cluster-api -->
-<a href="http://slack.k8s.io/">
-<img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
-<!-- latest stable release badge -->
-<img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/kubernetes-sigs/cluster-api">
-</p>
-
 # Cluster API
 
-### 👋 Welcome to our project! Our [Book](https://cluster-api.sigs.k8s.io) can help you get started and provides lots of in-depth information.
+This is Giant Swarm's fork. See the upstream [cluster-api README](https://github.com/kubernetes-sigs/cluster-api/blob/main/README.md) for official documentation.
 
-#### Useful links
-- [Feature proposals](./docs/proposals)
-- [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
+## How to work with this repo
 
-## ✨ What is the Cluster API?
+Currently, we try to follow the upstream `release-X.Y` branch to always get the latest stable release and fixes, but not untested commits from `main`. Our only differences against upstream should be in this `README.md` and `.circleci/`. Other changes should be opened as PR for the upstream project first.
 
-Cluster API is a Kubernetes subproject focused on providing declarative APIs and tooling to simplify provisioning, upgrading, and operating multiple Kubernetes clusters.
+We release cluster-api versions with [cluster-api-app](https://github.com/giantswarm/cluster-api-app/). To provide the YAML manifests, we use GitHub releases as the upstream project. The scripts in `cluster-api-app` convert them into the final manifests.
 
-Started by the Kubernetes Special Interest Group (SIG) Cluster Lifecycle, the Cluster API project uses Kubernetes-style APIs and patterns to automate cluster lifecycle management for platform operators. The supporting infrastructure, like virtual machines, networks, load balancers, and VPCs, as well as the Kubernetes cluster configuration are all defined in the same way that application developers operate deploying and managing their workloads. This enables consistent and repeatable cluster deployments across a wide variety of infrastructure environments.
+### Repo setup
 
-### ⚙️ Providers
+Since we follow upstream, add their Git repo as remote from which we merge commits:
 
-Cluster API can be extended to support any infrastructure (AWS, Azure, vSphere, etc.), bootstrap or control plane (kubeadm is built-in) provider. There is a growing list of [supported providers](https://cluster-api.sigs.k8s.io/reference/providers.html) available.
+```sh
+git clone git@github.com:giantswarm/cluster-api.git
+cd cluster-api
+git remote add upstream https://github.com/kubernetes-sigs/cluster-api.git
+```
 
-<!-- ANCHOR: Community -->
+### Test and release
 
-## 🤗 Community, discussion, contribution, and support
+If you have a non-urgent fix, create an upstream PR and wait until it gets released. We call this release `vX.Y.Z` in the below instructions, so please fill in the desired tag.
 
-Cluster API is developed in the open, and is constantly being improved by our users, contributors, and maintainers. It is because of you that we are able to automate cluster lifecycle management for the community. Join us!
+Please follow the development workflow:
 
-If you have questions or want to get the latest project news, you can connect with us in the following ways:
+- Ensure a stable release branch exists in our fork repo. For example with a desired upstream release v1.4.5, the branch is `release-1.4`. If it does not exist on our side yet, copy the branch from upstream and add our changes such as `README.md` and `.circleci/` on top.
+- Create a working branch for your changes
+- We want to use stable upstream release tags unless a hotfix is absolutely required ([decision](https://intranet.giantswarm.io/docs/product/pdr/010_fork_management/)). Please decide what type of change you're making:
 
-- Chat with us on the Kubernetes [Slack](http://slack.k8s.io/) in the [#cluster-api][#cluster-api slack] channel
-- Subscribe to the [SIG Cluster Lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) Google Group for access to documents and calendars
-- Join our Cluster API working group sessions where we share the latest project news, demos, answer questions, and triage issues
-    - Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
-    - Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
+  - Either: you want to merge and test the latest upstream tag
 
-Pull Requests and feedback on issues are very welcome!
-See the [issue tracker] if you're unsure where to start, especially the [Good first issue] and [Help wanted] tags, and
-also feel free to reach out to discuss.
+    ```sh
+    git fetch upstream
 
-See also our [contributor guide](CONTRIBUTING.md) and the Kubernetes [community page] for more details on how to get involved.
+    git checkout -b my-working-branch release-X.Y
 
-### Code of conduct
+    # Create a merge commit using upstream's desired release tag (the one we want
+    # to upgrade to).
+    # This creates a commit message such as "Merge tag 'v1.4.5' into release-1.4".
+    git merge --no-ff vX.Y.Z
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+    # Since we want the combined content of our repo and the upstream Git tag,
+    # we need to create our own tag on the merge commit
+    git tag "vX.Y.Z-gs-$(git rev-parse --short HEAD)"
 
-[community page]: https://kubernetes.io/community
-[notes]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI
-[recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
-[zoomMeeting]: https://zoom.us/j/861487554
-[implementerNotes]: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit
-[providerZoomMeetingTues]: https://zoom.us/j/140808484
-[providerZoomMeetingWed]: https://zoom.us/j/424743530
-[issue tracker]: https://github.com/kubernetes-sigs/cluster-api/issues
-[#cluster-api slack]: https://kubernetes.slack.com/archives/C8TSNPY4T
-[Good first issue]: https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
-[Help wanted]: https://github.com/kubernetes-sigs/cluster-api/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+
+    # Push your working branch. This triggers image build in CircleCI
+    git push
 
-<!-- ANCHOR_END: Community -->
+    # Push your Giant Swarm tag (assuming `origin` is the Giant Swarm fork).
+    # This triggers the GitHub release action - please continue reading below!
+    git push origin "vX.Y.Z-gs-$(git rev-parse --short HEAD)"
+    ```
+
+  - Or: you want to implement something else, such as working on some issue that we have which is not fixed in upstream yet. Note that for testing changes to upstream, you probably better base your work on the `upstream/main` branch and try your change together with the latest commits from upstream. This also avoids merge conflicts. Maintainers can then help you cherry-pick into their release branches. The latest release branch is usually a bit behind `main`.
+
+    ```sh
+    git checkout -b my-working-branch release-X.Y # or based on `main` instead of `release-X.Y`, see hint above
+
+    # Make some changes and commit as usual
+    git commit
+
+    git tag "vX.Y.Z-gs-$(git rev-parse --short HEAD)"
+
+    # Push your working branch. This triggers image build in CircleCI
+    git push
+
+    # Push your Giant Swarm tag (assuming `origin` is the Giant Swarm fork).
+    # This triggers the GitHub release action - please continue reading below!
+    git push origin "vX.Y.Z-gs-$(git rev-parse --short HEAD)"
+    ```
+
+- Check that the [CircleCI pipeline](https://app.circleci.com/pipelines/github/giantswarm/cluster-api) succeeds for the desired Git tag in order to produce images. If the tag build fails, fix it.
+- Check that the [GitHub release action](https://github.com/giantswarm/cluster-api/actions) for the `vX.Y.Z-gs-...` tag succeeds
+- Edit [that draft GitHub release](https://github.com/giantswarm/cluster-api/releases) and turn it from draft to released. This makes the release's manifest files available on the internet, as used in [cluster-api-app](https://github.com/giantswarm/cluster-api-app).
+- Test the changes in the app
+
+  - Replace `.image.tag` in [cluster-api-app's `values.yaml`](https://github.com/giantswarm/cluster-api-app/blob/master/helm/cluster-api/values.yaml) with the new tag `vX.Y.Z-gs-...`.
+  - Run `cd cluster-api-app && make generate` to update manifests
+  - Commit and push your working branch for `cluster-api-app` to trigger CircleCI pipeline
+  - Install and test the app thoroughly on a management cluster. Continue with the next step only once you're confident.
+- Open PR for `cluster-api` fork (your working branch)
+
+  - If you merged an upstream release tag, we should target our `release-X.Y` branch with the PR.
+  - On the other hand, if you implemented something else which is not in upstream yet, we should target `upstream/main` so that it first lands in the upstream project, officially approved, tested and released. Afterwards, you would repeat this whole procedure and merge the release that includes your fix. For a quick in-house hotfix, you can alternatively do a quicker PR targeted against our `release-X.Y` branch.
+- Also open PR for `cluster-api-app` change
+- Once merged, manually bump the version in the respective collection to deploy it for one provider (e.g. [capa-app-collection](https://github.com/giantswarm/capa-app-collection/))
+
+### Keep fork customizations up to date
+
+Only `README.md`, `.github/` and `.circleci/` should differ between upstream and our fork, so the diff of everything else should be empty, or at worst, contain hotfixes that are not in upstream yet:
+
+```sh
+git fetch upstream
+git diff `# the upstream tag we merged recently` vX.Y.Z..origin/release-X.Y `# our release branch` -- ':!.circleci/' ':!README.md'
+```
+
+And we should also keep our `main` and `release-X.Y` branches in sync, so this diff should be empty:
+
+```sh
+git diff main..release-X.Y -- .circleci/ README.md .github/
+```
+
+If this shows any output, please align the `main` branch with the release branches.
+
+We changed the upstream github actions to work with our repository (e.g., removing references to non-synced branches). 
+When updating to a new release, please also update branch references in the actions (e.g., bump the release version in `.github/workflows/{test-release-weekly.yml, lint-docs-weekly.yml, weekly-security-scan.yaml`).

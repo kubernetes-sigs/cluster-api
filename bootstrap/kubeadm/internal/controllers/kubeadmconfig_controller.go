@@ -322,7 +322,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 				// If the BootstrapToken has been generated for a join but the config owner has no nodeRefs,
 				// this indicates that the node has not yet joined and the token in the join config has not
 				// been consumed and it may need a refresh.
-				return r.refreshBootstrapTokenIfNeeded(ctx, config, cluster)
+				return r.refreshBootstrapTokenIfNeeded(ctx, config, cluster, scope)
 			}
 			if configOwner.IsMachinePool() {
 				// If the BootstrapToken has been generated and infrastructure is ready but the configOwner is a MachinePool,
@@ -360,7 +360,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	return r.joinWorker(ctx, scope)
 }
 
-func (r *KubeadmConfigReconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *KubeadmConfigReconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
@@ -371,6 +371,11 @@ func (r *KubeadmConfigReconciler) refreshBootstrapTokenIfNeeded(ctx context.Cont
 
 	secret, err := getToken(ctx, remoteClient, token)
 	if err != nil {
+		if apierrors.IsNotFound(err) && scope.ConfigOwner.IsMachinePool() {
+			log.Info("Bootstrap token secret not found, triggering creation of new token")
+			config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = ""
+			return r.recreateBootstrapToken(ctx, config, scope, remoteClient)
+		}
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap token secret in order to refresh it")
 	}
 	log = log.WithValues("Secret", klog.KObj(secret))
@@ -401,11 +406,31 @@ func (r *KubeadmConfigReconciler) refreshBootstrapTokenIfNeeded(ctx context.Cont
 	log.Info("Refreshing token until the infrastructure has a chance to consume it", "oldExpiration", secretExpiration, "newExpiration", newExpiration)
 	err = remoteClient.Update(ctx, secret)
 	if err != nil {
+		if apierrors.IsNotFound(err) && scope.ConfigOwner.IsMachinePool() {
+			log.Info("Bootstrap token secret not found, triggering creation of new token")
+			config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = ""
+			return r.recreateBootstrapToken(ctx, config, scope, remoteClient)
+		}
 		return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
 	}
 	return ctrl.Result{
 		RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),
 	}, nil
+}
+
+func (r *KubeadmConfigReconciler) recreateBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, scope *Scope, remoteClient client.Client) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	token, err := createToken(ctx, remoteClient, r.TokenTTL)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
+	}
+
+	config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
+	log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.Token")
+
+	// Update the bootstrap data
+	return r.joinWorker(ctx, scope)
 }
 
 func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
@@ -423,16 +448,7 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 	}
 	if shouldRotate {
 		log.Info("Creating new bootstrap token, the existing one should be rotated")
-		token, err := createToken(ctx, remoteClient, r.TokenTTL)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
-		}
-
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
-		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.Token")
-
-		// update the bootstrap data
-		return r.joinWorker(ctx, scope)
+		return r.recreateBootstrapToken(ctx, config, scope, remoteClient)
 	}
 	return ctrl.Result{
 		RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),

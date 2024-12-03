@@ -5,6 +5,7 @@ The Runtime SDK feature provides an extensibility mechanism that allows systems,
 <aside class="note warning">
 
 All currently implemented hooks require to also enable the [ClusterClass](../cluster-class/index.md) feature.
+Please note that hooks are only invoked for Clusters created using ClusterClass.
 
 </aside>
 

@@ -1,7 +1,7 @@
-name: Weekly release test
+name: Release test
 
-# Note: This workflow does not build for releases. It attempts to build release binaries periodically to ensure the repo
-# release machinery is in a good state.
+# Note: This workflow does not build for releases. It attempts to build release binaries daily to ensure the repo
+# is in a good state.
 
 on:
   schedule:
@@ -17,10 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, release-1.6, release-1.5, release-1.6 ]
+        branch: [ main, release-1.6 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # tag=v4.1.0
+      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # tag=v3.5.0
         with:
           ref: ${{ matrix.branch }}
           fetch-depth: 0
@@ -32,7 +32,7 @@ jobs:
       - name: Calculate go version
         run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
       - name: Set up Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # tag=v4.1.0
+        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # tag=v3.5.0
         with:
           go-version: ${{ env.go_version }}
       - name: Test release

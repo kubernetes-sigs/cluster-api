@@ -34,9 +34,6 @@ updates:
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "google.golang.org/grpc"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-    # Ignore kind as its upgraded manually.
-  - dependency-name: "sigs.k8s.io/kind"
-    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
   - dependency-name: "sigs.k8s.io/kustomize/api"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]

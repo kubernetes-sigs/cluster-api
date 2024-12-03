@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"cmp"
 	"fmt"
 	"net"
 	"strings"
@@ -511,6 +512,7 @@ type Topology struct {
 
 	// The namespace of the ClusterClass object to create the topology.
 	// Empty namespace assumes the namespace of the cluster object.
+	// Class namespace changes are not supported by the rebase procedure.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
@@ -1046,11 +1048,7 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 		return types.NamespacedName{}
 	}
 
-	namespace := c.Spec.Topology.ClassNamespace
-	if c.Spec.Topology == nil || c.Spec.Topology.ClassNamespace == "" {
-		namespace = c.Namespace
-	}
-
+	namespace := cmp.Or(c.Spec.Topology.ClassNamespace, c.Namespace)
 	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.Class}
 }
 

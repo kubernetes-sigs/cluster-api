@@ -929,8 +929,10 @@ spec:
                       topology.
                     type: string
                   classNamespace:
-                    description: The namespace of the ClusterClass object to create
-                      the topology.
+                    description: |-
+                      The namespace of the ClusterClass object to create the topology.
+                      Empty namespace assumes the namespace of the cluster object.
+                      Namespace changes are not supported by rebase procedure.
                     maxLength: 253
                     minLength: 1
                     pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$

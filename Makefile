@@ -617,8 +617,6 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ignition.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-cross-ns-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-cross-ns-topology.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-cross-ns-upgrades-runtimesdk --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-cross-ns-upgrades-runtimesdk.yaml
 	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config

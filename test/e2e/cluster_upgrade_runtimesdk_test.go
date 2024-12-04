@@ -82,7 +82,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass in a diff
 				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor:         ptr.To("cross-ns-upgrades-runtimesdk"),
+			Flavor:         ptr.To("upgrades-runtimesdk"),
 			ClassNamespace: true,
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.

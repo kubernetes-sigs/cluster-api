@@ -111,6 +111,13 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 			} else if val, ok := os.LookupEnv("KUBERNETES_VERSION"); ok {
 				variableMap[name] = ptr.To(val)
 			}
+		case "CLUSTER_CLASS_NAMESPACE":
+			// Namespace name from the cmd flags or from the kubeconfig is used instead of template default.
+			if val, ok := os.LookupEnv("CLUSTER_CLASS_NAMESPACE"); ok {
+				variableMap[name] = ptr.To(val)
+			} else {
+				variableMap[name] = ptr.To("")
+			}
 		}
 
 		if variableMap[name] != nil {

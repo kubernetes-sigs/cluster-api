@@ -127,6 +127,17 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			wantError:                   false,
 		},
 		{
+			name:                        "should add the cluster class form the same explicitly specified namespace to the template if cluster is not initialized",
+			clusterInitialized:          false,
+			objs:                        []client.Object{},
+			targetNamespace:             "ns1",
+			clusterClassNamespace:       "ns1",
+			clusterClassTemplateContent: clusterClassYAML("ns1", "dev"),
+			listVariablesOnly:           false,
+			wantClusterClassInTemplate:  true,
+			wantError:                   false,
+		},
+		{
 			name:                        "should add the cluster class to the template if cluster is initialized and cluster class is not installed",
 			clusterInitialized:          true,
 			objs:                        []client.Object{},
@@ -231,7 +242,9 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				if tt.wantClusterClassInTemplate {
-					if tt.clusterClassNamespace != "" {
+					if tt.clusterClassNamespace == tt.targetNamespace {
+						g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
+					} else if tt.clusterClassNamespace != "" {
 						g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.clusterClassNamespace)))
 						g.Expect(template.Objs()).ToNot(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
 					} else {

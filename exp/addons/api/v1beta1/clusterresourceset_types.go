@@ -55,7 +55,7 @@ const (
 
 // ClusterResourceSetSpec defines the desired state of ClusterResourceSet.
 type ClusterResourceSetSpec struct {
-	// Label selector for Clusters. The Clusters that are
+	// clusterSelector is the label selector for Clusters. The Clusters that are
 	// selected by this will be the ones affected by this ClusterResourceSet.
 	// It must match the Cluster labels. This field is immutable.
 	// Label selector cannot be empty.

@@ -181,7 +181,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -212,7 +212,7 @@ spec:
                         type: string
                       ownerReferences:
                         description: |-
-                          List of objects depended by this object. If ALL objects in the list have
+                          ownerReferences is the list of objects depended by this object. If ALL objects in the list have
                           been deleted, this object will be garbage collected. If this object is managed by a controller,
                           then an entry in this list will point to this controller, with the controller field set to true.
                           There cannot be more than one managing controller.
@@ -268,7 +268,7 @@ spec:
                     type: object
                   spec:
                     description: |-
-                      Specification of the desired behavior of the machine.
+                      spec is the specification of the desired behavior of the machine.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
                     properties:
                       bootstrap:
@@ -429,8 +429,8 @@ spec:
             description: MachineSetStatus defines the observed state of MachineSet.
             properties:
               availableReplicas:
-                description: The number of available replicas (ready for at least
-                  minReadySeconds) for this MachineSet.
+                description: availableReplicas is the number of available replicas
+                  (ready for at least minReadySeconds) for this MachineSet.
                 format: int32
                 type: integer
               failureMessage:
@@ -457,8 +457,8 @@ spec:
                   controller's output.
                 type: string
               fullyLabeledReplicas:
-                description: The number of replicas that have labels matching the
-                  labels of the machine template of the MachineSet.
+                description: fullyLabeledReplicas is the number of replicas that have
+                  labels matching the labels of the machine template of the MachineSet.
                 format: int32
                 type: integer
               observedGeneration:
@@ -467,8 +467,9 @@ spec:
                 format: int64
                 type: integer
               readyReplicas:
-                description: The number of ready replicas for this MachineSet. A machine
-                  is considered ready when the node has been created and is "Ready".
+                description: readyReplicas is the number of ready replicas for this
+                  MachineSet. A machine is considered ready when the node has been
+                  created and is "Ready".
                 format: int32
                 type: integer
               replicas:
@@ -643,7 +644,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -651,7 +652,7 @@ spec:
                     type: object
                   spec:
                     description: |-
-                      Specification of the desired behavior of the machine.
+                      spec is the specification of the desired behavior of the machine.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
                     properties:
                       bootstrap:
@@ -805,8 +806,8 @@ spec:
             description: MachineSetStatus defines the observed state of MachineSet.
             properties:
               availableReplicas:
-                description: The number of available replicas (ready for at least
-                  minReadySeconds) for this MachineSet.
+                description: availableReplicas is the number of available replicas
+                  (ready for at least minReadySeconds) for this MachineSet.
                 format: int32
                 type: integer
               conditions:
@@ -817,19 +818,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may not be empty.
                       type: string
@@ -877,8 +878,8 @@ spec:
                   controller's output.
                 type: string
               fullyLabeledReplicas:
-                description: The number of replicas that have labels matching the
-                  labels of the machine template of the MachineSet.
+                description: fullyLabeledReplicas is the number of replicas that have
+                  labels matching the labels of the machine template of the MachineSet.
                 format: int32
                 type: integer
               observedGeneration:
@@ -887,8 +888,9 @@ spec:
                 format: int64
                 type: integer
               readyReplicas:
-                description: The number of ready replicas for this MachineSet. A machine
-                  is considered ready when the node has been created and is "Ready".
+                description: readyReplicas is the number of ready replicas for this
+                  MachineSet. A machine is considered ready when the node has been
+                  created and is "Ready".
                 format: int32
                 type: integer
               replicas:
@@ -1107,7 +1109,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -1115,7 +1117,7 @@ spec:
                     type: object
                   spec:
                     description: |-
-                      Specification of the desired behavior of the machine.
+                      spec is the specification of the desired behavior of the machine.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
                     properties:
                       bootstrap:
@@ -1317,8 +1319,8 @@ spec:
             description: MachineSetStatus defines the observed state of MachineSet.
             properties:
               availableReplicas:
-                description: The number of available replicas (ready for at least
-                  minReadySeconds) for this MachineSet.
+                description: availableReplicas is the number of available replicas
+                  (ready for at least minReadySeconds) for this MachineSet.
                 format: int32
                 type: integer
               conditions:
@@ -1329,19 +1331,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       type: string
@@ -1396,7 +1398,7 @@ spec:
                 type: string
               fullyLabeledReplicas:
                 description: |-
-                  The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+                  fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 format: int32
@@ -1407,8 +1409,9 @@ spec:
                 format: int64
                 type: integer
               readyReplicas:
-                description: The number of ready replicas for this MachineSet. A machine
-                  is considered ready when the node has been created and is "Ready".
+                description: readyReplicas is the number of ready replicas for this
+                  MachineSet. A machine is considered ready when the node has been
+                  created and is "Ready".
                 format: int32
                 type: integer
               replicas:

@@ -78,7 +78,7 @@ const (
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
 type KubeadmControlPlaneSpec struct {
-	// Number of desired machines. Defaults to 1. When stacked etcd is used only
+	// replicas is the number of desired machines. Defaults to 1. When stacked etcd is used only
 	// odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
@@ -114,17 +114,17 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
-	// The RolloutStrategy to use to replace control plane machines with
+	// rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
 	// new ones.
 	// +optional
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 
-	// The RemediationStrategy that controls how control plane machine remediation happens.
+	// remediationStrategy is the RemediationStrategy that controls how control plane machine remediation happens.
 	// +optional
 	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
 
-	// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
@@ -133,7 +133,7 @@ type KubeadmControlPlaneSpec struct {
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
 // in a KubeadmControlPlane object.
 type KubeadmControlPlaneMachineTemplate struct {
-	// Standard object's metadata.
+	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
@@ -177,7 +177,7 @@ type RolloutStrategy struct {
 	// +optional
 	Type RolloutStrategyType `json:"type,omitempty"`
 
-	// Rolling update config params. Present only if
+	// rollingUpdate is the rolling update config params. Present only if
 	// RolloutStrategyType = RollingUpdate.
 	// +optional
 	RollingUpdate *RollingUpdate `json:"rollingUpdate,omitempty"`
@@ -185,7 +185,7 @@ type RolloutStrategy struct {
 
 // RollingUpdate is used to control the desired behavior of rolling update.
 type RollingUpdate struct {
-	// The maximum number of control planes that can be scheduled above or under the
+	// maxSurge is the maximum number of control planes that can be scheduled above or under the
 	// desired number of control planes.
 	// Value can be an absolute number 1 or 0.
 	// Defaults to 1.
@@ -267,7 +267,7 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Selector string `json:"selector,omitempty"`
 
-	// Total number of non-terminated machines targeted by this control plane
+	// replicas is the total number of non-terminated machines targeted by this control plane
 	// (their labels match the selector).
 	// +optional
 	Replicas int32 `json:"replicas"`
@@ -277,16 +277,16 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Version *string `json:"version,omitempty"`
 
-	// Total number of non-terminated machines targeted by this control plane
+	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.
 	// +optional
 	UpdatedReplicas int32 `json:"updatedReplicas"`
 
-	// Total number of fully running and ready control plane machines.
+	// readyReplicas is the total number of fully running and ready control plane machines.
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
-	// Total number of unavailable machines targeted by this control plane.
+	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
 	// This is the total number of machines that are still required for
 	// the deployment to have 100% available capacity. They may either
 	// be machines that are running but not yet ready or machines
@@ -322,7 +322,7 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
 
-	// ErrorMessage indicates that there is a terminal problem reconciling the
+	// failureMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	//
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.

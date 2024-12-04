@@ -170,10 +170,10 @@ type ExtensionConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// ExtensionConfigSpec is the desired state of the ExtensionConfig
+	// spec is the desired state of the ExtensionConfig
 	Spec ExtensionConfigSpec `json:"spec,omitempty"`
 
-	// ExtensionConfigStatus is the current state of the ExtensionConfig
+	// status is the current state of the ExtensionConfig
 	Status ExtensionConfigStatus `json:"status,omitempty"`
 }
 

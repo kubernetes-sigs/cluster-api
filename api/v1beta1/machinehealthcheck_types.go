@@ -55,7 +55,7 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Label selector to match machines whose health will be exercised
+	// selector is a label selector to match machines whose health will be exercised
 	Selector metav1.LabelSelector `json:"selector"`
 
 	// unhealthyConditions contains a list of the conditions that determine
@@ -135,12 +135,12 @@ type UnhealthyCondition struct {
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
 type MachineHealthCheckStatus struct {
-	// total number of machines counted by this machine health check
+	// expectedMachines is the total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	ExpectedMachines int32 `json:"expectedMachines"`
 
-	// total number of healthy machines counted by this machine health check
+	// currentHealthy is the total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	CurrentHealthy int32 `json:"currentHealthy"`
@@ -197,10 +197,10 @@ type MachineHealthCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Specification of machine health check policy
+	// spec is the specification of machine health check policy
 	Spec MachineHealthCheckSpec `json:"spec,omitempty"`
 
-	// Most recently observed status of MachineHealthCheck resource
+	// status is the most recently observed status of MachineHealthCheck resource
 	Status MachineHealthCheckStatus `json:"status,omitempty"`
 }
 

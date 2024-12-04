@@ -137,7 +137,7 @@ spec:
                                   NB: if not provided, this will default to `/etc/kubernetes/pki`
                                 type: string
                               clusterName:
-                                description: The cluster name
+                                description: clusterName is the cluster name
                                 type: string
                               controlPlaneEndpoint:
                                 description: |-
@@ -1035,7 +1035,7 @@ spec:
                             x-kubernetes-map-type: atomic
                           metadata:
                             description: |-
-                              Standard object's metadata.
+                              metadata is the standard object's metadata.
                               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                             properties:
                               annotations:
@@ -1051,7 +1051,7 @@ spec:
                                 additionalProperties:
                                   type: string
                                 description: |-
-                                  Map of string keys and values that can be used to organize and categorize
+                                  labels is a map of string keys and values that can be used to organize and categorize
                                   (scope and select) objects. May match selectors of replication controllers
                                   and services.
                                   More info: http://kubernetes.io/docs/user-guide/labels
@@ -1068,7 +1068,7 @@ spec:
                         type: object
                       replicas:
                         description: |-
-                          Number of desired machines. Defaults to 1. When stacked etcd is used only
+                          replicas is the number of desired machines. Defaults to 1. When stacked etcd is used only
                           odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
                           This is a pointer to distinguish between explicit zero and not specified.
                         format: int32
@@ -1086,12 +1086,12 @@ spec:
                             maxSurge: 1
                           type: RollingUpdate
                         description: |-
-                          The RolloutStrategy to use to replace control plane machines with
+                          rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
                           new ones.
                         properties:
                           rollingUpdate:
                             description: |-
-                              Rolling update config params. Present only if
+                              rollingUpdate is the rolling update config params. Present only if
                               RolloutStrategyType = RollingUpdate.
                             properties:
                               maxSurge:
@@ -1099,7 +1099,7 @@ spec:
                                 - type: integer
                                 - type: string
                                 description: |-
-                                  The maximum number of control planes that can be scheduled above or under the
+                                  maxSurge is the maximum number of control planes that can be scheduled above or under the
                                   desired number of control planes.
                                   Value can be an absolute number 1 or 0.
                                   Defaults to 1.
@@ -1170,7 +1170,7 @@ spec:
                 properties:
                   metadata:
                     description: |-
-                      Standard object's metadata.
+                      metadata is the standard object's metadata.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                     properties:
                       annotations:
@@ -1186,7 +1186,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -1407,7 +1407,7 @@ spec:
                                   NB: if not provided, this will default to `/etc/kubernetes/pki`
                                 type: string
                               clusterName:
-                                description: The cluster name
+                                description: clusterName is the cluster name
                                 type: string
                               controlPlaneEndpoint:
                                 description: |-
@@ -2602,14 +2602,14 @@ spec:
                                                 properties:
                                                   apiVersion:
                                                     description: |-
-                                                      Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                                      apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                                       the same encoding version as the input.
                                                       Defaults to client.authentication.k8s.io/v1 if not set.
                                                     type: string
                                                   args:
-                                                    description: Arguments to pass
-                                                      to the command when executing
-                                                      it.
+                                                    description: args is the arguments
+                                                      to pass to the command when
+                                                      executing it.
                                                     items:
                                                       type: string
                                                     type: array
@@ -2928,7 +2928,7 @@ spec:
                         type: object
                       machineNamingStrategy:
                         description: |-
-                          MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+                          machineNamingStrategy allows changing the naming pattern used when creating Machines.
                           InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
                         properties:
                           template:
@@ -2953,7 +2953,7 @@ spec:
                         properties:
                           metadata:
                             description: |-
-                              Standard object's metadata.
+                              metadata is the standard object's metadata.
                               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                             properties:
                               annotations:
@@ -2969,7 +2969,7 @@ spec:
                                 additionalProperties:
                                   type: string
                                 description: |-
-                                  Map of string keys and values that can be used to organize and categorize
+                                  labels is a map of string keys and values that can be used to organize and categorize
                                   (scope and select) objects. May match selectors of replication controllers
                                   and services.
                                   More info: http://kubernetes.io/docs/user-guide/labels
@@ -2994,8 +2994,8 @@ spec:
                             type: string
                         type: object
                       remediationStrategy:
-                        description: The RemediationStrategy that controls how control
-                          plane machine remediation happens.
+                        description: remediationStrategy is the RemediationStrategy
+                          that controls how control plane machine remediation happens.
                         properties:
                           maxRetry:
                             description: "maxRetry is the Max number of retries while
@@ -3068,12 +3068,12 @@ spec:
                             maxSurge: 1
                           type: RollingUpdate
                         description: |-
-                          The RolloutStrategy to use to replace control plane machines with
+                          rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
                           new ones.
                         properties:
                           rollingUpdate:
                             description: |-
-                              Rolling update config params. Present only if
+                              rollingUpdate is the rolling update config params. Present only if
                               RolloutStrategyType = RollingUpdate.
                             properties:
                               maxSurge:
@@ -3081,7 +3081,7 @@ spec:
                                 - type: integer
                                 - type: string
                                 description: |-
-                                  The maximum number of control planes that can be scheduled above or under the
+                                  maxSurge is the maximum number of control planes that can be scheduled above or under the
                                   desired number of control planes.
                                   Value can be an absolute number 1 or 0.
                                   Defaults to 1.

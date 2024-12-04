@@ -50,7 +50,7 @@ spec:
             description: ClusterSpec defines the desired state of Cluster.
             properties:
               clusterNetwork:
-                description: Cluster network configuration.
+                description: clusterNetwork is the cluster network configuration.
                 properties:
                   apiServerPort:
                     description: |-
@@ -59,7 +59,8 @@ spec:
                     format: int32
                     type: integer
                   pods:
-                    description: The network ranges from which Pod networks are allocated.
+                    description: pods is the network ranges from which Pod networks
+                      are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -69,10 +70,11 @@ spec:
                     - cidrBlocks
                     type: object
                   serviceDomain:
-                    description: Domain name for services.
+                    description: serviceDomain is the domain name for services.
                     type: string
                   services:
-                    description: The network ranges from which service VIPs are allocated.
+                    description: services is the network ranges from which service
+                      VIPs are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -87,10 +89,10 @@ spec:
                   communicate with the control plane.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
@@ -203,19 +205,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may not be empty.
                       type: string
@@ -336,7 +338,7 @@ spec:
             description: ClusterSpec defines the desired state of Cluster.
             properties:
               clusterNetwork:
-                description: Cluster network configuration.
+                description: clusterNetwork is the cluster network configuration.
                 properties:
                   apiServerPort:
                     description: |-
@@ -345,7 +347,8 @@ spec:
                     format: int32
                     type: integer
                   pods:
-                    description: The network ranges from which Pod networks are allocated.
+                    description: pods is the network ranges from which Pod networks
+                      are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -355,10 +358,11 @@ spec:
                     - cidrBlocks
                     type: object
                   serviceDomain:
-                    description: Domain name for services.
+                    description: serviceDomain is the domain name for services.
                     type: string
                   services:
-                    description: The network ranges from which service VIPs are allocated.
+                    description: services is the network ranges from which service
+                      VIPs are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -373,10 +377,10 @@ spec:
                   communicate with the control plane.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
@@ -485,8 +489,8 @@ spec:
                   this feature is highly experimental, and parts of it might still be not implemented.
                 properties:
                   class:
-                    description: The name of the ClusterClass object to create the
-                      topology.
+                    description: class is the name of the ClusterClass object to create
+                      the topology.
                     type: string
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
@@ -512,7 +516,7 @@ spec:
                             additionalProperties:
                               type: string
                             description: |-
-                              Map of string keys and values that can be used to organize and categorize
+                              labels is a map of string keys and values that can be used to organize and categorize
                               (scope and select) objects. May match selectors of replication controllers
                               and services.
                               More info: http://kubernetes.io/docs/user-guide/labels
@@ -534,7 +538,7 @@ spec:
                     format: date-time
                     type: string
                   version:
-                    description: The Kubernetes version of the cluster.
+                    description: version is the Kubernetes version of the cluster.
                     type: string
                   workers:
                     description: |-
@@ -573,7 +577,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -616,19 +620,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may not be empty.
                       type: string
@@ -776,7 +780,7 @@ spec:
                 - conditionType
                 x-kubernetes-list-type: map
               clusterNetwork:
-                description: Cluster network configuration.
+                description: clusterNetwork represents the cluster network configuration.
                 properties:
                   apiServerPort:
                     description: |-
@@ -785,7 +789,8 @@ spec:
                     format: int32
                     type: integer
                   pods:
-                    description: The network ranges from which Pod networks are allocated.
+                    description: pods is the network ranges from which Pod networks
+                      are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -795,10 +800,11 @@ spec:
                     - cidrBlocks
                     type: object
                   serviceDomain:
-                    description: Domain name for services.
+                    description: serviceDomain is the domain name for services.
                     type: string
                   services:
-                    description: The network ranges from which service VIPs are allocated.
+                    description: services is the network ranges from which service
+                      VIPs are allocated.
                     properties:
                       cidrBlocks:
                         items:
@@ -813,10 +819,10 @@ spec:
                   communicate with the control plane.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
@@ -925,8 +931,8 @@ spec:
                   this feature is highly experimental, and parts of it might still be not implemented.
                 properties:
                   class:
-                    description: The name of the ClusterClass object to create the
-                      topology.
+                    description: class is the name of the ClusterClass object to create
+                      the topology.
                     type: string
                   classNamespace:
                     description: |-
@@ -1084,7 +1090,7 @@ spec:
                             additionalProperties:
                               type: string
                             description: |-
-                              Map of string keys and values that can be used to organize and categorize
+                              labels is a map of string keys and values that can be used to organize and categorize
                               (scope and select) objects. May match selectors of replication controllers
                               and services.
                               More info: http://kubernetes.io/docs/user-guide/labels
@@ -1202,7 +1208,7 @@ spec:
                     - name
                     x-kubernetes-list-type: map
                   version:
-                    description: The Kubernetes version of the cluster.
+                    description: version is the Kubernetes version of the cluster.
                     type: string
                   workers:
                     description: |-
@@ -1370,7 +1376,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -1378,7 +1384,7 @@ spec:
                               type: object
                             minReadySeconds:
                               description: |-
-                                Minimum number of seconds for which a newly created machine should
+                                minReadySeconds is the minimum number of seconds for which a newly created machine should
                                 be ready.
                                 Defaults to 0 (machine will be considered available as soon as it
                                 is ready)
@@ -1418,7 +1424,7 @@ spec:
                               type: integer
                             strategy:
                               description: |-
-                                The deployment strategy to use to replace existing machines with
+                                strategy is the deployment strategy to use to replace existing machines with
                                 new ones.
                               properties:
                                 remediation:
@@ -1449,7 +1455,7 @@ spec:
                                   type: object
                                 rollingUpdate:
                                   description: |-
-                                    Rolling update config params. Present only if
+                                    rollingUpdate is the rolling update config params. Present only if
                                     MachineDeploymentStrategyType = RollingUpdate.
                                   properties:
                                     deletePolicy:
@@ -1467,7 +1473,7 @@ spec:
                                       - type: integer
                                       - type: string
                                       description: |-
-                                        The maximum number of machines that can be scheduled above the
+                                        maxSurge is the maximum number of machines that can be scheduled above the
                                         desired number of machines.
                                         Value can be an absolute number (ex: 5) or a percentage of
                                         desired machines (ex: 10%).
@@ -1486,7 +1492,7 @@ spec:
                                       - type: integer
                                       - type: string
                                       description: |-
-                                        The maximum number of machines that can be unavailable during the update.
+                                        maxUnavailable is the maximum number of machines that can be unavailable during the update.
                                         Value can be an absolute number (ex: 5) or a percentage of desired
                                         machines (ex: 10%).
                                         Absolute number is calculated from percentage by rounding down.
@@ -1596,7 +1602,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -1604,7 +1610,7 @@ spec:
                               type: object
                             minReadySeconds:
                               description: |-
-                                Minimum number of seconds for which a newly created machine pool should
+                                minReadySeconds is the minimum number of seconds for which a newly created machine pool should
                                 be ready.
                                 Defaults to 0 (machine will be considered available as soon as it
                                 is ready)
@@ -1707,19 +1713,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       type: string

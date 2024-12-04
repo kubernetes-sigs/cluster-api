@@ -205,7 +205,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		if clusterctlVersion.LT(semver.MustParse("1.7.0")) {
 			upgradeRetries = 2
 		}
-		for i := range upgradeRetries {
+		for i := 0; i < upgradeRetries; i++ {
 			err := UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
 			if err != nil && i < upgradeRetries-1 {
 				log.Logf("Failed to UpgradeWithBinary, retrying: %v", err)

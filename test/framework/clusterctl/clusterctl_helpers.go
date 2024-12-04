@@ -197,12 +197,27 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	client := input.ClusterProxy.GetClient()
 
 	if input.ClusterctlBinaryPath != "" {
-		UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+		clusterctlVersion, err := getClusterCtlVersion(input.ClusterctlBinaryPath)
+		Expect(err).ToNot(HaveOccurred())
+		upgradeRetries := 1
+		// Older versions of clusterctl may need to retry the upgrade process to allow for
+		// cert-manager CAs to become available before continuing.  For newer versions of clusterctl
+		// this is addressed with https://github.com/kubernetes-sigs/cluster-api/pull/10513
+		if clusterctlVersion.LT(semver.MustParse("1.7.0")) {
+			upgradeRetries = 2
+		}
+		for i := range upgradeRetries {
+			err := UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+			if err != nil && i < upgradeRetries-1 {
+				log.Logf("Failed to UpgradeWithBinary, retrying: %v", err)
+				continue
+			}
+			Expect(err).ToNot(HaveOccurred())
+			break
+		}
 		// Old versions of clusterctl may deploy CRDs, Mutating- and/or ValidatingWebhookConfigurations
 		// before creating the new Certificate objects. This check ensures the CA's are up to date before
 		// continuing.
-		clusterctlVersion, err := getClusterCtlVersion(input.ClusterctlBinaryPath)
-		Expect(err).ToNot(HaveOccurred())
 		if clusterctlVersion.LT(semver.MustParse("1.7.2")) {
 			Eventually(func() error {
 				return verifyCAInjection(ctx, client)

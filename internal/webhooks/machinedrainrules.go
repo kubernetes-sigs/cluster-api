@@ -74,12 +74,15 @@ func (webhook *MachineDrainRule) ValidateDelete(_ context.Context, _ runtime.Obj
 func (webhook *MachineDrainRule) validate(newMDR *clusterv1.MachineDrainRule) error {
 	var allErrs field.ErrorList
 
-	if newMDR.Spec.Drain.Behavior == clusterv1.MachineDrainRuleDrainBehaviorSkip {
+	if newMDR.Spec.Drain.Behavior == clusterv1.MachineDrainRuleDrainBehaviorSkip ||
+		newMDR.Spec.Drain.Behavior == clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted {
 		if newMDR.Spec.Drain.Order != nil {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "drain", "order"),
 					*newMDR.Spec.Drain.Order,
-					fmt.Sprintf("order must not be set if drain behavior is %q", clusterv1.MachineDrainRuleDrainBehaviorSkip)),
+					fmt.Sprintf("order must not be set if drain behavior is %q or %q",
+						clusterv1.MachineDrainRuleDrainBehaviorSkip, clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted),
+				),
 			)
 		}
 	}

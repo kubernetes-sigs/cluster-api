@@ -46,57 +46,62 @@ status: implementable
 
 ## Summary
 
-Today, when Cluster API deletes a Machine it drains the corresponding Node to ensure all Pods running on the Node have 
-been gracefully terminated before deleting the corresponding infrastructure. The current drain implementation has 
-hard-coded rules to decide which Pods should be evicted. This implementation is aligned to `kubectl drain` (see 
-[Machine deletion process](https://main.cluster-api.sigs.k8s.io/tasks/automated-machine-management/machine_deletions) 
+Today, when Cluster API deletes a Machine it drains the corresponding Node to ensure all Pods running on the Node have
+been gracefully terminated before deleting the corresponding infrastructure. The current drain implementation has
+hard-coded rules to decide which Pods should be evicted. This implementation is aligned to `kubectl drain` (see
+[Machine deletion process](https://main.cluster-api.sigs.k8s.io/tasks/automated-machine-management/machine_deletions)
 for more details).
 
-With recent changes in Cluster API, we can now have finer control on the drain process, and thus we propose a new 
-`MachineDrainRule` CRD to make the drain rules configurable per Pod. Additionally, we're proposing labels that 
+With recent changes in Cluster API, we can now have finer control on the drain process, and thus we propose a new
+`MachineDrainRule` CRD to make the drain rules configurable per Pod. Additionally, we're proposing labels that
 workload cluster admins can add to individual Pods to control their drain behavior.
 
-This would be a huge improvement over the “standard” `kubectl drain` aligned implementation we have today and help to 
+This would be a huge improvement over the “standard” `kubectl drain` aligned implementation we have today and help to
 solve a family of issues identified when running Cluster API in production.
 
 ## Motivation
 
-While the “standard” `kubectl drain` rules have served us well, new user stories have emerged where a more sophisticated 
+While the “standard” `kubectl drain` rules have served us well, new user stories have emerged where a more sophisticated
 behavior is needed.
 
 ### User Stories
 
 **Story 1: Define drain order**
 
-As a cluster admin/user, I would like to define in which order Pods are evicted. For example, I want to configure that 
+As a cluster admin/user, I would like to define in which order Pods are evicted. For example, I want to configure that
 Portworx Pods are evicted after all other Pods ([CAPI-11024](https://github.com/kubernetes-sigs/cluster-api/issues/11024)).
 
-Note:  As of today the only way to address this use case with Cluster API is to implement a pre-drain hook with a custom 
+Note:  As of today the only way to address this use case with Cluster API is to implement a pre-drain hook with a custom
 drain process. Due to the complexity of this solution it is not viable for most users.
 
 **Story 2: Exclude “undrainable” Pods from drain**
 
-As a cluster admin/user, I would like the node drain process to ignore pods that will obviously not drain properly 
+As a cluster admin/user, I would like the node drain process to ignore pods that will obviously not drain properly
 (e.g., because they're tolerating the unschedulable or all taints).
 
-Note: As of today Pods that are tolerating the `node.kubernetes.io/unschedulable:NoSchedule` taint will just get rescheduled 
+Note: As of today Pods that are tolerating the `node.kubernetes.io/unschedulable:NoSchedule` taint will just get rescheduled
 to the Node after they have been evicted, and this can lead to race conditions and then prevent the Machine to be deleted.
 
 **Story 3: Exclude Pods that should not be drained from drain**
 
-As a cluster admin/user, I would like to instruct the Node drain process to exclude some Pods, e.g. because I don't 
+As a cluster admin/user, I would like to instruct the Node drain process to exclude some Pods, e.g. because I don't
 care if they're gracefully terminated and they should run until the Node goes offline (e.g. monitoring agents).
 
 **Story 4: Define drain order & exclude Pods from drain without management cluster access**
 
-As a workload cluster admin/user, I want to be able to define drain order of Pods and also exclude Pods from drain 
+As a workload cluster admin/user, I want to be able to define drain order of Pods and also exclude Pods from drain
 (similar to Story 1-3, just without management cluster access).
 
 **Story 5: Apply drain configuration to a set of Machines / Clusters**
 
-As a cluster admin/user, I would like to be able to configure the drain behavior for all Machines of a management 
-cluster or for a subset of these Machines without having to configure each Machine individually. I would also like 
+As a cluster admin/user, I would like to be able to configure the drain behavior for all Machines of a management
+cluster or for a subset of these Machines without having to configure each Machine individually. I would also like
 to be able to change the drain configuration without having to modify all Machine objects.
+
+**Story 6: Wait for specific pods to naturally complete without eviction**
+
+As a cluster admin/user, I would like the node drain process to wait for pods to complete without triggering a deletion
+or eviction (e.g. batch workloads, Jobs, or CronJobs eventually exit with either a success or error).
 
 ### Goals
 
@@ -114,15 +119,15 @@ to be able to change the drain configuration without having to modify all Machin
 
 ### Future work
 
-* Align with the evolving landscape for Node drain in Kubernetes as soon as the new features are available, 
+* Align with the evolving landscape for Node drain in Kubernetes as soon as the new features are available,
   stable and can be used for the Kubernetes versions Cluster API supports (e.g. [KEP-4212](https://github.com/kubernetes/enhancements/issues/4212), [KEP-4563](https://github.com/kubernetes/enhancements/issues/4563)).
 
-  Because of the wide range of workload cluster Kubernetes versions supported in Cluster API (n-5), it will take 
+  Because of the wide range of workload cluster Kubernetes versions supported in Cluster API (n-5), it will take
   significant time until we can use new Kubernetes features in all supported versions. So an implementation in
   Cluster API is the only option to improve drain anytime soon (even for the oldest supported Kubernetes versions).
 
-  Also, please note that while we would like to align with Kubernetes and leverage its new features as soon as 
-  possible, there will always be a delta to be addressed in Cluster API due to the fact that Cluster API is operated 
+  Also, please note that while we would like to align with Kubernetes and leverage its new features as soon as
+  possible, there will always be a delta to be addressed in Cluster API due to the fact that Cluster API is operated
   from the management cluster, while drain is done in workload clusters.
 
   Additionally, Cluster API should take care of many clusters, while Kubernetes features are by design scoped to a single cluster.
@@ -133,10 +138,10 @@ to be able to change the drain configuration without having to modify all Machin
 
 #### `MachineDrainRule` CRD
 
-We propose to introduce a new `MachineDrainRule` namespace-scoped CRD. The goal of this CRD is to allow management 
+We propose to introduce a new `MachineDrainRule` namespace-scoped CRD. The goal of this CRD is to allow management
 cluster admins/users to define a drain rule (a specific drain behavior) for a set of Pods.
 
-Additionally, drain rules can be restricted to a specific set of Machines, e.g. targeting only controlplane Machines, 
+Additionally, drain rules can be restricted to a specific set of Machines, e.g. targeting only controlplane Machines,
 Machines of specific Clusters, Linux Machines, etc.
 
 ```yaml
@@ -147,8 +152,8 @@ metadata:
   namespace: default
 spec:
   drain:
-    # behavior can be Drain or Skip
-    behavior: Drain 
+    # behavior can be Drain, Skip, or WaitCompleted
+    behavior: Drain
     # order can only be set if behavior == Drain
     # Pods with higher order are drained later
     order: 100
@@ -173,8 +178,8 @@ Notes:
 * The Machine controller will evaluate `machines` and `pods` selectors to determine for which Machine and to which Pods
   the rule should be applied.
 * All selectors are of type `metav1.LabelSelector`
-* In order to allow expressing selectors with AND and OR predicates, both `machines` and `pods` have a list of 
-  selectors instead of a single selector. Within a single element of the selector lists AND is used, while between multiple 
+* In order to allow expressing selectors with AND and OR predicates, both `machines` and `pods` have a list of
+  selectors instead of a single selector. Within a single element of the selector lists AND is used, while between multiple
   entries in the selector lists OR is used.
 
 ##### Example: Exclude Pods from drain
@@ -191,8 +196,8 @@ spec:
   machines:
   - selector: {}
   pods:
-   # This selects all Pods with the app label in (example-app1,example-app2) AND in the example-namespace 
-  - selector:  
+   # This selects all Pods with the app label in (example-app1,example-app2) AND in the example-namespace
+  - selector:
       matchExpressions:
       - key: app
         operator: In
@@ -238,15 +243,16 @@ spec:
 
 #### Drain labels
 
-We propose to introduce new labels to allow workload cluster admins/users to define drain behavior 
+We propose to introduce new labels to allow workload cluster admins/users to define drain behavior
 for Pods. These labels would be either added directly to Pods or indirectly via Deployments, StatefulSets, etc.
 The labels will take precedence over `MachineDrainRules` specified in the management cluster.
 
 * `cluster.x-k8s.io/drain: skip`
+* `cluster.x-k8s.io/drain: wait-completed`
 
-Initially we also considered adding a `cluster.x-k8s.io/drain-order` label. But we're not entirely sure about it 
-yet as someone who has access to the workload cluster (or maybe only specific Pods) would be able to influence the 
-drain order of the entire cluster, which might lead to problems. The skip label is safe in comparison because it 
+Initially we also considered adding a `cluster.x-k8s.io/drain-order` label. But we're not entirely sure about it
+yet as someone who has access to the workload cluster (or maybe only specific Pods) would be able to influence the
+drain order of the entire cluster, which might lead to problems. The skip label is safe in comparison because it
 only influences the drain behavior of the Pod that has the label.
 
 #### Node drain behavior
@@ -259,6 +265,8 @@ The following describes the new algorithm that decides which Pods should be drai
     * \=\> use `behavior: Skip`
   * If the Pod has `cluster.x-k8s.io/drain: skip`
     * \=\> use `behavior: Skip`
+  * If the Pod has `cluster.x-k8s.io/drain: wait-completed`
+    * \=\> use `behavior: WaitCompleted` and `order: 0`
   * If there is a matching `MachineDrainRule`
     * \=\> use `behavior` and `order` from the first matching `MachineDrainRule` (based on alphabetical order)
   * Otherwise:
@@ -270,21 +278,21 @@ The following describes the new algorithm that decides which Pods should be drai
 
 Notes:
 
-* It does not make sense to evict DaemonSet Pods, because the DaemonSet controller always [adds tolerations for the 
+* It does not make sense to evict DaemonSet Pods, because the DaemonSet controller always [adds tolerations for the
   unschedulable taint to all its Pods](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/#taints-and-tolerations)
   so they would be just immediately rescheduled.
-* It does not make sense to evict static Pods, because the kubelet won’t actually terminate them and the Pod object 
+* It does not make sense to evict static Pods, because the kubelet won’t actually terminate them and the Pod object
   will get recreated.
 * If multiple `MachineDrainRules` match the same Pod, the “first” rule (based on alphabetical order) will be applied
   * Alphabetical order is used because:
-    * There is no way to ensure only a single `MachineDrainRule` applies to a specific Pod, because not all Pods and their 
-      labels are known when `MachineDrainRules` are created/updated especially as the Pods will also change over time. 
+    * There is no way to ensure only a single `MachineDrainRule` applies to a specific Pod, because not all Pods and their
+      labels are known when `MachineDrainRules` are created/updated especially as the Pods will also change over time.
     * So a criteria is needed to decide which `MachineDrainRule` is used when multiple `MachineDrainRules` apply
     * For now, we decided to use simple alphabetical order. An alternative would have been to add a `priority` field
       to `MachineDrainRules` and enforce that each priority is used only once, but this is not entirely race condition
       free (when two `MachineDrainRules` are created "at the same time") and adding "another" priority field on top
       of `order` can be confusing to users.
-* `Pods` with drain behavior `Drain` and given order will be evicted only after all other `Pods` with a lower order 
+* `Pods` with drain behavior `Drain` and given order will be evicted only after all other `Pods` with a lower order
   have been already deleted
 * When waiting for volume detach, volumes belonging to `Pods` with drain behavior `Skip` are going to be ignored.
   Or in other words, Machine deletion can continue if only volumes belonging to `Pods` with drain behavior `Skip`
@@ -295,7 +303,7 @@ Notes:
 Today, after Node drain we are waiting for **all** volumes to be detached. We are going to change that behavior to ignore
 all attached volumes that belong to Pods for which we skipped the drain.
 
-Please note, today the only Pods for which we skip drain that can have volumes are DaemonSet Pods. If a DaemonSet Pod 
+Please note, today the only Pods for which we skip drain that can have volumes are DaemonSet Pods. If a DaemonSet Pod
 has a volume currently wait for volume detach would block indefinitely. The only way around this today is to set either
 the `Machine.spec.nodeVolumeDetachTimeout` field or the `machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach`
 annotation. With this change we will stop waiting for volumes of DaemonSet Pods to be detached.
@@ -320,25 +328,25 @@ Cluster CRs), it is also possible to further restrict access.
 
 **Add Node drain configuration to the Machine object**
 
-We considered adding the drain rules directly to the Machine objects (and thus also to the MachineDeployment & MachineSet objects) 
-instead. We discarded this option because it would have made it necessary to configure Node drain on every single Machine. 
-By having a separate CRD it is now possible to configure the Node drain for all Clusters / Machines or a specific subset 
-of Machines at once. This also means that the Node drain configuration can be immediately changed without having to propagate 
+We considered adding the drain rules directly to the Machine objects (and thus also to the MachineDeployment & MachineSet objects)
+instead. We discarded this option because it would have made it necessary to configure Node drain on every single Machine.
+By having a separate CRD it is now possible to configure the Node drain for all Clusters / Machines or a specific subset
+of Machines at once. This also means that the Node drain configuration can be immediately changed without having to propagate
 configuration changes to all Machines.
 
 **MachineDrainRequestTemplates**
-We considered defining separate MachineDrainRequest and MachineDrainRequestTemplate CRDs. The MachineDrainRequestTemplates 
-would be used to define the drain behavior. When the Machine controller starts a drain a MachineDrainRequest would be 
-created based on the applicable MachineDrainRequestTemplates. The MachineDrainRequest would then be used to reconcile 
-and track the drain. Downside would be that if you have a lot of templates, you make a really large custom resource 
-that is unwieldy to manage. Additionally it is not clear if it's necessary to have a separate MachineDrainRequest CRD, 
+We considered defining separate MachineDrainRequest and MachineDrainRequestTemplate CRDs. The MachineDrainRequestTemplates
+would be used to define the drain behavior. When the Machine controller starts a drain a MachineDrainRequest would be
+created based on the applicable MachineDrainRequestTemplates. The MachineDrainRequest would then be used to reconcile
+and track the drain. Downside would be that if you have a lot of templates, you make a really large custom resource
+that is unwieldy to manage. Additionally it is not clear if it's necessary to have a separate MachineDrainRequest CRD,
 it's probably easier to track the drain directly on the Machine object.
 
 ## Upgrade Strategy
 
-`MachineDrainRules` are orthogonal to the state of the Cluster / Machines as they only configure how the Machine controller 
-should drain Nodes. Accordingly, they are not part of the Machine specs. Thus, as soon as the new Cluster API version that 
-supports this feature is deployed, `MachineDrainRules` can be immediately used without rolling out / re-configuring any 
+`MachineDrainRules` are orthogonal to the state of the Cluster / Machines as they only configure how the Machine controller
+should drain Nodes. Accordingly, they are not part of the Machine specs. Thus, as soon as the new Cluster API version that
+supports this feature is deployed, `MachineDrainRules` can be immediately used without rolling out / re-configuring any
 Clusters / Machines.
 
 Please note that while the drain behavior of DaemonSet Pods won't change (we’ll continue to skip draining),
@@ -354,8 +362,8 @@ we will stop waiting for detachment of volumes of DaemonSet Pods.
 
 ### Graduation Criteria
 
-The `MachineDrainRules` CRD will be added as `v1beta1` CRD to the `cluster.x-k8s.io` apiGroup.  
-An additional feature gate is not required as the behavior of the Machine controller will stay the same if neither 
+The `MachineDrainRules` CRD will be added as `v1beta1` CRD to the `cluster.x-k8s.io` apiGroup.
+An additional feature gate is not required as the behavior of the Machine controller will stay the same if neither
 `MachineDrainRule` CRDs nor the labels are used.
 
 ### Version Skew Strategy

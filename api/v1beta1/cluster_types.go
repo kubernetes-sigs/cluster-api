@@ -510,9 +510,9 @@ type Topology struct {
 	// The name of the ClusterClass object to create the topology.
 	Class string `json:"class"`
 
-	// The namespace of the ClusterClass object to create the topology.
-	// Empty namespace assumes the namespace of the cluster object.
-	// Class namespace changes are not supported by the rebase procedure.
+	// The namespace of the ClusterClass object to create the topology. Empty namespace assumes the namespace of the cluster object.
+	// Class namespace changes are not supported by the rebase procedure, as different CC namespace uses namespace-local templates.
+	// Cluster templates namespace modification is not allowed.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253

@@ -4463,7 +4463,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 					},
 					"classNamespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The namespace of the ClusterClass object to create the topology. Empty namespace assumes the namespace of the cluster object. Class namespace changes are not supported by the rebase procedure.",
+							Description: "The namespace of the ClusterClass object to create the topology. Empty namespace assumes the namespace of the cluster object. Class namespace changes are not supported by the rebase procedure, as different CC namespace uses namespace-local templates. Cluster templates namespace modification is not allowed.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

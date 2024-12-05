@@ -281,6 +281,7 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 	var podsToTriggerEvictionLater []PodDelete
 	var podsWithDeletionTimestamp []PodDelete
 	var podsToBeIgnored []PodDelete
+	var podsToWait []PodDelete
 	for _, pod := range podDeleteList.items {
 		switch {
 		case pod.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain && pod.Pod.DeletionTimestamp.IsZero():
@@ -289,6 +290,8 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 			} else {
 				podsToTriggerEvictionLater = append(podsToTriggerEvictionLater, pod)
 			}
+		case pod.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted:
+			podsToWait = append(podsToWait, pod)
 		case pod.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain:
 			podsWithDeletionTimestamp = append(podsWithDeletionTimestamp, pod)
 		default:
@@ -394,6 +397,10 @@ evictionLoop:
 		res.PodsToTriggerEvictionLater = append(res.PodsToTriggerEvictionLater, pd.Pod)
 	}
 
+	for _, pd := range podsToWait {
+		res.PodsToWait = append(res.PodsToWait, pd.Pod)
+	}
+
 	return res
 }
 
@@ -431,13 +438,15 @@ type EvictionResult struct {
 	PodsDeletionTimestampSet   []*corev1.Pod
 	PodsFailedEviction         map[string][]*corev1.Pod
 	PodsToTriggerEvictionLater []*corev1.Pod
+	PodsToWait                 []*corev1.Pod
 	PodsNotFound               []*corev1.Pod
 	PodsIgnored                []*corev1.Pod
 }
 
 // DrainCompleted returns if a Node is entirely drained, i.e. if all relevant Pods have gone away.
 func (r EvictionResult) DrainCompleted() bool {
-	return len(r.PodsDeletionTimestampSet) == 0 && len(r.PodsFailedEviction) == 0 && len(r.PodsToTriggerEvictionLater) == 0
+	return len(r.PodsDeletionTimestampSet) == 0 && len(r.PodsFailedEviction) == 0 &&
+		len(r.PodsToTriggerEvictionLater) == 0 && len(r.PodsToWait) == 0
 }
 
 // ConditionMessage returns a condition message for the case where a drain is not completed.
@@ -497,6 +506,10 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 	if len(r.PodsToTriggerEvictionLater) > 0 {
 		conditionMessage = fmt.Sprintf("%s\nAfter above Pods have been removed from the Node, the following Pods will be evicted: %s",
 			conditionMessage, PodListToString(r.PodsToTriggerEvictionLater, 3))
+	}
+	if len(r.PodsToWait) > 0 {
+		conditionMessage = fmt.Sprintf("%s\nWaiting for the following Pods to complete without drain: %s",
+			conditionMessage, PodListToString(r.PodsToWait, 3))
 	}
 	return conditionMessage
 }

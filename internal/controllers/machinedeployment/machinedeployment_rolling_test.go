@@ -217,6 +217,41 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			},
 			error: nil,
 		},
+		{
+			name: "Rolling Updated Cleanup disable machine create annotation",
+			machineDeployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(0),
+						},
+					},
+					Replicas: ptr.To[int32](2),
+				},
+			},
+			newMachineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+					Annotations: map[string]string{
+						clusterv1.DisableMachineCreateAnnotation: "true",
+						clusterv1.DesiredReplicasAnnotation:      "2",
+						clusterv1.MaxReplicasAnnotation:          "2",
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: ptr.To[int32](2),
+				},
+			},
+			expectedNewMachineSetReplicas: 2,
+			error:                         nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -251,6 +286,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(*freshNewMachineSet.Spec.Replicas).To(BeEquivalentTo(tc.expectedNewMachineSetReplicas))
+
+			_, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DisableMachineCreateAnnotation]
+			g.Expect(ok).To(BeFalse())
 
 			desiredReplicasAnnotation, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DesiredReplicasAnnotation]
 			g.Expect(ok).To(BeTrue())

@@ -114,7 +114,7 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 
 // ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
 type ClusterTopologyBuilder struct {
-	class                 string
+	class, classNamespace string
 	workers               *clusterv1.WorkersTopology
 	version               string
 	controlPlaneReplicas  int32
@@ -133,6 +133,12 @@ func ClusterTopology() *ClusterTopologyBuilder {
 // WithClass adds the passed ClusterClass name to the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithClass(class string) *ClusterTopologyBuilder {
 	c.class = class
+	return c
+}
+
+// WithClassNamespace adds the passed classNamespace to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithClassNamespace(ns string) *ClusterTopologyBuilder {
+	c.classNamespace = ns
 	return c
 }
 
@@ -181,9 +187,10 @@ func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 	t := &clusterv1.Topology{
-		Class:   c.class,
-		Workers: c.workers,
-		Version: c.version,
+		Class:          c.class,
+		ClassNamespace: c.classNamespace,
+		Workers:        c.workers,
+		Version:        c.version,
 		ControlPlane: clusterv1.ControlPlaneTopology{
 			Replicas:           &c.controlPlaneReplicas,
 			MachineHealthCheck: c.controlPlaneMHC,

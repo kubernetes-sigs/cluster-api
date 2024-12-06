@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -380,10 +379,10 @@ func (webhook *ClusterClass) classNamesFromMPWorkerClass(w clusterv1.WorkersClas
 func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, clusterClass *clusterv1.ClusterClass) ([]clusterv1.Cluster, error) {
 	clusters := &clusterv1.ClusterList{}
 	err := webhook.Client.List(ctx, clusters,
-		client.MatchingFieldsSelector{Selector: fields.AndSelectors(
-			fields.OneTermEqualSelector(index.ClusterClassNameField, clusterClass.Name),
-			fields.OneTermEqualSelector(index.ClusterClassNamespaceField, clusterClass.Namespace),
-		)},
+		client.MatchingFields{
+			index.ClusterClassNameField:      clusterClass.Name,
+			index.ClusterClassNamespaceField: clusterClass.Namespace,
+		},
 	)
 	if err != nil {
 		return nil, err

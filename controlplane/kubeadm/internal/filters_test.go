@@ -550,7 +550,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
     },
     JoinConfiguration: nil,
     Files:             nil,
-    ... // 10 identical fields
+    ... // 11 identical fields
   }`))
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
@@ -675,7 +675,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
     },
     Files:     nil,
     DiskSetup: nil,
-    ... // 9 identical fields
+    ... // 10 identical fields
   }`))
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
@@ -736,7 +736,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 +   Files:                []v1beta1.File{},
     DiskSetup:            nil,
     Mounts:               nil,
-    ... // 8 identical fields
+    ... // 9 identical fields
   }`))
 	})
 }
@@ -922,7 +922,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
     },
     JoinConfiguration: nil,
     Files:             nil,
-    ... // 10 identical fields
+    ... // 11 identical fields
   }`))
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
@@ -1047,7 +1047,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
     },
     Files:     nil,
     DiskSetup: nil,
-    ... // 9 identical fields
+    ... // 10 identical fields
   }`))
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
@@ -1108,7 +1108,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +   Files:                []v1beta1.File{},
     DiskSetup:            nil,
     Mounts:               nil,
-    ... // 8 identical fields
+    ... // 9 identical fields
   }`))
 	})
 	t.Run("should match on labels and annotations", func(t *testing.T) {

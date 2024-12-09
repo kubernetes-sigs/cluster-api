@@ -126,6 +126,17 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	return obj, nil
 }
 
+// checkMachineBootstrapReady checks if the bootstrap data for a Machine is
+// available and marks it as ready if so.
+func checkMachineBootstrapReady(m *clusterv1.Machine) bool {
+	if m.Spec.Bootstrap.DataSecretName != nil {
+		m.Status.BootstrapReady = true
+		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+		return true
+	}
+	return false
+}
+
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -134,6 +145,8 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 	// If the Bootstrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
+		// If the bootstrap data is populated, set ready.
+		_ = checkMachineBootstrapReady(m)
 		return ctrl.Result{}, nil
 	}
 
@@ -157,9 +170,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	s.bootstrapConfig = obj
 
 	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.DataSecretName != nil {
-		m.Status.BootstrapReady = true
-		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+	if checkMachineBootstrapReady(m) {
 		return ctrl.Result{}, nil
 	}
 

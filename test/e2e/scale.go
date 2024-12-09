@@ -637,7 +637,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				// If every cluster should be deployed in a separate namespace:
 				// * Deploy ClusterClass in new namespace.
 				if deployClusterInSeparateNamespaces {
-					log.Logf("Apply ClusterClass in namespace %", namespaceName)
+					log.Logf("Apply ClusterClass in namespace %s", namespaceName)
 					clusterClassYAML := bytes.Replace(customizedClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
 					Eventually(func() error {
 						return clusterProxy.CreateOrUpdate(ctx, clusterClassYAML)

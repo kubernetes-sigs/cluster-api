@@ -163,7 +163,14 @@ func autoConvert_v1alpha3_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *Machine
 	if err := Convert_v1alpha3_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(v1beta1.MachinePoolStrategy)
+		// FIXME: Provide conversion function to convert corev1alpha3.MachineDeploymentStrategy to v1beta1.MachinePoolStrategy
+		compileErrorOnMissingConversion()
+	} else {
+		out.Strategy = nil
+	}
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
@@ -179,6 +186,14 @@ func autoConvert_v1beta1_MachinePoolSpec_To_v1alpha3_MachinePoolSpec(in *v1beta1
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(corev1alpha3.MachineDeploymentStrategy)
+		// FIXME: Provide conversion function to convert v1beta1.MachinePoolStrategy to corev1alpha3.MachineDeploymentStrategy
+		compileErrorOnMissingConversion()
+	} else {
+		out.Strategy = nil
+	}
 	return nil
 }
 

@@ -22,13 +22,13 @@ import (
 
 const (
 	// PodDrainLabel is the label that can be set on Pods in workload clusters to ensure a Pod is not drained.
-	// The only valid value is "skip".
+	// The only valid value is "skip" or "waitcompleted".
 	// This label takes precedence over MachineDrainRules defined in the management cluster.
 	PodDrainLabel = "cluster.x-k8s.io/drain"
 )
 
-// MachineDrainRuleDrainBehavior defines the drain behavior. Can be either "Drain" or "Skip".
-// +kubebuilder:validation:Enum=Drain;Skip
+// MachineDrainRuleDrainBehavior defines the drain behavior. Can be either "Drain", "Skip", or "WaitCompleted".
+// +kubebuilder:validation:Enum=Drain;Skip;Wait
 type MachineDrainRuleDrainBehavior string
 
 const (
@@ -37,6 +37,10 @@ const (
 
 	// MachineDrainRuleDrainBehaviorSkip means the drain for a Pod should be skipped.
 	MachineDrainRuleDrainBehaviorSkip MachineDrainRuleDrainBehavior = "Skip"
+
+	// MachineDrainRuleDrainBehaviorWaitCompleted means the Pod should not be drained,
+	// but overall drain should wait until the Pod completes.
+	MachineDrainRuleDrainBehaviorWaitCompleted MachineDrainRuleDrainBehavior = "WaitCompleted"
 )
 
 // MachineDrainRuleSpec defines the spec of a MachineDrainRule.

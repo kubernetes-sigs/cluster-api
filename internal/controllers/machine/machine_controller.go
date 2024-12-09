@@ -784,21 +784,24 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		}
 	}
 
-	// Get all of the active machines that belong to this cluster.
-	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
-	if err != nil {
-		return err
+	if util.IsControlPlaneMachine(machine) {
+		// Get all the machines that belong to this cluster.
+		machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster)
+		if err != nil {
+			return err
+		}
+
+		// Whether or not it is okay to delete the NodeRef depends on the
+		// number of remaining control plane members and whether or not this
+		// machine is one of them.
+		numOfControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
+		if numOfControlPlaneMachines == 1 {
+			// Do not delete the NodeRef as this is the last remaining member of
+			// the control plane.
+			return errLastControlPlaneNode
+		}
 	}
 
-	// Whether or not it is okay to delete the NodeRef depends on the
-	// number of remaining control plane members and whether or not this
-	// machine is one of them.
-	numControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
-	if numControlPlaneMachines == 0 {
-		// Do not delete the NodeRef if there are no remaining members of
-		// the control plane.
-		return errNoControlPlaneNodes
-	}
 	// Otherwise it is okay to delete the NodeRef.
 	return nil
 }

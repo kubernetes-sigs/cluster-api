@@ -118,6 +118,7 @@ func ControlPlaneMachines(clusterName string) func(machine *clusterv1.Machine) b
 		if machine == nil {
 			return false
 		}
+
 		return selector.Matches(labels.Set(machine.Labels))
 	}
 }

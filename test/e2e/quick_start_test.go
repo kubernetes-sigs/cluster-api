@@ -20,6 +20,8 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -27,6 +29,7 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 var _ = Describe("When following the Cluster API quick-start", func() {
@@ -120,6 +123,21 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				By("Checking that resourceVersions are stable")
 				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 			},
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with a cross-ns referenced ClusterClass [PR-Blocking] [ClusterClass]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("topology"),
+			InfrastructureProvider: ptr.To("docker"),
+			ClassNamespace:         ptr.To(fmt.Sprintf("quick-start-%s", util.RandomString(6))),
 		}
 	})
 })

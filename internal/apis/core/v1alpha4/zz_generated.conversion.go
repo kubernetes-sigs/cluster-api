@@ -1757,6 +1757,7 @@ func Convert_v1alpha4_Topology_To_v1beta1_Topology(in *Topology, out *v1beta1.To
 
 func autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in *v1beta1.Topology, out *Topology, s conversion.Scope) error {
 	out.Class = in.Class
+	// WARNING: in.ClassNamespace requires manual conversion: does not exist in peer-type
 	out.Version = in.Version
 	out.RolloutAfter = (*metav1.Time)(unsafe.Pointer(in.RolloutAfter))
 	if err := Convert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(&in.ControlPlane, &out.ControlPlane, s); err != nil {

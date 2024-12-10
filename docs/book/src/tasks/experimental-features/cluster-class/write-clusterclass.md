@@ -440,7 +440,7 @@ spec:
 
 ### Defining a custom namespace for ClusterClass object
 
-As a user, I may need to create a `Cluster` from a `ClusterClass` object that exists only in a different namespace. To uniquely identify the `ClusterClass`, a `NamespaceName` ref is constructed from combination of:
+As a user, I may need to create a `Cluster` from a `ClusterClass` object that exists only in a different namespace. To uniquely identify the `ClusterClass`, a `NamespacedName` ref is constructed from combination of:
 * `cluster.spec.topology.classNamespace` - namespace of the `ClusterClass` object.
 * `cluster.spec.topology.class` - name of the `ClusterClass` object.
 
@@ -471,7 +471,7 @@ spec:
 
 <h1>Cluster rebase across namespaces</h1>
 
-Changing `classNamespace` is not supported in rebase procedure, while chanding `class` reference to a different `ClusterClass` from the same namespace performs regular `Cluster` rebase procedure.
+Changing `classNamespace` is not supported in rebase procedure, while changing `class` reference to a different `ClusterClass` from the same namespace performs regular `Cluster` rebase procedure.
 
 </aside>
 

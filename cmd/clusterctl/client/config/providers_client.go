@@ -44,6 +44,7 @@ const (
 	DockerProviderName         = "docker"
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
+        // Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher)
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"

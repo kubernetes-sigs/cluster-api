@@ -448,7 +448,7 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 	if result.Cluster.Spec.Topology != nil {
 		result.ClusterClass = framework.GetClusterClassByName(ctx, framework.GetClusterClassByNameInput{
 			Getter:    input.ClusterProxy.GetClient(),
-			Namespace: input.Namespace,
+			Namespace: result.Cluster.GetClassKey().Namespace,
 			Name:      result.Cluster.Spec.Topology.Class,
 		})
 	}

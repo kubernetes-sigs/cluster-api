@@ -3922,7 +3922,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCa
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "version defines the desired Kubernetes version. This field is meant to be optionally used by bootstrap providers.",
+							Description: "version defines the desired Kubernetes distribution version. This field is meant to be optionally used by bootstrap providers.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

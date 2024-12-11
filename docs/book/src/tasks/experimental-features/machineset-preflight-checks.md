@@ -30,6 +30,7 @@ Enabling `MachineSetPreflightChecks` provides safety in such circumstances by ma
     * The Cluster uses a ControlPlane provider.
     * ControlPlane version is defined (`ControlPlane.spec.version` is set).
     * MachineSet version is defined (`MachineSet.spec.template.spec.version` is set).
+* Note that in this case, an actual Kubernetes version is needed (as opposed as a Kubernetes distribution version).
 
 ### `KubeadmVersionSkew`
 

@@ -57,28 +57,28 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 
 ## Rules (contract version v1beta1)
 
-| Rule                                                                 | Mandatory | Note                                                                                                                       |
-|----------------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------|
-| [All resources: scope]                                               | Yes       |                                                                                                                            |
-| [All resources: `TypeMeta` and `ObjectMeta`field]                    | Yes       |                                                                                                                            |
-| [All resources: `APIVersion` field value]                            | Yes       |                                                                                                                            |
-| [ControlPlane, ControlPlaneList resource definition]                 | Yes       |                                                                                                                            |
-| [ControlPlane: endpoint]                                             | No        | Mandatory if control plane endpoint is not provided by other means.                                                        |
-| [ControlPlane: replicas]                                             | No        | Mandatory if control plane has a notion of number of instances.                                                            |
-| [ControlPlane: version]                                              | No        | Mandatory if control plane allows direct management of the Kubernetes version in use; Mandatory for cluster class support. |
-| [ControlPlane: machines]                                             | No        | Mandatory if control plane instances are represented with a set of Cluster API Machines.                                   |
-| [ControlPlane: initialization completed]                             | Yes       |                                                                                                                            |
-| [ControlPlane: conditions]                                           | No        |                                                                                                                            |
-| [ControlPlane: terminal failures]                                    | No        |                                                                                                                            |
-| [ControlPlaneTemplate, ControlPlaneTemplateList resource definition] | No        | Mandatory for ClusterClasses support                                                                                       |
-| [Cluster kubeconfig management]                                      | Yes       |                                                                                                                            |
-| [Cluster certificate management]                                     | No        |                                                                                                                            |
-| [Machine placement]                                                  | No        |                                                                                                                            |
-| [Metadata propagation]                                               | No        |                                                                                                                            |
-| [MinReadySeconds and UpToDate propagation]                           | No        |                                                                                                                            |
-| [Support for running multiple instances]                             | No        | Mandatory for clusterctl CLI support                                                                                       |
-| [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support                                                                                       |
-| [ControlPlane: pausing]                                              | No        |                                                                                                                            |
+| Rule                                                                 | Mandatory | Note                                                                                                                                    |
+|----------------------------------------------------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| [All resources: scope]                                               | Yes       |                                                                                                                                         |
+| [All resources: `TypeMeta` and `ObjectMeta`field]                    | Yes       |                                                                                                                                         |
+| [All resources: `APIVersion` field value]                            | Yes       |                                                                                                                                         |
+| [ControlPlane, ControlPlaneList resource definition]                 | Yes       |                                                                                                                                         |
+| [ControlPlane: endpoint]                                             | No        | Mandatory if control plane endpoint is not provided by other means.                                                                     |
+| [ControlPlane: replicas]                                             | No        | Mandatory if control plane has a notion of number of instances.                                                                         |
+| [ControlPlane: version]                                              | No        | Mandatory if control plane allows direct management of the Kubernetes distribution version in use; Mandatory for cluster class support. |
+| [ControlPlane: machines]                                             | No        | Mandatory if control plane instances are represented with a set of Cluster API Machines.                                                |
+| [ControlPlane: initialization completed]                             | Yes       |                                                                                                                                         |
+| [ControlPlane: conditions]                                           | No        |                                                                                                                                         |
+| [ControlPlane: terminal failures]                                    | No        |                                                                                                                                         |
+| [ControlPlaneTemplate, ControlPlaneTemplateList resource definition] | No        | Mandatory for ClusterClasses support                                                                                                    |
+| [Cluster kubeconfig management]                                      | Yes       |                                                                                                                                         |
+| [Cluster certificate management]                                     | No        |                                                                                                                                         |
+| [Machine placement]                                                  | No        |                                                                                                                                         |
+| [Metadata propagation]                                               | No        |                                                                                                                                         |
+| [MinReadySeconds and UpToDate propagation]                           | No        |                                                                                                                                         |
+| [Support for running multiple instances]                             | No        | Mandatory for clusterctl CLI support                                                                                                    |
+| [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support                                                                                                    |
+| [ControlPlane: pausing]                                              | No        |                                                                                                                                         |
 
 ### All resources: scope
 
@@ -384,7 +384,7 @@ the ControlPlane `spec`.
 
 ```go
 type FooControlPlaneSpec struct {
-    // version defines the desired Kubernetes version for the control plane. 
+    // version defines the desired Kubernetes distribution version for the control plane.
     // The value must be a valid semantic version; also if the value provided by the user does not start with the v prefix, it
     // must be added.
     Version string `json:"version"`
@@ -398,7 +398,7 @@ Following fields MUST be implemented in the ControlPlane `status`.
 
 ```go
 type FooControlPlaneStatus struct {
-    // version represents the minimum Kubernetes version for the control plane machines
+    // version represents the minimum Kubernetes distribution version for the control plane machines
     // in the cluster.
     // +optional
     Version *string `json:"version,omitempty"`
@@ -408,9 +408,15 @@ type FooControlPlaneStatus struct {
 }
 ```
 
-NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine 
-when a control plane is fully upgraded (spec.version == status.version) and for enforcing Kubernetes version skew 
-policies when a Cluster derived from a ClusterClass is managed by the Topology controller.
+NOTE: The minimum Kubernetes distribution version, and more specifically the API server version, will be used to determine
+when a control plane is fully upgraded (spec.version == status.version) and for enforcing Kubernetes version skew
+policies[1](#kubernetes-version-in-skew-policy) when a Cluster derived from a ClusterClass is managed by the Topology controller.
+
+#### Kubernetes version in version skew policies
+
+`controlplane.spec.version` and `machineset/machinedeploment.spec.template.spec.version` represent a Kubernetes distribution version.
+However, in the case of the machine preflight for kubernetes version policies, it is coupled with an actual Kubernetes version.
+This particular check will not be reliable if Kubernetes distribution version is used.
 
 ### ControlPlane: machines
 

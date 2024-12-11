@@ -140,6 +140,7 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 | v1.6 (v1beta1)      | v1.11.1                         |
 | v1.7 (v1beta1)      | v1.11.1                         |
 | v1.8 (v1beta1)      | v1.11.3                         |
+| v1.9 (v1beta1)      | v1.11.3                         |
 
 #### Kubernetes version specific notes
 

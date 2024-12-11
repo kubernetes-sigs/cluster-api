@@ -336,9 +336,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	return ctrl.Result{Requeue: true}, nil
 }
 
-// Gets the machine to be remediated, which is the oldest machine marked as unhealthy not yet provisioned (if any)
-// or the oldest machine marked as unhealthy.
+// Gets the machine which is marked as unhealthy and to be remediated, in the following order
+// Oldest machine with RemediateMachineAnnotation annotation, if any
+// Oldest machine not yet provisioned, if any
+// Oldest machine marked as unhealthy.
 func getMachineToBeRemediated(unhealthyMachines collections.Machines) *clusterv1.Machine {
+	annotatedMachine := unhealthyMachines.Filter(collections.HasAnnotationKey(clusterv1.RemediateMachineAnnotation)).Oldest()
+	if annotatedMachine != nil {
+		return annotatedMachine
+	}
+
 	machineToBeRemediated := unhealthyMachines.Filter(collections.Not(collections.HasNode())).Oldest()
 	if machineToBeRemediated == nil {
 		machineToBeRemediated = unhealthyMachines.Oldest()

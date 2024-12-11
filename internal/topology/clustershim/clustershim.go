@@ -40,6 +40,9 @@ func New(c *clusterv1.Cluster) *corev1.Secret {
 			OwnerReferences: []metav1.OwnerReference{
 				*ownerrefs.OwnerReferenceTo(c, clusterv1.GroupVersion.WithKind("Cluster")),
 			},
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: c.Name,
+			},
 		},
 		Type: clusterv1.ClusterSecretType,
 	}

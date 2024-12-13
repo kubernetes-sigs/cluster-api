@@ -37,14 +37,14 @@ const (
 
 // Infra providers.
 const (
-	AWSProviderName            = "aws"
-	AzureProviderName          = "azure"
-	BYOHProviderName           = "byoh"
-	CloudStackProviderName     = "cloudstack"
-	DockerProviderName         = "docker"
-	DOProviderName             = "digitalocean"
-	GCPProviderName            = "gcp"
-        // Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher)
+	AWSProviderName        = "aws"
+	AzureProviderName      = "azure"
+	BYOHProviderName       = "byoh"
+	CloudStackProviderName = "cloudstack"
+	DockerProviderName     = "docker"
+	DOProviderName         = "digitalocean"
+	GCPProviderName        = "gcp"
+	// Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher).
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"

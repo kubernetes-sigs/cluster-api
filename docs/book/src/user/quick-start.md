@@ -582,6 +582,7 @@ clusterctl init --infrastructure harvester-harvester
 ```
 
 For more information, please visit the [Harvester project][Harvester provider].
+{{#/tab }}
 {{#tab Hetzner}}
 
 Please visit the [Hetzner project][Hetzner provider].

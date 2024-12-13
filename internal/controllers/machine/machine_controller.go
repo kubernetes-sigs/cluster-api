@@ -643,7 +643,6 @@ const (
 )
 
 func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
-	// TODO(chrischdi) check why this does not work
 	if util.IsControlPlaneMachine(m) && util.HasOwner(m.GetOwnerReferences(), KubeadmControlPlaneAPIVersion, []string{"KubeadmControlPlane"}) {
 		if _, exists := m.Annotations[KubeadmControlPlanePreTerminateHookCleanupAnnotation]; !exists {
 			return false

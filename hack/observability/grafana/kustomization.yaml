@@ -17,3 +17,4 @@ configMapGenerator:
   - dashboards/cluster-api-state.json
   - dashboards/cluster-api-wl-apiserver-requests.json
   - dashboards/controller-runtime.json
+  - dashboards/runtime-extensions.json

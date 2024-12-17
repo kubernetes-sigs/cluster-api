@@ -108,7 +108,7 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 | Kubernetes v1.29 + kubeadm/v1beta3 | ✓ >= v1.6.1          | ✓                  | ✓                  | ✓                  |
 | Kubernetes v1.30 + kubeadm/v1beta3 |                      | ✓ >= v1.7.1        | ✓                  | ✓                  |
 | Kubernetes v1.31 + kubeadm/v1beta4 |                      |                    | ✓ >= v1.8.1        | ✓                  |
-| Kubernetes v1.31 + kubeadm/v1beta4 |                      |                    |                    | ✓ >= v1.9.1        |
+| Kubernetes v1.32 + kubeadm/v1beta4 |                      |                    |                    | ✓ >= v1.9.1        |
 
 The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
 
@@ -126,7 +126,7 @@ The Kubeadm Bootstrap Provider generates kubeadm configuration using the API ver
 | Kubernetes v1.29 + etcd/v3 | ✓ >= v1.6.1          | ✓                 | ✓                 | ✓                 |
 | Kubernetes v1.30 + etcd/v3 |                      | ✓ >= v1.7.1       | ✓                 | ✓                 |
 | Kubernetes v1.31 + etcd/v3 |                      |                   | ✓ >= v1.8.1       | ✓                 |
-| Kubernetes v1.31 + etcd/v3 |                      |                   |                   | ✓ >= v1.9.1       |
+| Kubernetes v1.32 + etcd/v3 |                      |                   |                   | ✓ >= v1.9.1       |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 

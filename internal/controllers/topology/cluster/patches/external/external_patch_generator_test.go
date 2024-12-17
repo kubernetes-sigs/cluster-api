@@ -129,7 +129,7 @@ func (f *fakeRuntimeClient) CallAllExtensions(_ context.Context, _ runtimecatalo
 	panic("implement me")
 }
 
-func (f *fakeRuntimeClient) CallExtension(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object, _ string, request runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject) error {
+func (f *fakeRuntimeClient) CallExtension(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object, _ string, request runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	// Keep a copy of the request object.
 	// We keep a copy because the request is modified after the call is made. So we keep a copy to perform assertions.
 	f.callExtensionRequest = request.DeepCopyObject().(runtimehooksv1.RequestObject)

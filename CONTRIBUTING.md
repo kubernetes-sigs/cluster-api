@@ -313,7 +313,7 @@ The artifact folder contains:
     - Dump of the Cluster API resources (only if the cluster is a management cluster).
     - Machine logs (only if the cluster is a workload cluster)
 
-In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/testing.html#running-unit-and-integration-tests) guide. An overview over our e2e test jobs (and also all our other jobs) can be found in [Jobs](https://cluster-api.sigs.k8s.io/reference/jobs.html).
+In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/core/testing#running-unit-and-integration-tests) guide. All our e2e test jobs (and also all our other jobs) can be found in [k8s.io/test-infra](https://github.com/kubernetes/test-infra/tree/master/config/jobs/kubernetes-sigs/cluster-api).
 
 ## Reviewing a Patch
 

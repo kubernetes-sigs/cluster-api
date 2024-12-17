@@ -41,8 +41,10 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/util/cache"
 )
 
 func TestClusterClassReconciler_reconcile(t *testing.T) {
@@ -1193,7 +1195,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				RuntimeClient: fakeRuntimeClient,
+				RuntimeClient:          fakeRuntimeClient,
+				discoverVariablesCache: cache.New[runtimeclient.CallExtensionCacheEntry](),
 			}
 
 			err := r.reconcileVariables(ctx, tt.clusterClass)

@@ -19,6 +19,7 @@ package machineset
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -2960,4 +2961,111 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSortMachinesToRemediate(t *testing.T) {
+	unhealthyMachinesWithAnnotations := []*clusterv1.Machine{}
+	for i := range 4 {
+		unhealthyMachinesWithAnnotations = append(unhealthyMachinesWithAnnotations, &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              fmt.Sprintf("unhealthy-annotated-machine-%d", i),
+				Namespace:         "default",
+				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
+				Annotations: map[string]string{
+					clusterv1.RemediateMachineAnnotation: "",
+				},
+			},
+			Status: clusterv1.MachineStatus{
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineOwnerRemediatedCondition,
+						Status: corev1.ConditionFalse,
+					},
+					{
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
+				V1Beta2: &clusterv1.MachineV1Beta2Status{
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+							Status:  metav1.ConditionFalse,
+							Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
+							Message: "Waiting for remediation",
+						},
+						{
+							Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Status:  metav1.ConditionFalse,
+							Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
+							Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
+						},
+					},
+				},
+			},
+		})
+	}
+
+	unhealthyMachines := []*clusterv1.Machine{}
+	for i := range 4 {
+		unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              fmt.Sprintf("unhealthy-machine-%d", i),
+				Namespace:         "default",
+				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
+			},
+			Status: clusterv1.MachineStatus{
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineOwnerRemediatedCondition,
+						Status: corev1.ConditionFalse,
+					},
+					{
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
+				V1Beta2: &clusterv1.MachineV1Beta2Status{
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+							Status:  metav1.ConditionFalse,
+							Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
+							Message: "Waiting for remediation",
+						},
+						{
+							Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Status:  metav1.ConditionFalse,
+							Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
+							Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
+						},
+					},
+				},
+			},
+		})
+	}
+
+	t.Run("remediation machines should be sorted with newest first", func(t *testing.T) {
+		g := NewWithT(t)
+		machines := unhealthyMachines
+		sortMachinesToRemediate(machines)
+		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
+			return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
+		})
+		g.Expect(unhealthyMachines).To(Equal(machines))
+	})
+
+	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
+		g := NewWithT(t)
+		machines := append(unhealthyMachines, unhealthyMachinesWithAnnotations...)
+		sortMachinesToRemediate(machines)
+
+		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
+			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
+		})
+		sort.SliceStable(unhealthyMachinesWithAnnotations, func(i, j int) bool {
+			return unhealthyMachinesWithAnnotations[i].CreationTimestamp.After(unhealthyMachinesWithAnnotations[j].CreationTimestamp.Time)
+		})
+		g.Expect(machines).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
+	})
 }

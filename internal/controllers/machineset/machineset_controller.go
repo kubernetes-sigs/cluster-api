@@ -1334,10 +1334,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 
 	// Calculates the Machines to be remediated.
 	// Note: Machines already deleting are not included, there is no need to trigger remediation for them again.
-	remediateMachines := collections.FromMachines(machines...).Filter(collections.IsUnhealthyAndOwnerRemediated, collections.Not(collections.HasDeletionTimestamp)).UnsortedList()
+	machinesToRemediate := collections.FromMachines(machines...).Filter(collections.IsUnhealthyAndOwnerRemediated, collections.Not(collections.HasDeletionTimestamp)).UnsortedList()
 
 	// If there are no machines to remediate return early.
-	if len(remediateMachines) == 0 {
+	if len(machinesToRemediate) == 0 {
 		return ctrl.Result{}, nil
 	}
 
@@ -1350,7 +1350,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if isDeploymentChild(ms) {
 		if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
 			// MachineSet is part of a MachineDeployment but isn't the current revision, no remediations allowed.
-			if err := patchMachineConditions(ctx, r.Client, remediateMachines, metav1.Condition{
+			if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineSetMachineCannotBeRemediatedV1Beta2Reason,
@@ -1392,8 +1392,8 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Check if we can remediate any machines.
 	if maxInFlight <= 0 {
 		// No tokens available to remediate machines.
-		log.V(3).Info("Remediation strategy is set, and maximum in flight has been reached", "machinesToBeRemediated", len(remediateMachines))
-		if err := patchMachineConditions(ctx, r.Client, remediateMachines, metav1.Condition{
+		log.V(3).Info("Remediation strategy is set, and maximum in flight has been reached", "machinesToBeRemediated", len(machinesToRemediate))
+		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
@@ -1404,7 +1404,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		return ctrl.Result{}, nil
 	}
 
-	machinesToRemediate := getMachinesToRemediateInOrder(remediateMachines)
+	sortMachinesToRemediate(machinesToRemediate)
 
 	// Check if we should limit the in flight operations.
 	if len(machinesToRemediate) > maxInFlight {
@@ -1575,21 +1575,19 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 }
 
 // Returns the machines to be remediated in the following order
-// Machines with RemediateMachineAnnotation annotation if any,
-// Machines failing to come up first because
-// there is a chance that they are not hosting any workloads (minimize disruption).
-func getMachinesToRemediateInOrder(remediateMachines []*clusterv1.Machine) []*clusterv1.Machine {
-	// From machines to remediate select the machines with RemediateMachineAnnotation annotation.
-	annotatedMachines := collections.FromMachines(remediateMachines...).Filter(collections.HasAnnotationKey(clusterv1.RemediateMachineAnnotation))
-
-	// Filter out the machines which are unique (machines which are not in annotated machines list)
-	uniqueMachines := collections.FromMachines(remediateMachines...).Difference(annotatedMachines).UnsortedList()
-
-	// Sort the machines from newest to oldest.
-	sort.SliceStable(uniqueMachines, func(i, j int) bool {
-		return uniqueMachines[i].CreationTimestamp.After(uniqueMachines[j].CreationTimestamp.Time)
+//   - Machines with RemediateMachineAnnotation annotation if any,
+//   - Machines failing to come up first because
+//     there is a chance that they are not hosting any workloads (minimize disruption).
+func sortMachinesToRemediate(machines []*clusterv1.Machine) {
+	sort.SliceStable(machines, func(i, j int) bool {
+		_, iHasRemediateAnnotation := machines[i].Annotations[clusterv1.RemediateMachineAnnotation]
+		_, jHasRemediateAnnotation := machines[j].Annotations[clusterv1.RemediateMachineAnnotation]
+		if iHasRemediateAnnotation && !jHasRemediateAnnotation {
+			return true
+		}
+		if !iHasRemediateAnnotation && jHasRemediateAnnotation {
+			return false
+		}
+		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
 	})
-
-	// combine the annotated machines along with machines to remediate.
-	return append(annotatedMachines.UnsortedList(), uniqueMachines...)
 }

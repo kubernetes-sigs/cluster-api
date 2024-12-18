@@ -2776,12 +2776,12 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 	}
 }
 
-func TestGetMachinesToRemediateInOrder(t *testing.T) {
+func TestSortMachinesToRemediate(t *testing.T) {
 	unhealthyMachinesWithAnnotations := []*clusterv1.Machine{}
-	for i := range 2 {
+	for i := range 4 {
 		unhealthyMachinesWithAnnotations = append(unhealthyMachinesWithAnnotations, &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("unhealthy-anotated-machine-%d", i),
+				Name:              fmt.Sprintf("unhealthy-annotated-machine-%d", i),
 				Namespace:         "default",
 				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
 				Annotations: map[string]string{
@@ -2861,20 +2861,24 @@ func TestGetMachinesToRemediateInOrder(t *testing.T) {
 	t.Run("remediation machines should be sorted with newest first", func(t *testing.T) {
 		g := NewWithT(t)
 		machines := unhealthyMachines
-		machinesToRemediate := getMachinesToRemediateInOrder(machines)
-		sort.SliceStable(machines, func(i, j int) bool {
+		sortMachinesToRemediate(machines)
+		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
 			return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
 		})
-		g.Expect(machinesToRemediate).To(Equal(machines))
+		g.Expect(unhealthyMachines).To(Equal(machines))
 	})
 
 	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
 		g := NewWithT(t)
 		machines := append(unhealthyMachines, unhealthyMachinesWithAnnotations...)
-		machinesToRemediate := getMachinesToRemediateInOrder(machines)
+		sortMachinesToRemediate(machines)
+
 		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
 			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
 		})
-		g.Expect(machinesToRemediate).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
+		sort.SliceStable(unhealthyMachinesWithAnnotations, func(i, j int) bool {
+			return unhealthyMachinesWithAnnotations[i].CreationTimestamp.After(unhealthyMachinesWithAnnotations[j].CreationTimestamp.Time)
+		})
+		g.Expect(machines).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
 	})
 }

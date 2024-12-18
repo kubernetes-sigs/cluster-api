@@ -59,7 +59,7 @@ func TestGetMachineToBeRemediated(t *testing.T) {
 		m1.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
 		m2.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
 
-		unhealthyMachines := collections.FromMachines(m1, m2, m3, m4)
+		unhealthyMachines := collections.FromMachines(m2, m1, m3, m4)
 
 		g.Expect(getMachineToBeRemediated(unhealthyMachines).Name).To(HavePrefix("m1-unhealthy-"))
 	})
@@ -80,7 +80,7 @@ func TestGetMachineToBeRemediated(t *testing.T) {
 		m1.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
 		m2.SetAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""})
 
-		unhealthyMachines := collections.FromMachines(m1, m2, m3)
+		unhealthyMachines := collections.FromMachines(m2, m1, m3)
 
 		g.Expect(getMachineToBeRemediated(unhealthyMachines).Name).To(HavePrefix("m1-unhealthy-"))
 	})

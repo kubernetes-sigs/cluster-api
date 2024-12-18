@@ -361,11 +361,6 @@ func getMachineToBeRemediated(unhealthyMachines collections.Machines, isEtcdMana
 		return nil
 	}
 
-	annotatedMachine := unhealthyMachines.Filter(collections.HasAnnotationKey(clusterv1.RemediateMachineAnnotation)).Oldest()
-	if annotatedMachine != nil {
-		return annotatedMachine
-	}
-
 	machinesToBeRemediated := unhealthyMachines.UnsortedList()
 	if len(machinesToBeRemediated) == 1 {
 		return machinesToBeRemediated[0]
@@ -379,6 +374,14 @@ func getMachineToBeRemediated(unhealthyMachines collections.Machines, isEtcdMana
 
 // pickMachineToBeRemediated returns true if machine i should be remediated before machine j.
 func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool {
+	// If one machine has the RemediateMachineAnnotation annotation, remediate first.
+	if annotations.HasRemediateMachine(i) && !annotations.HasRemediateMachine(j) {
+		return true
+	}
+	if !annotations.HasRemediateMachine(i) && annotations.HasRemediateMachine(j) {
+		return false
+	}
+
 	// if one machine does not have a node ref, we assume that provisioning failed and there is no CP components at all,
 	// so remediate first; also without a node, it is not possible to get further info about status.
 	if i.Status.NodeRef == nil && j.Status.NodeRef != nil {

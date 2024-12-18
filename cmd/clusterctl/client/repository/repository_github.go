@@ -45,12 +45,17 @@ const (
 	httpsScheme                    = "https"
 	githubDomain                   = "github.com"
 	githubReleaseRepository        = "releases"
+	githubReleaseDownload          = "download"
 	githubLatestReleaseLabel       = "latest"
 	githubListReleasesPerPageLimit = 100
 )
 
 var (
-	errNotFound = errors.New("404 Not Found")
+	errNotFound         = errors.New("404 Not Found")
+	errInvalidURLFormat = errors.Errorf(
+		"invalid url: a GitHub repository url should either be in form https://github.com/{owner}/{Repository}/%[1]s/%[2]s/%[3]s/{componentsClient.yaml} or https://github.com/{owner}/{Repository}/%[1]s/%[3]s/{versionTag}/{componentsClient.yaml} or https://github.com/{owner}/{Repository}/%[1]s/{latest|version-tag}/{componentsClient.yaml} (old format)",
+		githubReleaseRepository, githubLatestReleaseLabel, githubReleaseDownload,
+	)
 
 	// Caches used to limit the number of GitHub API calls.
 
@@ -197,6 +202,27 @@ func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([
 	return files, nil
 }
 
+func isURLSplitValid(s []string) bool {
+	return isURLSplitValidWithoutDownload(s) || isURLSplitValidWithDownload(s)
+}
+
+// isURLSplitValidWithDownload checks if the url split is valid.
+// The url split should be in one of the following two forms:
+//  1. https://github.com/{owner}/{Repository}/releases/latest/download/{[path/to/]componentsClient.yaml}
+//  2. https://github.com/{owner}/{Repository}/releases/download/{versionTag}/{[path/to/]componentsClient.yaml}
+//
+// The only difference being the order of "releases", "download" and "tag|latest".
+// It's worth noting that the first one will get redirected to the second one with an HTTP 302
+func isURLSplitValidWithDownload(s []string) bool {
+	return len(s) >= 6 &&
+		((s[2] == githubReleaseRepository && s[3] == githubLatestReleaseLabel && s[4] == githubReleaseDownload) ||
+			(s[2] == githubReleaseRepository && s[3] == githubReleaseDownload))
+}
+
+func isURLSplitValidWithoutDownload(s []string) bool {
+	return len(s) >= 5 && s[2] == githubReleaseRepository
+}
+
 // NewGitHubRepository returns a gitHubRepository implementation.
 func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, configVariablesClient config.VariablesClient, opts ...githubRepositoryOption) (Repository, error) {
 	if configVariablesClient == nil {
@@ -216,18 +242,27 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	// Check if the path is in the expected format,
 	// url's path has an extra leading slash at the end which we need to clean up before splitting.
 	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
-	if len(urlSplit) < 5 || urlSplit[2] != githubReleaseRepository {
-		return nil, errors.Errorf(
-			"invalid url: a GitHub repository url should be in the form https://github.com/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
-			githubReleaseRepository,
-		)
+	if !isURLSplitValid(urlSplit) {
+		return nil, errInvalidURLFormat
 	}
 
 	// Extract all the info from url split.
 	owner := urlSplit[0]
 	repository := urlSplit[1]
+	// urlSplit[2] == "releases"
 	defaultVersion := urlSplit[3]
 	path := strings.Join(urlSplit[4:], "/")
+
+	// In case we have the url with "download", we need to adjust the defaultVersion and path.
+	if urlSplit[3] == githubReleaseDownload || urlSplit[4] == githubReleaseDownload {
+		// urlSplit[3] == "download" || "latest"
+		// urlSplit[4] == $versionTag || "download"
+		defaultVersion = githubLatestReleaseLabel
+		if urlSplit[3] == githubReleaseDownload {
+			defaultVersion = urlSplit[4]
+		}
+		path = strings.Join(urlSplit[5:], "/")
+	}
 
 	// Use path's directory as a rootPath.
 	rootPath := filepath.Dir(path)

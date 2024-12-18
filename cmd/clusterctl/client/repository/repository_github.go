@@ -212,7 +212,7 @@ func isURLSplitValid(s []string) bool {
 //  2. https://github.com/{owner}/{Repository}/releases/download/{versionTag}/{[path/to/]componentsClient.yaml}
 //
 // The only difference being the order of "releases", "download" and "tag|latest".
-// It's worth noting that the first one will get redirected to the second one with an HTTP 302
+// It's worth noting that the first one will get redirected to the second one with an HTTP 302.
 func isURLSplitValidWithDownload(s []string) bool {
 	return len(s) >= 6 &&
 		((s[2] == githubReleaseRepository && s[3] == githubLatestReleaseLabel && s[4] == githubReleaseDownload) ||

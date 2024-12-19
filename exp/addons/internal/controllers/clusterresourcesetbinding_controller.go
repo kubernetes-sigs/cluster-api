@@ -59,7 +59,7 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSetBinding),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).

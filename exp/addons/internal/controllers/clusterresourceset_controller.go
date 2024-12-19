@@ -81,7 +81,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("clusterresourceset", r.clusterToClusterResourceSet)).
 		WatchesMetadata(
@@ -91,7 +91,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			),
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ResourceIsChanged(predicateLog),
+					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 					resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog),
 				),
 			),
@@ -108,7 +108,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 				resourceToClusterResourceSetFunc[*metav1.PartialObjectMetadata](r.Client),
 			),
 			predicates.TypedAll(mgr.GetScheme(), predicateLog,
-				predicates.TypedResourceIsChanged[*metav1.PartialObjectMetadata](predicateLog),
+				predicates.TypedResourceIsChanged[*metav1.PartialObjectMetadata](mgr.GetScheme(), predicateLog),
 				resourcepredicates.TypedResourceCreateOrUpdate[*metav1.PartialObjectMetadata](predicateLog),
 			),
 		)).

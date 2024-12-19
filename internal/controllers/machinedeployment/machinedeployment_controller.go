@@ -91,12 +91,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
-		Owns(&clusterv1.MachineSet{}, builder.WithPredicates(predicates.ResourceIsChanged(predicateLog))).
+		Owns(&clusterv1.MachineSet{}, builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog))).
 		// Watches enqueues MachineDeployment for corresponding MachineSet resources, if no managed controller reference (owner) exists.
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
@@ -104,7 +104,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsChanged(predicateLog),
+				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			)),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?

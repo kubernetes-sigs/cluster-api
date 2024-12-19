@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -372,8 +373,10 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 	if err := r.Client.List(
 		ctx,
 		clusterList,
-		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
-		client.InNamespace(clusterClass.Namespace),
+		client.MatchingFieldsSelector{Selector: fields.AndSelectors(
+			fields.OneTermEqualSelector(index.ClusterClassNameField, clusterClass.Name),
+			fields.OneTermEqualSelector(index.ClusterClassNamespaceField, clusterClass.Namespace),
+		)},
 	); err != nil {
 		return nil
 	}

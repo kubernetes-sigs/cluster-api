@@ -100,6 +100,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 		objs                        []client.Object
 		clusterClassTemplateContent []byte
 		targetNamespace             string
+		clusterClassNamespace       string
 		listVariablesOnly           bool
 		wantClusterClassInTemplate  bool
 		wantError                   bool
@@ -109,6 +110,28 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			clusterInitialized:          false,
 			objs:                        []client.Object{},
 			targetNamespace:             "ns1",
+			clusterClassTemplateContent: clusterClassYAML("ns1", "dev"),
+			listVariablesOnly:           false,
+			wantClusterClassInTemplate:  true,
+			wantError:                   false,
+		},
+		{
+			name:                        "should add the cluster class from a different namespace to the template if cluster is not initialized",
+			clusterInitialized:          false,
+			objs:                        []client.Object{},
+			targetNamespace:             "ns1",
+			clusterClassNamespace:       "ns2",
+			clusterClassTemplateContent: clusterClassYAML("ns2", "dev"),
+			listVariablesOnly:           false,
+			wantClusterClassInTemplate:  true,
+			wantError:                   false,
+		},
+		{
+			name:                        "should add the cluster class form the same explicitly specified namespace to the template if cluster is not initialized",
+			clusterInitialized:          false,
+			objs:                        []client.Object{},
+			targetNamespace:             "ns1",
+			clusterClassNamespace:       "ns1",
 			clusterClassTemplateContent: clusterClassYAML("ns1", "dev"),
 			listVariablesOnly:           false,
 			wantClusterClassInTemplate:  true,
@@ -189,17 +212,21 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 
 			clusterClassClient := repository1.ClusterClasses("v1.0.0")
 
-			clusterWithTopology := []byte(fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
+			clusterWithTopology := fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
 				"kind: Cluster\n" +
 				"metadata:\n" +
 				"  name: cluster-dev\n" +
 				fmt.Sprintf("  namespace: %s\n", tt.targetNamespace) +
 				"spec:\n" +
 				"  topology:\n" +
-				"    class: dev")
+				"    class: dev"
+
+			if tt.clusterClassNamespace != "" {
+				clusterWithTopology = fmt.Sprintf("%s\n    classNamespace: %s", clusterWithTopology, tt.clusterClassNamespace)
+			}
 
 			baseTemplate, err := repository.NewTemplate(repository.TemplateInput{
-				RawArtifact:           clusterWithTopology,
+				RawArtifact:           []byte(clusterWithTopology),
 				ConfigVariablesClient: test.NewFakeVariableClient(),
 				Processor:             yaml.NewSimpleProcessor(),
 				TargetNamespace:       tt.targetNamespace,
@@ -210,13 +237,22 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			}
 
 			g := NewWithT(t)
-			template, err := addClusterClassIfMissing(ctx, baseTemplate, clusterClassClient, cluster, tt.targetNamespace, tt.listVariablesOnly)
+			template, err := addClusterClassIfMissing(ctx, baseTemplate, clusterClassClient, cluster, tt.listVariablesOnly)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				if tt.wantClusterClassInTemplate {
-					g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
+					if tt.clusterClassNamespace == tt.targetNamespace {
+						g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
+					} else if tt.clusterClassNamespace != "" {
+						g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.clusterClassNamespace)))
+						g.Expect(template.Objs()).ToNot(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
+					} else {
+						g.Expect(template.Objs()).To(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
+						g.Expect(template.Objs()).ToNot(ContainElement(MatchClusterClass("dev", tt.clusterClassNamespace)))
+					}
 				} else {
+					g.Expect(template.Objs()).NotTo(ContainElement(MatchClusterClass("dev", tt.clusterClassNamespace)))
 					g.Expect(template.Objs()).NotTo(ContainElement(MatchClusterClass("dev", tt.targetNamespace)))
 				}
 			}

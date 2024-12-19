@@ -173,18 +173,18 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(ctx,
 				infraexpv1.GroupVersion.WithKind("DockerMachinePool"))),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&infrav1.DockerMachine{},
 			handler.EnqueueRequestsFromMapFunc(dockerMachineToDockerMachinePool),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(predicateLog),
 				//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
 				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			)),

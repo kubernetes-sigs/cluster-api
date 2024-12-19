@@ -115,14 +115,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.ClusterClass{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterClassToCluster),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(r.predicateLog),
 				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
 			)),
 		).
@@ -131,7 +131,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(r.predicateLog),
 				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
 			)),
 		).
@@ -332,7 +332,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the InfrastructureCluster is topology owned.
 			predicates.All(scheme, r.predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(r.predicateLog),
 				predicates.ResourceIsTopologyOwned(scheme, r.predicateLog),
 			)); err != nil {
 			return errors.Wrap(err, "error watching Infrastructure CR")
@@ -343,7 +343,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the ControlPlane is topology owned.
 			predicates.All(scheme, r.predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(r.predicateLog),
 				predicates.ResourceIsTopologyOwned(scheme, r.predicateLog),
 			)); err != nil {
 			return errors.Wrap(err, "error watching ControlPlane CR")

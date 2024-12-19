@@ -527,18 +527,18 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&infrav1.DockerCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.DockerClusterToDockerMachines),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(predicateLog),
 				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 			)),
 		).

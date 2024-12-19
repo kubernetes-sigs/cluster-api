@@ -104,17 +104,17 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
-			builder.WithPredicates(predicates.ResourceIsUnchanged()),
+			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).

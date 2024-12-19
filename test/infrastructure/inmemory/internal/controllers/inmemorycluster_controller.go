@@ -251,7 +251,7 @@ func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(predicateLog),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			)),
 		).Complete(r)

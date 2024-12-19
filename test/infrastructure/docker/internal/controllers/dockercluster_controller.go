@@ -214,7 +214,7 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsChanged(predicateLog),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			)),
 		).Complete(r)

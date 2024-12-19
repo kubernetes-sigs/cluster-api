@@ -121,7 +121,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ResourceIsUnchanged(),
+					predicates.ResourceIsChanged(predicateLog),
 					predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
@@ -379,7 +379,7 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachinePool),
-		Predicates:   []predicate.TypedPredicate[client.Object]{predicates.TypedResourceIsUnchanged[client.Object]()},
+		Predicates:   []predicate.TypedPredicate[client.Object]{predicates.TypedResourceIsChanged[client.Object](log)},
 	}))
 }
 

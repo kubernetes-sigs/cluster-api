@@ -123,7 +123,7 @@ type ClusterConfiguration struct {
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
-	// The cluster name
+	// clusterName is the cluster name
 	// +optional
 	ClusterName string `json:"clusterName,omitempty"`
 }

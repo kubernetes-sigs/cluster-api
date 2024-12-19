@@ -73,7 +73,7 @@ type CommonResponse struct {
 	// status of the call. One of "Success" or "Failure".
 	Status ResponseStatus `json:"status"`
 
-	// A human-readable description of the status of the call.
+	// message is a human-readable description of the status of the call.
 	Message string `json:"message"`
 }
 

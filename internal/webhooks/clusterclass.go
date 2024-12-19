@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
-	"sigs.k8s.io/cluster-api/internal/topology/names"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 )
 
@@ -434,7 +434,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 	var allErrs field.ErrorList
 
 	if clusterClass.Spec.ControlPlane.NamingStrategy != nil && clusterClass.Spec.ControlPlane.NamingStrategy.Template != nil {
-		name, err := names.ControlPlaneNameGenerator(*clusterClass.Spec.ControlPlane.NamingStrategy.Template, "cluster").GenerateName()
+		name, err := topologynames.ControlPlaneNameGenerator(*clusterClass.Spec.ControlPlane.NamingStrategy.Template, "cluster").GenerateName()
 		templateFldPath := field.NewPath("spec", "controlPlane", "namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
@@ -454,7 +454,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		if md.NamingStrategy == nil || md.NamingStrategy.Template == nil {
 			continue
 		}
-		name, err := names.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdtopology").GenerateName()
+		name, err := topologynames.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdtopology").GenerateName()
 		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
@@ -474,7 +474,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		if mp.NamingStrategy == nil || mp.NamingStrategy.Template == nil {
 			continue
 		}
-		name, err := names.MachinePoolNameGenerator(*mp.NamingStrategy.Template, "cluster", "mptopology").GenerateName()
+		name, err := topologynames.MachinePoolNameGenerator(*mp.NamingStrategy.Template, "cluster", "mptopology").GenerateName()
 		templateFldPath := field.NewPath("spec", "workers", "machinePools").Key(mp.Class).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,

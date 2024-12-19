@@ -305,7 +305,8 @@ func getGitHubClient(ctx context.Context, configVariablesClient config.Variables
 
 // handleGithubErr wraps error messages.
 func handleGithubErr(err error, message string, args ...interface{}) error {
-	if _, ok := err.(*github.RateLimitError); ok {
+	var rateLimitErr *github.RateLimitError
+	if errors.As(err, &rateLimitErr) {
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 	return errors.Wrapf(err, message, args...)

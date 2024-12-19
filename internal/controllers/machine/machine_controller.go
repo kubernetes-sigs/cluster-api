@@ -872,7 +872,6 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	}
 
 	podsToBeDrained := podDeleteList.Pods()
-
 	if len(podsToBeDrained) == 0 {
 		log.Info("Drain completed")
 		return ctrl.Result{}, nil
@@ -902,6 +901,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 		"podsFailedEviction", drain.PodListToString(podsFailedEviction, 5),
 		"podsWithDeletionTimestamp", drain.PodListToString(evictionResult.PodsDeletionTimestampSet, 5),
 		"podsToTriggerEvictionLater", drain.PodListToString(evictionResult.PodsToTriggerEvictionLater, 5),
+		"podsToWaitCompleted", drain.PodListToString(evictionResult.PodsToWaitCompleted, 5),
 	)
 	return ctrl.Result{RequeueAfter: drainRetryInterval}, nil
 }

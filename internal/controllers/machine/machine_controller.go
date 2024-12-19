@@ -153,7 +153,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(mgr.GetScheme(), r.predicateLog,
-					predicates.ResourceIsChanged(r.predicateLog),
+					predicates.ResourceIsChanged(mgr.GetScheme(), r.predicateLog),
 					predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), r.predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), r.predicateLog, r.WatchFilterValue),
 				),
@@ -162,12 +162,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(msToMachines),
-			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), r.predicateLog)),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(mdToMachines),
-			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), r.predicateLog)),
 		).
 		Build(r)
 	if err != nil {
@@ -1087,7 +1087,7 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),
-		Predicates:   []predicate.TypedPredicate[client.Object]{predicates.TypedResourceIsChanged[client.Object](r.predicateLog)},
+		Predicates:   []predicate.TypedPredicate[client.Object]{predicates.TypedResourceIsChanged[client.Object](r.Client.Scheme(), r.predicateLog)},
 	}))
 }
 

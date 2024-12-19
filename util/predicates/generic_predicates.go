@@ -311,16 +311,19 @@ func processIfTopologyOwned(scheme *runtime.Scheme, logger logr.Logger, obj clie
 
 // ResourceIsChanged returns a predicate that returns true only if the resource
 // has changed. This predicate allows to drop resync events on additionally watched objects.
-func ResourceIsChanged(logger logr.Logger) predicate.Funcs {
-	return TypedResourceIsChanged[client.Object](logger)
+func ResourceIsChanged(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	return TypedResourceIsChanged[client.Object](scheme, logger)
 }
 
 // TypedResourceIsChanged returns a predicate that returns true only if the resource
 // has changed. This predicate allows to drop resync events on additionally watched objects.
-func TypedResourceIsChanged[T client.Object](logger logr.Logger) predicate.TypedFuncs[T] {
+func TypedResourceIsChanged[T client.Object](scheme *runtime.Scheme, logger logr.Logger) predicate.TypedFuncs[T] {
 	log := logger.WithValues("predicate", "ResourceIsTopologyOwned")
 	return predicate.TypedFuncs[T]{
 		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
+			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
+			}
 			if e.ObjectOld.GetResourceVersion() == e.ObjectNew.GetResourceVersion() {
 				log.WithValues("eventType", "update").V(6).Info("Resource is not changed, will not attempt to map resource")
 				return false

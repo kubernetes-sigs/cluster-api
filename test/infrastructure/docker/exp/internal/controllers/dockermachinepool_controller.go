@@ -173,18 +173,21 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(ctx,
 				infraexpv1.GroupVersion.WithKind("DockerMachinePool"))),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&infrav1.DockerMachine{},
 			handler.EnqueueRequestsFromMapFunc(dockerMachineToDockerMachinePool),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsUnchanged(),
 				//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
 				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
-			),
+			)),
 		).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

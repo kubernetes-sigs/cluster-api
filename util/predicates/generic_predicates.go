@@ -310,15 +310,13 @@ func processIfTopologyOwned(scheme *runtime.Scheme, logger logr.Logger, obj clie
 }
 
 // ResourceIsChanged returns a predicate that returns true only if the resource
-// has changed. This predicate allows to drop events which come resync events on
-// additionally watched objects.
+// has changed. This predicate allows to drop resync events on additionally watched objects.
 func ResourceIsChanged(logger logr.Logger) predicate.Funcs {
 	return TypedResourceIsChanged[client.Object](logger)
 }
 
 // TypedResourceIsChanged returns a predicate that returns true only if the resource
-// has changed. This predicate allows to drop events which come resync events on
-// additionally watched objects.
+// has changed. This predicate allows to drop resync events on additionally watched objects.
 func TypedResourceIsChanged[T client.Object](logger logr.Logger) predicate.TypedFuncs[T] {
 	log := logger.WithValues("predicate", "ResourceIsTopologyOwned")
 	return predicate.TypedFuncs[T]{

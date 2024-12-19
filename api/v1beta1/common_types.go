@@ -107,7 +107,7 @@ const (
 	// older MachineSets when Machines are deleted and add the new replicas to the latest MachineSet.
 	DisableMachineCreateAnnotation = "cluster.x-k8s.io/disable-machine-create"
 
-	// WatchLabel is a label othat can be applied to any Cluster API object.
+	// WatchLabel is a label that can be applied to any Cluster API object.
 	//
 	// Controllers which allow for selective reconciliation may check this label and proceed
 	// with reconciliation of the object only if this label and a configured value is present.

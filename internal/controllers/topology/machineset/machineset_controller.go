@@ -87,6 +87,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ResourceIsUnchanged(),
 					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 				),

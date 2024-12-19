@@ -115,18 +115,25 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.ClusterClass{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterClassToCluster),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
+			)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
+			)),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), r.predicateLog, r.WatchFilterValue)).

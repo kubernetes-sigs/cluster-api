@@ -81,6 +81,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.TypedEnqueueRequestsFromMapFunc(
 				r.secretToExtensionConfig,
 			),
+			predicates.TypedResourceIsUnchanged[*metav1.PartialObjectMetadata](),
 		)).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).

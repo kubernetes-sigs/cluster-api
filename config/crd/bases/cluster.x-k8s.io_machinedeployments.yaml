@@ -1536,7 +1536,7 @@ spec:
                         x-kubernetes-list-type: map
                       version:
                         description: |-
-                          version defines the desired Kubernetes version.
+                          version defines the desired Kubernetes distribution version.
                           This field is meant to be optionally used by bootstrap providers.
                         type: string
                     required:

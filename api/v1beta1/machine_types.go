@@ -388,7 +388,7 @@ type MachineSpec struct {
 	// offered by an infrastructure provider.
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
-	// version defines the desired Kubernetes version.
+	// version defines the desired Kubernetes distribution version.
 	// This field is meant to be optionally used by bootstrap providers.
 	// +optional
 	Version *string `json:"version,omitempty"`

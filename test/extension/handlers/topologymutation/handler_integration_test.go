@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
@@ -411,7 +412,7 @@ type injectRuntimeClient struct {
 	runtimeExtension TopologyMutationHook
 }
 
-func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ string, req runtimehooksv1.RequestObject, resp runtimehooksv1.ResponseObject) error {
+func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ string, req runtimehooksv1.RequestObject, resp runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	// Note: We have to copy the requests. Otherwise we could get side effect by Runtime Extensions
 	// modifying the request instead of properly returning a response. Also after Unmarshal,
 	// only the Raw fields in runtime.RawExtension fields should be filled out and Object should be nil.

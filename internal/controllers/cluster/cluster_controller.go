@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -88,6 +89,8 @@ type Reconciler struct {
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+
+	predicateLog logr.Logger
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -95,7 +98,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConnectionGracePeriod must not be 0")
 	}
 
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
+	r.predicateLog = ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("cluster", func(_ context.Context, o client.Object) []ctrl.Request {
@@ -104,20 +107,20 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
-			builder.WithPredicates(predicates.ResourceIsChanged(predicateLog)),
+			builder.WithPredicates(predicates.ResourceIsChanged(r.predicateLog)),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), r.predicateLog, r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -129,7 +132,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Controller:      c,
 		Cache:           mgr.GetCache(),
 		Scheme:          mgr.GetScheme(),
-		PredicateLogger: &predicateLog,
+		PredicateLogger: &r.predicateLog,
 	}
 	return nil
 }

@@ -1408,12 +1408,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		return ctrl.Result{}, nil
 	}
 
-	// Sort the machines from newest to oldest.
-	// We are trying to remediate machines failing to come up first because
-	// there is a chance that they are not hosting any workloads (minimize disruption).
-	sort.SliceStable(machinesToRemediate, func(i, j int) bool {
-		return machinesToRemediate[i].CreationTimestamp.After(machinesToRemediate[j].CreationTimestamp.Time)
-	})
+	sortMachinesToRemediate(machinesToRemediate)
 
 	// Check if we should limit the in flight operations.
 	if len(machinesToRemediate) > maxInFlight {
@@ -1581,4 +1576,22 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	}))
 
 	return false, patchHelper.Patch(ctx, obj)
+}
+
+// Returns the machines to be remediated in the following order
+//   - Machines with RemediateMachineAnnotation annotation if any,
+//   - Machines failing to come up first because
+//     there is a chance that they are not hosting any workloads (minimize disruption).
+func sortMachinesToRemediate(machines []*clusterv1.Machine) {
+	sort.SliceStable(machines, func(i, j int) bool {
+		_, iHasRemediateAnnotation := machines[i].Annotations[clusterv1.RemediateMachineAnnotation]
+		_, jHasRemediateAnnotation := machines[j].Annotations[clusterv1.RemediateMachineAnnotation]
+		if iHasRemediateAnnotation && !jHasRemediateAnnotation {
+			return true
+		}
+		if !iHasRemediateAnnotation && jHasRemediateAnnotation {
+			return false
+		}
+		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
+	})
 }

@@ -250,9 +250,10 @@ func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsUnchanged(),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-			),
+			)),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

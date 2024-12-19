@@ -1172,17 +1172,20 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&infrav1.InMemoryCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.InMemoryClusterToInMemoryMachines),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsUnchanged(),
 				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
-			),
+			)),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

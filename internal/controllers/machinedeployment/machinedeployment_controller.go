@@ -96,15 +96,17 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsUnchanged(),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-			),
+			)),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		).Complete(r)
 	if err != nil {

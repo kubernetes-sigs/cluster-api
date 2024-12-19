@@ -115,18 +115,25 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.ClusterClass{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterClassToCluster),
+			builder.WithPredicates(predicates.ResourceIsUnchanged()),
 		).
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
+			)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog)),
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), r.predicateLog),
+			)),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), r.predicateLog, r.WatchFilterValue)).
@@ -324,7 +331,10 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the InfrastructureCluster is topology owned.
-			predicates.ResourceIsTopologyOwned(scheme, r.predicateLog)); err != nil {
+			predicates.All(scheme, r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(scheme, r.predicateLog),
+			)); err != nil {
 			return errors.Wrap(err, "error watching Infrastructure CR")
 		}
 	}
@@ -332,7 +342,10 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
 			handler.EnqueueRequestForOwner(scheme, r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the ControlPlane is topology owned.
-			predicates.ResourceIsTopologyOwned(scheme, r.predicateLog)); err != nil {
+			predicates.All(scheme, r.predicateLog,
+				predicates.ResourceIsUnchanged(),
+				predicates.ResourceIsTopologyOwned(scheme, r.predicateLog),
+			)); err != nil {
 			return errors.Wrap(err, "error watching ControlPlane CR")
 		}
 	}

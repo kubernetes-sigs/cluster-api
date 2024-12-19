@@ -71,6 +71,7 @@ spec:
                     enum:
                     - Drain
                     - Skip
+                    - WaitCompleted
                     type: string
                   order:
                     description: |-

@@ -309,23 +309,29 @@ func processIfTopologyOwned(scheme *runtime.Scheme, logger logr.Logger, obj clie
 	return false
 }
 
-// ResourceIsUnchanged returns a predicate that returns true only if the resource
+// ResourceIsChanged returns a predicate that returns true only if the resource
 // has changed. This predicate allows to drop events which come resync events on
 // additionally watched objects.
-func ResourceIsUnchanged() predicate.Funcs {
-	return TypedResourceIsUnchanged[client.Object]()
+func ResourceIsChanged(logger logr.Logger) predicate.Funcs {
+	return TypedResourceIsChanged[client.Object](logger)
 }
 
-// TypedResourceIsUnchanged returns a predicate that returns true only if the resource
+// TypedResourceIsChanged returns a predicate that returns true only if the resource
 // has changed. This predicate allows to drop events which come resync events on
 // additionally watched objects.
-func TypedResourceIsUnchanged[T client.Object]() predicate.TypedFuncs[T] {
+func TypedResourceIsChanged[T client.Object](logger logr.Logger) predicate.TypedFuncs[T] {
+	log := logger.WithValues("predicate", "ResourceIsTopologyOwned")
 	return predicate.TypedFuncs[T]{
 		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
-			return e.ObjectOld.GetResourceVersion() != e.ObjectNew.GetResourceVersion()
+			if e.ObjectOld.GetResourceVersion() == e.ObjectNew.GetResourceVersion() {
+				log.WithValues("eventType", "update").V(6).Info("Resource is not changed, will not attempt to map resource")
+				return false
+			}
+			log.WithValues("eventType", "update").V(6).Info("Resource is changed, will attempt to map resource")
+			return true
 		},
 		CreateFunc:  func(event.TypedCreateEvent[T]) bool { return true },
 		DeleteFunc:  func(event.TypedDeleteEvent[T]) bool { return true },
-		GenericFunc: func(event.TypedGenericEvent[T]) bool { return false },
+		GenericFunc: func(event.TypedGenericEvent[T]) bool { return true },
 	}
 }

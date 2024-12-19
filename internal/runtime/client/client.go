@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -49,6 +50,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -96,7 +98,7 @@ type Client interface {
 	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 
 	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
+	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
 }
 
 var _ Client = &client{}
@@ -276,6 +278,44 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 	aggregatedResponse.SetMessage(strings.Join(messages, ", "))
 }
 
+// CallExtensionOption is the interface for configuration that modifies CallExtensionOptions for a CallExtension call.
+type CallExtensionOption interface {
+	// ApplyToOptions applies this configuration to the given CallExtensionOptions.
+	ApplyToOptions(*CallExtensionOptions)
+}
+
+// CallExtensionCacheEntry is a cache entry for the cache that can be used with the CallExtension call via
+// the WithCaching option.
+type CallExtensionCacheEntry struct {
+	CacheKey string
+	Response runtimehooksv1.ResponseObject
+}
+
+// Key returns the cache key of a CallExtensionCacheEntry.
+func (c CallExtensionCacheEntry) Key() string {
+	return c.CacheKey
+}
+
+// WithCaching enables caching for the CallExtension call.
+type WithCaching struct {
+	Cache        cache.Cache[CallExtensionCacheEntry]
+	CacheKeyFunc func(*runtimeregistry.ExtensionRegistration, runtimehooksv1.RequestObject) string
+}
+
+// ApplyToOptions applies WithCaching to the given CallExtensionOptions.
+func (w WithCaching) ApplyToOptions(in *CallExtensionOptions) {
+	in.WithCaching = true
+	in.Cache = w.Cache
+	in.CacheKeyFunc = w.CacheKeyFunc
+}
+
+// CallExtensionOptions contains the options for the CallExtension call.
+type CallExtensionOptions struct {
+	WithCaching  bool
+	Cache        cache.Cache[CallExtensionCacheEntry]
+	CacheKeyFunc func(*runtimeregistry.ExtensionRegistration, runtimehooksv1.RequestObject) string
+}
+
 // CallExtension makes the call to the extension with the given name.
 // The response object passed will be updated with the response of the call.
 // An error is returned if the extension is not compatible with the hook.
@@ -288,7 +328,13 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error {
+	// Calculate the options.
+	options := &CallExtensionOptions{}
+	for _, opt := range opts {
+		opt.ApplyToOptions(options)
+	}
+
 	log := ctrl.LoggerFrom(ctx).WithValues("extensionHandler", name, "hook", runtimecatalog.HookName(hook))
 	ctx = ctrl.LoggerInto(ctx, log)
 	hookGVH, err := c.catalog.GroupVersionHook(hook)
@@ -331,7 +377,23 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	// Prepare the request by merging the settings in the registration with the settings in the request.
 	request = cloneAndAddSettings(request, registration.Settings)
 
-	opts := &httpCallOptions{
+	var cacheKey string
+	if options.WithCaching {
+		// Return a cached response if response is cached.
+		cacheKey = options.CacheKeyFunc(registration, request)
+		if cacheEntry, ok := options.Cache.Has(cacheKey); ok {
+			// Set response to cacheEntry.Response.
+			outVal := reflect.ValueOf(response)
+			cacheVal := reflect.ValueOf(cacheEntry.Response)
+			if !cacheVal.Type().AssignableTo(outVal.Type()) {
+				return fmt.Errorf("failed to call extension handler %q: cached response of type %s instead of type %s", name, cacheVal.Type(), outVal.Type())
+			}
+			reflect.Indirect(outVal).Set(reflect.Indirect(cacheVal))
+			return nil
+		}
+	}
+
+	httpOpts := &httpCallOptions{
 		catalog:         c.catalog,
 		config:          registration.ClientConfig,
 		registrationGVH: registration.GroupVersionHook,
@@ -339,7 +401,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		name:            strings.TrimSuffix(registration.Name, "."+registration.ExtensionConfigName),
 		timeout:         timeoutDuration,
 	}
-	err = httpCall(ctx, request, response, opts)
+	err = httpCall(ctx, request, response, httpOpts)
 	if err != nil {
 		// If the error is errCallingExtensionHandler then apply failure policy to calculate
 		// the effective result of the operation.
@@ -366,6 +428,14 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		log.Info(fmt.Sprintf("Extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
 	} else {
 		log.V(4).Info("Extension handler returned success response")
+	}
+
+	if options.WithCaching {
+		// Add response to the cache.
+		options.Cache.Add(CallExtensionCacheEntry{
+			CacheKey: cacheKey,
+			Response: response,
+		})
 	}
 
 	// Received a successful response from the extension handler. The `response` object

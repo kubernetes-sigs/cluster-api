@@ -119,7 +119,7 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, _ runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, _ runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	expectedResponse, ok := fc.callResponses[name]
 	if !ok {
 		// This should actually panic because an error here would mean a mistake in the test setup.

@@ -64,6 +64,9 @@ type ExtensionRegistration struct {
 	// ExtensionConfigName is the name of the corresponding ExtensionConfig.
 	ExtensionConfigName string
 
+	// ExtensionConfigResourceVersion is the ResourceVersion of the corresponding ExtensionConfig.
+	ExtensionConfigResourceVersion string
+
 	// GroupVersionHook is the GroupVersionHook that the RuntimeExtension implements.
 	GroupVersionHook runtimecatalog.GroupVersionHook
 
@@ -247,8 +250,9 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 
 		// Registrations will only be added to the registry if no errors occur (all or nothing).
 		registrations = append(registrations, &ExtensionRegistration{
-			ExtensionConfigName: extensionConfig.Name,
-			Name:                e.Name,
+			ExtensionConfigName:            extensionConfig.Name,
+			ExtensionConfigResourceVersion: extensionConfig.ResourceVersion,
+			Name:                           e.Name,
 			GroupVersionHook: runtimecatalog.GroupVersionHook{
 				Group:   gv.Group,
 				Version: gv.Version,

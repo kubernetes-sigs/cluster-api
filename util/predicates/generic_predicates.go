@@ -318,7 +318,7 @@ func ResourceIsChanged(scheme *runtime.Scheme, logger logr.Logger) predicate.Fun
 // TypedResourceIsChanged returns a predicate that returns true only if the resource
 // has changed. This predicate allows to drop resync events on additionally watched objects.
 func TypedResourceIsChanged[T client.Object](scheme *runtime.Scheme, logger logr.Logger) predicate.TypedFuncs[T] {
-	log := logger.WithValues("predicate", "ResourceIsTopologyOwned")
+	log := logger.WithValues("predicate", "ResourceIsChanged")
 	return predicate.TypedFuncs[T]{
 		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
 			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {

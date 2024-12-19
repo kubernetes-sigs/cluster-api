@@ -321,6 +321,8 @@ func TypedResourceIsChanged[T client.Object](scheme *runtime.Scheme, logger logr
 	log := logger.WithValues("predicate", "ResourceIsChanged")
 	return predicate.TypedFuncs[T]{
 		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
+			// Ensure we don't modify log from above.
+			log := log
 			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
 			}

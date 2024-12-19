@@ -928,6 +928,15 @@ spec:
                     description: The name of the ClusterClass object to create the
                       topology.
                     type: string
+                  classNamespace:
+                    description: |-
+                      The namespace of the ClusterClass object to create the topology. Empty namespace assumes the namespace of the cluster object.
+                      Class namespace changes are not supported by the rebase procedure, as different CC namespace uses namespace-local templates.
+                      Cluster templates namespace modification is not allowed.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$
+                    type: string
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
                     properties:

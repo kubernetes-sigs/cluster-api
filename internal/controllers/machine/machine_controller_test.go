@@ -1429,6 +1429,28 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			expected: false,
 		},
 		{
+			name: "Node draining succeeded",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{{
+						Type:   clusterv1.PreTerminateDeleteHookSucceededCondition,
+						Status: corev1.ConditionFalse,
+					}},
+				},
+			},
+			expected: false,
+		},
+		{
 			name: "Node draining timeout is not yet over",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1985,6 +2007,28 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Deletion: &clusterv1.MachineDeletionStatus{
 						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
 					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Volume detach completed",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{{
+						Type:   clusterv1.PreTerminateDeleteHookSucceededCondition,
+						Status: corev1.ConditionFalse,
+					}},
 				},
 			},
 			expected: false,

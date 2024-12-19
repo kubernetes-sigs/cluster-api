@@ -2529,9 +2529,53 @@ func nodeNameIndex(o client.Object) []string {
 func TestIsDeleteNodeAllowed(t *testing.T) {
 	deletionts := metav1.Now()
 
+	cp1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "test1",
+			},
+		},
+	}
+	cp2 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp2",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "test2",
+			},
+		},
+	}
+
 	testCases := []struct {
 		name          string
 		cluster       *clusterv1.Cluster
+		extraMachines []*clusterv1.Machine
 		machine       *clusterv1.Machine
 		expectedError error
 	}{
@@ -2559,10 +2603,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
+			extraMachines: nil,
 			expectedError: errNilNodeRef,
 		},
 		{
-			name: "no control plane members",
+			// This situation can happen when the control plane is not implemented via Cluster API,
+			// so for Cluster API the control plane machine members count is zero in this case.
+			name: "no control plane members, deleting a worker",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -2576,7 +2623,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+					Finalizers:        []string{clusterv1.MachineFinalizer},
+					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
@@ -2589,10 +2637,11 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			expectedError: errNoControlPlaneNodes,
+			extraMachines: nil,
+			expectedError: nil,
 		},
 		{
-			name: "is last control plane member",
+			name: "is last control plane member, trying to delete it",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -2621,7 +2670,40 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			expectedError: errNoControlPlaneNodes,
+			extraMachines: nil,
+			expectedError: errLastControlPlaneNode,
+		},
+		{
+			name: "only one control plane member, trying to delete a worker",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: metav1.NamespaceDefault,
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+					Finalizers:        []string{clusterv1.MachineFinalizer},
+					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			extraMachines: nil,
+			expectedError: nil,
 		},
 		{
 			name: "has nodeRef and control plane is healthy",
@@ -2651,6 +2733,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			extraMachines: []*clusterv1.Machine{cp1, cp2},
 			expectedError: nil,
 		},
 		{
@@ -2664,6 +2747,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine:       &clusterv1.Machine{},
+			extraMachines: nil,
 			expectedError: errClusterIsBeingDeleted,
 		},
 		{
@@ -2702,6 +2786,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			extraMachines: []*clusterv1.Machine{cp1, cp2},
 			expectedError: nil,
 		},
 		{
@@ -2740,6 +2825,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			extraMachines: nil,
 			expectedError: errControlPlaneIsBeingDeleted,
 		},
 		{
@@ -2778,6 +2864,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			extraMachines: nil,
 			expectedError: errControlPlaneIsBeingDeleted,
 		},
 	}
@@ -2822,61 +2909,19 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			m1 := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cp1",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
-				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-				},
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "test1",
-					},
-				},
-			}
-			m2 := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cp2",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
-				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-				},
-				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Name: "test2",
-					},
-				},
-			}
-			// For isDeleteNodeAllowed to be true we assume a healthy control plane.
-			if tc.expectedError == nil {
-				m1.Labels[clusterv1.MachineControlPlaneLabel] = ""
-				m2.Labels[clusterv1.MachineControlPlaneLabel] = ""
-			}
-
-			c := fake.NewClientBuilder().WithObjects(
+			objects := []client.Object{
 				tc.cluster,
 				tc.machine,
-				m1,
-				m2,
 				emp,
 				mcpBeingDeleted,
 				empBeingDeleted,
-			).Build()
+			}
+
+			for _, e := range tc.extraMachines {
+				objects = append(objects, e)
+			}
+
+			c := fake.NewClientBuilder().WithObjects(objects...).Build()
 			mr := &Reconciler{
 				Client: c,
 			}
@@ -3197,6 +3242,7 @@ func TestNodeDeletion(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterv1.MachineControlPlaneLabel: "",
+				clusterv1.ClusterNameLabel:         "test-cluster",
 			},
 			Annotations: map[string]string{
 				"machine.cluster.x-k8s.io/exclude-node-draining": "",

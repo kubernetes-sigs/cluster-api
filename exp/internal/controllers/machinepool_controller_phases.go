@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
@@ -123,7 +124,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *expv1.
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{}), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -364,7 +365,7 @@ func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, s *scope,
 	sampleInfraMachine.SetKind(infraMachineKind)
 
 	// Add watcher for infraMachine, if there isn't one already.
-	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
+	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
 		return err
 	}
 

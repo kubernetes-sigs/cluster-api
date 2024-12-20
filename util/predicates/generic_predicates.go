@@ -31,8 +31,13 @@ import (
 
 // All returns a predicate that returns true only if all given predicates return true.
 func All(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
+	return TypedAll(scheme, logger, predicates...)
+}
+
+// TypedAll returns a predicate that returns true only if all given predicates return true.
+func TypedAll[T client.Object](scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.TypedFuncs[T]) predicate.TypedFuncs[T] {
+	return predicate.TypedFuncs[T]{
+		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
@@ -46,7 +51,7 @@ func All(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Fun
 			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
-		CreateFunc: func(e event.CreateEvent) bool {
+		CreateFunc: func(e event.TypedCreateEvent[T]) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
@@ -60,7 +65,7 @@ func All(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Fun
 			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
+		DeleteFunc: func(e event.TypedDeleteEvent[T]) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
@@ -74,7 +79,7 @@ func All(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Fun
 			log.V(6).Info("All provided predicates returned true, allowing further processing")
 			return true
 		},
-		GenericFunc: func(e event.GenericEvent) bool {
+		GenericFunc: func(e event.TypedGenericEvent[T]) bool {
 			log := logger.WithValues("predicateAggregation", "All")
 			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
@@ -302,4 +307,34 @@ func processIfTopologyOwned(scheme *runtime.Scheme, logger logr.Logger, obj clie
 	// logged for MachineDeployments and MachineSets not owned by a topology.
 	logger.V(6).Info("Resource is not topology owned, will not attempt to map resource")
 	return false
+}
+
+// ResourceIsChanged returns a predicate that returns true only if the resource
+// has changed. This predicate allows to drop resync events on additionally watched objects.
+func ResourceIsChanged(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	return TypedResourceIsChanged[client.Object](scheme, logger)
+}
+
+// TypedResourceIsChanged returns a predicate that returns true only if the resource
+// has changed. This predicate allows to drop resync events on additionally watched objects.
+func TypedResourceIsChanged[T client.Object](scheme *runtime.Scheme, logger logr.Logger) predicate.TypedFuncs[T] {
+	log := logger.WithValues("predicate", "ResourceIsChanged")
+	return predicate.TypedFuncs[T]{
+		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
+			// Ensure we don't modify log from above.
+			log := log
+			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
+			}
+			if e.ObjectOld.GetResourceVersion() == e.ObjectNew.GetResourceVersion() {
+				log.WithValues("eventType", "update").V(6).Info("Resource is not changed, will not attempt to map resource")
+				return false
+			}
+			log.WithValues("eventType", "update").V(6).Info("Resource is changed, will attempt to map resource")
+			return true
+		},
+		CreateFunc:  func(event.TypedCreateEvent[T]) bool { return true },
+		DeleteFunc:  func(event.TypedDeleteEvent[T]) bool { return true },
+		GenericFunc: func(event.TypedGenericEvent[T]) bool { return true },
+	}
 }

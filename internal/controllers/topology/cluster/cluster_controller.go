@@ -185,6 +185,11 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
 			}
 
+			if e.ObjectOld.GetResourceVersion() == e.ObjectNew.GetResourceVersion() {
+				log.V(6).Info("Cluster resync event, allowing further processing")
+				return true
+			}
+
 			oldObj, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
@@ -200,10 +205,10 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 			newObj = dropNotRelevant(newObj)
 
 			if reflect.DeepEqual(oldObj, newObj) {
-				logger.V(6).Info("Cluster does not have relevant changes, blocking further processing")
+				log.V(6).Info("Cluster does not have relevant changes, blocking further processing")
 				return false
 			}
-			logger.V(6).Info("Cluster has relevant changes, allowing further processing")
+			log.V(6).Info("Cluster has relevant changes, allowing further processing")
 			return true
 		},
 		CreateFunc:  func(event.CreateEvent) bool { return true },
@@ -247,10 +252,10 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 			newObj = dropNotRelevant(newObj)
 
 			if reflect.DeepEqual(oldObj, newObj) {
-				logger.V(6).Info("MachineDeployment does not have relevant changes, blocking further processing")
+				log.V(6).Info("MachineDeployment does not have relevant changes, blocking further processing")
 				return false
 			}
-			logger.V(6).Info("MachineDeployment has relevant changes, allowing further processing")
+			log.V(6).Info("MachineDeployment has relevant changes, allowing further processing")
 			return true
 		},
 		CreateFunc:  func(event.CreateEvent) bool { return true },

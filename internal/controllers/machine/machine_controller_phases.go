@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 var externalReadyWait = 30 * time.Second
@@ -89,7 +90,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{}), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
 		return nil, err
 	}
 

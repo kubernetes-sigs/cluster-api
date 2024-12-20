@@ -168,6 +168,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	dropNotRelevant := func(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 		c := cluster.DeepCopy()
+		// Drop metadata fields which are impacted by not relevant changes.
+		c.ObjectMeta.ManagedFields = nil
+		c.ObjectMeta.ResourceVersion = ""
+
 		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
 		// selectively drop changes not relevant for this controller.
 		c.Status.V1Beta2 = nil
@@ -176,7 +180,7 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log := logger.WithValues("predicate", "ClusterUpdateUnpaused", "eventType", "update")
+			log := logger.WithValues("predicate", "ClusterChangeIsRelevant", "eventType", "update")
 			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
 			}
@@ -195,17 +199,26 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 			}
 			newObj = dropNotRelevant(newObj)
 
-			return reflect.DeepEqual(oldObj, newObj)
+			if reflect.DeepEqual(oldObj, newObj) {
+				logger.V(6).Info("Cluster does not have relevant changes, blocking further processing")
+				return false
+			}
+			logger.V(6).Info("Cluster has relevant changes, allowing further processing")
+			return true
 		},
 		CreateFunc:  func(event.CreateEvent) bool { return true },
 		DeleteFunc:  func(event.DeleteEvent) bool { return true },
-		GenericFunc: func(event.GenericEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
 }
 
 func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
-	dropNotRelevant := func(cluster *clusterv1.MachineDeployment) *clusterv1.MachineDeployment {
-		md := cluster.DeepCopy()
+	dropNotRelevant := func(machineDeployment *clusterv1.MachineDeployment) *clusterv1.MachineDeployment {
+		md := machineDeployment.DeepCopy()
+		// Drop metadata fields which are impacted by not relevant changes.
+		md.ObjectMeta.ManagedFields = nil
+		md.ObjectMeta.ResourceVersion = ""
+
 		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
 		// selectively drop changes not relevant for this controller.
 		md.Status.V1Beta2 = nil
@@ -214,30 +227,35 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log := logger.WithValues("predicate", "ClusterUpdateUnpaused", "eventType", "update")
+			log := logger.WithValues("predicate", "MachineDeploymentChangeIsRelevant", "eventType", "update")
 			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
 				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
 			}
 
 			oldObj, ok := e.ObjectOld.(*clusterv1.MachineDeployment)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				log.V(4).Info("Expected MachineDeployment", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
 			oldObj = dropNotRelevant(oldObj)
 
 			newObj := e.ObjectNew.(*clusterv1.MachineDeployment)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectNew))
+				log.V(4).Info("Expected MachineDeployment", "type", fmt.Sprintf("%T", e.ObjectNew))
 				return false
 			}
 			newObj = dropNotRelevant(newObj)
 
-			return reflect.DeepEqual(oldObj, newObj)
+			if reflect.DeepEqual(oldObj, newObj) {
+				logger.V(6).Info("MachineDeployment does not have relevant changes, blocking further processing")
+				return false
+			}
+			logger.V(6).Info("MachineDeployment has relevant changes, allowing further processing")
+			return true
 		},
 		CreateFunc:  func(event.CreateEvent) bool { return true },
 		DeleteFunc:  func(event.DeleteEvent) bool { return true },
-		GenericFunc: func(event.GenericEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
 }
 

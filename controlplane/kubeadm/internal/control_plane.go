@@ -153,9 +153,10 @@ func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
-func (c *ControlPlane) MachineInFailureDomainWithMostMachines(ctx context.Context, machines collections.Machines) (*clusterv1.Machine, error) {
-	fd := c.FailureDomainWithMostMachines(ctx, machines)
-	machinesInFailureDomain := machines.Filter(collections.InFailureDomains(fd))
+// Note: if there are eligibleMachines machines in failure domain that do not exists anymore, getting rid of those machines take precedence.
+func (c *ControlPlane) MachineInFailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) (*clusterv1.Machine, error) {
+	fd := c.FailureDomainWithMostMachines(ctx, eligibleMachines)
+	machinesInFailureDomain := eligibleMachines.Filter(collections.InFailureDomains(fd))
 	machineToMark := machinesInFailureDomain.Oldest()
 	if machineToMark == nil {
 		return nil, errors.New("failed to pick control plane Machine to mark for deletion")
@@ -171,11 +172,11 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 	return annotatedMachines
 }
 
-// FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
-// control-plane machines on it.
-func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, machines collections.Machines) *string {
+// FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.
+// Note: if there are eligibleMachines machines in failure domain that do not exist anymore, cleaning up those failure domains takes precedence.
+func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
-	notInFailureDomains := machines.Filter(
+	notInFailureDomains := eligibleMachines.Filter(
 		collections.Not(collections.InFailureDomains(c.FailureDomains().FilterControlPlane().GetIDs()...)),
 	)
 	if len(notInFailureDomains) > 0 {
@@ -184,15 +185,21 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, machin
 		// in the cluster status.
 		return notInFailureDomains.Oldest().Spec.FailureDomain
 	}
-	return failuredomains.PickMost(ctx, c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, machines)
+
+	// Pick the failure domain with most machines in it and at least one eligible machine in it.
+	return failuredomains.PickMost(ctx, c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, eligibleMachines)
 }
 
-// NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines.
+// NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines
+// (the ultimate goal is to achieve ideal spreading of machines at stable state/when only up-to-date machines will exist).
+//
+// In case of tie (more failure domain with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
+// machine overall is picked to ensure a better spreading of machines while the rollout is performed.
 func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil, nil
 	}
-	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
+	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.

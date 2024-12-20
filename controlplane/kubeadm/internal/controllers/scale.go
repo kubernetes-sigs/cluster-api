@@ -252,9 +252,10 @@ func preflightCheckCondition(kind string, obj conditions.Getter, condition clust
 //
 // In the first phase it selects a subset of machines eligible for deletion:
 // - if there are outdated machines with the delete machine annotation, use them as eligible subset (priority to user requests, part 1)
-// - if there are machines (also not outdated) with the delete machine annotation, use them (priority to user requests, part 1)
+// - if there are machines (also not outdated) with the delete machine annotation, use them (priority to user requests, part 2)
 // - if there are outdated machines with unhealthy control plane components, use them (priority to restore control plane health)
-// - otherwise consider all the outdated machines as eligible subset (regula rollout)
+// - if there are outdated machines  consider all the outdated machines as eligible subset (rollout)
+// - otherwise consider all the machines
 //
 // Once the subset of machines eligible for deletion is identified, one machine is picked out of this subset by
 // selecting the machine in the failure domain with most machines (including both eligible and not eligible machines).

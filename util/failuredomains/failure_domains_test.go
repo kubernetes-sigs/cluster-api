@@ -271,9 +271,9 @@ func TestPickFewestNew(t *testing.T) {
 		{
 			name:             "3 failure domains, 1 outdated machine, 2 new machines, scale up to 4",
 			fds:              fds3,
-			allMachines:      collections.FromMachines(machineA1New, machineB1Old, machineC1Old),
+			allMachines:      collections.FromMachines(machineA1New, machineB1New, machineC1Old),
 			upToDateMachines: collections.FromMachines(machineA1New, machineB1New),
-			expected:         []string{c}, // select fd c because it has no up-to-date machines (less than b, c)
+			expected:         []string{c}, // select fd c because it has no up-to-date machines (less than a, b)
 		},
 
 		// scenario A.3: scale up after machines has been remediated or forcefully deleted
@@ -282,7 +282,7 @@ func TestPickFewestNew(t *testing.T) {
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1Old, machineC1Old, machineC1New),
 			upToDateMachines: collections.FromMachines(machineC1New),
-			expected:         []string{b}, // select fd b because it has no up-to-date machines (like a), 1 machine overall (less than a)
+			expected:         []string{b}, // select fd b because it has no up-to-date machines (like a), 0 machine overall (less than a)
 		},
 		{
 			name:             "3 failure domains, 3 machines, 2 new machines, scale up to 4",
@@ -307,7 +307,7 @@ func TestPickFewestNew(t *testing.T) {
 			fds:              fds2,
 			allMachines:      collections.FromMachines(machineA1),
 			upToDateMachines: collections.FromMachines(machineA1),
-			expected:         []string{b}, // select fd c because it has no up-to-date machines
+			expected:         []string{b}, // select fd b because it has no up-to-date machines
 		},
 		{
 			name:             "2 failure domains, 2 machines, scale up from 2 to 3",
@@ -459,7 +459,7 @@ func TestPickFewestNew(t *testing.T) {
 		{
 			name:             "3 failure domains, 1 outdated machine, 2 new machines, scale up to 4",
 			fds:              fds0,
-			allMachines:      collections.FromMachines(machineA1New, machineB1Old, machineC1Old),
+			allMachines:      collections.FromMachines(machineA1New, machineB1New, machineC1Old),
 			upToDateMachines: collections.FromMachines(machineA1New, machineB1New),
 			expected:         nil, // no fd
 		},
@@ -606,7 +606,7 @@ func TestPickMostNew(t *testing.T) {
 			fds:              fds2,
 			allMachines:      collections.FromMachines(machineA1New, machineA2New, machineB1Old, machineB2New),
 			eligibleMachines: collections.FromMachines(machineB1Old),
-			expected:         []string{b}, // select fd b because it has 1 old machine (more than b)
+			expected:         []string{b}, // select fd b because it has 1 old machine (more than a)
 		},
 
 		// scenario B.2: scale down to 0
@@ -656,14 +656,14 @@ func TestPickMostNew(t *testing.T) {
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1Old, machineA2Old, machineB1Old, machineB2Old, machineC1Old, machineC1New),
 			eligibleMachines: collections.FromMachines(machineA1Old, machineA2Old, machineB1Old, machineB2Old, machineC1Old),
-			expected:         []string{a, b}, // select fd a or 2 because they have 2 old machine (more than c)
+			expected:         []string{a, b}, // select fd a or b because they have 2 old machine (more than c)
 		},
 		{
 			name:             "3 failure domains, 4 outdated machines, 2 new machines, scale down from 6 to 1",
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1Old, machineA1New, machineB1Old, machineB2Old, machineC1Old, machineC1New),
 			eligibleMachines: collections.FromMachines(machineA1Old, machineB1Old, machineB2Old, machineC1Old),
-			expected:         []string{b}, // select fd b because it has 2 old machine (more than a and b)
+			expected:         []string{b}, // select fd b because it has 2 old machine (more than a and c)
 		},
 		{
 			name:             "3 failure domains, 3 outdated machines, 3 new machines, scale down from 6 to 1",
@@ -684,7 +684,7 @@ func TestPickMostNew(t *testing.T) {
 			fds:              fds3,
 			allMachines:      collections.FromMachines(machineA1New, machineA2New, machineB1New, machineB2New, machineC1Old, machineC1New),
 			eligibleMachines: collections.FromMachines(machineC1Old),
-			expected:         []string{b, c}, // select fd c because it has 1 old machine; fd a and b are discarded because they don't have any eligible machine
+			expected:         []string{c}, // select fd c because it has 1 old machine; fd a and b are discarded because they don't have any eligible machine
 		},
 
 		// scenario C.2: scale down to 0
@@ -858,7 +858,7 @@ func TestFailureDomainAggregationsSort(t *testing.T) {
 
 	// the result should be sorted so the fd with less priority machines are first,
 	// the number of overall machine should be used if the number of priority machines is equal,
-	// failure domain id should be used to break ties.
+	// position in the array is used to break ties.
 
 	// fd4 is the failure domain with less priority machines, it should go first
 	g.Expect(aggregations[0].id).To(Equal("fd4"))
@@ -866,8 +866,8 @@ func TestFailureDomainAggregationsSort(t *testing.T) {
 	// fd1, fd2, fd3 all have the same number of priority machines;
 
 	// fd1, fd3 have also the same number of overall machines.
-	g.Expect(aggregations[1].id).To(Or(Equal("fd1"), Equal("fd3")))
-	g.Expect(aggregations[2].id).To(Or(Equal("fd3"), Equal("fd3")))
+	g.Expect(aggregations[1].id).To(Equal("fd1"))
+	g.Expect(aggregations[2].id).To(Equal("fd3"))
 
 	// fd2 has more overall machines, it should go last
 	g.Expect(aggregations[3].id).To(Equal("fd2"))

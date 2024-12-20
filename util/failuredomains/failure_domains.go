@@ -103,7 +103,7 @@ func PickFewest(ctx context.Context, failureDomains clusterv1.FailureDomains, al
 }
 
 // countByFailureDomain returns failure domains with the number of machines in it.
-// Note: Pick might compute both the number of machines as well as the number of a subset of machines with higher priority.
+// Note: countByFailureDomain computes both the number of machines as well as the number of a subset of machines with higher priority.
 // E.g. for deletion out of date machines have higher priority vs other machines.
 func countByFailureDomain(ctx context.Context, failureDomains clusterv1.FailureDomains, allMachines, priorityMachines collections.Machines) failureDomainAggregations {
 	log := ctrl.LoggerFrom(ctx)

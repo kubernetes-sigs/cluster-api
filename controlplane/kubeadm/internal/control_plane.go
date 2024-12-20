@@ -173,7 +173,7 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 }
 
 // FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.
-// Note: if there are eligibleMachines machines in failure domain that do not exists anymore, cleaning up those failure domains takes precedence.
+// Note: if there are eligibleMachines machines in failure domain that do not exist anymore, cleaning up those failure domains takes precedence.
 func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := eligibleMachines.Filter(

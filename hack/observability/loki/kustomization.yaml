@@ -7,7 +7,7 @@ helmCharts:
     releaseName: loki
     namespace: observability
     valuesFile: values.yaml
-    version: 5.5.4
+    version: 6.24.0
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

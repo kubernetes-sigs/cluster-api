@@ -248,17 +248,31 @@ func preflightCheckCondition(kind string, obj conditions.Getter, condition clust
 	return nil
 }
 
+// selectMachineForScaleDown select a machine candidate for scaling down. The selection is a two phase process:
+//
+// In the first phase it selects a subset of machines eligible for deletion:
+// - if there are outdated machines with the delete machine annotation, use them as eligible subset (priority to user requests, part 1)
+// - if there are machines (also not outdated) with the delete machine annotation, use them (priority to user requests, part 2)
+// - if there are outdated machines with unhealthy control plane components, use them (priority to restore control plane health)
+// - if there are outdated machines  consider all the outdated machines as eligible subset (rollout)
+// - otherwise consider all the machines
+//
+// Once the subset of machines eligible for deletion is identified, one machine is picked out of this subset by
+// selecting the machine in the failure domain with most machines (including both eligible and not eligible machines).
 func selectMachineForScaleDown(ctx context.Context, controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
-	machines := controlPlane.Machines
+	// Select the subset of machines eligible for scale down.
+	eligibleMachines := controlPlane.Machines
 	switch {
 	case controlPlane.MachineWithDeleteAnnotation(outdatedMachines).Len() > 0:
-		machines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
-	case controlPlane.MachineWithDeleteAnnotation(machines).Len() > 0:
-		machines = controlPlane.MachineWithDeleteAnnotation(machines)
+		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
+	case controlPlane.MachineWithDeleteAnnotation(eligibleMachines).Len() > 0:
+		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(eligibleMachines)
 	case controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines).Len() > 0:
-		machines = controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines)
+		eligibleMachines = controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines)
 	case outdatedMachines.Len() > 0:
-		machines = outdatedMachines
+		eligibleMachines = outdatedMachines
 	}
-	return controlPlane.MachineInFailureDomainWithMostMachines(ctx, machines)
+
+	// Pick an eligible machine from the failure domain with most machines in (including both eligible and not eligible machines)
+	return controlPlane.MachineInFailureDomainWithMostMachines(ctx, eligibleMachines)
 }

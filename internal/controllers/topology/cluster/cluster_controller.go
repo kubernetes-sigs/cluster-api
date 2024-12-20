@@ -19,22 +19,28 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -103,8 +109,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}, builder.WithPredicates(
-			// Only reconcile Cluster with topology.
-			predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
+			// Only reconcile Cluster with topology and with changes relevant for this controller.
+			predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
+				clusterChangeIsRelevant(mgr.GetScheme(), predicateLog),
+			),
 		)).
 		Named("topology/cluster").
 		WatchesRawSource(r.ClusterCache.GetClusterSource("topology/cluster", func(_ context.Context, o client.Object) []ctrl.Request {
@@ -118,16 +127,17 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
-			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
+			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned, the resource is changed, and the change is relevant.
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
 				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
+				machineDeploymentChangeIsRelevant(mgr.GetScheme(), predicateLog),
 			)),
 		).
 		Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
-			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
+			// Only trigger Cluster reconciliation if the MachinePool is topology owned, the resource is changed.
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
 				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
@@ -153,6 +163,82 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache())
 	}
 	return nil
+}
+
+func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	dropNotRelevant := func(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+		c := cluster.DeepCopy()
+		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
+		// selectively drop changes not relevant for this controller.
+		c.Status.V1Beta2 = nil
+		return c
+	}
+
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicate", "ClusterUpdateUnpaused", "eventType", "update")
+			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
+			}
+
+			oldObj, ok := e.ObjectOld.(*clusterv1.Cluster)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				return false
+			}
+			oldObj = dropNotRelevant(oldObj)
+
+			newObj := e.ObjectNew.(*clusterv1.Cluster)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectNew))
+				return false
+			}
+			newObj = dropNotRelevant(newObj)
+
+			return reflect.DeepEqual(oldObj, newObj)
+		},
+		CreateFunc:  func(event.CreateEvent) bool { return true },
+		DeleteFunc:  func(event.DeleteEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+	}
+}
+
+func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	dropNotRelevant := func(cluster *clusterv1.MachineDeployment) *clusterv1.MachineDeployment {
+		md := cluster.DeepCopy()
+		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
+		// selectively drop changes not relevant for this controller.
+		md.Status.V1Beta2 = nil
+		return md
+	}
+
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicate", "ClusterUpdateUnpaused", "eventType", "update")
+			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
+			}
+
+			oldObj, ok := e.ObjectOld.(*clusterv1.MachineDeployment)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				return false
+			}
+			oldObj = dropNotRelevant(oldObj)
+
+			newObj := e.ObjectNew.(*clusterv1.MachineDeployment)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectNew))
+				return false
+			}
+			newObj = dropNotRelevant(newObj)
+
+			return reflect.DeepEqual(oldObj, newObj)
+		},
+		CreateFunc:  func(event.CreateEvent) bool { return true },
+		DeleteFunc:  func(event.DeleteEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+	}
 }
 
 // SetupForDryRun prepares the Reconciler for a dry run execution.

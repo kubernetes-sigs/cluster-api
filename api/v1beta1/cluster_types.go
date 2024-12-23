@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"cmp"
 	"fmt"
 	"net"
 	"strings"
@@ -516,6 +517,15 @@ type ClusterAvailabilityGate struct {
 type Topology struct {
 	// The name of the ClusterClass object to create the topology.
 	Class string `json:"class"`
+
+	// The namespace of the ClusterClass object to create the topology. Empty namespace assumes the namespace of the cluster object.
+	// Class namespace changes are not supported by the rebase procedure, as different CC namespace uses namespace-local templates.
+	// Cluster templates namespace modification is not allowed.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern="^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$"
+	ClassNamespace string `json:"classNamespace,omitempty"`
 
 	// The Kubernetes version of the cluster.
 	Version string `json:"version"`
@@ -1045,7 +1055,9 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 	if c.Spec.Topology == nil {
 		return types.NamespacedName{}
 	}
-	return types.NamespacedName{Namespace: c.GetNamespace(), Name: c.Spec.Topology.Class}
+
+	namespace := cmp.Or(c.Spec.Topology.ClassNamespace, c.Namespace)
+	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.Class}
 }
 
 // GetConditions returns the set of conditions for this object.

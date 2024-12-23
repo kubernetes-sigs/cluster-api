@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -168,32 +167,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "{hook=\"GeneratePatches\"}"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -226,7 +200,7 @@
           "refId": "A"
         }
       ],
-      "title": "Request per minute",
+      "title": "Request per seconds",
       "type": "timeseries"
     },
     {
@@ -331,12 +305,12 @@
         "current": {
           "selected": true,
           "text": [
-            "GeneratePatches",
-            "DiscoverVariables"
+            "DiscoverVariables",
+            "GeneratePatches"
           ],
           "value": [
-            "GeneratePatches",
-            "DiscoverVariables"
+            "DiscoverVariables",
+            "GeneratePatches"
           ]
         },
         "datasource": {
@@ -370,6 +344,6 @@
   "timezone": "",
   "title": "Runtime Extensions",
   "uid": "eefe124a-7ad8-488f-8078-ef30f7b2ac21",
-  "version": 3,
+  "version": 1,
   "weekStart": ""
 }

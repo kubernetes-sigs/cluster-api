@@ -50,11 +50,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -397,6 +397,8 @@ type TopologyMutationHook interface {
 	GeneratePatches(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, resp *runtimehooksv1.GeneratePatchesResponse)
 	ValidateTopology(ctx context.Context, req *runtimehooksv1.ValidateTopologyRequest, resp *runtimehooksv1.ValidateTopologyResponse)
 }
+
+var _ runtimeclient.Client = &injectRuntimeClient{}
 
 // injectRuntimeClient implements a runtimeclient.Client.
 // It allows us to plug a TopologyMutationHook into Cluster and ClusterClass controllers.

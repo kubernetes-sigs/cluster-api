@@ -37,8 +37,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"

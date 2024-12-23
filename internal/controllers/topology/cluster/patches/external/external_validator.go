@@ -24,10 +24,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // externalValidator validates templates.

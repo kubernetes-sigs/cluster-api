@@ -21,7 +21,7 @@ require (
 	github.com/vincent-petithory/dataurl v1.0.0
 	go.etcd.io/etcd/api/v3 v3.5.15
 	go.etcd.io/etcd/client/v3 v3.5.15
-	golang.org/x/net v0.27.0
+	golang.org/x/net v0.33.0
 	google.golang.org/grpc v1.62.2
 	k8s.io/api v0.30.3
 	k8s.io/apiextensions-apiserver v0.30.3

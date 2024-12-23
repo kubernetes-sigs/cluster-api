@@ -91,10 +91,10 @@ const (
 
 // MachineAddress contains information for the node's address.
 type MachineAddress struct {
-	// Machine address type, one of Hostname, ExternalIP or InternalIP.
+	// type is the machine address type, one of Hostname, ExternalIP or InternalIP.
 	Type MachineAddressType `json:"type"`
 
-	// The machine address.
+	// address is the machine address.
 	Address string `json:"address"`
 }
 
@@ -167,7 +167,7 @@ type ObjectMeta struct {
 	// Deprecated: This field has no function and is going to be removed in a next release.
 	Namespace string `json:"namespace,omitempty"`
 
-	// Map of string keys and values that can be used to organize and categorize
+	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
@@ -181,7 +181,7 @@ type ObjectMeta struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// List of objects depended by this object. If ALL objects in the list have
+	// ownerReferences is the list of objects depended by this object. If ALL objects in the list have
 	// been deleted, this object will be garbage collected. If this object is managed by a controller,
 	// then an entry in this list will point to this controller, with the controller field set to true.
 	// There cannot be more than one managing controller.

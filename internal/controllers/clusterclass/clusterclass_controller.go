@@ -44,13 +44,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -473,7 +473,7 @@ func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client
 		}
 		for _, patch := range clusterClass.Spec.Patches {
 			if patch.External != nil && patch.External.DiscoverVariablesExtension != nil {
-				extName, err := runtimeclient.ExtensionNameFromHandlerName(*patch.External.DiscoverVariablesExtension)
+				extName, err := internalruntimeclient.ExtensionNameFromHandlerName(*patch.External.DiscoverVariablesExtension)
 				if err != nil {
 					log.Error(err, "failed to reconcile ClusterClass for ExtensionConfig")
 					continue
@@ -508,9 +508,9 @@ func matchNamespace(ctx context.Context, c client.Client, selector labels.Select
 	return selector.Matches(labels.Set(ns.GetLabels()))
 }
 
-func cacheKeyFunc(registration *runtimeregistry.ExtensionRegistration, request runtimehooksv1.RequestObject) string {
+func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
 	// Note: registration.Name is identical to the value of the patch.External.DiscoverVariablesExtension field in the ClusterClass.
-	s := fmt.Sprintf("%s-%s", registration.Name, registration.ExtensionConfigResourceVersion)
+	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)
 	for k, v := range request.GetSettings() {
 		s += fmt.Sprintf(",%s=%s", k, v)
 	}

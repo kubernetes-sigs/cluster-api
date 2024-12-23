@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
 	clusterclasscontroller "sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
@@ -34,7 +35,6 @@ import (
 	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
 	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
 	machinesettopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus

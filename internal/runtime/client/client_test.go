@@ -40,11 +40,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	fakev1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
-	"sigs.k8s.io/cluster-api/internal/util/cache"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 func TestClient_httpCall(t *testing.T) {
@@ -808,9 +809,9 @@ func TestClient_CallExtension(t *testing.T) {
 
 			// Call again with caching.
 			serverCallCount = 0
-			cache := cache.New[CallExtensionCacheEntry]()
+			cache := cache.New[runtimeclient.CallExtensionCacheEntry]()
 			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
-				WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -825,7 +826,7 @@ func TestClient_CallExtension(t *testing.T) {
 				g.Expect(cacheEntry).ToNot(BeNil())
 
 				err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
-					WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+					runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 				// When we expect the response to be cached we always expect no errors.
 				g.Expect(err).ToNot(HaveOccurred())
 				// As the response is cached we expect no further calls to the server.
@@ -841,9 +842,9 @@ func TestClient_CallExtension(t *testing.T) {
 	}
 }
 
-func cacheKeyFunc(registration *runtimeregistry.ExtensionRegistration, request runtimehooksv1.RequestObject) string {
-	// Note: registration.Name is identical to the value of the name parameter passed into CallExtension.
-	s := fmt.Sprintf("%s-%s", registration.Name, registration.ExtensionConfigResourceVersion)
+func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
+	// Note: extensionName is identical to the value of the name parameter passed into CallExtension.
+	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)
 	for k, v := range request.GetSettings() {
 		s += fmt.Sprintf(",%s=%s", k, v)
 	}

@@ -24,8 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/internal/controllers"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // ExtensionConfigReconciler reconciles an ExtensionConfig object.

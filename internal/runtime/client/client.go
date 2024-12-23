@@ -47,10 +47,10 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
-	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -66,7 +66,7 @@ type Options struct {
 }
 
 // New returns a new Client.
-func New(options Options) Client {
+func New(options Options) runtimeclient.Client {
 	return &client{
 		catalog:  options.Catalog,
 		registry: options.Registry,
@@ -74,34 +74,7 @@ func New(options Options) Client {
 	}
 }
 
-// Client is the runtime client to interact with extensions.
-type Client interface {
-	// WarmUp can be used to initialize a "cold" RuntimeClient with all
-	// known runtimev1.ExtensionConfigs at a given time.
-	// After WarmUp completes the RuntimeClient is considered ready.
-	WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error
-
-	// IsReady return true after the RuntimeClient finishes warmup.
-	IsReady() bool
-
-	// Discover makes the discovery call on the extension and returns an updated ExtensionConfig
-	// with extension handlers information in the ExtensionConfig status.
-	Discover(context.Context, *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error)
-
-	// Register registers the ExtensionConfig.
-	Register(extensionConfig *runtimev1.ExtensionConfig) error
-
-	// Unregister unregisters the ExtensionConfig.
-	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
-
-	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
-
-	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
-}
-
-var _ Client = &client{}
+var _ runtimeclient.Client = &client{}
 
 type client struct {
 	catalog  *runtimecatalog.Catalog
@@ -278,44 +251,6 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 	aggregatedResponse.SetMessage(strings.Join(messages, ", "))
 }
 
-// CallExtensionOption is the interface for configuration that modifies CallExtensionOptions for a CallExtension call.
-type CallExtensionOption interface {
-	// ApplyToOptions applies this configuration to the given CallExtensionOptions.
-	ApplyToOptions(*CallExtensionOptions)
-}
-
-// CallExtensionCacheEntry is a cache entry for the cache that can be used with the CallExtension call via
-// the WithCaching option.
-type CallExtensionCacheEntry struct {
-	CacheKey string
-	Response runtimehooksv1.ResponseObject
-}
-
-// Key returns the cache key of a CallExtensionCacheEntry.
-func (c CallExtensionCacheEntry) Key() string {
-	return c.CacheKey
-}
-
-// WithCaching enables caching for the CallExtension call.
-type WithCaching struct {
-	Cache        cache.Cache[CallExtensionCacheEntry]
-	CacheKeyFunc func(*runtimeregistry.ExtensionRegistration, runtimehooksv1.RequestObject) string
-}
-
-// ApplyToOptions applies WithCaching to the given CallExtensionOptions.
-func (w WithCaching) ApplyToOptions(in *CallExtensionOptions) {
-	in.WithCaching = true
-	in.Cache = w.Cache
-	in.CacheKeyFunc = w.CacheKeyFunc
-}
-
-// CallExtensionOptions contains the options for the CallExtension call.
-type CallExtensionOptions struct {
-	WithCaching  bool
-	Cache        cache.Cache[CallExtensionCacheEntry]
-	CacheKeyFunc func(*runtimeregistry.ExtensionRegistration, runtimehooksv1.RequestObject) string
-}
-
 // CallExtension makes the call to the extension with the given name.
 // The response object passed will be updated with the response of the call.
 // An error is returned if the extension is not compatible with the hook.
@@ -328,9 +263,9 @@ type CallExtensionOptions struct {
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
 	// Calculate the options.
-	options := &CallExtensionOptions{}
+	options := &runtimeclient.CallExtensionOptions{}
 	for _, opt := range opts {
 		opt.ApplyToOptions(options)
 	}
@@ -380,7 +315,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	var cacheKey string
 	if options.WithCaching {
 		// Return a cached response if response is cached.
-		cacheKey = options.CacheKeyFunc(registration, request)
+		cacheKey = options.CacheKeyFunc(registration.Name, registration.ExtensionConfigResourceVersion, request)
 		if cacheEntry, ok := options.Cache.Has(cacheKey); ok {
 			// Set response to cacheEntry.Response.
 			outVal := reflect.ValueOf(response)
@@ -432,7 +367,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 
 	if options.WithCaching {
 		// Add response to the cache.
-		options.Cache.Add(CallExtensionCacheEntry{
+		options.Cache.Add(runtimeclient.CallExtensionCacheEntry{
 			CacheKey: cacheKey,
 			Response: response,
 		})

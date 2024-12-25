@@ -13,8 +13,8 @@ Much of the information here was adapted directly from it.
 
 Also worth to notice that suggestion in this guide are only intended to help first time provider implementers to get started,
 but this is not an exhaustive guide of all the intricacies of developing Kubernetes controllers. 
-Please refer to  the [Kubebuilder Book][kubebuilder-book] and to [Cluster API videos and tutorials](../../guide.md#videos-explaining-capi-architecture-and-code-walkthroughs)
-for more information. 
+Please refer to  the [Kubebuilder Book][kubebuilder-book] and to [Cluster API videos and tutorials](../../getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs)
+for more information.
 
 If you already know how `kubebuilder` works, if you know how to write Kubernetes controllers, or if you are planning 
 to use something different than `kubebuilder` to develop your own Cluster API provider, you can skip this guide entirely.

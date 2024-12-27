@@ -473,10 +473,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 					hooks = append(hooks, key)
 				}
 			}
+			slices.Sort(hooks)
 			log.Info("Waiting for pre-drain hooks to succeed", "hooks", strings.Join(hooks, ","))
 			conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
 			s.deletingReason = clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason
-			s.deletingMessage = fmt.Sprintf("Waiting for pre-drain hooks to complete (hooks: %s)", strings.Join(hooks, ","))
+			s.deletingMessage = fmt.Sprintf("Waiting for pre-drain hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
 			return ctrl.Result{}, nil
 		}
 		conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededCondition)

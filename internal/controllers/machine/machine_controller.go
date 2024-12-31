@@ -664,6 +664,10 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 		return false
 	}
 
+	if conditions.Get(m, clusterv1.PreTerminateDeleteHookSucceededCondition) != nil {
+		return false
+	}
+
 	return true
 }
 
@@ -681,6 +685,10 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 	}
 
 	if r.nodeVolumeDetachTimeoutExceeded(m) {
+		return false
+	}
+
+	if conditions.Get(m, clusterv1.PreTerminateDeleteHookSucceededCondition) != nil {
 		return false
 	}
 

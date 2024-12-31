@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -136,8 +137,12 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}()
 
 	// Handle deleted machines
-	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
+	if !dockerMachinePool.DeletionTimestamp.IsZero() {
+		// perform dockerMachinePool delete and requeue in 30s giving time for containers to be deleted.
+		if err = r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// Add finalizer and the InfrastructureMachineKind if they aren't already present, and requeue if either were added.

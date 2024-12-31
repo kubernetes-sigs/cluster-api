@@ -69,7 +69,7 @@ type ControlPlaneClass struct {
 	// LocalObjectTemplate contains the reference to the control plane provider.
 	LocalObjectTemplate `json:",inline"`
 
-	// MachineTemplate defines the metadata and infrastructure information
+	// machineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
 	//
 	// This field is supported if and only if the control plane provider template

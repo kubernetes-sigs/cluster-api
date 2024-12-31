@@ -366,8 +366,10 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSet is the Schema for the clusterresourcesets
-          API.
+        description: |-
+          ClusterResourceSet is the Schema for the clusterresourcesets API
+          it provides a basic solution for installing & managing resources
+          while for advanced use cases an addon provider must be used.
         properties:
           apiVersion:
             description: |-

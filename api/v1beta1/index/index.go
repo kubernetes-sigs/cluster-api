@@ -39,6 +39,10 @@ func AddDefaultIndexes(ctx context.Context, mgr ctrl.Manager) error {
 		if err := ByClusterClassName(ctx, mgr); err != nil {
 			return err
 		}
+
+		if err := ByClusterClassNamespace(ctx, mgr); err != nil {
+			return err
+		}
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {

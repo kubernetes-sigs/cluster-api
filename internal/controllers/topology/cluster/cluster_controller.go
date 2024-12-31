@@ -492,8 +492,10 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 	if err := r.Client.List(
 		ctx,
 		clusterList,
-		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
-		client.InNamespace(clusterClass.Namespace),
+		client.MatchingFields{
+			index.ClusterClassNameField:      clusterClass.Name,
+			index.ClusterClassNamespaceField: clusterClass.Namespace,
+		},
 	); err != nil {
 		return nil
 	}

@@ -379,12 +379,15 @@ func (webhook *ClusterClass) classNamesFromMPWorkerClass(w clusterv1.WorkersClas
 func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, clusterClass *clusterv1.ClusterClass) ([]clusterv1.Cluster, error) {
 	clusters := &clusterv1.ClusterList{}
 	err := webhook.Client.List(ctx, clusters,
-		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
-		client.InNamespace(clusterClass.Namespace),
+		client.MatchingFields{
+			index.ClusterClassNameField:      clusterClass.Name,
+			index.ClusterClassNamespaceField: clusterClass.Namespace,
+		},
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	return clusters.Items, nil
 }
 

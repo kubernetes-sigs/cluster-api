@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -136,8 +137,39 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 }
 
 func Test_githubRepository_newGitHubRepository(t *testing.T) {
-	retryableOperationInterval = 200 * time.Millisecond
-	retryableOperationTimeout = 1 * time.Second
+	retryableOperationInterval = 100 * time.Millisecond
+	retryableOperationTimeout = 200 * time.Millisecond
+
+	client, mux, teardown := test.NewFakeGitHub()
+	defer teardown()
+
+	var (
+		owner         = "o"
+		repo          = "r1"
+		version       = "v0.4.1"
+		componentDir  = "path/to"
+		componentName = "component.yaml"
+		assetID       = 123
+	)
+
+	// Setup a handler for returning fake releases in a paginated manner
+	mux.HandleFunc(fmt.Sprintf("/repos/%s/%s/releases", owner, repo), func(w http.ResponseWriter, r *http.Request) {
+		goproxytest.HTTPTestMethod(t, r, "GET")
+		fmt.Fprint(w, `[`)
+		fmt.Fprintf(w, `{"id":1, "tag_name": "%s"}`, version)
+		fmt.Fprint(w, `]`)
+	})
+
+	mux.HandleFunc(fmt.Sprintf("/repos/%s/%s/releases/tags/%s", owner, repo, version), func(w http.ResponseWriter, r *http.Request) {
+		goproxytest.HTTPTestMethod(t, r, "GET")
+		fmt.Fprintf(w, `{"tag_name": "%s", "assets": [{"id": %d, "name": "%s"}]}`, version, assetID, path.Join(componentDir, "metadata.yaml"))
+	})
+
+	mux.HandleFunc(fmt.Sprintf("/repos/%s/%s/releases/assets/%d", owner, repo, assetID), func(w http.ResponseWriter, r *http.Request) {
+		goproxytest.HTTPTestMethod(t, r, "GET")
+		fmt.Fprint(w, `random file content`)
+	})
+
 	type field struct {
 		providerConfig config.Provider
 		variableClient config.VariablesClient
@@ -151,19 +183,19 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 		{
 			name: "can create a new GitHub repo",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
 				variableClient: test.NewFakeVariableClient(),
 			},
 			want: &gitHubRepository{
-				providerConfig:           config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
 				configVariablesClient:    test.NewFakeVariableClient(),
 				authenticatingHTTPClient: nil,
-				owner:                    "o",
-				repository:               "r1",
-				defaultVersion:           "v0.4.1",
-				rootPath:                 ".",
-				componentsPath:           "path",
-				injectClient:             nil,
+				owner:                    owner,
+				repository:               repo,
+				defaultVersion:           version,
+				rootPath:                 componentDir,
+				componentsPath:           componentName,
+				injectClient:             client,
 			},
 			wantErr: false,
 		},
@@ -212,6 +244,100 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "valid url without `download`, with `latest`",
+			field: field{
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/latest/%s", owner, repo, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/latest/%s", owner, repo, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    owner,
+				repository:               repo,
+				defaultVersion:           version,
+				rootPath:                 componentDir,
+				componentsPath:           componentName,
+				injectClient:             client,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid url with `download`, with `latest`",
+			field: field{
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/latest/download/%s", owner, repo, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/latest/download/%s", owner, repo, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    owner,
+				repository:               repo,
+				defaultVersion:           version,
+				rootPath:                 componentDir,
+				componentsPath:           componentName,
+				injectClient:             client,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid url with `download`, with version",
+			field: field{
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    owner,
+				repository:               repo,
+				defaultVersion:           version,
+				rootPath:                 componentDir,
+				componentsPath:           componentName,
+				injectClient:             client,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid url without `download`, with version",
+			field: field{
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://github.com/%s/%s/releases/%s/%s", owner, repo, version, path.Join(componentDir, componentName)), clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    owner,
+				repository:               repo,
+				defaultVersion:           version,
+				rootPath:                 componentDir,
+				componentsPath:           componentName,
+				injectClient:             client,
+			},
+			wantErr: false,
+		},
+		{
+			name: "provider url should be in https://github.com/{owner}/{Repository}/releases/download/{version}/{componentsClient.yaml} format",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v1.2.3/download/path", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "provider url should be in https://github.com/{owner}/{Repository}/releases/latest/download/{componentsClient.yaml} format",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/download/latest/path", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -219,7 +345,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := NewGitHubRepository(context.Background(), tt.field.providerConfig, tt.field.variableClient)
+			gitHub, err := NewGitHubRepository(context.Background(), tt.field.providerConfig, tt.field.variableClient, injectGithubClient(client))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

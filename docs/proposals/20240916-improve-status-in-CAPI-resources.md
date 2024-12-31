@@ -503,20 +503,21 @@ type MachineSetStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
-| `V1Beta2` (new)                   | (removed)                                                     | (removed)                                          |
-| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                        | `Conditions`                                       |
-| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
-| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
-| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
-|                                   | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)  | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| other fields...                   | other fields...                                               | other fields...                                    |
+| v1beta1 (tentative Dec 2024)        | v1beta2 (tentative Apr 2025)                                     | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-------------------------------------|------------------------------------------------------------------|----------------------------------------------------|
+| `V1Beta2` (new)                     | (removed)                                                        | (removed)                                          |
+| `V1Beta2.Conditions` (new)          | `Conditions` (renamed)                                           | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)       | `ReadyReplicas` (renamed)                                        | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new)   | `AvailableReplicas` (renamed)                                    | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)    | `UpToDateReplicas` (renamed)                                     | `UpToDateReplicas`                                 |
+|                                     | `Deprecated.V1Beta1` (new)                                       | (removed)                                          |
+| `ReadyReplicas` (deprecated)        | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)        | (removed)                                          |
+| `AvailableReplicas` (deprecated)    | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated)    | (removed)                                          |
+| `FullyLabeledReplicas` (deprecated) | `Deprecated.V1Beta1.FullyLabeledReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)        | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)        | (removed)                                          |
+| `FailureMessage` (deprecated)       | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)       | (removed)                                          |
+| `Conditions` (deprecated)           | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)           | (removed)                                          |
+| other fields...                     | other fields...                                                  | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
@@ -628,25 +629,23 @@ type MachineDeploymentStatus struct {
     Conditions []metav1.Condition `json:"conditions,omitempty"`
 
     // Other fields...
-    // NOTE: `FailureReason`, `FailureMessage` fields won't be there anymore
 }
 ```
 
-| v1beta1 (tentative Dec 2024)     | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
-| `V1Beta2` (new)                  | (removed)                                                     | (removed)                                          |
-| `V1Beta2.Conditions` (new)       | `Conditions` (renamed)                                        | `Conditions`                                       |
-| `V1Beta2.ReadyReplicas` (new)    | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
-| `V1Beta2.AvilableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
-| `V1Beta2.UpToDateReplicas` (new) | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
-|                                  | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)     | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated) | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)     | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)    | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions` (deprecated)        | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `UpdatedReplicas` (deprecated)   | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated)   | (removed)                                          |
-| other fields...                  | other fields...                                               | other fields...                                    |
+| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+| `V1Beta2` (new)                    | (removed)                                                       | (removed)                                          |
+| `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                          | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)      | `ReadyReplicas` (renamed)                                       | `ReadyReplicas`                                    |
+| `V1Beta2.AvilableReplicas` (new)   | `AvailableReplicas` (renamed)                                   | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)   | `UpToDateReplicas` (renamed)                                    | `UpToDateReplicas`                                 |
+|                                    | `Deprecated.V1Beta1` (new)                                      | (removed)                                          |
+| `ReadyReplicas` (deprecated)       | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)       | (removed)                                          |
+| `AvailableReplicas` (deprecated)   | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated)   | (removed)                                          |
+| `UnavailableReplicas` (deprecated) | `Deprecated.V1Beta1.UnavailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `Conditions` (deprecated)          | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)          | (removed)                                          |
+| `UpdatedReplicas` (deprecated)     | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated)     | (removed)                                          |
+| other fields...                    | other fields...                                                 | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
@@ -1005,21 +1004,22 @@ type KubeadmControlPlaneStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|-----------------------------------|-------------------------------------------------------------|----------------------------------------------------|
-| `Ready` (deprecated)              | `Ready` (deprecated)                                        | (removed)                                          |
-| `V1Beta2` (new)                   | (removed)                                                   | (removed)                                          |
-| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                      | `Conditions`                                       |
-| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                    |
-| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                                |
-| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                                | `UpToDateReplicas`                                 |
-|                                   | `Deprecated.V1Beta1` (new)                                  | (removed)                                          |
-| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)   | (removed)                                          |
-| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)   | (removed)                                          |
-| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)  | (removed)                                          |
-| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)      | (removed)                                          |
-| `UpdatedReplicas` (deprecated)    | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated) | (removed)                                          |
-| other fields...                   | other fields...                                             | other fields...                                    |
+| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+| `Ready` (deprecated)               | `Ready` (deprecated)                                            | (removed)                                          |
+| `V1Beta2` (new)                    | (removed)                                                       | (removed)                                          |
+| `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                          | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)      | `ReadyReplicas` (renamed)                                       | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new)  | `AvailableReplicas` (renamed)                                   | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)   | `UpToDateReplicas` (renamed)                                    | `UpToDateReplicas`                                 |
+|                                    | `Deprecated.V1Beta1` (new)                                      | (removed)                                          |
+| `ReadyReplicas` (deprecated)       | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)       | (removed)                                          |
+| `UnavailableReplicas` (deprecated) | `Deprecated.V1Beta1.UnavailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)       | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)       | (removed)                                          |
+| `FailureMessage` (deprecated)      | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)      | (removed)                                          |
+| `Conditions` (deprecated)          | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)          | (removed)                                          |
+| `UpdatedReplicas` (deprecated)     | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated)     | (removed)                                          |
+| other fields...                    | other fields...                                                 | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
@@ -1149,23 +1149,24 @@ type MachinePoolInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------------|---------------------------------------------------------------|----------------------------------------------------|
-|                                    | `Initialization` (new)                                        | `Initialization`                                   |
-| `BootstrapReady`                   | `Initialization.BootstrapDataSecretCreated` (renamed)         | `Initialization.BootstrapDataSecretCreated`        |
-| `InfrastructureReady`              | `Initialization.InfrastructureProvisioned` (renamed)          | `Initialization.InfrastructureProvisioned`         |
-| `V1Beta2` (new)                    | (removed)                                                     | (removed)                                          |
-| `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                        | `Conditions`                                       |
-| `V1Beta2.UpToDateReplicas` (new)   | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
-| `V1Beta2.ReadyReplicas` (new)      | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
-| `V1Beta2.AvailableReplicas` (new)  | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
-|                                    | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)       | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)   | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)       | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)      | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions` (deprecated)          | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| other fields...                    | other fields...                                               | other fields...                                    |
+| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
+|                                    | `Initialization` (new)                                          | `Initialization`                                   |
+| `BootstrapReady`                   | `Initialization.BootstrapDataSecretCreated` (renamed)           | `Initialization.BootstrapDataSecretCreated`        |
+| `InfrastructureReady`              | `Initialization.InfrastructureProvisioned` (renamed)            | `Initialization.InfrastructureProvisioned`         |
+| `V1Beta2` (new)                    | (removed)                                                       | (removed)                                          |
+| `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                          | `Conditions`                                       |
+| `V1Beta2.UpToDateReplicas` (new)   | `UpToDateReplicas` (renamed)                                    | `UpToDateReplicas`                                 |
+| `V1Beta2.ReadyReplicas` (new)      | `ReadyReplicas` (renamed)                                       | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new)  | `AvailableReplicas` (renamed)                                   | `AvailableReplicas`                                |
+|                                    | `Deprecated.V1Beta1` (new)                                      | (removed)                                          |
+| `ReadyReplicas` (deprecated)       | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)       | (removed)                                          |
+| `AvailableReplicas` (deprecated)   | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated)   | (removed)                                          |
+| `UnavailableReplicas` (deprecated) | `Deprecated.V1Beta1.UnavailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)       | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)       | (removed)                                          |
+| `FailureMessage` (deprecated)      | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)      | (removed)                                          |
+| `Conditions` (deprecated)          | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)          | (removed)                                          |
+| other fields...                    | other fields...                                                 | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.

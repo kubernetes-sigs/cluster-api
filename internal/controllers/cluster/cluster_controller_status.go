@@ -715,7 +715,7 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 		},
 	)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to aggregate Machine's %s conditions", s.condition))
+		log.Error(err, fmt.Sprintf("Failed to aggregate Machine's %s conditions", s.machineAggregationCondition))
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    s.condition,
 			Status:  metav1.ConditionUnknown,
@@ -835,7 +835,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 		},
 	)
 	if err != nil {
-		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's RollingOut conditions")
+		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment's RollingOut conditions")
 		v1beta2conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,

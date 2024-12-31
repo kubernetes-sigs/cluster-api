@@ -93,7 +93,7 @@ func TestSummaryMessages(t *testing.T) {
 	d := &defaultMergeStrategy{
 		getPriorityFunc: GetDefaultMergePriorityFunc(),
 	}
-	t.Run("Drops info messages when status is not true", func(t *testing.T) {
+	t.Run("When status is not true, drop info messages", func(t *testing.T) {
 		g := NewWithT(t)
 
 		conditions := []ConditionWithOwnerInfo{
@@ -108,9 +108,10 @@ func TestSummaryMessages(t *testing.T) {
 
 		g.Expect(message).To(Equal("* A: Message-A\n" +
 			"* B: Message-B\n" +
+			// Info message of true condition C was dropped
 			"* D: Reason-D")) // False conditions without messages must show the reason
 	})
-	t.Run("When status is not true, surface only not empty messages", func(t *testing.T) {
+	t.Run("When status is true, surface only not empty messages", func(t *testing.T) {
 		g := NewWithT(t)
 
 		conditions := []ConditionWithOwnerInfo{
@@ -129,7 +130,6 @@ func TestSummaryMessages(t *testing.T) {
 		g := NewWithT(t)
 
 		conditions := []ConditionWithOwnerInfo{
-			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "* Message-B", Status: metav1.ConditionTrue}},
 			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Message: "* Message-C1\n* Message-C2", Status: metav1.ConditionTrue}},

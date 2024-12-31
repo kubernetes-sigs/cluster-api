@@ -1472,7 +1472,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "cluster without controlplane, descendants report scaling up",
+			name:    "cluster without controlplane, descendants report rolling out",
 			cluster: fakeCluster("c"),
 			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
 				*fakeMachinePool("mp1", v1beta2Condition{

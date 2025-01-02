@@ -54,14 +54,14 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// The identifier consists of: gvk, namespace, name and resourceVersion of originalUnstructured
 	// and a hash of modifiedUnstructured.
 	// This ensures that we re-run the request as soon as either original or modified changes.
-	requestIdentifier, err := ssa.ComputeRequestIdentifier(dryRunCtx.client.Scheme(), dryRunCtx.originalUnstructured, dryRunCtx.modifiedUnstructured)
+	requestIdentifier, kind, err := ssa.ComputeRequestIdentifier(dryRunCtx.client.Scheme(), dryRunCtx.originalUnstructured, dryRunCtx.modifiedUnstructured)
 	if err != nil {
 		return false, false, nil, err
 	}
 
 	// Check if we already ran this request before by checking if the cache already contains this identifier.
 	// Note: We only add an identifier to the cache if the result of the dry run was no diff.
-	if exists := dryRunCtx.ssaCache.Has(requestIdentifier); exists {
+	if exists := dryRunCtx.ssaCache.Has(requestIdentifier, kind); exists {
 		return false, false, nil, nil
 	}
 

@@ -4011,6 +4011,43 @@ spec:
                               maxLength: 256
                               minLength: 1
                               type: string
+                            diskLayout:
+                              description: |-
+                                diskLayout specifies an ordered list of partitions, where each item defines the
+                                percentage of disk space and optional partition type for that partition.
+                                The sum of all partition percentages must not be greater than 100.
+                                If specified, this will override the Layout field.
+                              items:
+                                description: PartitionSpec defines the size and optional
+                                  type for a partition.
+                                properties:
+                                  partitionType:
+                                    description: |-
+                                      partitionType is the partition type (optional).
+                                      Supported values are Linux, LinuxSwap, LinuxRaid, LVM, Fat32, NTFS,
+                                      and LinuxExtended. These are translated to cloud-init partition type codes.
+                                    enum:
+                                    - Linux
+                                    - LinuxSwap
+                                    - LinuxRaid
+                                    - LVM
+                                    - Fat32
+                                    - NTFS
+                                    - LinuxExtended
+                                    type: string
+                                  percentage:
+                                    description: percentage of disk that partition
+                                      will take (1-100)
+                                    format: int32
+                                    maximum: 100
+                                    minimum: 1
+                                    type: integer
+                                required:
+                                - percentage
+                                type: object
+                              maxItems: 100
+                              type: array
+                              x-kubernetes-list-type: atomic
                             layout:
                               description: |-
                                 layout specifies the device layout.

@@ -84,6 +84,15 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 	if restored.ClusterConfiguration.EncryptionAlgorithm != "" {
 		dst.ClusterConfiguration.EncryptionAlgorithm = restored.ClusterConfiguration.EncryptionAlgorithm
 	}
+
+	for _, restoredPartition := range restored.DiskSetup.Partitions {
+		for i, dstPartition := range dst.DiskSetup.Partitions {
+			if restoredPartition.Device == dstPartition.Device {
+				dst.DiskSetup.Partitions[i].Layout = restoredPartition.Layout
+				dst.DiskSetup.Partitions[i].DiskLayout = restoredPartition.DiskLayout
+			}
+		}
+	}
 }
 
 func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {
@@ -447,6 +456,11 @@ func Convert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(
 		out.Taints = *in.Taints
 	}
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in, out, s)
+}
+
+func Convert_v1beta2_Partition_To_v1beta1_Partition(in *bootstrapv1.Partition, out *Partition, s apimachineryconversion.Scope) error {
+	// DiskLayout exists only in v1beta2 and is intentionally dropped when down-converting to v1beta1.
+	return autoConvert_v1beta2_Partition_To_v1beta1_Partition(in, out, s)
 }
 
 func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {

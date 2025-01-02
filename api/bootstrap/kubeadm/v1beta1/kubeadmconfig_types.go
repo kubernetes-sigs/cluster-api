@@ -774,6 +774,40 @@ type DiskSetup struct {
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
 }
 
+// PartitionSpec defines the size and optional type for a partition
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage"`
+
+	// partitionType is the partition type (optional).
+	// +optional
+	PartitionType PartitionType `json:"partitionType,omitempty"`
+}
+
+// PartitionType defines the partition type.
+// +kubebuilder:validation:Enum="83";"82";"fd";"8e";"0c";"07";"85"
+type PartitionType string
+
+const (
+	// PartitionTypeLinux is the partition type for Linux (83).
+	PartitionTypeLinux PartitionType = "83"
+	// PartitionTypeSwap is the partition type for Linux Swap (82).
+	PartitionTypeSwap PartitionType = "82"
+	// PartitionTypeLinuxRAID is the partition type for Linux RAID (fd).
+	PartitionTypeLinuxRAID PartitionType = "fd"
+	// PartitionTypeLVM is the partition type for LVM (8e).
+	PartitionTypeLVM PartitionType = "8e"
+	// PartitionTypeWin95FAT32LBA is the partition type for Win95 FAT32 LBA (0c).
+	PartitionTypeWin95FAT32LBA PartitionType = "0c"
+	// PartitionTypeNTFS is the partition type for NTFS (07).
+	PartitionTypeNTFS PartitionType = "07"
+	// PartitionTypeLinuxExtended is the partition type for Linux Extended (85).
+	PartitionTypeLinuxExtended PartitionType = "85"
+)
+
 // Partition defines how to create and layout a partition.
 type Partition struct {
 	// device is the name of the device.
@@ -781,16 +815,24 @@ type Partition struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Device string `json:"device"`
+
 	// layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
 	// +required
 	Layout bool `json:"layout"`
+
+	// diskLayout specifies the percentage of disk space and partition types.
+	// If specified, this will override the Layout field.
+	// +optional
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
+
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
-	// tableType specifies the tupe of partition table. The following are supported:
+
+	// tableType specifies the type of partition table. The following are supported:
 	// 'mbr': default and setups a MS-DOS partition table
 	// 'gpt': setups a GPT partition table
 	// +optional

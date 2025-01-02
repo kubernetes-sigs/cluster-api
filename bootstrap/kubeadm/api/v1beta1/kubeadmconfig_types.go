@@ -675,17 +675,15 @@ type DiskSetup struct {
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
 }
 
-// DiskLayout represents an array of partition specifications
-type DiskLayout []PartitionSpec
-
 // PartitionSpec defines the size and optional type for a partition
 type PartitionSpec struct {
-	// Percentage of disk that partition will take (1-100)
+	// percentage of disk that partition will take (1-100)
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=100
+	// +required
 	Percentage int32 `json:"percentage"`
 
-	// PartitionType is the numerical value of the partition type (optional)
+	// partitionType is the numerical value of the partition type (optional)
 	// +optional
 	PartitionType *int32 `json:"partitionType,omitempty"`
 }
@@ -703,7 +701,7 @@ type Partition struct {
 	// diskLayout specifies the percentage of disk space and partition types.
 	// If specified, this will override the Layout field.
 	// +optional
-	DiskLayout DiskLayout `json:"diskLayout,omitempty"`
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
 
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.

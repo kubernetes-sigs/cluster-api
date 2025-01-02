@@ -236,6 +236,6 @@ func Convert_v1beta1_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *boo
 }
 
 func Convert_v1beta1_Partition_To_v1alpha4_Partition(in *bootstrapv1.Partition, out *Partition, s apiconversion.Scope) error {
-	// Disk Lawas added in v1beta1.
+	// Disk Layout was added in v1beta1.
 	return autoConvert_v1beta1_Partition_To_v1alpha4_Partition(in, out, s)
 }

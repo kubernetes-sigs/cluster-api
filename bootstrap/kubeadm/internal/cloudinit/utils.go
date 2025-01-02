@@ -17,13 +17,17 @@ limitations under the License.
 package cloudinit
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
 
 var (
 	defaultTemplateFuncMap = template.FuncMap{
-		"Indent": templateYAMLIndent,
+		"Indent":                 templateYAMLIndent,
+		"CloudInitPartitionType": cloudInitPartitionType,
 	}
 )
 
@@ -31,4 +35,27 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
+}
+
+func cloudInitPartitionType(partitionType any) string {
+	value := fmt.Sprint(partitionType)
+	switch value {
+	case bootstrapv1.PartitionTypeLinux:
+		return "83"
+	case bootstrapv1.PartitionTypeSwap:
+		return "82"
+	case bootstrapv1.PartitionTypeLinuxRAID:
+		return "fd"
+	case bootstrapv1.PartitionTypeLVM:
+		return "8e"
+	case bootstrapv1.PartitionTypeWin95FAT32LBA:
+		return "0c"
+	case bootstrapv1.PartitionTypeNTFS:
+		return "07"
+	case bootstrapv1.PartitionTypeLinuxExtended:
+		return "85"
+	default:
+		// Preserve any raw cloud-init-compatible values to avoid breaking older input.
+		return value
+	}
 }

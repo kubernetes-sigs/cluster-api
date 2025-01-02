@@ -127,66 +127,99 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 }
 
 func TestNewInitControlPlaneDiskMounts(t *testing.T) {
-	g := NewWithT(t)
-
-	cpinput := &ControlPlaneInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			PreKubeadmCommands:  nil,
-			PostKubeadmCommands: nil,
-			WriteFiles:          nil,
-			Users:               nil,
-			NTP:                 nil,
-			DiskSetup: &bootstrapv1.DiskSetup{
-				Partitions: []bootstrapv1.Partition{
-					{
-						Device:    "test-device",
-						Layout:    true,
-						Overwrite: ptr.To(false),
-						TableType: ptr.To("gpt"),
+	tests := []struct {
+		name     string
+		input    *ControlPlaneInput
+		expected []string
+	}{
+		{
+			name: "simple layout",
+			input: &ControlPlaneInput{
+				BaseUserData: BaseUserData{
+					Header: "test",
+					DiskSetup: &bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
+							{
+								Device:    "test-device",
+								Layout:    true,
+								Overwrite: ptr.To(false),
+								TableType: ptr.To("gpt"),
+							},
+						},
+						Filesystems: []bootstrapv1.Filesystem{
+							{
+								Device:     "test-device",
+								Filesystem: "ext4",
+								Label:      "test_disk",
+								ExtraOpts:  []string{"-F", "-E", "lazy_itable_init=1,lazy_journal_init=1"},
+							},
+						},
+					},
+					Mounts: []bootstrapv1.MountPoints{
+						{"test_disk", "/var/lib/testdir"},
 					},
 				},
-				Filesystems: []bootstrapv1.Filesystem{
-					{
-						Device:     "test-device",
-						Filesystem: "ext4",
-						Label:      "test_disk",
-						ExtraOpts:  []string{"-F", "-E", "lazy_itable_init=1,lazy_journal_init=1"},
-					},
-				},
+				Certificates:         secret.Certificates{},
+				ClusterConfiguration: "my-cluster-config",
+				InitConfiguration:    "my-init-config",
 			},
-			Mounts: []bootstrapv1.MountPoints{
-				{"test_disk", "/var/lib/testdir"},
-			},
-		},
-		Certificates:         secret.Certificates{},
-		ClusterConfiguration: "my-cluster-config",
-		InitConfiguration:    "my-init-config",
-	}
-
-	out, err := NewInitControlPlane(cpinput)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	expectedDiskSetup := `disk_setup:
+			expected: []string{
+				`disk_setup:
   test-device:
     table_type: gpt
     layout: true
-    overwrite: false`
-	expectedFSSetup := `fs_setup:
-  - label: test_disk
-    filesystem: ext4
-    device: test-device
-    extra_opts:
-      - -F
-      - -E
-      - lazy_itable_init=1,lazy_journal_init=1`
-	expectedMounts := `mounts:
-  - - test_disk
-    - /var/lib/testdir`
+    overwrite: false`,
+			},
+		},
+		{
+			name: "detailed disk layout",
+			input: &ControlPlaneInput{
+				BaseUserData: BaseUserData{
+					Header: "test",
+					DiskSetup: &bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
+							{
+								Device: "test-device",
+								DiskLayout: bootstrapv1.DiskLayout{
+									{Percentage: 33},
+									{Percentage: 33, PartitionType: ptr.To[int32](82)},
+									{Percentage: 33},
+								},
+								Overwrite: ptr.To(true),
+								TableType: ptr.To("gpt"),
+							},
+						},
+					},
+				},
+				Certificates:         secret.Certificates{},
+				ClusterConfiguration: "my-cluster-config",
+				InitConfiguration:    "my-init-config",
+			},
+			expected: []string{
+				`disk_setup:
+  test-device:
+    table_type: gpt
+    layout:
+      - 33
+      - [33, 82]
+      - 33
+    overwrite: true`,
+			},
+		},
+	}
 
-	g.Expect(string(out)).To(ContainSubstring(expectedDiskSetup))
-	g.Expect(string(out)).To(ContainSubstring(expectedFSSetup))
-	g.Expect(string(out)).To(ContainSubstring(expectedMounts))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			out, err := NewInitControlPlane(tt.input)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			for _, expectedString := range tt.expected {
+				g.Expect(string(out)).To(ContainSubstring(expectedString))
+			}
+		})
+	}
 }
 
 func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {

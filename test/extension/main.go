@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -49,6 +50,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
@@ -154,6 +156,8 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
+	feature.MutableGates.AddFlag(fs)
+
 	// Add test-extension specific flags
 	// NOTE: it is not mandatory to use the same flag names in all RuntimeExtension, but it is recommended when
 	// addressing common concerns like profiler-address, webhook-port, webhook-cert-dir etc. because it helps in ensuring
@@ -220,6 +224,9 @@ func main() {
 	}
 
 	ctrlOptions := ctrl.Options{
+		Controller: config.Controller{
+			UsePriorityQueue: feature.Gates.Enabled(feature.PriorityQueue),
+		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "controller-leader-election-capv-test-extension",

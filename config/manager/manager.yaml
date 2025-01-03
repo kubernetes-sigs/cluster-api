@@ -24,7 +24,7 @@ spec:
             - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
             - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
             - "--use-deprecated-infra-machine-naming=${CAPI_USE_DEPRECATED_INFRA_MACHINE_NAMING:=false}"
-            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=true},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false},MachineSetPreflightChecks=${EXP_MACHINE_SET_PREFLIGHT_CHECKS:=true},MachineWaitForVolumeDetachConsiderVolumeAttachments=${EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS:=true}"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=true},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false},MachineSetPreflightChecks=${EXP_MACHINE_SET_PREFLIGHT_CHECKS:=true},MachineWaitForVolumeDetachConsiderVolumeAttachments=${EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS:=true},PriorityQueue=${EXP_PRIORITY_QUEUE:=false}"
           image: controller:latest
           name: manager
           env:

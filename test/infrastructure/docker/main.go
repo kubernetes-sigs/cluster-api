@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -230,6 +231,9 @@ func main() {
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
 	ctrlOptions := ctrl.Options{
+		Controller: config.Controller{
+			UsePriorityQueue: feature.Gates.Enabled(feature.PriorityQueue),
+		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "controller-leader-election-capd",

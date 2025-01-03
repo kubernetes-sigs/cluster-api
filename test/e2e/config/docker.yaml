@@ -401,6 +401,8 @@ variables:
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
+  # FIXME(sbueringer): TBD If we want to enable it for e2e tests already
+  EXP_PRIORITY_QUEUE: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
 

@@ -22,7 +22,7 @@ spec:
             - "--leader-elect"
             - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
             - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
-            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false},PriorityQueue=${EXP_PRIORITY_QUEUE:=false}"
             - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
           image: controller:latest
           name: manager

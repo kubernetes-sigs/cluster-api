@@ -68,6 +68,12 @@ const (
 	//
 	// beta: v1.9
 	MachineWaitForVolumeDetachConsiderVolumeAttachments featuregate.Feature = "MachineWaitForVolumeDetachConsiderVolumeAttachments"
+
+	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
+	// instead of the default queue implementation.
+	//
+	// alpha: v1.10
+	PriorityQueue featuregate.Feature = "PriorityQueue"
 )
 
 func init() {
@@ -82,6 +88,7 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	MachinePool:               {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks: {Default: true, PreRelease: featuregate.Beta},
 	MachineWaitForVolumeDetachConsiderVolumeAttachments: {Default: true, PreRelease: featuregate.Beta},
+	PriorityQueue:                  {Default: false, PreRelease: featuregate.Alpha},
 	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},

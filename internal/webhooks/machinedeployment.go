@@ -48,7 +48,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }

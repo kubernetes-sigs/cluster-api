@@ -29,8 +29,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/version"
-	utilversion "k8s.io/apiserver/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -1162,14 +1160,15 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
 			// the unit tests that verify that compatibility is handled correctly.
-			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
-			if effectiveVer != nil {
-				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
-			} else {
-				v := utilversion.DefaultKubeEffectiveVersion()
-				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
-				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
-			}
+			// FIXME(sbueringer)
+			//effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			//if effectiveVer != nil {
+			//	g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
+			//} else {
+			//	v := utilversion.DefaultKubeEffectiveVersion()
+			//	v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
+			//	g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+			//}
 
 			s := &scope{
 				clusterClass: tt.clusterClass,

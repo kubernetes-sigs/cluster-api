@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,12 +34,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -3851,4 +3854,568 @@ func podByNodeName(o client.Object) []string {
 	}
 
 	return []string{pod.Spec.NodeName}
+}
+
+func TestReconcileDelete(t *testing.T) {
+	g := NewWithT(t)
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+	nodeDrainStartTime, err := time.Parse(time.RFC3339, "2024-10-09T16:13:59Z")
+	g.Expect(err).ToNot(HaveOccurred())
+	waitForVolumeDetachStartTime, err := time.Parse(time.RFC3339, "2024-11-09T16:13:59Z")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
+				},
+				DataSecretName: new("data"),
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	// Note: cpmachine1 is an active control plane Machine, so that Node deletion is allowed for testMachine.
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	infraMachine := &contractv1.InfraMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "infra-config1",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	infraMachineDeleting := &contractv1.InfraMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "infra-config1",
+			Namespace:         metav1.NamespaceDefault,
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+			Finalizers:        []string{"test-finalizer"},
+		},
+	}
+
+	bootstrapConfig := &contractv1.BootstrapConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-config1",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	// Note: This Pod has to be evicted by the drain, but the fake client never removes it from the Node.
+	deploymentPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod-1-delete-running-deployment-pod",
+			Namespace: "test-namespace",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "Deployment",
+					Controller: new(true),
+				},
+			},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+		},
+		Spec: corev1.PodSpec{NodeName: "test"},
+	}
+
+	// Note: The drain skips mirror Pods.
+	mirrorPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod-2-skip-mirror-pod",
+			Namespace: "test-namespace",
+			Annotations: map[string]string{
+				corev1.MirrorPodAnnotationKey: "some-value",
+			},
+		},
+		Spec: corev1.PodSpec{NodeName: "test"},
+	}
+
+	persistentVolume := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pv",
+		},
+		Spec: corev1.PersistentVolumeSpec{
+			ClaimRef: &corev1.ObjectReference{
+				Kind:      "PersistentVolumeClaim",
+				Namespace: "default",
+				Name:      "test-pvc",
+			},
+			PersistentVolumeSource: corev1.PersistentVolumeSource{
+				CSI: &corev1.CSIPersistentVolumeSource{
+					VolumeHandle: "foo",
+					Driver:       "dummy",
+				},
+			},
+		},
+	}
+
+	attachedVolumes := []corev1.AttachedVolume{
+		{
+			Name:       corev1.UniqueVolumeName(fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.PersistentVolumeSource.CSI.Driver, persistentVolume.Spec.PersistentVolumeSource.CSI.VolumeHandle)),
+			DevicePath: "test-path",
+		},
+	}
+
+	nodeWithVolumesAttached := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+			VolumesAttached: attachedVolumes,
+		},
+	}
+
+	volumeAttachment := &storagev1.VolumeAttachment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-va",
+		},
+		Spec: storagev1.VolumeAttachmentSpec{
+			NodeName: "test",
+			Source: storagev1.VolumeAttachmentSource{
+				PersistentVolumeName: new(persistentVolume.Name),
+			},
+		},
+		Status: storagev1.VolumeAttachmentStatus{
+			Attached: true,
+		},
+	}
+
+	failListMachines := interceptor.Funcs{
+		List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, ok := list.(*clusterv1.MachineList); ok {
+				return apierrors.NewTimeoutError("request did not complete within the allotted timeout", 0)
+			}
+			return c.List(ctx, list, opts...)
+		},
+	}
+	failDelete := interceptor.Funcs{
+		Delete: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.DeleteOption) error {
+			gk := obj.GetObjectKind().GroupVersionKind().GroupKind()
+			return apierrors.NewForbidden(schema.GroupResource{Group: gk.Group, Resource: strings.ToLower(gk.Kind) + "s"}, obj.GetName(), errors.New("RBAC: access denied"))
+		},
+	}
+	failGetNode := interceptor.Funcs{
+		Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, ok := obj.(*corev1.Node); ok {
+				return apierrors.NewServiceUnavailable("the server is currently unable to handle the request")
+			}
+			return c.Get(ctx, key, obj, opts...)
+		},
+	}
+	failListVolumeAttachments := interceptor.Funcs{
+		List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, ok := list.(*storagev1.VolumeAttachmentList); ok {
+				return apierrors.NewForbidden(storagev1.Resource("volumeattachments"), "", errors.New("RBAC: access denied"))
+			}
+			return c.List(ctx, list, opts...)
+		},
+	}
+
+	excludeDrainAndVolumeDetach := map[string]string{
+		clusterv1.ExcludeNodeDrainingAnnotation:            "",
+		clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "",
+	}
+
+	testCases := []struct {
+		name string
+
+		// Inputs.
+		clusterDeleted         bool
+		annotations            map[string]string
+		machineStatusDeletion  *clusterv1.MachineDeletionStatus
+		node                   *corev1.Node
+		remoteObjects          []client.Object
+		infraMachine           contractapi.InfraMachine
+		bootstrapConfig        contractapi.BootstrapConfig
+		interceptorFuncs       interceptor.Funcs
+		remoteInterceptorFuncs interceptor.Funcs
+
+		// Expected results.
+		wantResult                 ctrl.Result
+		wantErr                    string
+		wantDeletingReason         string
+		wantDeletingMessage        string
+		wantFinalizerRemoved       bool
+		wantMachineStatusDeletion  *clusterv1.MachineDeletionStatus
+		wantEvents                 []string
+		wantDeferNextReconcile     time.Duration
+		wantNodeCordoned           bool
+		wantNodeDeleted            bool
+		wantInfraMachineDeleted    bool
+		wantBootstrapConfigDeleted bool
+	}{
+		{
+			name:                "Fail when checking if Node deletion is allowed fails",
+			interceptorFuncs:    failListMachines,
+			wantErr:             "failed to check if Kubernetes Node deletion is allowed: failed to list machines: Timeout: request did not complete within the allotted timeout",
+			wantDeletingReason:  clusterv1.MachineDeletingInternalErrorReason,
+			wantDeletingMessage: "Please check controller logs for errors",
+		},
+		{
+			name: "Wait for pre-drain hooks",
+			annotations: map[string]string{
+				"pre-drain.delete.hook.machine.cluster.x-k8s.io": "",
+			},
+			wantDeletingReason:        clusterv1.MachineDeletingWaitingForPreDrainHookReason,
+			wantDeletingMessage:       "Waiting for pre-drain hooks to succeed (hooks: pre-drain.delete.hook.machine.cluster.x-k8s.io)",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{WaitForPreDrainHookStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:                  "Wait for drain to complete if Pods are not evicted yet",
+			infraMachine:          infraMachine,
+			machineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: nodeDrainStartTime}},
+			remoteObjects:         []client.Object{deploymentPod, mirrorPod},
+			wantResult:            ctrl.Result{RequeueAfter: drainRetryInterval},
+			wantDeletingReason:    clusterv1.MachineDeletingDrainingNodeReason,
+			wantDeletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pod test-namespace/pod-1-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: anyTime}},
+			wantDeferNextReconcile:    drainRetryInterval,
+			wantNodeCordoned:          true,
+		},
+		{
+			name:                      "Fail when draining the Node fails",
+			infraMachine:              infraMachine,
+			remoteInterceptorFuncs:    failGetNode,
+			wantErr:                   "unable to get Node test: the server is currently unable to handle the request",
+			wantDeletingReason:        clusterv1.MachineDeletingDrainingNodeReason,
+			wantDeletingMessage:       "Error draining Node, please check controller logs for errors",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: anyTime}},
+			wantEvents:                []string{`Warning FailedDrainNode error draining Machine's node "test": unable to get Node test: the server is currently unable to handle the request`},
+		},
+		{
+			name:         "Wait for volume detach if volumes are still attached to the Node",
+			infraMachine: infraMachine,
+			machineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: nodeDrainStartTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: waitForVolumeDetachStartTime},
+			},
+			node:               nodeWithVolumesAttached,
+			remoteObjects:      []client.Object{volumeAttachment, persistentVolume},
+			wantResult:         ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
+			wantDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
+			wantDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-11-09T16:13:59Z):
+* PersistentVolumeClaims: default/test-pvc`,
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: anyTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: anyTime},
+			},
+			wantEvents:             []string{`Normal SuccessfulDrainNode success draining Machine's node "test"`},
+			wantDeferNextReconcile: waitForVolumeDetachRetryInterval,
+			wantNodeCordoned:       true,
+		},
+		{
+			name:                   "Fail when waiting for volume detach fails",
+			infraMachine:           infraMachine,
+			remoteInterceptorFuncs: failListVolumeAttachments,
+			wantErr:                "failed to list VolumeAttachments: volumeattachments.storage.k8s.io is forbidden: RBAC: access denied",
+			wantDeletingReason:     clusterv1.MachineDeletingWaitingForVolumeDetachReason,
+			wantDeletingMessage:    "Error waiting for volumes to be detached from Node, please check controller logs for errors",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: anyTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: anyTime},
+			},
+			wantEvents: []string{
+				`Normal SuccessfulDrainNode success draining Machine's node "test"`,
+				`Warning FailedWaitForVolumeDetach error waiting for node volumes detaching, Machine's node "test": failed to list VolumeAttachments: volumeattachments.storage.k8s.io is forbidden: RBAC: access denied`,
+			},
+			wantNodeCordoned: true,
+		},
+		{
+			name: "Wait for pre-terminate hooks",
+			annotations: map[string]string{
+				"pre-terminate.delete.hook.machine.cluster.x-k8s.io": "",
+			},
+			wantDeletingReason:        clusterv1.MachineDeletingWaitingForPreTerminateHookReason,
+			wantDeletingMessage:       "Waiting for pre-terminate hooks to succeed (hooks: pre-terminate.delete.hook.machine.cluster.x-k8s.io)",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{WaitForPreTerminateHookStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:                "Delete infra machine after drain and wait for volume detach are completed",
+			infraMachine:        infraMachine,
+			wantDeletingReason:  clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason,
+			wantDeletingMessage: "Waiting for GenericInfrastructureMachine to be deleted",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: anyTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: anyTime},
+			},
+			wantEvents: []string{
+				`Normal SuccessfulDrainNode success draining Machine's node "test"`,
+				`Normal NodeVolumesDetached success waiting for node volumes detaching Machine's node "test"`,
+			},
+			wantNodeCordoned:        true,
+			wantInfraMachineDeleted: true,
+		},
+		{
+			name:                "Wait for infra machine deletion without deleting it again if it is already being deleted",
+			infraMachine:        infraMachineDeleting,
+			wantDeletingReason:  clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason,
+			wantDeletingMessage: "Waiting for GenericInfrastructureMachine to be deleted",
+		},
+		{
+			name:                "Fail when deleting the infra machine fails",
+			annotations:         excludeDrainAndVolumeDetach,
+			infraMachine:        infraMachine,
+			interceptorFuncs:    failDelete,
+			wantErr:             `failed to delete GenericInfrastructureMachine "infra-config1" for Machine "test" in namespace "default": genericinfrastructuremachines.infrastructure.cluster.x-k8s.io "infra-config1" is forbidden: RBAC: access denied`,
+			wantDeletingReason:  clusterv1.MachineDeletingInternalErrorReason,
+			wantDeletingMessage: "Failed to delete GenericInfrastructureMachine, please check controller logs for errors",
+		},
+		{
+			name:                       "Delete bootstrap config if infra machine is not found",
+			bootstrapConfig:            bootstrapConfig,
+			wantDeletingReason:         clusterv1.MachineDeletingWaitingForBootstrapDeletionReason,
+			wantDeletingMessage:        "Waiting for GenericBootstrapConfig to be deleted",
+			wantBootstrapConfigDeleted: true,
+		},
+		{
+			name:                "Fail when deleting the bootstrap config fails",
+			bootstrapConfig:     bootstrapConfig,
+			interceptorFuncs:    failDelete,
+			wantErr:             `failed to delete GenericBootstrapConfig "bootstrap-config1" for Machine "test" in namespace "default": genericbootstrapconfigs.bootstrap.cluster.x-k8s.io "bootstrap-config1" is forbidden: RBAC: access denied`,
+			wantDeletingReason:  clusterv1.MachineDeletingInternalErrorReason,
+			wantDeletingMessage: "Failed to delete GenericBootstrapConfig, please check controller logs for errors",
+		},
+		{
+			name: "Complete deletion by deleting the Node and removing the finalizer, drain and volume detach are skipped if infra machine is not found",
+			node: nodeWithVolumesAttached,
+			remoteObjects: []client.Object{
+				deploymentPod,
+				volumeAttachment,
+				persistentVolume,
+			},
+			wantDeletingReason:        clusterv1.MachineDeletingDeletionCompletedReason,
+			wantDeletingMessage:       "Deletion completed",
+			wantFinalizerRemoved:      true,
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: anyTime}},
+			wantNodeDeleted:           true,
+		},
+		{
+			name:                    "Skip drain and volume detach if Node deletion is not allowed",
+			clusterDeleted:          true,
+			infraMachine:            infraMachine,
+			wantDeletingReason:      clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason,
+			wantDeletingMessage:     "Waiting for GenericInfrastructureMachine to be deleted",
+			wantInfraMachineDeleted: true,
+		},
+		{
+			name:                 "Complete deletion without deleting the Node if Node deletion is not allowed",
+			clusterDeleted:       true,
+			wantDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
+			wantDeletingMessage:  "Deletion completed",
+			wantFinalizerRemoved: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := testMachine.DeepCopy()
+			m.Annotations = tc.annotations
+			if tc.machineStatusDeletion != nil {
+				m.Status.Deletion = tc.machineStatusDeletion.DeepCopy()
+			}
+
+			cluster := testCluster.DeepCopy()
+			if tc.clusterDeleted {
+				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
+			}
+
+			targetNode := node
+			if tc.node != nil {
+				targetNode = tc.node
+			}
+
+			remoteObjs := []client.Object{
+				targetNode,
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-namespace",
+						Labels: map[string]string{
+							"kubernetes.io/metadata.name": "test-namespace",
+						},
+					},
+				},
+			}
+			remoteObjs = append(remoteObjs, tc.remoteObjects...)
+
+			remoteClient := fake.NewClientBuilder().
+				WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+				WithObjects(remoteObjs...).
+				Build()
+
+			objs := []client.Object{m, cpmachine1}
+			// Note: infraMachine and bootstrapConfig are deleted via Unstructured, so they are created as such.
+			infraMachineGVK := builder.InfrastructureGroupVersion.WithKind(builder.GenericInfrastructureMachineKind)
+			if tc.infraMachine != nil {
+				objs = append(objs, contractapi.ToUnstructuredForDelete(infraMachineGVK, tc.infraMachine))
+			}
+			bootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.GenericBootstrapConfigKind)
+			if tc.bootstrapConfig != nil {
+				objs = append(objs, contractapi.ToUnstructuredForDelete(bootstrapConfigGVK, tc.bootstrapConfig))
+			}
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(objs...).
+				WithStatusSubresource(&clusterv1.Machine{}).
+				Build()
+
+			fc := capicontrollerutil.NewFakeController()
+			recorder := record.NewFakeRecorder(10)
+
+			r := &Reconciler{
+				// Note: The interceptors are only used by the Reconciler. The assertions below use the clients without interceptors.
+				Client:       interceptor.NewClient(fakeClient, tc.interceptorFuncs),
+				ClusterCache: clustercache.NewFakeClusterCache(interceptor.NewClient(remoteClient, tc.remoteInterceptorFuncs), client.ObjectKeyFromObject(&testCluster)),
+				controller:   fc,
+				recorder:     recorder,
+			}
+
+			s := &scope{
+				cluster:                   cluster,
+				machine:                   m,
+				infraMachineIsNotFound:    tc.infraMachine == nil,
+				infraMachine:              tc.infraMachine,
+				infraMachineGVK:           infraMachineGVK,
+				bootstrapConfigIsNotFound: tc.bootstrapConfig == nil,
+				bootstrapConfig:           tc.bootstrapConfig,
+				bootstrapConfigGVK:        bootstrapConfigGVK,
+			}
+			res, err := r.reconcileDelete(ctx, s)
+
+			g.Expect(res).To(BeComparableTo(tc.wantResult))
+			if tc.wantErr == "" {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(tc.wantErr))
+			}
+			g.Expect(s.deletingReason).To(Equal(tc.wantDeletingReason))
+			g.Expect(s.deletingMessage).To(Equal(tc.wantDeletingMessage))
+			g.Expect(controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer)).To(Equal(!tc.wantFinalizerRemoved))
+			g.Expect(setAllTimesToAnyTime(m.Status.Deletion)).To(BeComparableTo(tc.wantMachineStatusDeletion))
+
+			close(recorder.Events)
+			var gotEvents []string
+			for e := range recorder.Events {
+				gotEvents = append(gotEvents, e)
+			}
+			g.Expect(gotEvents).To(Equal(tc.wantEvents))
+
+			if tc.wantDeferNextReconcile == 0 {
+				g.Expect(fc.Deferrals).To(BeEmpty())
+			} else {
+				g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+					reconcile.Request{NamespacedName: client.ObjectKeyFromObject(m)},
+					BeTemporally("~", time.Now().Add(tc.wantDeferNextReconcile), 1*time.Second)),
+				)
+			}
+
+			gotNode := &corev1.Node{}
+			err = remoteClient.Get(ctx, client.ObjectKeyFromObject(targetNode), gotNode)
+			if tc.wantNodeDeleted {
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(gotNode.Spec.Unschedulable).To(Equal(tc.wantNodeCordoned))
+			}
+
+			if tc.infraMachine != nil {
+				err := fakeClient.Get(ctx, client.ObjectKeyFromObject(tc.infraMachine), contractapi.ToUnstructuredForDelete(infraMachineGVK, tc.infraMachine))
+				g.Expect(apierrors.IsNotFound(err)).To(Equal(tc.wantInfraMachineDeleted))
+			}
+			if tc.bootstrapConfig != nil {
+				err := fakeClient.Get(ctx, client.ObjectKeyFromObject(tc.bootstrapConfig), contractapi.ToUnstructuredForDelete(bootstrapConfigGVK, tc.bootstrapConfig))
+				g.Expect(apierrors.IsNotFound(err)).To(Equal(tc.wantBootstrapConfigDeleted))
+			}
+		})
+	}
+}
+
+// anyTime is used to compare MachineDeletionStatus without depending on the exact time a field has been set.
+var anyTime = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// setAllTimesToAnyTime returns a copy of status in which all times that are set are replaced with anyTime.
+func setAllTimesToAnyTime(status *clusterv1.MachineDeletionStatus) *clusterv1.MachineDeletionStatus {
+	if status == nil {
+		return nil
+	}
+	status = status.DeepCopy()
+	for _, t := range []*metav1.Time{
+		&status.NodeDrainStartTime,
+		&status.WaitForNodeVolumeDetachStartTime,
+		&status.WaitForPreDrainHookStartTime,
+		&status.WaitForPreTerminateHookStartTime,
+		&status.NodeDeletionStartTime,
+	} {
+		if !t.IsZero() {
+			t.Time = anyTime
+		}
+	}
+	return status
 }

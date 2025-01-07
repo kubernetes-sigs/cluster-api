@@ -1305,7 +1305,7 @@ func Test_objectMover_move(t *testing.T) {
 
 				err := csFrom.Get(ctx, key, oFrom)
 				if err == nil {
-					if !node.isGlobal && !node.isGlobalHierarchy {
+					if !node.isGlobal && !node.isGlobalHierarchy && !node.shouldNotDelete {
 						t.Errorf("%s %v not deleted in source cluster", oFrom.GetKind(), key)
 						continue
 					}
@@ -1417,7 +1417,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 
 				err := csFrom.Get(ctx, key, oFrom)
 				if err == nil {
-					if !node.isGlobal && !node.isGlobalHierarchy {
+					if !node.isGlobal && !node.isGlobalHierarchy && !node.shouldNotDelete {
 						t.Errorf("%s %v not deleted in source cluster", oFrom.GetKind(), key)
 						continue
 					}
@@ -1846,6 +1846,8 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 
 	cluster1 := test.NewFakeCluster("namespace-1", "cluster-1")
 	cluster2 := test.NewFakeCluster("namespace-2", "cluster-2")
+	cluster3 := test.NewFakeCluster("namespace-1", "cluster-3").WithTopologyClass("cluster-class-1").WithTopologyClassNamespace("namespace-2")
+	clusterClass1 := test.NewFakeClusterClass("namespace-2", "cluster-class-1")
 	globalObj := test.NewFakeClusterExternalObject("eo-1")
 
 	clustersObjs := append(cluster1.Objs(), cluster2.Objs()...)
@@ -1870,6 +1872,16 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			name: "ensureNamespaces moves namespace-1 and namespace-2 to target",
 			fields: fields{
 				objs: clustersObjs,
+			},
+			args: args{
+				toProxy: test.NewFakeProxy(),
+			},
+			expectedNamespaces: []string{"namespace-1", "namespace-2"},
+		},
+		{
+			name: "ensureNamespaces moves namespace-1 and namespace-2 from cross-namespace CC reference",
+			fields: fields{
+				objs: append(cluster3.Objs(), clusterClass1.Objs()...),
 			},
 			args: args{
 				toProxy: test.NewFakeProxy(),

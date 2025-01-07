@@ -279,7 +279,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) on K8S latest ci mgmt cluster [ClusterClass]", func() {
 	// Get n-1 latest stable release
-	version := "19"
+	version := "1.9"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {

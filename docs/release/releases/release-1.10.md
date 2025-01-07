@@ -31,7 +31,8 @@ After the .0 the .1 release will be created to ensure faster Kubernetes support 
 
 | **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                      | **Team member(s) (GitHub / Slack ID)** |
 |-------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------|
-| Release Lead                              | TBD | TBD                                    |
-| Communications/Docs/Release Notes Manager | TBD | TBD                                    |
-| CI Signal/Bug Triage/Automation Manager   | TBD | TBD                                    |
+| Release Lead                              | Matt Boersma ([@mboersma](https://github.com/mboersma) / `@mboersma`) | |
+| Communications/Docs/Release Notes Manager | Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@Chandan Kumar`) |  Pawel Bek ([@blind3dd](https://github.com/blind3dd) / `@blind3dd`) <br> Ransher Singh ([@RansherSingh](https://github.com/RansherSingh) / `@Ransher Singh`) <br> Wendy Ha ([@wendy-ha18](https://github.com/wendy-ha18) / `@Wendy Ha`) <br> Pratik Mahalle ([@pratik-mahalle](https://github.com/pratik-mahalle) / `@pratik-mahalle`) <br> Morgan Brown ([@mbrow137](https://github.com/mbrow137) / `@Morgan B.`) |
+| CI Signal/Bug Triage/Automation Manager   | Chris Privitere ([@cprivitere](https://github.com/cprivitere) / `@Chris Privitere`) | Mohamed ElSerngawy ([@serngawy](https://github.com/serngawy) / `@melserngawy`) <br> Sreeram Venkitesh ([@sreeram-venkitesh](https://github.com/sreeram-venkitesh) / `@Sreeram Venkitesh` <br> Sepideh Alavi ([@shecodesmagic](https://github.com/shecodesmagic) / `@Sepideh`) <br> Atticus Yang ([@AttyXY](https://github.com/AttyXY) / `@Atty`) <br> Amit Kumar ([@hackeramitkumar](https://github.com/hackeramitkumar) / `@Amit Kumar`) <br> Satyam Bhardwaj ([@ramessesii2](https://github.com/ramessesii2) / `@ramesses`) |
+| Emeritus Advisor                          | Sunnat Samadov ([@Sunnatillo](https://github.com/Sunnatillo) / `@Sunnat`) <br> Stephen Cahill ([@cahillsf](https://github.com/cahillsf) / `@Stephen Cahill`) | |
 | Maintainer                                | TBD | TBD                                    |

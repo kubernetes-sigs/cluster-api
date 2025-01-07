@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -700,8 +701,7 @@ func TestSummarizeNodeConditions(t *testing.T) {
 }
 
 func TestGetManagedLabels(t *testing.T) {
-	// Create managedLabels map from known managed prefixes.
-	managedLabels := map[string]string{
+	defaultLabels := map[string]string{
 		clusterv1.NodeRoleLabelPrefix + "/anyRole": "",
 
 		clusterv1.ManagedNodeLabelDomain:                                  "",
@@ -715,22 +715,72 @@ func TestGetManagedLabels(t *testing.T) {
 		"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "",
 	}
 
-	// Append arbitrary labels.
-	allLabels := map[string]string{
-		"foo":                               "",
-		"bar":                               "",
+	additionalLabels := map[string]string{
+		"foo":                               "bar",
+		"bar":                               "baz",
 		"company.xyz/node.cluster.x-k8s.io": "not-managed",
 		"gpu-node.cluster.x-k8s.io":         "not-managed",
 		"company.xyz/node-restriction.kubernetes.io": "not-managed",
 		"gpu-node-restriction.kubernetes.io":         "not-managed",
+		"wrong.test.foo.com":                         "",
 	}
-	for k, v := range managedLabels {
+
+	exampleRegex := regexp.MustCompile(`foo`)
+	defaultAndRegexLabels := map[string]string{}
+	for k, v := range defaultLabels {
+		defaultAndRegexLabels[k] = v
+	}
+	defaultAndRegexLabels["foo"] = "bar"
+	defaultAndRegexLabels["wrong.test.foo.com"] = ""
+
+	allLabels := map[string]string{}
+	for k, v := range defaultLabels {
+		allLabels[k] = v
+	}
+	for k, v := range additionalLabels {
 		allLabels[k] = v
 	}
 
-	g := NewWithT(t)
-	got := getManagedLabels(allLabels)
-	g.Expect(got).To(BeEquivalentTo(managedLabels))
+	tests := []struct {
+		name                        string
+		additionalSyncMachineLabels []*regexp.Regexp
+		allLabels                   map[string]string
+		managedLabels               map[string]string
+	}{
+		{
+			name:                        "always sync default labels",
+			additionalSyncMachineLabels: nil,
+			allLabels:                   allLabels,
+			managedLabels:               defaultLabels,
+		},
+		{
+			name: "sync additional defined labels",
+			additionalSyncMachineLabels: []*regexp.Regexp{
+				exampleRegex,
+			},
+			allLabels:     allLabels,
+			managedLabels: defaultAndRegexLabels,
+		},
+		{
+			name: "sync all labels",
+			additionalSyncMachineLabels: []*regexp.Regexp{
+				regexp.MustCompile(`.*`),
+			},
+			allLabels:     allLabels,
+			managedLabels: allLabels,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			r := &Reconciler{
+				AdditionalSyncMachineLabels: tt.additionalSyncMachineLabels,
+			}
+			got := r.getManagedLabels(tt.allLabels)
+			g.Expect(got).To(BeEquivalentTo(tt.managedLabels))
+		})
+	}
 }
 
 func TestPatchNode(t *testing.T) {

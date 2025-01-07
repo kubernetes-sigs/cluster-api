@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,6 +73,8 @@ type MachineReconciler struct {
 	WatchFilterValue string
 
 	RemoteConditionsGracePeriod time.Duration
+
+	AdditionalSyncMachineLabels []*regexp.Regexp
 }
 
 func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -81,6 +84,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		ClusterCache:                r.ClusterCache,
 		WatchFilterValue:            r.WatchFilterValue,
 		RemoteConditionsGracePeriod: r.RemoteConditionsGracePeriod,
+		AdditionalSyncMachineLabels: r.AdditionalSyncMachineLabels,
 	}).SetupWithManager(ctx, mgr, options)
 }
 

@@ -63,7 +63,9 @@ Top-level labels that meet a specific cretria are propagated to the Node labels 
 - `.labels.[label-meets-criteria]` => `Node.labels`
 - `.annotations` => Not propagated.
 
-Label should meet one of the following criteria to propagate to Node: 
+Labels that meet at least one of the following criteria are always propagated to the Node:
 - Has `node-role.kubernetes.io` as prefix.
 - Belongs to `node-restriction.kubernetes.io` domain.
-- Belongs to `node.cluster.x-k8s.io` domain.  
+- Belongs to `node.cluster.x-k8s.io` domain.
+
+In addition, any labels that match at least one of the regexes provided by the `--additional-sync-machine-labels` flag on the manager will be synced from the Machine to the Node.

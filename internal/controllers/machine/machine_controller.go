@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -99,6 +100,8 @@ type Reconciler struct {
 	WatchFilterValue string
 
 	RemoteConditionsGracePeriod time.Duration
+
+	AdditionalSyncMachineLabels []*regexp.Regexp
 
 	controller      controller.Controller
 	recorder        record.EventRecorder

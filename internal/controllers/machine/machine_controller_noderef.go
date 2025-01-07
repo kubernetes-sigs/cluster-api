@@ -127,7 +127,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	// Compute labels to be propagated from Machines to nodes.
 	// NOTE: CAPI should manage only a subset of node labels, everything else should be preserved.
 	// NOTE: Once we reconcile node labels for the first time, the NodeUninitializedTaint is removed from the node.
-	nodeLabels := getManagedLabels(machine.Labels)
+	nodeLabels := r.getManagedLabels(machine.Labels)
 
 	// Get interruptible instance status from the infrastructure provider and set the interruptible label on the node.
 	interruptible := false
@@ -178,9 +178,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 // getManagedLabels gets a map[string]string and returns another map[string]string
 // filtering out labels not managed by CAPI.
-func getManagedLabels(labels map[string]string) map[string]string {
+func (r *Reconciler) getManagedLabels(labels map[string]string) map[string]string {
 	managedLabels := make(map[string]string)
 	for key, value := range labels {
+		// Always sync the default set of labels.
 		dnsSubdomainOrName := strings.Split(key, "/")[0]
 		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
 			managedLabels[key] = value
@@ -191,8 +192,15 @@ func getManagedLabels(labels map[string]string) map[string]string {
 		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
 			managedLabels[key] = value
 		}
-	}
 
+		// Sync if the labels matches at least one user provided regex.
+		for _, regex := range r.AdditionalSyncMachineLabels {
+			if regex.MatchString(key) {
+				managedLabels[key] = value
+				break
+			}
+		}
+	}
 	return managedLabels
 }
 

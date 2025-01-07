@@ -3887,7 +3887,6 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 		name                 string
 		deletionTimeout      *metav1.Duration
 		resultErr            bool
-		clusterDeleted       bool
 		expectNodeDeletion   bool
 		expectDeletingReason string
 		annotations          map[string]string
@@ -3933,7 +3932,7 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 			expectNodeDeletion:   false,
 			expectDeletingReason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
 			annotations: map[string]string{
-				"machine.cluster.x-k8s.io": "",
+				"machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach": "",
 			},
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
@@ -3962,13 +3961,8 @@ func TestNodeDeletionWithHooks(t *testing.T) {
 				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
-			cluster := testCluster.DeepCopy()
-			if tc.clusterDeleted {
-				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
-			}
-
 			s := &scope{
-				cluster:                   cluster,
+				cluster:                   &testCluster,
 				machine:                   m,
 				infraMachineIsNotFound:    true,
 				bootstrapConfigIsNotFound: true,
@@ -4014,7 +4008,7 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Annotations: map[string]string{
-				"machine.cluster.x-k8s.io": "",
+				"machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach": "",
 			},
 			Finalizers:        []string{clusterv1.MachineFinalizer},
 			DeletionTimestamp: &metav1.Time{Time: deletionTime},
@@ -4062,7 +4056,6 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 		name                 string
 		deletionTimeout      *metav1.Duration
 		resultErr            bool
-		clusterDeleted       bool
 		expectNodeDeletion   bool
 		expectDeletingReason string
 		pods                 []*corev1.Pod
@@ -4151,13 +4144,8 @@ func TestNodeDeletionWithPreDrainHook(t *testing.T) {
 				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
-			cluster := testCluster.DeepCopy()
-			if tc.clusterDeleted {
-				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
-			}
-
 			s := &scope{
-				cluster:                   cluster,
+				cluster:                   &testCluster,
 				machine:                   m,
 				infraMachineIsNotFound:    true,
 				bootstrapConfigIsNotFound: true,
@@ -4320,13 +4308,8 @@ func TestNodeDeletionWithInfraAndBootstrap(t *testing.T) {
 				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
-			cluster := testCluster.DeepCopy()
-			if tc.clusterDeleted {
-				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
-			}
-
 			s := &scope{
-				cluster:                   cluster,
+				cluster:                   &testCluster,
 				machine:                   m,
 				infraMachineIsNotFound:    tc.infraMachineFound,
 				infraMachine:              tc.infraMachine,
@@ -4474,7 +4457,6 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 		deletionTimeout      *metav1.Duration
 		resultErr            bool
 		remoteObjects        []client.Object
-		clusterDeleted       bool
 		expectNodeDeletion   bool
 		expectDeletingReason string
 		createFakeClient     func(...client.Object) client.Client
@@ -4565,13 +4547,8 @@ func TestNodeDeletionWithVolumeDetach(t *testing.T) {
 				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
 			}
 
-			cluster := testCluster.DeepCopy()
-			if tc.clusterDeleted {
-				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
-			}
-
 			s := &scope{
-				cluster:                   cluster,
+				cluster:                   &testCluster,
 				machine:                   m,
 				infraMachineIsNotFound:    true,
 				bootstrapConfigIsNotFound: true,

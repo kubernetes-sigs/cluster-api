@@ -80,15 +80,6 @@ providers:
       new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/core-components.yaml"
     type: "url"
@@ -98,7 +89,7 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.8/metadata.yaml"
-  - name: v1.9.99 # next; use manifest from source files
+  - name: v1.10.99 # next; use manifest from source files
     value: ../../../config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -151,15 +142,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/bootstrap-components.yaml"
     type: "url"
@@ -169,7 +151,7 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.8/metadata.yaml"
-  - name: v1.9.99 # next; use manifest from source files
+  - name: v1.10.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -222,15 +204,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/control-plane-components.yaml"
     type: "url"
@@ -240,7 +213,16 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.8/metadata.yaml"
-  - name: v1.9.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.9/metadata.yaml"
+  - name: v1.10.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
@@ -302,18 +284,6 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1.6/cluster-template.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.6/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.6/clusterclass-quick-start.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.7/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.7/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.7/cluster-template-topology.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.7/clusterclass-quick-start.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/infrastructure-components-development.yaml"
     type: "url"
@@ -326,7 +296,16 @@ providers:
       - sourcePath: "../data/infrastructure-docker/v1.8/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.8/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.8/clusterclass-quick-start.yaml"
-  - name: v1.9.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.9/metadata.yaml"
+  - name: v1.10.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     files:
     # Add cluster templates
@@ -355,7 +334,7 @@ providers:
 - name: in-memory
   type: InfrastructureProvider
   versions:
-  - name: v1.9.99 # next; use manifest from source files
+  - name: v1.10.99 # next; use manifest from source files
     value: ../../../test/infrastructure/inmemory/config/default
     files:
     # Add cluster templates
@@ -366,7 +345,7 @@ providers:
 - name: test-extension
   type: RuntimeExtensionProvider
   versions:
-    - name: v1.9.99 # next; use manifest from source files
+    - name: v1.10.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       files:
       - sourcePath: "../data/shared/main/metadata.yaml"

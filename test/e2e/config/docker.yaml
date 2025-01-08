@@ -314,6 +314,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.9/metadata.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.9/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.9/cluster-template-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.9/clusterclass-quick-start.yaml"
   - name: v1.10.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     files:

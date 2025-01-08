@@ -151,6 +151,15 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.8/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.9/metadata.yaml"
   - name: v1.10.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     files:

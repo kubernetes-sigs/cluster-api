@@ -315,7 +315,7 @@ providers:
       - sourcePath: "../data/infrastructure-docker/v1.8/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.8/clusterclass-quick-start.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/infrastructure-components-development.yaml"
     type: "url"
     contract: v1beta1
     replacements:

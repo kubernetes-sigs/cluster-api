@@ -219,9 +219,9 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.7=>current) [ClusterClass]", func() {
-	// Get v1.7 latest stable release
-	version := "1.7"
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", func() {
+	// Get n-2 latest stable release
+	version := "1.8"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -241,8 +241,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.7=>cur
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.30.0",
-			WorkloadKubernetesVersion:   "v1.30.0",
+			InitWithKubernetesVersion:   "v1.31.4",
+			WorkloadKubernetesVersion:   "v1.31.4",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -251,9 +251,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.7=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", func() {
-	// Get v1.8 latest stable release
-	version := "1.8"
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) [ClusterClass]", func() {
+	// Get n-1 latest stable release
+	version := "1.9"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -267,8 +267,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.31.2",
-			WorkloadKubernetesVersion:   "v1.31.2",
+			InitWithKubernetesVersion:   "v1.32.0",
+			WorkloadKubernetesVersion:   "v1.32.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -277,9 +277,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) on K8S latest ci mgmt cluster [ClusterClass]", func() {
-	// Get v1.8 latest stable release
-	version := "1.8"
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) on K8S latest ci mgmt cluster [ClusterClass]", func() {
+	// Get n-1 latest stable release
+	version := "1.9"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -297,7 +297,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 			// Note: InitWithKubernetesVersion should be the latest of the next supported kubernetes version by the target Cluster API version.
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			InitWithKubernetesVersion:   initKubernetesVersion,
-			WorkloadKubernetesVersion:   "v1.31.2",
+			WorkloadKubernetesVersion:   "v1.32.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,

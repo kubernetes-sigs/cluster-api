@@ -50,10 +50,7 @@ spec:
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
         maxUnhealthy: 100%
-        unhealthyConditions:
-          - type: e2e.remediation.condition
-            status: "False"
-            timeout: 20s
+        # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
       template:
@@ -93,6 +90,12 @@ spec:
         default: ""
         example: "3.5.3-0"
         description: "etcdImageTag sets the tag for the etcd image."
+        # This metadata has just been added to verify that we can set metadata.
+        x-metadata:
+          labels:
+            testLabelKey: testXLabelValue
+          annotations:
+            testAnnotationKey: testXAnnotationValue
   - name: coreDNSImageTag
     required: true
     schema:
@@ -109,6 +112,9 @@ spec:
         default: ""
         example: "0"
         description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
+        x-kubernetes-validations:
+          - rule: "self == \"\" || self != \"\""
+            messageExpression: "'just a test expression, got %s'.format([self])"
   - name: preLoadImages
     required: false
     schema:
@@ -117,6 +123,12 @@ spec:
         type: array
         items:
           type: string
+          # This metadata has just been added to verify that we can set metadata.
+          x-metadata:
+            labels:
+              testLabelKey: testXLabelValue
+            annotations:
+              testAnnotationKey: testXAnnotationValue
         description: "preLoadImages sets the images for the docker machines to preload."
   - name: controlPlaneTaint
     required: false

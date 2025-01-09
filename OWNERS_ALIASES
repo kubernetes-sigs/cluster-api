@@ -114,22 +114,24 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - Sunnatillo
+  - mboersma
 
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  - adilGhaffarDev
-  - cahillsf # release ci lead
-  # - chandankumar4 # release comms lead
-  - jayesh-srivastava
-  - pravarag
-  # - rajankumary2k
-  - SD-13
-  # - serngawy
-  - sivchari
-  - Sunnatillo  # release lead
-  # - tasdikrahman
-  - tormath1
-  # - varshasuryawanshi
-  - vishalanarase
+  # - AttyXY
+  # - blind3dd
+  - cahillsf
+  - chandankumar4
+  - cprivitere
+  - hackeramitkumar
+  - mboersma
+  # - mbrow137
+  # - pratik-mahalle
+  # - ramessesii2
+  # - RansherSingh
+  - serngawy
+  - shecodesmagic
+  - sreeram-venkitesh
+  - Sunnatillo
+  - wendy-ha18

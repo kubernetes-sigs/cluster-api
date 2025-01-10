@@ -800,6 +800,21 @@ func (c *E2EConfig) GetVariable(varName string) string {
 	return value
 }
 
+// GetVariableBestEffort returns a variable from environment variables or from the e2e config file.
+// If the variable cannot be found it returns an empty string and does not fail.
+func (c *E2EConfig) GetVariableBestEffort(varName string) string {
+	if value, ok := os.LookupEnv(varName); ok {
+		return value
+	}
+
+	value, ok := c.Variables[varName]
+	if ok {
+		return value
+	}
+
+	return ""
+}
+
 // GetInt64PtrVariable returns an Int64Ptr variable from the e2e config file.
 func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	wCountStr := c.GetVariable(varName)

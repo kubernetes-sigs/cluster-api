@@ -92,7 +92,7 @@ func (c *client) IsReady() bool {
 
 func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Performing discovery for ExtensionConfig")
+	log.V(4).Info("Performing discovery for ExtensionConfig")
 
 	hookGVH, err := c.catalog.GroupVersionHook(runtimehooksv1.Discovery)
 	if err != nil {

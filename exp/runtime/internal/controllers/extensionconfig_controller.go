@@ -166,7 +166,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Register the ExtensionConfig if it was found and patched without error.
-	log.Info("Registering ExtensionConfig information into registry")
+	log.V(4).Info("Registering ExtensionConfig information into registry")
 	if err = r.RuntimeClient.Register(discoveredExtensionConfig); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
 	}
@@ -246,7 +246,7 @@ func reconcileCABundle(ctx context.Context, client client.Client, config *runtim
 	}
 	secretName := splitNamespacedName(secretNameRaw)
 
-	log.Info(fmt.Sprintf("Injecting CA Bundle into ExtensionConfig from secret %q", secretNameRaw))
+	log.V(4).Info(fmt.Sprintf("Injecting CA Bundle into ExtensionConfig from secret %q", secretNameRaw))
 
 	if secretName.Namespace == "" || secretName.Name == "" {
 		return errors.Errorf("failed to reconcile caBundle: secret name %q must be in the form <namespace>/<name>", secretNameRaw)

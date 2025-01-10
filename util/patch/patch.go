@@ -65,19 +65,12 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 		return nil, errors.Wrapf(err, "failed to create patch helper for object %s", klog.KObj(obj))
 	}
 
-	// Convert the object to unstructured to compare against our before copy.
-	unstructuredObj, err := toUnstructured(obj, gvk)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create patch helper for %s %s: failed to convert object to Unstructured", gvk.Kind, klog.KObj(obj))
-	}
-
 	// Check if the object satisfies the Cluster API conditions contract.
 	_, canInterfaceConditions := obj.(conditions.Setter)
 
 	return &Helper{
 		client:             crClient,
 		gvk:                gvk,
-		before:             unstructuredObj,
 		beforeObject:       obj.DeepCopyObject().(client.Object),
 		isConditionsSetter: canInterfaceConditions,
 	}, nil
@@ -105,10 +98,16 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		opt.ApplyToHelper(options)
 	}
 
-	// Convert the object to unstructured to compare against our before copy.
+	// Convert the before object to unstructured.
+	h.before, err = toUnstructured(h.beforeObject, gvk)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch %s %s: failed to convert before object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
+	}
+
+	// Convert the after object to unstructured.
 	h.after, err = toUnstructured(obj, gvk)
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch %s %s: failed to convert object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
+		return errors.Wrapf(err, "failed to patch %s %s: failed to convert after object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
 	// Determine if the object has status.

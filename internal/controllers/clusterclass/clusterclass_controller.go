@@ -48,6 +48,7 @@ import (
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -396,18 +397,25 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 		return nil
 	}
 
-	// Initialize the patch helper.
+	desiredOwnerRef := metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "ClusterClass",
+		Name:       clusterClass.Name,
+	}
+
+	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) {
+		return nil
+	}
+
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
 		return err
 	}
 
-	// Set external object ControllerReference to the ClusterClass.
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
 		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s", tlog.KObj{Obj: obj})
 	}
 
-	// Patch the external object.
 	return patchHelper.Patch(ctx, obj)
 }
 

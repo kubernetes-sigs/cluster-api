@@ -94,7 +94,7 @@ This comes down to changing occurrences of the old version to the new version, e
 
 Prior art:
 
-* 1.10 - https://github.com/kubernetes-sigs/cluster-api/pull/...
+* 1.10 - https://github.com/kubernetes-sigs/cluster-api/pull/11647
 
 ### Create a new GitHub milestone for the next release
 

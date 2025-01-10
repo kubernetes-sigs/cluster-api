@@ -91,7 +91,11 @@ func (h *HookResponseTracker) AggregateMessage() string {
 
 	hookAndMessages := []string{}
 	for hook, message := range blockingHooks {
-		hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking: %s", hook, message))
+		if message == "" {
+			hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking", hook))
+		} else {
+			hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking: %s", hook, message))
+		}
 	}
 	return strings.Join(hookAndMessages, "; ")
 }

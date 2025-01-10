@@ -61,9 +61,6 @@ const (
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling state for topology owned objects")
-
 	// Reconcile the Cluster shim, a temporary object used a mean to collect
 	// objects/templates that can be orphaned in case of errors during the
 	// remaining part of the reconcile process.

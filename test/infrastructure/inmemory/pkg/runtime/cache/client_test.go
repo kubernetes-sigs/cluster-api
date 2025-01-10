@@ -804,5 +804,5 @@ func (h *fakeHandler) OnDelete(resourceGroup string, obj client.Object) {
 }
 
 func (h *fakeHandler) OnGeneric(resourceGroup string, obj client.Object) {
-	h.events = append(h.events, fmt.Sprintf("%s, %s=%s, Synced", resourceGroup, obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName()))
+	h.events = append(h.events, fmt.Sprintf("%s, %s=%s, Generic", resourceGroup, obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName()))
 }

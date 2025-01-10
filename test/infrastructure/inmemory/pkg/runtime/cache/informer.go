@@ -122,7 +122,7 @@ func (c *cache) informSync(resourceGroup string, obj client.Object) {
 		defer i.lock.RUnlock()
 
 		for _, h := range i.handlers {
-			h.OnGeneric(resourceGroup, obj)
+			h.OnUpdate(resourceGroup, obj, obj)
 		}
 	}
 }

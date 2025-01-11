@@ -24,7 +24,9 @@ import (
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -138,6 +140,12 @@ type ClientConfiguration struct {
 	CallTimeout time.Duration
 }
 
+var (
+	// Create the etcdClientLogger only once. Otherwise every call of clientv3.New
+	// would create its own logger which leads to a lot of memory allocations.
+	etcdClientLogger, _ = logutil.CreateDefaultZapLogger(zapcore.InfoLevel)
+)
+
 // NewClient creates a new etcd client with the given configuration.
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
 	dialer, err := proxy.NewDialer(config.Proxy)
@@ -151,7 +159,8 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		DialOptions: []grpc.DialOption{
 			grpc.WithContextDialer(dialer.DialContextWithAddr),
 		},
-		TLS: config.TLSConfig,
+		TLS:    config.TLSConfig,
+		Logger: etcdClientLogger,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")

@@ -79,7 +79,7 @@ func Test_cache_sync(t *testing.T) {
 		return false
 	}, 10*time.Second, 200*time.Millisecond).Should(BeTrue(), "object should be synced")
 
-	g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=baz, Synced"))
+	g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=baz, Updated"))
 
 	cancel()
 }

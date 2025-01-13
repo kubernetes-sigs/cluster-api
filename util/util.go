@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8sversion "k8s.io/apimachinery/pkg/version"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -332,6 +333,20 @@ func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.Own
 		return append(ownerReferences[:index], ownerReferences[index+1:]...)
 	}
 	return ownerReferences
+}
+
+// HasExactOwnerRef returns true if the exact OwnerReference is already in the slice.
+// It matches based on APIVersion, Kind, Name and Controller.
+func HasExactOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
+	for _, r := range ownerReferences {
+		if r.APIVersion == ref.APIVersion &&
+			r.Kind == ref.Kind &&
+			r.Name == ref.Name &&
+			ptr.Deref(r.Controller, false) == ptr.Deref(ref.Controller, false) {
+			return true
+		}
+	}
+	return false
 }
 
 // indexOwnerRef returns the index of the owner reference in the slice if found, or -1.

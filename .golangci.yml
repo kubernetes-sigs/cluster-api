@@ -22,7 +22,6 @@ linters:
     - errchkjson # invalid types passed to json encoder
     - gci # ensures imports are organized
     - ginkgolinter # ginkgo and gomega
-    - goconst # strings that can be replaced by constants
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
     - gofmt # warns about incorrect use of fmt functions

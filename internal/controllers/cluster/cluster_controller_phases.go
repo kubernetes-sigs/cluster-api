@@ -24,10 +24,12 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -101,27 +103,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return nil, err
 	}
 
-	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set external object ControllerReference to the Cluster.
-	if err := controllerutil.SetControllerReference(cluster, obj, r.Client.Scheme()); err != nil {
-		return nil, err
-	}
-
-	// Set the Cluster label.
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	labels[clusterv1.ClusterNameLabel] = cluster.Name
-	obj.SetLabels(labels)
-
-	// Always attempt to Patch the external object.
-	if err := patchHelper.Patch(ctx, obj); err != nil {
+	if err := ensureOwnerRefAndLabel(ctx, r.Client, obj, cluster); err != nil {
 		return nil, err
 	}
 
@@ -142,6 +124,38 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	}
 
 	return obj, nil
+}
+
+func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructured.Unstructured, cluster *clusterv1.Cluster) error {
+	desiredOwnerRef := metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		Controller: ptr.To(true),
+	}
+
+	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
+		obj.GetLabels()[clusterv1.ClusterNameLabel] == cluster.Name {
+		return nil
+	}
+
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return err
+	}
+
+	if err := controllerutil.SetControllerReference(cluster, obj, c.Scheme()); err != nil {
+		return err
+	}
+
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[clusterv1.ClusterNameLabel] = cluster.Name
+	obj.SetLabels(labels)
+
+	return patchHelper.Patch(ctx, obj)
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.

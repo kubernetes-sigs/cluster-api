@@ -94,7 +94,24 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		return nil, err
 	}
 
-	// Initialize the patch helper.
+	desiredOwnerRef := metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Machine",
+		Name:       m.Name,
+		Controller: ptr.To(true),
+	}
+
+	hasOnCreateOwnerRefs, err := hasOnCreateOwnerRefs(cluster, m, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if !hasOnCreateOwnerRefs &&
+		util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
+		obj.GetLabels()[clusterv1.ClusterNameLabel] == m.Spec.ClusterName {
+		return obj, nil
+	}
+
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
 		return nil, err
@@ -112,7 +129,6 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		return nil, err
 	}
 
-	// Set the Cluster label.
 	labels := obj.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
@@ -120,7 +136,6 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 	obj.SetLabels(labels)
 
-	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
 		return nil, err
 	}
@@ -351,7 +366,7 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
-			return errors.Wrapf(err, "Could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+			return errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
 			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
@@ -360,6 +375,22 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 		}
 	}
 	return nil
+}
+
+// hasOnCreateOwnerRefs will check if any MachineSet or control plane owner references from passed objects are set.
+func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) (bool, error) {
+	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	for _, owner := range obj.GetOwnerReferences() {
+		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
+		if err != nil {
+			return false, errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+		}
+		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
+			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // getControlPlaneGVKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.

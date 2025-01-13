@@ -93,12 +93,11 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// KCP specific flags.
-	remoteConditionsGracePeriod     time.Duration
-	kubeadmControlPlaneConcurrency  int
-	clusterCacheConcurrency         int
-	etcdDialTimeout                 time.Duration
-	etcdCallTimeout                 time.Duration
-	useDeprecatedInfraMachineNaming bool
+	remoteConditionsGracePeriod    time.Duration
+	kubeadmControlPlaneConcurrency int
+	clusterCacheConcurrency        int
+	etcdDialTimeout                time.Duration
+	etcdCallTimeout                time.Duration
 )
 
 func init() {
@@ -185,10 +184,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&etcdCallTimeout, "etcd-call-timeout-duration", etcd.DefaultCallTimeout,
 		"Duration that the etcd client waits at most for read and write operations to etcd.")
-
-	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
-		"Use the deprecated naming convention for infra machines where they are named after the InfraMachineTemplate.")
-	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.10.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
@@ -393,14 +388,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:                       mgr.GetClient(),
-		SecretCachingClient:          secretCachingClient,
-		ClusterCache:                 clusterCache,
-		WatchFilterValue:             watchFilterValue,
-		EtcdDialTimeout:              etcdDialTimeout,
-		EtcdCallTimeout:              etcdCallTimeout,
-		RemoteConditionsGracePeriod:  remoteConditionsGracePeriod,
-		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
+		Client:                      mgr.GetClient(),
+		SecretCachingClient:         secretCachingClient,
+		ClusterCache:                clusterCache,
+		WatchFilterValue:            watchFilterValue,
+		EtcdDialTimeout:             etcdDialTimeout,
+		EtcdCallTimeout:             etcdCallTimeout,
+		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

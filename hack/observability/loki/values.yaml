@@ -16,6 +16,9 @@ loki:
   limits_config:
     ingestion_rate_mb: 1024
     ingestion_burst_size_mb: 1024
+    # disable limits per user as we only have one
+    max_streams_per_user: 0
+    max_global_streams_per_user: 0
   useTestSchema: true
 
 deploymentMode: SingleBinary

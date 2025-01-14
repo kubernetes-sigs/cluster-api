@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When using the autoscaler with Cluster API using ClusterClass [ClusterClass]", func() {
+var _ = Describe("When using the autoscaler with Cluster API using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	AutoscalerSpec(ctx, func() AutoscalerSpecInput {
 		return AutoscalerSpecInput{
 			E2EConfig:                             e2eConfig,

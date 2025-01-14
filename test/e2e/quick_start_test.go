@@ -76,7 +76,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking] [ClusterClass]", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking] [ClusterClass]", Label("PR-Blocking", "ClusterClass"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -125,7 +125,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 })
 
 // NOTE: This test requires an IPv6 management cluster (can be configured via IP_FAMILY=IPv6).
-var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", func() {
+var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", Label("IPv6"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -153,7 +153,7 @@ var _ = Describe("When following the Cluster API quick-start with Ignition", fun
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with dualstack and ipv4 primary [IPv6]", func() {
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv4 primary [IPv6]", Label("IPv6"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -180,7 +180,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with dualstack and ipv6 primary [IPv6]", func() {
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv6 primary [IPv6]", Label("IPv6"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -207,7 +207,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass without any worker definitions [ClusterClass]", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass without any worker definitions [ClusterClass]", Label("ClusterClass"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,

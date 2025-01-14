@@ -27,7 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When performing cluster deletion with ClusterClass [ClusterClass]", func() {
+var _ = Describe("When performing cluster deletion with ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterDeletionSpec(ctx, func() ClusterDeletionSpecInput {
 		return ClusterDeletionSpecInput{
 			E2EConfig:                e2eConfig,

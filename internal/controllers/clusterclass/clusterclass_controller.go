@@ -434,6 +434,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "ClusterClass",
 		Name:       clusterClass.Name,
+		UID:        clusterClass.UID,
 	}
 
 	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) {

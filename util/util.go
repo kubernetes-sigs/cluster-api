@@ -342,6 +342,7 @@ func HasExactOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerR
 		if r.APIVersion == ref.APIVersion &&
 			r.Kind == ref.Kind &&
 			r.Name == ref.Name &&
+			r.UID == ref.UID &&
 			ptr.Deref(r.Controller, false) == ptr.Deref(ref.Controller, false) {
 			return true
 		}

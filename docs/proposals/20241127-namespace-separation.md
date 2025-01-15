@@ -12,111 +12,173 @@ replaces:
 superseded-by:
 ---
 
-# Support running multiple instances of the same provider, each one watching different namespaces 
+# Enable adoption in advance multi tenant or sharding scenarios
 
 ## Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Glossary](#glossary)
 - [Summary](#summary)
+  - [Paradigm 1: Isolated Cluster Management](#paradigm-1-isolated-cluster-management)
+  - [Paradigm 2: Centralized Cluster Management](#paradigm-2-centralized-cluster-management)
+  - [Challenge: Coexistence of Both Paradigms](#challenge-coexistence-of-both-paradigms)
 - [Motivation](#motivation)
   - [Goals](#goals)
   - [Non-Goals/Future Work](#non-goalsfuture-work)
 - [Proposal](#proposal)
+  - [A deployment example](#a-deployment-example)
+    - [Global resources:](#global-resources)
+    - [Namespace `capi1-system`](#namespace-capi1-system)
+    - [Namespace `capi2-system`](#namespace-capi2-system)
   - [User Stories](#user-stories)
-    - [Story 1](#story-1)
-    - [Story 2](#story-2)
-  - [Requirements (Optional)](#requirements-optional)
+    - [Story 1 - Hierarchical deployment using CAPI:](#story-1---hierarchical-deployment-using-capi)
+    - [Story 2 - Isolated Cluster Management](#story-2---isolated-cluster-management)
+    - [Story 3 - Centralized Cluster Management](#story-3---centralized-cluster-management)
+    - [Story 4 - combination of Isolated and Centralized Cluster Management](#story-4---combination-of-isolated-and-centralized-cluster-management)
+    - [Story 5 - Two different versions of CAPI (out of scope):](#story-5---two-different-versions-of-capi-out-of-scope)
     - [Functional Requirements](#functional-requirements)
-      - [FR1](#fr1)
-      - [FR2](#fr2)
+      - [FR1 - watch multiple namespaces](#fr1---watch-multiple-namespaces)
+      - [FR2 - watch on all namespaces excluding multiple namespaces](#fr2---watch-on-all-namespaces-excluding-multiple-namespaces)
     - [Non-Functional Requirements](#non-functional-requirements)
-      - [NFR1](#nfr1)
-      - [NFR2](#nfr2)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Current state:](#current-state)
+    - [Watch on multiple namespaces](#watch-on-multiple-namespaces)
+    - [Exclude watching on selected namespaces](#exclude-watching-on-selected-namespaces)
   - [Security Model](#security-model)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Alternatives](#alternatives)
 - [Upgrade Strategy](#upgrade-strategy)
 - [Additional Details](#additional-details)
-  - [Test Plan [optional]](#test-plan-optional)
-  - [Graduation Criteria [optional]](#graduation-criteria-optional)
-  - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
+  - [Test Plan](#test-plan)
 - [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Summary
-We need to run multiple CAPI instances in one cluster and divide the namespaces to be watched by given instances.
+As a Service Provider/Consumer, a management cluster is used to provision and manage the lifecycle of Kubernetes clusters using the Kubernetes Cluster API (CAPI).
+Two distinct paradigms coexist to address different operational and security requirements.
 
-We want and consider:
-- each CAPI instance:
-  - is running in separate namespace and is using its own service account
-  - can select by command the line arguments the list of namespaces:
-    - to watch -  e.g.: `--namespace <ns1> --namespace <ns2>`
-    - to exclude from watching - e.g.: `--excluded-namespace <ns1> --excluded-namespace <ns2>`
-- we are not supporting multiple versions of CAPI
-- all running CAPI-instances:
-  - are using the same container image (same version of CAPI)
-  - are sharing global resources:
-    - CRDs:
-      - cluster.x-k8s.io:
-        - addons.cluster.x-k8s.io: clusterresourcesetbindings, clusterresourcesets
-        - cluster.x-k8s.io: clusterclasses, clusters, machinedeployments, machinehealthchecks, machinepools, machinesets, machines
-        - ipam.cluster.x-k8s.io: ipaddressclaims, ipaddresses
-        - runtime.cluster.x-k8s.io: extensionconfigs
-      - NOTE: the web-hooks are pointing from the CRDs into the first instance only
-    - the `ClusterRole/capi-aggregated-manager-role`
-    - the `ClusterRoleBinding/capi-manager-rolebinding` to bind all service accounts for CAPI instances (e.g. `capi1-system:capi-manager`, ..., `capiN-system:capi-manager`) to the `ClusterRole`
+### Paradigm 1: Isolated Cluster Management
+Each Kubernetes cluster operates its own suite of CAPI controllers, targeting specific namespaces as a hidden implementation engine.
+This paradigm avoids using webhooks and prioritizes isolation and granularity.
 
-References:
-* https://cluster-api.sigs.k8s.io/developer/core/support-multiple-instances
+**Key Features**:
 
-The proposed PRs implementing such a namespace separation:
-* https://github.com/kubernetes-sigs/cluster-api/pull/11397 extend the commandline  option `--namespace=<ns1, …>`
-* https://github.com/kubernetes-sigs/cluster-api/pull/11370 add the new commandline option `--excluded-namespace=<ns1, …>`
+- **Granular Lifecycle Management**: Independent versioning and upgrades for each cluster's CAPI components.
+- **Logging and Metrics**: Per-cluster logging, forwarding, and metric collection.
+- **Resource Isolation**: Defined resource budgets for CPU, memory, and storage on a per-cluster basis.
+- **Security Requirements**:
+  - **Network Policies**: Per-cluster isolation using tailored policies.
+  - **Cloud Provider Credentials**: Each cluster uses its own set of isolated credentials.
+  - **Kubeconfig Access**: Dedicated access controls for kubeconfig per cluster.
+
+In the current state there is the option `--namespace=<ns>` and CAPI can watch only one specified namespace while using this option or all namespaces without this option.
+The extension to enable the existing command-line option `--namespace=<ns1, …>` define multiple namespaces is proposed in this PR [#11397](https://github.com/kubernetes-sigs/cluster-api/pull/11397).
+
+### Paradigm 2: Centralized Cluster Management
+This paradigm manages multiple Kubernetes clusters using a shared, centralized suite of CAPI controllers. It is designed for scenarios with less stringent isolation requirements.
+
+**Characteristics**:
+
+- Operates under simplified constraints compared to [Paradigm 1](#paradigm-1-isolated-cluster-management).
+- Reduces management overhead through centralization.
+- Prioritizes ease of use and scalability over strict isolation.
+
+The addition of the new command-line option `--excluded-namespace=<ns1, …>` is proposed in this PR [#11370](https://github.com/kubernetes-sigs/cluster-api/pull/11370).
+
+### Challenge: Coexistence of Both Paradigms
+To enable [Paradigm 1](#paradigm-1-isolated-cluster-management) and [Paradigm 2](#paradigm-2-centralized-cluster-management) to coexist within the same management cluster, the following is required:
+
+- **Scope Restriction**: [Paradigm 2](#paradigm-2-centralized-cluster-management) must have the ability to restrict its scope to avoid interference with resources owned by [Paradigm 1](#paradigm-1-isolated-cluster-management).
+- **Resource Segregation**: [Paradigm 2](#paradigm-2-centralized-cluster-management) must be unaware of CAPI resources managed by [Paradigm 1](#paradigm-1-isolated-cluster-management) to prevent cross-contamination and conflicts.
+
+This coexistence strategy ensures both paradigms can fulfill their respective use cases without compromising operational integrity.
 
 ## Motivation
-Our motivation is to have a provisioning cluster which is provisioned cluster at the same time while using hierarchical structure of clusters.
-Two namespaces are used by management cluster and the rest of namespaces are watched by CAPI manager to manage other managed clusters.
+For multi-tenant environment a cluster is used as provision-er using different CAPI providers using CAPI requires careful consideration of namespace isolation
+to maintain security and operational boundaries between tenants. In such setups, it is essential to configure the CAPI controller instances
+to either watch or exclude specific groups of namespaces based on the isolation requirements.
+This can be achieved by setting up namespace-scoped controllers or applying filters, such as label selectors, to define the namespaces each instance should monitor.
+By doing so, administrators can ensure that the activities of one tenant do not interfere with others, while also reducing the resource overhead by limiting the scope of CAPI operations.
+This approach enhances scalability, security, and manageability, making it well-suited for environments with strict multi-tenancy requirements.
 
-Our enhancement is also widely required many times from the CAPI community:
+References (related issues):
+
 * https://github.com/kubernetes-sigs/cluster-api/issues/11192
 * https://github.com/kubernetes-sigs/cluster-api/issues/11193
+* https://github.com/kubernetes-sigs/cluster-api/issues/7775
 
 ### Goals
-We need to extend the existing feature to limit watching on specified namespace.
-We need to run multiple CAPI controller instances:
-- each watching only specified namespaces: `capi1-system`, …, `capi$(N-1)-system`
-- and the last resort instance to watch the rest of namespaces excluding the namespaces already watched by previously mentioned instances   
+There are some restrictions while using multiple providers, see: https://cluster-api.sigs.k8s.io/developer/core/support-multiple-instances
+But we need to:
 
-This change is only a small and strait forward update of the existing feature to limit watching on specified namespace by commandline `--namespace <ns>`
-
+1. extend the existing "cache configuration" feature `--namespace=<ns>` (limit watching a single namespace) to limit watching on multiple namespaces.
+2. add new feature to watch on all namespaces except selected ones.
+3. then we run multiple CAPI controller instances:
+   - each watching only specified namespaces: `capi1-system`, …, `capi$(N-1)-system`
+   - and the last resort instance to watch the rest of namespaces excluding the namespaces already watched by previously mentioned instances
 
 ### Non-Goals/Future Work
 Non-goals:
-* it's not necessary to work with the different versions of CRDs, we consider to:
-  * use same version of CAPi (the same container image):
-  * share the same CRDs
-* the contract and RBAC need to be solved on specific provider (AWS, AZURE, ...)
+
+* It's not necessary to work with all versions of CAPI/CRDs, we consider:
+  * All instances share the same CRDs.
+  * All instances must be compatible with the deployed CRDs.
+* The contract and RBAC need to be solved on specific provider (AWS, AZURE, ...)
+* It is not supported to configure two instances to watch the same namespace:
+  * the `--namespace=nsX` option can only be used by a single instance.
+* if the same namespace is both excluded and included by the same instance, it will be excluded from being watched by that instance.
 
 
 ## Proposal
 We are proposing to:
+
 * enable to select multiple namespaces: add `--namespace=<ns1, …>` to extend `--namespace=<ns>` to watch on selected namespaces
-  * the code change is only extending an existing hash with one item to multiple items
-  * the maintenance complexity shouldn't be extended here
+  * the code change involves extending an existing hash to accommodate multiple items.
+  * This change is only a small and straightforward update of the existing feature to limit watching on specified namespace. The maintenance complexity shouldn't be extended here
 * add the new commandline option `--excluded-namespace=<ens1, …>` to define list of excluded namespaces
-  * the code change is only setting an option `Cache.Options.DefaultFieldSelector` to disable matching with any of specified namespace's names
+  * the code [change](https://github.com/kubernetes-sigs/cluster-api/pull/11370/files#diff-c4604297ff388834dc8c6de30c847f50548cd6dd4b2f546c433b234a27ad4631R263) is only setting an option `Cache.Options.DefaultFieldSelector` to disable matching with any of specified namespace's names
   * the maintenance complexity shouldn't be extended a lot here
 
+Note:
+
+* There is also the existing `--watch-filter=<...>` option, which is used for event filtering, whereas `--namespace=<...>` and `--excluded-namespace=<...>` configure the cache.
+
+Our objectives include:
+
+- Each CAPI instance runs in a separate namespace and uses its own service account.
+  - Namespaces can be specified through command-line arguments:
+    - To watch: e.g., `--namespace <ns1> --namespace <ns2>`
+    - To exclude from watching: e.g., `--excluded-namespace <ns1> --excluded-namespace <ns2>`
+- We don't need to support for multiple CAPI versions, but:
+  - All instances must be compatible with the deployed CRDs.
+  - CRDs are deployed only for the newest CAPI instance (selecting one instance with the newest version).
+  - All conversion webhooks in CRDs point to the newest CAPI instance.
+  - `MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration` are deployed only for the newest CAPI instance and point to it.
+  - If instances use different API versions, conversion must be handled correctly by the conversion webhooks.
+- All running CAPI instances share global resources:
+  - CRDs:
+    - `cluster.x-k8s.io`:
+      - `addons.cluster.x-k8s.io`: `clusterresourcesetbindings`, `clusterresourcesets`
+      - `cluster.x-k8s.io`: `clusterclasses`, `clusters`, `machinedeployments`, `machinehealthchecks`, `machinepools`, `machinesets`, `machines`
+      - `ipam.cluster.x-k8s.io`: `ipaddressclaims`, `ipaddresses`
+      - `runtime.cluster.x-k8s.io`: `extensionconfigs`
+    - NOTE: Webhooks from CRDs point to `Service/capi-webhook-service` of the newest instance only.
+  - MutatingWebhookConfiguration and ValidatingWebhookConfiguration point to `Service/capi-webhook-service` of the newest instance only.
+- Cluster roles and access management:
+  - The default CAPI deployment defines a global cluster role:
+    - `ClusterRole/capi-aggregated-manager-role`
+    - `ClusterRoleBinding/capi-manager-rolebinding`, binding the service account `<instance-namespace>:capi-manager` for a CAPI instance to the `ClusterRole`
+  - In [Paradigm 1: Isolated Cluster Management](#paradigm-1-isolated-cluster-management), we can define a separate cluster role for each instance, granting access only to the namespaces watched by that instance.
+  - In [Paradigm 2: Centralized Cluster Management](#paradigm-2-centralized-cluster-management), access to all namespaces is required, as defined in the default CAPI deployment cluster role.
+ 
 ### A deployment example
-Let's consider an example how to deploy multiple instances:
+Let's consider an example how to deploy multiple instances for the [Paradigm 1+2](#challenge-coexistence-of-both-paradigms) 
 
 #### Global resources:
-* CRDs (*.cluster.x-k8s.io) - webhooks will point into first instance, e.g.:
+
+* CRDs (*.cluster.x-k8s.io) - webhooks will point into the newest CAPI instance instance, e.g.:
   ```yaml
     spec:
       conversion:
@@ -156,8 +218,7 @@ Let's consider an example how to deploy multiple instances:
 #### Namespace `capi2-system`
 * `ServiceAccount/capi-manager`
 * `Role/capi-leader-election-role`, `RoleBinding/capi-leader-election-rolebinding`
-* `MutatingWebhookConfiguration/capi-mutating-webhook-configuration`, `ValidatingWebhookConfiguration/capi-validating-webhook-configuration`
-* `Service/capi-webhook-service`
+* `Service/capi-webhook-service` ... this is unused and probably can be removed
 * `Deployment/capi-controller-manager` with the extra args:
   ```yaml
   containers:     
@@ -167,15 +228,46 @@ Let's consider an example how to deploy multiple instances:
   ```
 
 ### User Stories
-We need to deploy two CAPI instances in the same cluster and divide the list of namespaces to assign some well known namespaces to be watched from the first instance and rest of them to assign to the second instace.
+#### Story 1 - Hierarchical deployment using CAPI:
+In [OCM](https://github.com/open-cluster-management-io/ocm) environment there is `hub Cluster` managing multiple `klusterlets` (managed clusters/ spoke clusters).
 
-#### Story 1 - RedHat Hierarchical deployment using CAPI
-Provisioning cluster which is also provisioned cluster at the same time while using hierarchical structure of clusters.
-Two namespaces are used by management cluster and the rest of namespaces are watched by CAPI manager to manage other managed clusters.
+See the `Cluster namespace` term definition on [this](https://open-cluster-management.io/docs/concepts/architecture/) page, cite:
 
-RedHat Jira Issues:
-* [ACM-15441](https://issues.redhat.com/browse/ACM-15441) - CAPI required enabling option for watching multiple namespaces,
-* [ACM-14973](https://issues.redhat.com/browse/ACM-14973) - CAPI controllers should enabling option to ignore namespaces
+* OCM, for each of the `klusterlet` we will be provisioning a dedicated namespace for the managed cluster and grants sufficient RBAC permissions so that the `klusterlet` can persist some data in the hub cluster.
+* This dedicated namespace is the `cluster namespace` which is majorly for saving the prescriptions from the hub.
+  e.g. we can create ManifestWork in a `cluster namespace` in order to deploy some resources towards the corresponding cluster.
+  Meanwhile, the cluster namespace can also be used to save the uploaded stats from the `klusterlet` e.g. the healthiness of an addon, etc.
+
+We need to deploy CAPI instance into the `hub Cluster` watching multiple `cluster namespaces` but exclude `hub-cluster-machines` namespace.
+
+#### Story 2 - Isolated Cluster Management
+We need to limit the list of namespaces to watch. It's possible to do this now, but only on one namespace and we need to watch on multiple namespaces by one instance.
+
+#### Story 3 - Centralized Cluster Management
+We need to exclude the list of namespaces from watch to reduces management overhead through centralization.
+
+#### Story 4 - combination of Isolated and Centralized Cluster Management
+We need to deploy multiple CAPI instances in the same cluster and divide the list of namespaces to assign certain well-known namespaces to be watched from the given instances and define an instance to watch on the rest of them.
+E.g.:
+
+* instance1 (deployed in `capi1-system`) is watching `ns1.1`, `ns1.2`, ... `ns1.n1`
+* instance2 (deployed in `capi2-system`) is watching `ns2.1`, `ns2.2`, ... `ns2.n2`
+* ...
+* last-resort instance (deployed in `capiR-system`) is watching the rest of namespaces
+
+
+#### Story 5 - Two different versions of CAPI (out of scope):
+<!-- Jay Pipes -  https://kubernetes.slack.com/archives/C8TSNPY4T/p1723645630888909 --> 
+
+The reason we want to use two instances in one cluster is because we have:
+  * a single undercloud cluster that uses metal3 CAPI for the baremetal machine management of that undercloud cluster 
+  * and kubevirt CAPI for launching workload clusters on top of that undercloud cluster, using the undercloud cluster's baremetal compute machines to house the workload cluster's VM nodes.
+
+The workload clusters spawned with kubevirt CAPI need to be on a different release cadence than the metal3 CAPI (because our customers want to use the latest/greatest Kubernetes ASAP).
+The team that manages the undercloud/baremetal stuff are currently burdened with having to upgrade CAPI frequently
+(in order to support the latest kubevirt CAPI providers for the latest Kubernetes releases) and would prefer not to have to upgrade all the time.
+
+With multiple CAPI instances, we need to shard the resources handled by each instance, ideally along namespace boundaries.
 
 
 #### Functional Requirements
@@ -190,8 +282,8 @@ RedHat Jira Issues:
 #### Non-Functional Requirements
 
 We consider that all CAPI instances:
-- are using the same container image
-- are sharing CRDs and ClusterRole
+
+- are sharing CRDs, MutatingWebhookConfiguration, ValidatingWebhookConfiguration
 
 ### Implementation Details/Notes/Constraints
 
@@ -267,13 +359,14 @@ The `Alternatives` section is used to highlight and record other possible approa
 
 ## Upgrade Strategy
 
-We don't expect any changes while upgrading.
+We do not expect any changes while upgrading.
 
 ## Additional Details
 
 ### Test Plan
 
 Expectations:
+
 * create only E2E testcases using kind
   * deploy two instances into `capi1-system` and `capi2-system` namespaces
   * crate three namespaces `watch1`, `watch2`, `watch3` for the watching

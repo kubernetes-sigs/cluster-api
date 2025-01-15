@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,6 +108,99 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	bootstrapRef := machineList.Items[0].Spec.Bootstrap.ConfigRef
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: machineList.Items[0].Namespace, Name: bootstrapRef.Name}, kubeadmConfig)).To(Succeed())
 	g.Expect(kubeadmConfig.Spec.ClusterConfiguration.FeatureGates).To(BeComparableTo(map[string]bool{internal.ControlPlaneKubeletLocalMode: true}))
+}
+
+func TestKubeadmControlPlaneReconciler_initializeControlPlane_Error(t *testing.T) {
+	t.Run("Return error when parsing kubernetes version", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-initializecontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		// Try to break version
+		kcp.Spec.Version = "1+foobar-0"
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:   env,
+			recorder: record.NewFakeRecorder(32),
+			managementClusterUncached: &fakeManagementCluster{
+				Management: &internal.Management{Client: env},
+				Workload:   &fakeWorkloadCluster{},
+			},
+		}
+		controlPlane := &internal.ControlPlane{
+			Cluster: cluster,
+			KCP:     kcp,
+		}
+
+		result, err := r.initializeControlPlane(ctx, controlPlane)
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+		g.Expect(err).To(HaveOccurred())
+	})
+	t.Run("Return error when cloning control plane Machine", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-initializecontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		// Try to break Infra Cloning
+		kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:   env,
+			recorder: record.NewFakeRecorder(32),
+			managementClusterUncached: &fakeManagementCluster{
+				Management: &internal.Management{Client: env},
+				Workload:   &fakeWorkloadCluster{},
+			},
+		}
+		controlPlane := &internal.ControlPlane{
+			Cluster: cluster,
+			KCP:     kcp,
+		}
+
+		result, err := r.initializeControlPlane(ctx, controlPlane)
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+		g.Expect(err).To(HaveOccurred())
+	})
 }
 
 func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
@@ -247,6 +341,227 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			g.Expect(ok).To(BeTrue())
 			g.Expect(m).To(BeComparableTo(bm))
 		}
+	})
+	t.Run("Return error when parsing kubernetes version", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		// Try to break version
+		kcp.Spec.Version = "1+foobar-0"
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+		setKCPHealthy(kcp)
+
+		fmc := &fakeManagementCluster{
+			Machines: collections.New(),
+			Workload: &fakeWorkloadCluster{},
+		}
+
+		for i := range 2 {
+			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			setMachineHealthy(m)
+			fmc.Machines.Insert(m)
+		}
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:                    env,
+			managementCluster:         fmc,
+			managementClusterUncached: fmc,
+			recorder:                  record.NewFakeRecorder(32),
+		}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: fmc.Machines,
+		}
+
+		result, err := r.scaleUpControlPlane(ctx, controlPlane)
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+		g.Expect(err).To(HaveOccurred())
+	})
+	t.Run("Return error when cloning control plane Machine", func(t *testing.T) {
+		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+			t.Helper()
+
+			t.Log("Creating the namespace")
+			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			return ns
+		}
+
+		teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+			t.Helper()
+
+			t.Log("Deleting the namespace")
+			g.Expect(env.Delete(ctx, ns)).To(Succeed())
+		}
+
+		g := NewWithT(t)
+		namespace := setup(t, g)
+		defer teardown(t, g, namespace)
+
+		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
+		// Try to break Infra Cloning
+		kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		kcp.UID = types.UID(util.RandomString(10))
+		setKCPHealthy(kcp)
+
+		fmc := &fakeManagementCluster{
+			Machines: collections.New(),
+			Workload: &fakeWorkloadCluster{},
+		}
+
+		for i := range 2 {
+			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			setMachineHealthy(m)
+			fmc.Machines.Insert(m)
+		}
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:                    env,
+			managementCluster:         fmc,
+			managementClusterUncached: fmc,
+			recorder:                  record.NewFakeRecorder(32),
+		}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: fmc.Machines,
+		}
+
+		result, err := r.scaleUpControlPlane(ctx, controlPlane)
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+		g.Expect(err).To(HaveOccurred())
+	})
+}
+
+func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_Error(t *testing.T) {
+	t.Run("Return error failed to select machine for scale down", func(t *testing.T) {
+		g := NewWithT(t)
+		fakeClient := newFakeClient()
+
+		r := &KubeadmControlPlaneReconciler{
+			recorder:            record.NewFakeRecorder(32),
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{},
+			},
+		}
+
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.19.1",
+			},
+		}
+		setKCPHealthy(kcp)
+		controlPlane := &internal.ControlPlane{
+			KCP:     kcp,
+			Cluster: &clusterv1.Cluster{},
+		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+	})
+	t.Run("Return error when deleting control plane machine", func(t *testing.T) {
+		g := NewWithT(t)
+
+		machines := map[string]*clusterv1.Machine{
+			"two":   machine("two", withTimestamp(time.Now())),
+			"three": machine("three", withTimestamp(time.Now())),
+		}
+		setMachineHealthy(machines["two"])
+		setMachineHealthy(machines["three"])
+		fakeClient := newFakeClient(machines["two"], machines["three"])
+
+		r := &KubeadmControlPlaneReconciler{
+			recorder: record.NewFakeRecorder(32),
+			Client: &fClient{Client: fakeClient,
+				deleteError: errors.New("delete error")},
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{},
+			},
+		}
+
+		cluster := &clusterv1.Cluster{}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.19.1",
+			},
+		}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machines)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
+	})
+
+	t.Run("Return error when create client for workload cluster", func(t *testing.T) {
+		g := NewWithT(t)
+
+		machines := map[string]*clusterv1.Machine{
+			"two":   machine("two", withTimestamp(time.Now())),
+			"three": machine("three", withTimestamp(time.Now())),
+		}
+		setMachineHealthy(machines["two"])
+		setMachineHealthy(machines["three"])
+		fakeClient := newFakeClient(machines["two"], machines["three"])
+
+		r := &KubeadmControlPlaneReconciler{
+			recorder:            record.NewFakeRecorder(32),
+			Client:              &fClient{Client: fakeClient},
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Workload:    &fakeWorkloadCluster{},
+				WorkloadErr: errors.New("get error"),
+			},
+		}
+
+		cluster := &clusterv1.Cluster{}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.19.1",
+			},
+		}
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machines)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false}))
 	})
 }
 
@@ -804,4 +1119,32 @@ func withTimestamp(t time.Time) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.NewTime(t)
 	}
+}
+
+type fClient struct {
+	client.Client
+	getError    error
+	listError   error
+	deleteError error
+}
+
+func (fc *fClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if fc.getError != nil {
+		return fc.getError
+	}
+	return fc.Client.Get(ctx, key, obj, opts...)
+}
+
+func (fc *fClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	if fc.listError != nil {
+		return fc.listError
+	}
+	return fc.Client.List(ctx, list, opts...)
+}
+
+func (fc *fClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	if fc.deleteError != nil {
+		return fc.deleteError
+	}
+	return fc.Client.Delete(ctx, obj, opts...)
 }

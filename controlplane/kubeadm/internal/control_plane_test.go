@@ -23,12 +23,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -61,6 +64,12 @@ func TestControlPlane(t *testing.T) {
 			g := NewWithT(t)
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
+		})
+
+		t.Run("With failure Domains is set empty", func(*testing.T) {
+			g := NewWithT(t)
+			controlPlane.Cluster.Status.FailureDomains = nil
+			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("one"))
 		})
 	})
 
@@ -141,6 +150,173 @@ func TestControlPlane(t *testing.T) {
 		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(fd).To(Equal("two")) // deleted up-to-date machines (m4) should not be counted when picking the next failure domain for scale up
+	})
+
+	t.Run("Next Failure Domains", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := clusterv1.Cluster{
+			Status: clusterv1.ClusterStatus{
+				FailureDomains: clusterv1.FailureDomains{
+					"one": failureDomain(false),
+				},
+			},
+		}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.31.0",
+			},
+		}
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Now())},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"), // deleted
+					FailureDomain:     ptr.To("one"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+				}},
+		}
+		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), &cluster, kcp, machines)
+		g.Expect(err).NotTo(HaveOccurred())
+		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(fd).To(BeNil())
+	})
+
+	t.Run("ControlPlane returns infra error", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := clusterv1.Cluster{
+			Status: clusterv1.ClusterStatus{
+				FailureDomains: clusterv1.FailureDomains{
+					"one":   failureDomain(true),
+					"two":   failureDomain(true),
+					"three": failureDomain(true),
+				},
+			},
+		}
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.31.0",
+			},
+		}
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("one"),
+					InfrastructureRef: corev1.ObjectReference{Name: "m1"},
+				}},
+		}
+		_, err := NewControlPlane(ctx, nil, env.GetClient(), &cluster, kcp, machines)
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("When infra and bootstrap config is exists", func(t *testing.T) {
+		g := NewWithT(t)
+		ns, err := env.CreateNamespace(ctx, "test-machine-watches")
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Version: "v1.31.0",
+			},
+		}
+
+		g.Expect(err).ToNot(HaveOccurred())
+
+		infraMachine := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": ns.Name,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+					},
+				},
+			},
+		}
+
+		bootstrap := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       "KubeadmConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config-machinereconcile",
+					"namespace": ns.Name,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+		}
+
+		testCluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: ns.Name},
+			Status: clusterv1.ClusterStatus{
+				FailureDomains: clusterv1.FailureDomains{
+					"one":   failureDomain(true),
+					"two":   failureDomain(true),
+					"three": failureDomain(true),
+				},
+			},
+		}
+
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, bootstrap)).To(Succeed())
+
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(ns, bootstrap, infraMachine)
+
+		// Patch infra machine ready
+		patchHelper, err := patch.NewHelper(infraMachine, env)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+		// Patch bootstrap ready
+		patchHelper, err = patch.NewHelper(bootstrap, env)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(unstructured.SetNestedField(bootstrap.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(patchHelper.Patch(ctx, bootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1",
+					Namespace: ns.Name},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+						Namespace:  ns.Name,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "KubeadmConfig",
+							Name:       "bootstrap-config-machinereconcile",
+							Namespace:  ns.Name,
+						},
+					},
+				},
+			},
+		}
+
+		_, err = NewControlPlane(ctx, nil, env.GetClient(), testCluster, kcp, machines)
+		g.Expect(err).NotTo(HaveOccurred())
 	})
 }
 
@@ -354,6 +530,94 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 	g.Expect(got[1]).To(Equal(machines), cmp.Diff(got[1], machines))
 	g.Expect(got[2]).To(Equal("etcdMembers"))
 	g.Expect(got[3]).To(Equal("m1, m2, m3"))
+}
+
+func TestMachineInFailureDomainWithMostMachines(t *testing.T) {
+	t.Run("Machines in Failure Domain", func(t *testing.T) {
+		machines := collections.Machines{
+			"machine-3": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m3"},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("three"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m3"},
+				}},
+		}
+
+		c := &ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{},
+			Cluster: &clusterv1.Cluster{
+				Status: clusterv1.ClusterStatus{
+					FailureDomains: clusterv1.FailureDomains{
+						"three": failureDomain(false),
+					},
+				},
+			},
+			Machines: collections.Machines{
+				"machine-3": machine("machine-3", withFailureDomain("three")),
+			},
+		}
+
+		g := NewWithT(t)
+		_, err := c.MachineInFailureDomainWithMostMachines(ctx, machines)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+	t.Run("Return error when no controlplane machine found", func(t *testing.T) {
+		machines := collections.Machines{}
+
+		c := &ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{},
+			Cluster: &clusterv1.Cluster{
+				Status: clusterv1.ClusterStatus{
+					FailureDomains: clusterv1.FailureDomains{},
+				},
+			},
+			Machines: collections.Machines{},
+		}
+
+		g := NewWithT(t)
+		_, err := c.MachineInFailureDomainWithMostMachines(ctx, machines)
+		g.Expect(err).To(HaveOccurred())
+	})
+}
+func TestMachineWithDeleteAnnotation(t *testing.T) {
+	t.Run("Machines having delete annotation set", func(t *testing.T) {
+		machines := collections.Machines{
+			"machine-1": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m1",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/delete-machine": "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("one"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+				}},
+			"machine-2": &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m2",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/delete-machine": "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Version:           ptr.To("v1.31.0"),
+					FailureDomain:     ptr.To("two"),
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m2"},
+				}},
+		}
+
+		c := ControlPlane{
+			Machines: machines,
+			Cluster: &clusterv1.Cluster{
+				Status: clusterv1.ClusterStatus{},
+			},
+		}
+
+		g := NewWithT(t)
+		annotedMachines := c.MachineWithDeleteAnnotation(machines)
+		g.Expect(annotedMachines).NotTo(BeNil())
+	})
 }
 
 type machineOpt func(*clusterv1.Machine)

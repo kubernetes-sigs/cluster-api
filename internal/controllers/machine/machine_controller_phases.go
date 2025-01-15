@@ -98,6 +98,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Machine",
 		Name:       m.Name,
+		UID:        m.UID,
 		Controller: ptr.To(true),
 	}
 

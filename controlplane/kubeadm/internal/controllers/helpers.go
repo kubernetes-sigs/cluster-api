@@ -147,17 +147,23 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 
 	// Note: We intentionally do not handle checking for the paused label on an external template reference
 
+	desiredOwnerRef := metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}
+
+	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) {
+		return nil
+	}
+
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
 		return err
 	}
 
-	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	}))
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
 
 	return patchHelper.Patch(ctx, obj)
 }

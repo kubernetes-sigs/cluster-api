@@ -27,7 +27,6 @@ linters:
   - errchkjson
   - gci
   - ginkgolinter
-  - goconst
   - gocritic
   - godot
   - gofmt

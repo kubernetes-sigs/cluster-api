@@ -131,6 +131,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
+		UID:        cluster.UID,
 		Controller: ptr.To(true),
 	}
 

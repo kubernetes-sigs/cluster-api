@@ -23,9 +23,13 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.22.10
-GO_DIRECTIVE_VERSION ?= 1.22.0
+GO_VERSION ?= 1.23.0
+GO_DIRECTIVE_VERSION ?= 1.23.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
+
+# Ensure correct toolchain is used
+GOTOOLCHAIN = go$(GO_VERSION)
+export GOTOOLCHAIN
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)

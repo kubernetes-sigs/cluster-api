@@ -25,7 +25,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
-	utilversion "k8s.io/apiserver/pkg/util/version"
+	"k8s.io/component-base/featuregate"
+	utilversion "k8s.io/component-base/version"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -346,13 +347,13 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
 			// the unit tests that verify that compatibility is handled correctly.
-			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			effectiveVer := featuregate.DefaultComponentGlobalsRegistry.EffectiveVersionFor(featuregate.DefaultKubeComponent)
 			if effectiveVer != nil {
 				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
 			} else {
 				v := utilversion.DefaultKubeEffectiveVersion()
 				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
-				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+				g.Expect(featuregate.DefaultComponentGlobalsRegistry.Register(featuregate.DefaultKubeComponent, v, nil)).To(Succeed())
 			}
 
 			gotErrs := ValidateClusterClassVariables(ctx,
@@ -1275,7 +1276,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				toolong("Too long: may not be longer than 6",
+				toolong("Too long: may not be more than 6 bytes",
 					"spec.variables[var].schema.openAPIV3Schema.default"),
 			},
 		},
@@ -1295,7 +1296,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				toolong("Too long: may not be longer than 6",
+				toolong("Too long: may not be more than 6 bytes",
 					"spec.variables[var].schema.openAPIV3Schema.items.default"),
 			},
 		},
@@ -1495,7 +1496,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				toolong("Too long: may not be longer than 6",
+				toolong("Too long: may not be more than 6 bytes",
 					"spec.variables[var].schema.openAPIV3Schema.example"),
 			},
 		},
@@ -1636,7 +1637,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				toolong("may not be longer than 6",
+				toolong("may not be more than 6 bytes",
 					"spec.variables[var].schema.openAPIV3Schema.enum[0]"),
 			},
 		},

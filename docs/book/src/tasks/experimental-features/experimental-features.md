@@ -7,6 +7,7 @@ Currently Cluster API has the following experimental features:
 * `ClusterResourceSet` (env var: `EXP_CLUSTER_RESOURCE_SET`): [ClusterResourceSet](./cluster-resource-set.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
+* `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
 * `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):
   * During Machine drain the Machine controller waits for volumes to be detached. Per default, the controller considers
     `Nodes.status.volumesAttached` and `VolumesAttachments`. This feature flag allows to opt-out from considering `VolumeAttachments`.

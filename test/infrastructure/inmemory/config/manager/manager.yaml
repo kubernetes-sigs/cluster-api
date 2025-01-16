@@ -22,6 +22,7 @@ spec:
         - "--leader-elect"
         - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
         - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
+        - "--feature-gates=PriorityQueue=${EXP_PRIORITY_QUEUE:=false}"
         image: controller:latest
         name: manager
         env:

@@ -44,8 +44,10 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -65,6 +67,7 @@ import (
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
+	"sigs.k8s.io/cluster-api/feature"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -286,6 +289,9 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 
 	options := manager.Options{
+		Controller: config.Controller{
+			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+		},
 		Scheme: scheme.Scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: "0",

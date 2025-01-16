@@ -311,7 +311,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	}
 
 	// Surface the operation is in progress.
-	log.Info("Remediating unhealthy machine")
+	log.Info("Deleting Machine (remediating unhealthy Machine)")
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 
 	v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{

@@ -139,6 +139,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	}
 
 	logger = logger.WithValues("Machine", klog.KObj(machineToDelete))
+	logger.Info("Deleting Machine (scale down)")
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "Failed to delete control plane machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleDown",

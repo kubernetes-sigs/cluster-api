@@ -38,7 +38,7 @@ type DockerClusterTemplate struct{}
 func (webhook *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.DockerClusterTemplate{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }

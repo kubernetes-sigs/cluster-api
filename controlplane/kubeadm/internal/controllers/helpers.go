@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -184,6 +185,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec, failureDomain *string) error {
 	var errs []error
+	log := ctrl.LoggerFrom(ctx)
 
 	// Compute desired Machine
 	machine, err := r.computeDesiredMachine(kcp, cluster, failureDomain, nil)
@@ -252,6 +254,10 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		return kerrors.NewAggregate(errs)
 	}
 
+	log.Info("Machine created (scale up)",
+		"Machine", klog.KObj(machine),
+		infraRef.Kind, klog.KRef(infraRef.Namespace, infraRef.Name),
+		bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
 	return nil
 }
 

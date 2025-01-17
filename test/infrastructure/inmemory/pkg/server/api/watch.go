@@ -20,11 +20,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
+	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,7 @@ import (
 // Event records a lifecycle event for a Kubernetes object.
 type Event struct {
 	Type   watch.EventType `json:"type,omitempty"`
-	Object runtime.Object  `json:"object,omitempty"`
+	Object client.Object   `json:"object,omitempty"`
 }
 
 // WatchEventDispatcher dispatches events for a single resourceGroup.
@@ -89,12 +90,12 @@ func (m *WatchEventDispatcher) OnGeneric(resourceGroup string, o client.Object) 
 func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.Response, resourceGroup string, gvk schema.GroupVersionKind) (reterr error) {
 	ctx := req.Request.Context()
 	queryTimeout := req.QueryParameter("timeoutSeconds")
+	resourceVersion := req.QueryParameter("resourceVersion")
 	c := h.manager.GetCache()
 	i, err := c.GetInformerForKind(ctx, gvk)
 	if err != nil {
 		return err
 	}
-	h.log.Info(fmt.Sprintf("Serving Watch for %v", req.Request.URL))
 	// With an unbuffered event channel RemoveEventHandler could be blocked because it requires a lock on the informer.
 	// When Run stops reading from the channel the informer could be blocked with an unbuffered chanel and then RemoveEventHandler never goes through.
 	// 1000 is used to avoid deadlocks in clusters with a higher number of Machines/Nodes.
@@ -106,6 +107,50 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 
 	if err := i.AddEventHandler(watcher); err != nil {
 		return err
+	}
+
+	initialEvents := []Event{}
+	if resourceVersion != "" {
+		parsedResourceVersion, err := strconv.ParseUint(resourceVersion, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		// Get at client to the resource group and list all relevant objects.
+		inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+		list, err := h.apiV1list(ctx, req, gvk, inmemoryClient)
+		if err != nil {
+			return err
+		}
+
+		// Sort the objects by resourceVersion to later write the events in order.
+		sort.SliceStable(list.Items, func(i, j int) bool {
+			a, err := strconv.ParseUint(list.Items[i].GetResourceVersion(), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			b, err := strconv.ParseUint(list.Items[j].GetResourceVersion(), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			return a < b
+		})
+
+		// Loop over all items and fill the list of events which were missed since the last watch.
+		for _, obj := range list.Items {
+			objResourceVersion, err := strconv.ParseUint(obj.GetResourceVersion(), 10, 64)
+			if err != nil {
+				return err
+			}
+			if objResourceVersion <= parsedResourceVersion {
+				continue
+			}
+			eventType := watch.Modified
+			if obj.GetGeneration() == 0 {
+				eventType = watch.Added
+			}
+			initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
+		}
 	}
 
 	// Defer cleanup which removes the event handler and ensures the channel is empty of events.
@@ -124,11 +169,11 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		// Note: After we removed the handler, no new events will be written to the events channel.
 	}()
 
-	return watcher.Run(ctx, queryTimeout, resp)
+	return watcher.Run(ctx, queryTimeout, initialEvents, resp)
 }
 
 // Run serves a series of encoded events via HTTP with Transfer-Encoding: chunked.
-func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.ResponseWriter) error {
+func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialEvents []Event, w http.ResponseWriter) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return errors.New("can't start Watch: can't get http.Flusher")
@@ -139,6 +184,12 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
+	// Write all object events which happened since the last resourceVersion.
+	for _, event := range initialEvents {
+		if err := resp.WriteEntity(event); err != nil {
+			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		}
+	}
 	flusher.Flush()
 
 	timeoutTimer, seconds, err := setTimer(timeout)
@@ -149,6 +200,18 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 	ctx, cancel := context.WithTimeout(ctx, seconds)
 	defer cancel()
 	defer timeoutTimer.Stop()
+
+	// Determine the highest written resourceVersion so we can filter out duplicated events from the channel.
+	minResourceVersion := uint64(0)
+	if len(initialEvents) > 0 {
+		minResourceVersion, err = strconv.ParseUint(initialEvents[len(initialEvents)-1].Object.GetResourceVersion(), 10, 64)
+		if err != nil {
+			return err
+		}
+		minResourceVersion++
+	}
+
+	var objResourceVersion uint64
 	for {
 		select {
 		case <-ctx.Done():
@@ -160,6 +223,18 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 				// End of results.
 				return nil
 			}
+
+			// Parse and check if the object has a higher resource version than we allow.
+			objResourceVersion, err = strconv.ParseUint(event.Object.GetResourceVersion(), 10, 64)
+			if err != nil {
+				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+			}
+
+			// Skip objects which were already written.
+			if objResourceVersion < minResourceVersion {
+				continue
+			}
+
 			if err := resp.WriteEntity(event); err != nil {
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 			}

@@ -672,7 +672,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			continue
 		}
 
-		log.Info("Deleting Machine (KCP deleted)")
+		log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
+			Info("Deleting Machine (KCP deleted)")
 		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
 		}

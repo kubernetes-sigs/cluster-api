@@ -18,6 +18,9 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +35,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -384,4 +388,80 @@ func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster,
 func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementCluster) {
 	c.managementCluster = managementCluster
 	c.workloadCluster = nil
+}
+
+// StatusToLogKeyAndValues returns following key/value pairs describing the overall status of the control plane:
+// - machines is the list of KCP machines; each machine might have additional notes surfacing
+//   - if the machine has been created in the current reconcile (new)
+//   - if machines node is not yet (node ref not set)
+//   - if the machine has bee marked for remediation (health check failed)
+//   - if there are unhealthy control plane component on the machine
+//   - if the machine has a deletion timestamp/has been deleted in the current reconcile (deleting)
+//   - if the machine is not up to date with the KCP spec (not up to date)
+//
+// - etcdMembers list as reported by etcd.
+func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
+	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
+		controlplanev1.MachineAPIServerPodHealthyCondition,
+		controlplanev1.MachineControllerManagerPodHealthyCondition,
+		controlplanev1.MachineSchedulerPodHealthyCondition,
+	}
+	if c.IsEtcdManaged() {
+		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
+			controlplanev1.MachineEtcdPodHealthyCondition,
+			controlplanev1.MachineEtcdMemberHealthyCondition,
+		)
+	}
+
+	machines := []string{}
+	for _, m := range c.Machines {
+		notes := []string{}
+
+		if m.Status.NodeRef == nil {
+			notes = append(notes, "node ref not set")
+		}
+
+		if c.MachinesToBeRemediatedByKCP().Has(m) {
+			notes = append(notes, "health check failed")
+		}
+
+		for _, condition := range controlPlaneMachineHealthConditions {
+			if conditions.IsUnknown(m, condition) {
+				notes = append(notes, strings.Replace(string(condition), "Healthy", " health unknown", -1))
+			}
+			if conditions.IsFalse(m, condition) {
+				notes = append(notes, strings.Replace(string(condition), "Healthy", " not healthy", -1))
+			}
+		}
+
+		if !c.UpToDateMachines().Has(m) {
+			notes = append(notes, "not up to date")
+		}
+
+		if !m.DeletionTimestamp.IsZero() || (deletedMachine != nil && m.Name == deletedMachine.Name) {
+			notes = append(notes, "deleting")
+		}
+
+		name := m.Name
+		if len(notes) > 0 {
+			name = fmt.Sprintf("%s (%s)", name, strings.Join(notes, ", "))
+		}
+		machines = append(machines, name)
+	}
+
+	if newMachine != nil {
+		machines = append(machines, fmt.Sprintf("%s (new)", newMachine.Name))
+	}
+	sort.Strings(machines)
+
+	etcdMembers := []string{}
+	for _, m := range c.EtcdMembers {
+		etcdMembers = append(etcdMembers, m.Name)
+	}
+	sort.Strings(etcdMembers)
+
+	return []any{
+		"machines", strings.Join(machines, ", "),
+		"etcdMembers", strings.Join(etcdMembers, ", "),
+	}
 }

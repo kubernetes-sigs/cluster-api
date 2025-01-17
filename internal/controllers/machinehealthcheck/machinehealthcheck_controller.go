@@ -541,8 +541,9 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			t.Machine,
 			corev1.EventTypeNormal,
 			EventMachineMarkedUnhealthy,
-			"Machine %v has been marked as unhealthy",
-			t.string(),
+			"Machine %s has been marked as unhealthy by %s",
+			klog.KObj(t.Machine),
+			klog.KObj(t.MHC),
 		)
 	}
 	return errList

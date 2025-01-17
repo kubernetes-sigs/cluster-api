@@ -64,15 +64,6 @@ type healthCheckTarget struct {
 	nodeMissing bool
 }
 
-func (t *healthCheckTarget) string() string {
-	return fmt.Sprintf("%s/%s/%s/%s",
-		t.MHC.GetNamespace(),
-		t.MHC.GetName(),
-		t.Machine.GetName(),
-		t.nodeName(),
-	)
-}
-
 // Get the node name if the target has a node.
 func (t *healthCheckTarget) nodeName() string {
 	if t.Node != nil {
@@ -331,7 +322,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 	var healthy []healthCheckTarget
 
 	for _, t := range targets {
-		logger := logger.WithValues("target", t.string())
+		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		logger.V(3).Info("Health checking target")
 		needsRemediation, nextCheck := t.needsRemediation(logger, timeoutForMachineToHaveNode)
 

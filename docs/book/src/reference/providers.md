@@ -8,25 +8,25 @@ updated info about which API version they are supporting.
 ## Bootstrap
 - [Amazon Elastic Kubernetes Service (EKS)](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
 - [Canonical Kubernetes Platform](https://github.com/canonical/cluster-api-k8s)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
+- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
-- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
-- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Control Plane
 - [Canonical Kubernetes Platform](https://github.com/canonical/cluster-api-k8s)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
+- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
+- [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
-- [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
-- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
-- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Infrastructure
 - [Akamai (Linode)](https://linode.github.io/cluster-api-provider-linode/)
@@ -44,6 +44,7 @@ updated info about which API version they are supporting.
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)
 - [KubeKey](https://github.com/kubesphere/kubekey)
+- [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
@@ -61,7 +62,6 @@ updated info about which API version they are supporting.
 - [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 - [Vultr](https://github.com/vultr/cluster-api-provider-vultr)
-- [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
 
 ## IP Address Management (IPAM)
 - [In Cluster](https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster)

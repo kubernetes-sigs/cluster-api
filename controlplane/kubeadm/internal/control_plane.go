@@ -392,12 +392,12 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 
 // StatusToLogKeyAndValues returns following key/value pairs describing the overall status of the control plane:
 // - machines is the list of KCP machines; each machine might have additional notes surfacing
-//   - if the machine has been created in the current reconcile (new)
-//   - if machines node is not yet (node ref not set)
-//   - if the machine has bee marked for remediation (health check failed)
+//   - if the machine has been created in the current reconcile
+//   - if machines node ref is not yet set
+//   - if the machine has been marked for remediation
 //   - if there are unhealthy control plane component on the machine
-//   - if the machine has a deletion timestamp/has been deleted in the current reconcile (deleting)
-//   - if the machine is not up to date with the KCP spec (not up to date)
+//   - if the machine has a deletion timestamp/has been deleted in the current reconcile
+//   - if the machine is not up to date with the KCP spec
 //
 // - etcdMembers list as reported by etcd.
 func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
@@ -418,11 +418,11 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 		notes := []string{}
 
 		if m.Status.NodeRef == nil {
-			notes = append(notes, "node ref not set")
+			notes = append(notes, "status.nodeRef not set")
 		}
 
 		if c.MachinesToBeRemediatedByKCP().Has(m) {
-			notes = append(notes, "health check failed")
+			notes = append(notes, "marked for remediation")
 		}
 
 		for _, condition := range controlPlaneMachineHealthConditions {
@@ -435,10 +435,12 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 		}
 
 		if !c.UpToDateMachines().Has(m) {
-			notes = append(notes, "not up to date")
+			notes = append(notes, "not up-to-date")
 		}
 
-		if !m.DeletionTimestamp.IsZero() || (deletedMachine != nil && m.Name == deletedMachine.Name) {
+		if deletedMachine != nil && m.Name == deletedMachine.Name {
+			notes = append(notes, "just deleted")
+		} else if !m.DeletionTimestamp.IsZero() {
 			notes = append(notes, "deleting")
 		}
 
@@ -450,7 +452,7 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 	}
 
 	if newMachine != nil {
-		machines = append(machines, fmt.Sprintf("%s (new)", newMachine.Name))
+		machines = append(machines, fmt.Sprintf("%s (just created)", newMachine.Name))
 	}
 	sort.Strings(machines)
 

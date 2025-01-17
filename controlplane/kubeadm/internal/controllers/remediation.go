@@ -311,6 +311,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	}
 
 	// Surface the operation is in progress.
+	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToBeRemediated)...).
 		Info("Deleting Machine (remediating unhealthy Machine)")
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")

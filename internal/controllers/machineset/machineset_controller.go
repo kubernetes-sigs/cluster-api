@@ -427,10 +427,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	// else delete owned machines.
 	for _, machine := range machineList {
 		if machine.DeletionTimestamp.IsZero() {
-			log.Info("Deleting Machine (MachineSet deleted)", "Machine", klog.KObj(machine))
 			if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
 			}
+			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+			// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+			log.Info("Deleting Machine (MachineSet deleted)", "Machine", klog.KObj(machine))
 		}
 	}
 
@@ -816,13 +818,15 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		for i, machine := range machinesToDelete {
 			log := log.WithValues("Machine", klog.KObj(machine))
 			if machine.GetDeletionTimestamp().IsZero() {
-				log.Info(fmt.Sprintf("Deleting Machine (scale down, deleting %d of %d)", i+1, diff))
 				if err := r.Client.Delete(ctx, machine); err != nil {
 					log.Error(err, "Unable to delete Machine")
 					r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", machine.Name, err)
 					errs = append(errs, err)
 					continue
 				}
+				// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+				// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+				log.Info(fmt.Sprintf("Deleting Machine (scale down, deleting %d of %d)", i+1, diff))
 				r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", machine.Name)
 			} else {
 				log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, diff))
@@ -1492,10 +1496,12 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	}
 	var errs []error
 	for _, m := range machinesToRemediate {
-		log.Info("Deleting Machine (remediating unhealthy Machine)", "Machine", klog.KObj(m))
 		if err := r.Client.Delete(ctx, m); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(m)))
 		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+		log.Info("Deleting Machine (remediating unhealthy Machine)", "Machine", klog.KObj(m))
 	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")

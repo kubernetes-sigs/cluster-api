@@ -374,7 +374,8 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
 		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
 	}
-	g.Expect(r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)).To(Succeed())
+	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
+	g.Expect(err).To(Succeed())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -463,7 +464,8 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 
 	// Try to break Infra Cloning
 	kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
-	g.Expect(r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)).To(HaveOccurred())
+	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
+	g.Expect(err).To(HaveOccurred())
 	g.Expect(&kcp.GetConditions()[0]).Should(conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedCondition,
 		Status:   corev1.ConditionFalse,

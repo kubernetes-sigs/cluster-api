@@ -90,7 +90,7 @@ type resourceGroupTracker struct {
 	objects map[schema.GroupVersionKind]map[types.NamespacedName]client.Object
 	// ownedObjects tracks ownership. Key is the owner, values are the owned objects.
 	ownedObjects        map[ownReference]map[ownReference]struct{}
-	nextResourceVersion uint64
+	lastResourceVersion uint64
 }
 
 type ownReference struct {
@@ -162,7 +162,7 @@ func (c *cache) AddResourceGroup(name string) {
 	c.resourceGroups[name] = &resourceGroupTracker{
 		objects:             map[schema.GroupVersionKind]map[types.NamespacedName]client.Object{},
 		ownedObjects:        map[ownReference]map[ownReference]struct{}{},
-		nextResourceVersion: 1,
+		lastResourceVersion: 0,
 	}
 }
 

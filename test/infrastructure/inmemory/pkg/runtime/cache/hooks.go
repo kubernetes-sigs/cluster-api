@@ -30,9 +30,9 @@ func (c *cache) beforeCreate(_ string, obj client.Object, resourceVersion *uint6
 	obj.SetCreationTimestamp(metav1.Time{Time: now})
 	// TODO: UID
 	obj.SetAnnotations(appendAnnotations(obj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
+	*resourceVersion++
 	obj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
 	obj.SetGeneration(1)
-	*resourceVersion++
 }
 
 func (c *cache) afterCreate(resourceGroup string, obj client.Object) {
@@ -52,9 +52,9 @@ func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object, resourceVer
 		now := time.Now().UTC()
 		newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 
+		*resourceVersion++
 		newObj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
 		newObj.SetGeneration(oldObj.GetGeneration() + 1)
-		*resourceVersion++
 	}
 }
 

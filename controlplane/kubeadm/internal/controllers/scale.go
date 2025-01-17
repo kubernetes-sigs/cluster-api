@@ -158,6 +158,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			"Failed to delete control plane Machine %s for cluster %s control plane: %v", machineToDelete.Name, klog.KObj(controlPlane.Cluster), err)
 		return ctrl.Result{}, err
 	}
+	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	logger.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
 		Info("Deleting Machine (scale down)", "Machine", klog.KObj(machineToDelete))
 

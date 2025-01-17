@@ -184,14 +184,12 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(fd).To(BeNil())
 	})
 
-	t.Run("ControlPlane returns infra error", func(t *testing.T) {
+	t.Run("ControlPlane returns error when getting infra resources", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := clusterv1.Cluster{
 			Status: clusterv1.ClusterStatus{
 				FailureDomains: clusterv1.FailureDomains{
-					"one":   failureDomain(true),
-					"two":   failureDomain(true),
-					"three": failureDomain(true),
+					"one": failureDomain(true),
 				},
 			},
 		}
@@ -213,7 +211,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 	})
 
-	t.Run("When infra and bootstrap config is exists", func(t *testing.T) {
+	t.Run("When infra and bootstrap config exists", func(t *testing.T) {
 		g := NewWithT(t)
 		ns, err := env.CreateNamespace(ctx, "test-machine-watches")
 		kcp := &controlplanev1.KubeadmControlPlane{
@@ -591,8 +589,9 @@ func TestMachineWithDeleteAnnotation(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		annotedMachines := c.MachineWithDeleteAnnotation(machines)
-		g.Expect(annotedMachines).NotTo(BeNil())
+		annotatedMachines := c.MachineWithDeleteAnnotation(machines)
+		g.Expect(annotatedMachines).NotTo(BeNil())
+		g.Expect(annotatedMachines.Len()).To(BeEquivalentTo(2))
 	})
 }
 

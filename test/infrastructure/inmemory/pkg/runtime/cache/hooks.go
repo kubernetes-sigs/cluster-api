@@ -31,6 +31,7 @@ func (c *cache) beforeCreate(_ string, obj client.Object, resourceVersion *uint6
 	// TODO: UID
 	obj.SetAnnotations(appendAnnotations(obj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 	obj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
+	obj.SetGeneration(1)
 	*resourceVersion++
 }
 
@@ -41,6 +42,7 @@ func (c *cache) afterCreate(resourceGroup string, obj client.Object) {
 func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object, resourceVersion *uint64) {
 	newObj.SetCreationTimestamp(oldObj.GetCreationTimestamp())
 	newObj.SetResourceVersion(oldObj.GetResourceVersion())
+	newObj.SetGeneration(oldObj.GetGeneration())
 	// TODO: UID
 	newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, oldObj.GetAnnotations()[lastSyncTimeAnnotation]))
 	if !oldObj.GetDeletionTimestamp().IsZero() {
@@ -51,6 +53,7 @@ func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object, resourceVer
 		newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 
 		newObj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
+		newObj.SetGeneration(oldObj.GetGeneration() + 1)
 		*resourceVersion++
 	}
 }

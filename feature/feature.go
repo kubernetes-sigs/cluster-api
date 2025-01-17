@@ -39,7 +39,7 @@ const (
 	//
 	// alpha: v0.3
 	// beta: v0.4
-	// GA: v1.9.
+	// GA: v1.10
 	ClusterResourceSet featuregate.Feature = "ClusterResourceSet"
 
 	// ClusterTopology is a feature gate for the ClusterClass and managed topologies functionality.

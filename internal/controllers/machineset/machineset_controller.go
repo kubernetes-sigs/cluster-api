@@ -427,7 +427,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	// else delete owned machines.
 	for _, machine := range machineList {
 		if machine.DeletionTimestamp.IsZero() {
-			log.Info("Deleting Machine (MS deleted)", "Machine", klog.KObj(machine))
+			log.Info("Deleting Machine (MachineSet deleted)", "Machine", klog.KObj(machine))
 			if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
 			}

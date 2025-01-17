@@ -74,6 +74,7 @@ linters-settings:
     exclude:
       - '^ \+.*'
       - '^ ANCHOR.*'
+      - '^ (alpha|beta|GA): v.*'
   gocritic:
     enabled-tags:
       - diagnostic

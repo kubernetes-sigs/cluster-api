@@ -1,6 +1,6 @@
 run:
   timeout: 10m
-  go: "1.22"
+  go: "1.23"
   build-tags:
     - tools
     - e2e
@@ -309,11 +309,6 @@ issues:
     - revive
     - stylecheck
     path: (framework|e2e)/.*.go
-    text: should not use dot imports
-  - linters:
-    - revive
-    - stylecheck
-    path: util/defaulting/defaulting.go
     text: should not use dot imports
   # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
   # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.

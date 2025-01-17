@@ -112,16 +112,6 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		return err
 	}
 
-	initialEvents := []Event{}
-	if resourceVersion == "" {
-		resourceVersion = "0"
-	}
-
-	parsedResourceVersion, err := strconv.ParseUint(resourceVersion, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	// Get at client to the resource group and list all relevant objects.
 	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 	list, err := h.apiV1list(ctx, req, gvk, inmemoryClient)
@@ -142,7 +132,20 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		return a < b
 	})
 
-	// Loop over all items and fill the list of events which were missed since the last watch.
+	initialEvents := []Event{}
+
+	// If resourceVersion was not set as query parameter, use 0 to stream all old events.
+	// Note: This only works because the very first resource version for the in-memory apiserver is 1.
+	if resourceVersion == "" {
+		resourceVersion = "0"
+	}
+
+	parsedResourceVersion, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	// Loop over all items and fill the list of events with objects which have a newer resourceVersion.
 	for _, obj := range list.Items {
 		objResourceVersion, err := strconv.ParseUint(obj.GetResourceVersion(), 10, 64)
 		if err != nil {
@@ -152,7 +155,7 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 			continue
 		}
 		eventType := watch.Modified
-		if obj.GetGeneration() == 0 {
+		if obj.GetGeneration() == 1 {
 			eventType = watch.Added
 		}
 		initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
@@ -195,7 +198,8 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
-	// Write all object events which happened since the last resourceVersion.
+
+	// Write all initial events.
 	for _, event := range initialEvents {
 		if err := resp.WriteEntity(event); err != nil {
 			log.Error(err, "Writing old event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())

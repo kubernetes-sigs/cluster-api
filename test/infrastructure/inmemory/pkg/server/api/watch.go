@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -89,6 +90,8 @@ func (m *WatchEventDispatcher) OnGeneric(resourceGroup string, o client.Object) 
 
 func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.Response, resourceGroup string, gvk schema.GroupVersionKind) (reterr error) {
 	ctx := req.Request.Context()
+	log := h.log.WithValues("resourceGroup", resourceGroup, "gvk", gvk.String())
+	ctx = ctrl.LoggerInto(ctx, log)
 	queryTimeout := req.QueryParameter("timeoutSeconds")
 	resourceVersion := req.QueryParameter("resourceVersion")
 	c := h.manager.GetCache()
@@ -160,7 +163,12 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 	L:
 		for {
 			select {
-			case <-events:
+			case event, ok := <-events:
+				if !ok {
+					// End of results.
+					break L
+				}
+				log.V(4).Info("Missed event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			default:
 				break L
 			}
@@ -174,6 +182,7 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 
 // Run serves a series of encoded events via HTTP with Transfer-Encoding: chunked.
 func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialEvents []Event, w http.ResponseWriter) error {
+	log := ctrl.LoggerFrom(ctx)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return errors.New("can't start Watch: can't get http.Flusher")
@@ -187,7 +196,10 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 	// Write all object events which happened since the last resourceVersion.
 	for _, event := range initialEvents {
 		if err := resp.WriteEntity(event); err != nil {
+			log.Error(err, "Writing old event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		} else {
+			log.V(4).Info("Wrote old event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 		}
 	}
 	flusher.Flush()
@@ -227,7 +239,9 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 			// Parse and check if the object has a higher resource version than we allow.
 			objResourceVersion, err = strconv.ParseUint(event.Object.GetResourceVersion(), 10, 64)
 			if err != nil {
+				log.Error(err, "Parsing object resource version", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+				continue
 			}
 
 			// Skip objects which were already written.
@@ -236,7 +250,10 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 			}
 
 			if err := resp.WriteEntity(event); err != nil {
+				log.Error(err, "Writing event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+			} else {
+				log.V(4).Info("Wrote event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			}
 			if len(m.events) == 0 {
 				flusher.Flush()

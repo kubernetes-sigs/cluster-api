@@ -113,47 +113,49 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 	}
 
 	initialEvents := []Event{}
-	if resourceVersion != "" {
-		parsedResourceVersion, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if resourceVersion == "" {
+		resourceVersion = "0"
+	}
+
+	parsedResourceVersion, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	// Get at client to the resource group and list all relevant objects.
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	list, err := h.apiV1list(ctx, req, gvk, inmemoryClient)
+	if err != nil {
+		return err
+	}
+
+	// Sort the objects by resourceVersion to later write the events in order.
+	sort.SliceStable(list.Items, func(i, j int) bool {
+		a, err := strconv.ParseUint(list.Items[i].GetResourceVersion(), 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		b, err := strconv.ParseUint(list.Items[j].GetResourceVersion(), 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		return a < b
+	})
+
+	// Loop over all items and fill the list of events which were missed since the last watch.
+	for _, obj := range list.Items {
+		objResourceVersion, err := strconv.ParseUint(obj.GetResourceVersion(), 10, 64)
 		if err != nil {
 			return err
 		}
-
-		// Get at client to the resource group and list all relevant objects.
-		inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
-		list, err := h.apiV1list(ctx, req, gvk, inmemoryClient)
-		if err != nil {
-			return err
+		if objResourceVersion <= parsedResourceVersion {
+			continue
 		}
-
-		// Sort the objects by resourceVersion to later write the events in order.
-		sort.SliceStable(list.Items, func(i, j int) bool {
-			a, err := strconv.ParseUint(list.Items[i].GetResourceVersion(), 10, 64)
-			if err != nil {
-				panic(err)
-			}
-			b, err := strconv.ParseUint(list.Items[j].GetResourceVersion(), 10, 64)
-			if err != nil {
-				panic(err)
-			}
-			return a < b
-		})
-
-		// Loop over all items and fill the list of events which were missed since the last watch.
-		for _, obj := range list.Items {
-			objResourceVersion, err := strconv.ParseUint(obj.GetResourceVersion(), 10, 64)
-			if err != nil {
-				return err
-			}
-			if objResourceVersion <= parsedResourceVersion {
-				continue
-			}
-			eventType := watch.Modified
-			if obj.GetGeneration() == 0 {
-				eventType = watch.Added
-			}
-			initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
+		eventType := watch.Modified
+		if obj.GetGeneration() == 0 {
+			eventType = watch.Added
 		}
+		initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
 	}
 
 	// Defer cleanup which removes the event handler and ensures the channel is empty of events.

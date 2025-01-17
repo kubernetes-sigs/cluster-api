@@ -162,7 +162,7 @@ func (c *cache) AddResourceGroup(name string) {
 	c.resourceGroups[name] = &resourceGroupTracker{
 		objects:             map[schema.GroupVersionKind]map[types.NamespacedName]client.Object{},
 		ownedObjects:        map[ownReference]map[ownReference]struct{}{},
-		nextResourceVersion: 0,
+		nextResourceVersion: 1,
 	}
 }
 

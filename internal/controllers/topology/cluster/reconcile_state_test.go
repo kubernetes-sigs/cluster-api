@@ -278,7 +278,7 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted
 		r := Reconciler{
-			Client:             nil,
+			Client:             env,
 			APIReader:          env.GetAPIReader(),
 			patchHelperFactory: serverSideApplyPatchHelperFactory(nil, ssa.NewCache()),
 		}

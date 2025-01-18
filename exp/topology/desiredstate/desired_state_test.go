@@ -34,6 +34,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -169,7 +170,10 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		obj, err := computeInfrastructureCluster(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+
+		b, err := ctrlutil.HasOwnerReference(obj.GetOwnerReferences(), shim, fakeScheme)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(b).To(BeTrue())
 	})
 }
 
@@ -663,7 +667,9 @@ func TestComputeControlPlane(t *testing.T) {
 		obj, err := (&generator{}).computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+		b, err := ctrlutil.HasOwnerReference(obj.GetOwnerReferences(), shim, fakeScheme)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(b).To(BeTrue())
 	})
 }
 

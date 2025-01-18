@@ -18,7 +18,6 @@ package clusterclass
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -33,10 +32,10 @@ import (
 	"k8s.io/component-base/featuregate"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	utilversion "k8s.io/component-base/version"
-	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -225,7 +224,7 @@ func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass
 	if err := env.Get(ctx, actualInfraClusterTemplateKey, actualInfraClusterTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualInfraClusterTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -245,7 +244,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	if err := env.Get(ctx, actualControlPlaneTemplateKey, actualControlPlaneTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualControlPlaneTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -266,7 +265,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 		if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 			return err
 		}
-		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, actualClusterClass); err != nil {
 			return err
 		}
 
@@ -300,7 +299,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -320,7 +319,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualBootstrapTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -349,7 +348,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	if err := env.Get(ctx, actualInfrastructureMachinePoolTemplateKey, actualInfrastructureMachinePoolTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfrastructureMachinePoolTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualInfrastructureMachinePoolTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -369,7 +368,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+	if err := assertHasOwnerReference(actualBootstrapTemplate, actualClusterClass); err != nil {
 		return err
 	}
 
@@ -379,20 +378,9 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 		builder.BootstrapGroupVersion)
 }
 
-func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) error {
-	found := false
-	for _, ref := range obj.GetOwnerReferences() {
-		if isOwnerReferenceEqual(ref, ownerRef) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		// Note: Kind might be empty here as it's usually only set on Unstructured objects.
-		// But as this is just test code we don't care too much about it.
-		return fmt.Errorf("%s %s does not have OwnerReference %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), &ownerRef)
-	}
-	return nil
+func assertHasOwnerReference(obj, obj2 client.Object) error {
+	_, err := ctrlutil.HasOwnerReference(obj.GetOwnerReferences(), obj2, fakeScheme)
+	return err
 }
 
 func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {

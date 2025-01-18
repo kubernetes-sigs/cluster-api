@@ -34,6 +34,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -159,10 +160,28 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 	// When the Cluster and the shim object are both owners,
 	// it's safe for us to remove the shim and garbage collect any potential orphaned resource.
 	if s.Current.InfrastructureCluster != nil && s.Current.ControlPlane.Object != nil {
-		clusterOwnsAll := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster) &&
-			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster)
-		shimOwnsAtLeastOne := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim) ||
-			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim)
+		infraClusterOwnsFound, err := ctrlutil.HasOwnerReference(
+			s.Current.InfrastructureCluster.GetOwnerReferences(),
+			s.Current.Cluster,
+			r.Client.Scheme())
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if the cluster owns the infrastructure cluster object")
+		}
+		controlPlaneClusterOwnsFound, err := ctrlutil.HasOwnerReference(s.Current.ControlPlane.Object.GetOwnerReferences(), s.Current.Cluster, r.Client.Scheme())
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if the control plane owns the control plane object")
+		}
+		clusterOwnsAll := infraClusterOwnsFound && controlPlaneClusterOwnsFound
+
+		infraShimOwnsFound, err := ctrlutil.HasOwnerReference(s.Current.InfrastructureCluster.GetOwnerReferences(), shim, r.Client.Scheme())
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if the cluster shim owns the infrastructure cluster object")
+		}
+		controlPlaneShimOwnsFound, err := ctrlutil.HasOwnerReference(s.Current.ControlPlane.Object.GetOwnerReferences(), shim, r.Client.Scheme())
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if the cluster shim owns the control plane object")
+		}
+		shimOwnsAtLeastOne := infraShimOwnsFound || controlPlaneShimOwnsFound
 
 		if clusterOwnsAll && shimOwnsAtLeastOne {
 			if err := r.Client.Delete(ctx, shim); err != nil {

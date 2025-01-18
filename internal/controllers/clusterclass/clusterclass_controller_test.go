@@ -383,22 +383,6 @@ func assertHasOwnerReference(obj, obj2 client.Object) error {
 	return err
 }
 
-func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
-	if a.APIVersion != b.APIVersion {
-		return false
-	}
-	if a.Kind != b.Kind {
-		return false
-	}
-	if a.Name != b.Name {
-		return false
-	}
-	if a.UID != b.UID {
-		return false
-	}
-	return true
-}
-
 func TestReconciler_reconcileVariables(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 

@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -79,18 +78,6 @@ func TestMain(m *testing.M) {
 		SetupIndexes:        setupIndexes,
 		SetupReconcilers:    setupReconcilers,
 	}))
-}
-
-// ownerReferenceTo converts an object to an OwnerReference.
-// Note: We pass in gvk explicitly as we can't rely on GVK being set on all objects
-// (only on Unstructured).
-func ownerReferenceTo(obj client.Object, gvk schema.GroupVersionKind) *metav1.OwnerReference {
-	return &metav1.OwnerReference{
-		APIVersion: gvk.GroupVersion().String(),
-		Kind:       gvk.Kind,
-		Name:       obj.GetName(),
-		UID:        obj.GetUID(),
-	}
 }
 
 // referenceExistsWithCorrectKindAndAPIVersion asserts that the passed ObjectReference is not nil and that it has the correct kind and apiVersion.

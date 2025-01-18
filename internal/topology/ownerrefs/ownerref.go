@@ -35,7 +35,7 @@ func OwnerReferenceTo(obj client.Object, gvk schema.GroupVersionKind) *metav1.Ow
 	}
 }
 
-// // HasOwnerReferenceFrom checks if obj has an ownerRef pointing to owner.
+// HasOwnerReferenceFrom checks if obj has an ownerRef pointing to owner.
 //
 // Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API.
 func HasOwnerReferenceFrom(obj, owner client.Object) bool {

@@ -378,8 +378,8 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 		builder.BootstrapGroupVersion)
 }
 
-func assertHasOwnerReference(obj, obj2 client.Object) error {
-	_, err := ctrlutil.HasOwnerReference(obj.GetOwnerReferences(), obj2, fakeScheme)
+func assertHasOwnerReference(owner, obj client.Object) error {
+	_, err := ctrlutil.HasOwnerReference(owner.GetOwnerReferences(), obj, fakeScheme)
 	return err
 }
 

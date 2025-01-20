@@ -123,6 +123,16 @@ func ToMachineList(machines Machines) clusterv1.MachineList {
 	return ml
 }
 
+// Has return true when the collection has the given machine.
+func (s Machines) Has(machine *clusterv1.Machine) bool {
+	for _, m := range s {
+		if m.Name == machine.Name && m.Namespace == machine.Namespace {
+			return true
+		}
+	}
+	return false
+}
+
 // Insert adds items to the set.
 func (s Machines) Insert(machines ...*clusterv1.Machine) {
 	for i := range machines {

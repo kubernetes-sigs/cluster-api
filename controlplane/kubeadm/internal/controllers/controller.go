@@ -672,10 +672,13 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			continue
 		}
 
-		log.Info("Deleting control plane Machine")
 		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
 		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+		log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
+			Info("Deleting Machine (KubeadmControlPlane deleted)")
 	}
 	if len(errs) > 0 {
 		err := kerrors.NewAggregate(errs)

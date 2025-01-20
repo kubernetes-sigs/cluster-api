@@ -20,20 +20,21 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Event records a lifecycle event for a Kubernetes object.
 type Event struct {
 	Type   watch.EventType `json:"type,omitempty"`
-	Object runtime.Object  `json:"object,omitempty"`
+	Object client.Object   `json:"object,omitempty"`
 }
 
 // WatchEventDispatcher dispatches events for a single resourceGroup.
@@ -88,13 +89,15 @@ func (m *WatchEventDispatcher) OnGeneric(resourceGroup string, o client.Object) 
 
 func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.Response, resourceGroup string, gvk schema.GroupVersionKind) (reterr error) {
 	ctx := req.Request.Context()
+	log := h.log.WithValues("resourceGroup", resourceGroup, "gvk", gvk.String())
+	ctx = ctrl.LoggerInto(ctx, log)
 	queryTimeout := req.QueryParameter("timeoutSeconds")
+	resourceVersion := req.QueryParameter("resourceVersion")
 	c := h.manager.GetCache()
 	i, err := c.GetInformerForKind(ctx, gvk)
 	if err != nil {
 		return err
 	}
-	h.log.Info(fmt.Sprintf("Serving Watch for %v", req.Request.URL))
 	// With an unbuffered event channel RemoveEventHandler could be blocked because it requires a lock on the informer.
 	// When Run stops reading from the channel the informer could be blocked with an unbuffered chanel and then RemoveEventHandler never goes through.
 	// 1000 is used to avoid deadlocks in clusters with a higher number of Machines/Nodes.
@@ -115,7 +118,12 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 	L:
 		for {
 			select {
-			case <-events:
+			case event, ok := <-events:
+				if !ok {
+					// End of results.
+					break L
+				}
+				log.V(4).Info("Missed event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			default:
 				break L
 			}
@@ -124,11 +132,49 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		// Note: After we removed the handler, no new events will be written to the events channel.
 	}()
 
-	return watcher.Run(ctx, queryTimeout, resp)
+	// Get at client to the resource group and list all relevant objects.
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	list, err := h.v1List(ctx, req, gvk, inmemoryClient)
+	if err != nil {
+		return err
+	}
+
+	// If resourceVersion was set parse to uint64 which is the representation in the simulated apiserver.
+	var parsedResourceVersion uint64
+	if resourceVersion != "" {
+		parsedResourceVersion, err = strconv.ParseUint(resourceVersion, 10, 64)
+		if err != nil {
+			return err
+		}
+	}
+
+	initialEvents := []Event{}
+
+	// Loop over all items and fill the list of events with objects which have a newer resourceVersion.
+	for _, obj := range list.Items {
+		if resourceVersion != "" {
+			objResourceVersion, err := strconv.ParseUint(obj.GetResourceVersion(), 10, 64)
+			if err != nil {
+				return err
+			}
+			if objResourceVersion <= parsedResourceVersion {
+				continue
+			}
+		}
+		eventType := watch.Modified
+		// kube-apiserver emits all events as ADDED when no resourceVersion is given.
+		if obj.GetGeneration() == 1 || resourceVersion == "" {
+			eventType = watch.Added
+		}
+		initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
+	}
+
+	return watcher.Run(ctx, queryTimeout, initialEvents, list.GetResourceVersion(), resp)
 }
 
 // Run serves a series of encoded events via HTTP with Transfer-Encoding: chunked.
-func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.ResponseWriter) error {
+func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialEvents []Event, initialResourceVersion string, w http.ResponseWriter) error {
+	log := ctrl.LoggerFrom(ctx)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return errors.New("can't start Watch: can't get http.Flusher")
@@ -139,6 +185,16 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
+
+	// Write all initial events.
+	for _, event := range initialEvents {
+		if err := resp.WriteEntity(event); err != nil {
+			log.Error(err, "Error writing initial event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		} else {
+			log.V(4).Info("Wrote initial event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+		}
+	}
 	flusher.Flush()
 
 	timeoutTimer, seconds, err := setTimer(timeout)
@@ -149,6 +205,15 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 	ctx, cancel := context.WithTimeout(ctx, seconds)
 	defer cancel()
 	defer timeoutTimer.Stop()
+
+	// Use the resourceVersion of the list to filter out events from the channel
+	// which are already written above.
+	minResourceVersion, err := strconv.ParseUint(initialResourceVersion, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	var objResourceVersion uint64
 	for {
 		select {
 		case <-ctx.Done():
@@ -160,8 +225,25 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, w http.R
 				// End of results.
 				return nil
 			}
-			if err := resp.WriteEntity(event); err != nil {
+
+			// Parse and check if the object has a higher resource version than we allow.
+			objResourceVersion, err = strconv.ParseUint(event.Object.GetResourceVersion(), 10, 64)
+			if err != nil {
+				log.Error(err, "Parsing object resource version", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+				continue
+			}
+
+			// Skip objects which were already written.
+			if objResourceVersion <= minResourceVersion {
+				continue
+			}
+
+			if err := resp.WriteEntity(event); err != nil {
+				log.Error(err, "Error writing event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+			} else {
+				log.V(4).Info("Wrote event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			}
 			if len(m.events) == 0 {
 				flusher.Flush()

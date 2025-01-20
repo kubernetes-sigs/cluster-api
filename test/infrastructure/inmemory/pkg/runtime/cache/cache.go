@@ -89,7 +89,8 @@ type resourceGroupTracker struct {
 	lock    sync.RWMutex
 	objects map[schema.GroupVersionKind]map[types.NamespacedName]client.Object
 	// ownedObjects tracks ownership. Key is the owner, values are the owned objects.
-	ownedObjects map[ownReference]map[ownReference]struct{}
+	ownedObjects        map[ownReference]map[ownReference]struct{}
+	lastResourceVersion uint64
 }
 
 type ownReference struct {
@@ -159,8 +160,9 @@ func (c *cache) AddResourceGroup(name string) {
 		return
 	}
 	c.resourceGroups[name] = &resourceGroupTracker{
-		objects:      map[schema.GroupVersionKind]map[types.NamespacedName]client.Object{},
-		ownedObjects: map[ownReference]map[ownReference]struct{}{},
+		objects:             map[schema.GroupVersionKind]map[types.NamespacedName]client.Object{},
+		ownedObjects:        map[ownReference]map[ownReference]struct{}{},
+		lastResourceVersion: 0,
 	}
 }
 

@@ -390,7 +390,7 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 	c.workloadCluster = nil
 }
 
-// StatusToLogKeyAndValues returns following key/value pairs describing the overall status of the control plane:
+// StatusToLogKeyAndValues returns the following key/value pairs describing the overall status of the control plane:
 // - machines is the list of KCP machines; each machine might have additional notes surfacing
 //   - if the machine has been created in the current reconcile
 //   - if machines node ref is not yet set

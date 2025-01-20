@@ -309,7 +309,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 
 	got := c.StatusToLogKeyAndValues(machineJustCreated, machineJustDeleted)
 
-	g.Expect(got).To((HaveLen(4)))
+	g.Expect(got).To(HaveLen(4))
 	g.Expect(got[0]).To(Equal("machines"))
 	machines := strings.Join([]string{
 		"healthy",

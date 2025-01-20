@@ -20,6 +20,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
@@ -29,7 +30,7 @@ type stoppableCache struct {
 
 	lock       sync.Mutex
 	stopped    bool
-	cancelFunc context.CancelFunc
+	cancelFunc context.CancelCauseFunc
 }
 
 // Stop cancels the cache.Cache's context, unless it has already been stopped.
@@ -42,5 +43,5 @@ func (cc *stoppableCache) Stop() {
 	}
 
 	cc.stopped = true
-	cc.cancelFunc()
+	cc.cancelFunc(errors.New("cache stopped"))
 }

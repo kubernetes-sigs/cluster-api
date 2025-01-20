@@ -242,7 +242,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 
 	// Use a context that is independent of the passed in context, so the cache doesn't get stopped
 	// when the passed in context is canceled.
-	cacheCtx, cacheCtxCancel := context.WithCancel(cacheCtx)
+	cacheCtx, cacheCtxCancel := context.WithCancelCause(cacheCtx)
 
 	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
 	cache := &stoppableCache{
@@ -275,7 +275,7 @@ func createCachedClient(ctx, cacheCtx context.Context, clusterAccessorConfig *cl
 	go cache.Start(cacheCtx) //nolint:errcheck
 
 	// Wait until the cache is initially synced.
-	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, clusterAccessorConfig.Cache.InitialSyncTimeout)
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeoutCause(ctx, clusterAccessorConfig.Cache.InitialSyncTimeout, errors.New("initial sync timeout expired"))
 	defer cacheSyncCtxCancel()
 	if !cache.WaitForCacheSync(cacheSyncCtx) {
 		cache.Stop()
@@ -311,13 +311,13 @@ type clientWithTimeout struct {
 var _ client.Client = &clientWithTimeout{}
 
 func (c clientWithTimeout) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.Get(ctx, key, obj, opts...)
 }
 
 func (c clientWithTimeout) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.List(ctx, list, opts...)
 }
@@ -328,7 +328,7 @@ type stoppableCache struct {
 
 	lock       sync.Mutex
 	stopped    bool
-	cancelFunc context.CancelFunc
+	cancelFunc context.CancelCauseFunc
 }
 
 // Stop cancels the cache.Cache's context, unless it has already been stopped.
@@ -341,5 +341,5 @@ func (cc *stoppableCache) Stop() {
 	}
 
 	cc.stopped = true
-	cc.cancelFunc()
+	cc.cancelFunc(errors.New("cache stopped"))
 }

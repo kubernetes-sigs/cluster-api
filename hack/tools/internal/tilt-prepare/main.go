@@ -458,8 +458,8 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	}(time.Now())
 
 	// Create a context to be used for canceling all the tasks when another fails.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(errors.New("run task group context cancelled"))
 
 	// Make channels to pass fatal errors in WaitGroup
 	errors := make(chan error)
@@ -483,7 +483,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 		break
 	case err := <-errors:
 		// cancel all the running tasks
-		cancel()
+		cancel(err)
 		// consumes all the errors from the channel
 		errList := []error{err}
 	Loop:

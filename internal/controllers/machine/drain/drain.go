@@ -316,7 +316,7 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 
 	// Trigger evictions for at most 10s. We'll continue on the next reconcile if we hit the timeout.
 	evictionTimeout := 10 * time.Second
-	ctx, cancel := context.WithTimeout(ctx, evictionTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, evictionTimeout, errors.New("eviction timeout expired"))
 	defer cancel()
 
 	res := EvictionResult{

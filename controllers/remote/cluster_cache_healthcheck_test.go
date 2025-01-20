@@ -25,6 +25,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,7 +107,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 
 			testClusterKey = util.ObjectKey(testCluster)
 
-			_, cancel := context.WithCancel(ctx)
+			_, cancel := context.WithCancelCause(ctx)
 			cc = &stoppableCache{cancelFunc: cancel}
 			cct.clusterAccessors[testClusterKey] = &clusterAccessor{cache: cc}
 
@@ -123,7 +124,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			t.Log("Deleting Namespace")
 			g.Expect(env.Delete(ctx, ns)).To(Succeed())
 			t.Log("Stopping the manager")
-			cc.cancelFunc()
+			cc.cancelFunc(errors.New("context cancelled"))
 			mgrCancel()
 		}
 

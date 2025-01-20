@@ -514,7 +514,7 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 
 	// Use a context that is independent of the passed in context, so the cache doesn't get stopped
 	// when the passed in context is canceled.
-	cacheCtx, cacheCtxCancel := context.WithCancel(context.Background())
+	cacheCtx, cacheCtxCancel := context.WithCancelCause(context.Background())
 
 	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
 	cache := &stoppableCache{
@@ -547,7 +547,7 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 	go cache.Start(cacheCtx) //nolint:errcheck
 
 	// Wait until the cache is initially synced
-	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeoutCause(ctx, initialCacheSyncTimeout, errors.New("initial sync timeout expired"))
 	defer cacheSyncCtxCancel()
 	if !cache.WaitForCacheSync(cacheSyncCtx) {
 		cache.Stop()
@@ -774,13 +774,13 @@ type clientWithTimeout struct {
 var _ client.Client = &clientWithTimeout{}
 
 func (c clientWithTimeout) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.Get(ctx, key, obj, opts...)
 }
 
 func (c clientWithTimeout) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.List(ctx, list, opts...)
 }

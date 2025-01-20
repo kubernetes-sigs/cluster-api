@@ -53,7 +53,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
-	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -107,7 +106,6 @@ type Reconciler struct {
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
-	ssaCache                 ssa.Cache
 
 	// reconcileDeleteCache is used to store when reconcileDelete should not be executed before a
 	// specific time for a specific Request. This is used to implement rate-limiting to avoid
@@ -182,7 +180,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: r.predicateLog,
 	}
-	r.ssaCache = ssa.NewCache()
 	r.reconcileDeleteCache = cache.New[cache.ReconcileEntry]()
 	return nil
 }

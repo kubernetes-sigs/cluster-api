@@ -134,7 +134,7 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 
 	// Get at client to the resource group and list all relevant objects.
 	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
-	list, err := h.apiV1list(ctx, req, gvk, inmemoryClient)
+	list, err := h.v1List(ctx, req, gvk, inmemoryClient)
 	if err != nil {
 		return err
 	}
@@ -169,11 +169,11 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
 	}
 
-	return watcher.Run(ctx, queryTimeout, initialEvents, resp)
+	return watcher.Run(ctx, queryTimeout, initialEvents, list.GetResourceVersion(), resp)
 }
 
 // Run serves a series of encoded events via HTTP with Transfer-Encoding: chunked.
-func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialEvents []Event, w http.ResponseWriter) error {
+func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialEvents []Event, initialResourceVersion string, w http.ResponseWriter) error {
 	log := ctrl.LoggerFrom(ctx)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -189,10 +189,10 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 	// Write all initial events.
 	for _, event := range initialEvents {
 		if err := resp.WriteEntity(event); err != nil {
-			log.Error(err, "Writing old event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+			log.Error(err, "Error writing initial event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		} else {
-			log.V(4).Info("Wrote old event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+			log.V(4).Info("Wrote initial event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 		}
 	}
 	flusher.Flush()
@@ -206,14 +206,11 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 	defer cancel()
 	defer timeoutTimer.Stop()
 
-	// Determine the highest written resourceVersion so we can filter out duplicated events from the channel.
-	minResourceVersion := uint64(0)
-	if len(initialEvents) > 0 {
-		minResourceVersion, err = strconv.ParseUint(initialEvents[len(initialEvents)-1].Object.GetResourceVersion(), 10, 64)
-		if err != nil {
-			return err
-		}
-		minResourceVersion++
+	// Use the resourceVersion of the list to filter out events from the channel
+	// which are already written above.
+	minResourceVersion, err := strconv.ParseUint(initialResourceVersion, 10, 64)
+	if err != nil {
+		return err
 	}
 
 	var objResourceVersion uint64
@@ -243,7 +240,7 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 			}
 
 			if err := resp.WriteEntity(event); err != nil {
-				log.Error(err, "Writing event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
+				log.Error(err, "Error writing event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 			} else {
 				log.V(4).Info("Wrote event", "eventType", event.Type, "objectName", event.Object.GetName(), "resourceVersion", event.Object.GetResourceVersion())

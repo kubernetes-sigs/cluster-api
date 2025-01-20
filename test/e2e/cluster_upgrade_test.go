@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", Label("Conformance", "K8s-Upgrade", "ClusterClass"), func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:              e2eConfig,
@@ -51,7 +51,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:              e2eConfig,
@@ -70,7 +70,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterC
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", Label("ClusterClass"), func() {
 	controlPlaneMachineCount := int64(3)
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
@@ -203,7 +203,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane using scale-in rollout [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane using scale-in rollout [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:              e2eConfig,

@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass [ClusterClass]", func() {
+var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:                e2eConfig,
@@ -40,7 +40,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 	})
 })
 
-var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass]", func() {
+var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass]", Label("ClusterClass"), func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:                e2eConfig,
@@ -56,7 +56,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 	})
 })
 
-var _ = Describe("When testing Cluster API working on single-node self-hosted clusters using ClusterClass [ClusterClass]", func() {
+var _ = Describe("When testing Cluster API working on single-node self-hosted clusters using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:                e2eConfig,

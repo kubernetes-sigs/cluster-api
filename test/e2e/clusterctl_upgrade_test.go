@@ -219,7 +219,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release
 	version := "1.8"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
@@ -252,7 +252,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
 	version := "1.9"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
@@ -279,7 +279,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) on K8S latest ci mgmt cluster [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
 	version := "1.9"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)

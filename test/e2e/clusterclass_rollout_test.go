@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", func() {
+var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterClassRolloutSpec(ctx, func() ClusterClassRolloutSpecInput {
 		return ClusterClassRolloutSpecInput{
 			E2EConfig:              e2eConfig,

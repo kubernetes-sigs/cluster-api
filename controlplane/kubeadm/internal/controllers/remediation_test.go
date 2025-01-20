@@ -42,7 +42,57 @@ import (
 )
 
 func TestGetMachineToBeRemediated(t *testing.T) {
-	t.Run("returns the oldest machine if there are no provisioning machines", func(t *testing.T) {
+	t.Run("returns provisioning machines first", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "ns1")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withUnhealthyEtcdMember(), withUnhealthyAPIServerPod()) // Note issue on etcd / API server have lower priority than the lack of node.
+		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withoutNodeRef())
+
+		unhealthyMachines := collections.FromMachines(m1, m2)
+
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, true).Name).To(HavePrefix("m2-unhealthy-"))
+	})
+
+	t.Run("returns the machines with etcd errors first (if there are no provisioning machines)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "ns1")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember(), withUnhealthyAPIServerPod()) // Note issue on API server have lower priority than issue on etcd
+		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withUnhealthyEtcdMember())
+
+		unhealthyMachines := collections.FromMachines(m1, m2)
+
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, true).Name).To(HavePrefix("m2-unhealthy-"))
+	})
+
+	t.Run("returns the machines with API server errors first (if there are no provisioning machines and no etcd issues)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "ns1")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withHealthyAPIServerPod())
+		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withUnhealthyAPIServerPod())
+
+		unhealthyMachines := collections.FromMachines(m1, m2)
+
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, true).Name).To(HavePrefix("m2-unhealthy-"))
+	})
+	t.Run("returns the oldest machine if there are no provisioning machines/no other elements affecting priority", func(t *testing.T) {
 		g := NewWithT(t)
 
 		ns, err := env.CreateNamespace(ctx, "ns1")
@@ -56,25 +106,7 @@ func TestGetMachineToBeRemediated(t *testing.T) {
 
 		unhealthyMachines := collections.FromMachines(m1, m2)
 
-		g.Expect(getMachineToBeRemediated(unhealthyMachines).Name).To(HavePrefix("m1-unhealthy-"))
-	})
-
-	t.Run("returns the oldest of the provisioning machines", func(t *testing.T) {
-		g := NewWithT(t)
-
-		ns, err := env.CreateNamespace(ctx, "ns1")
-		g.Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
-		}()
-
-		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
-		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withoutNodeRef())
-		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withMachineHealthCheckFailed(), withoutNodeRef())
-
-		unhealthyMachines := collections.FromMachines(m1, m2, m3)
-
-		g.Expect(getMachineToBeRemediated(unhealthyMachines).Name).To(HavePrefix("m2-unhealthy-"))
+		g.Expect(getMachineToBeRemediated(unhealthyMachines, true).Name).To(HavePrefix("m1-unhealthy-"))
 	})
 }
 
@@ -1970,6 +2002,12 @@ func withHealthyEtcdMember() machineOption {
 func withUnhealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
 		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "")
+	}
+}
+
+func withHealthyAPIServerPod() machineOption {
+	return func(machine *clusterv1.Machine) {
+		conditions.MarkTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
 	}
 }
 

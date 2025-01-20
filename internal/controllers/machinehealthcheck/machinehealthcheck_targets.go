@@ -63,15 +63,6 @@ type healthCheckTarget struct {
 	nodeMissing bool
 }
 
-func (t *healthCheckTarget) string() string {
-	return fmt.Sprintf("%s/%s/%s/%s",
-		t.MHC.GetNamespace(),
-		t.MHC.GetName(),
-		t.Machine.GetName(),
-		t.nodeName(),
-	)
-}
-
 // Get the node name if the target has a node.
 func (t *healthCheckTarget) nodeName() string {
 	if t.Node != nil {
@@ -302,7 +293,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 	var healthy []healthCheckTarget
 
 	for _, t := range targets {
-		logger := logger.WithValues("target", t.string())
+		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		logger.V(3).Info("Health checking target")
 		needsRemediation, nextCheck := t.needsRemediation(logger, timeoutForMachineToHaveNode)
 
@@ -312,13 +303,13 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 		}
 
 		if nextCheck > 0 {
-			logger.V(3).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
+			logger.V(3).Info("Machine is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
 			r.recorder.Eventf(
 				t.Machine,
 				corev1.EventTypeNormal,
 				EventDetectedUnhealthy,
-				"Machine %v has unhealthy node %v",
-				t.string(),
+				"Machine %s has unhealthy node %s",
+				t.Machine.Name,
 				t.nodeName(),
 			)
 			nextCheckTimes = append(nextCheckTimes, nextCheck)

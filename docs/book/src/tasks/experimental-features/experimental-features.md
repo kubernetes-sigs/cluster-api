@@ -4,7 +4,6 @@ Cluster API now ships with a new experimental package that lives under the `exp/
 temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
 
 Currently Cluster API has the following experimental features:
-* `ClusterResourceSet` (env var: `EXP_CLUSTER_RESOURCE_SET`): [ClusterResourceSet](./cluster-resource-set.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
 * `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
@@ -93,7 +92,7 @@ Following controller manager deployments have to be edited in order to enable/di
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-* [ClusterResourceSet](./cluster-resource-set.md):
+
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 * [ClusterClass](./cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
@@ -110,7 +109,6 @@ Following controller manager deployments have to be edited in order to enable/di
 ## Active Experimental Features
 
 * [MachinePools](./machine-pools.md)
-* [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
 * [Runtime SDK](runtime-sdk/index.md)

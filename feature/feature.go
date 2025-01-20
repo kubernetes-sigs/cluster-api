@@ -39,6 +39,7 @@ const (
 	//
 	// alpha: v0.3
 	// beta: v0.4
+	// GA: v1.10
 	ClusterResourceSet featuregate.Feature = "ClusterResourceSet"
 
 	// ClusterTopology is a feature gate for the ClusterClass and managed topologies functionality.
@@ -84,7 +85,7 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	ClusterResourceSet:        {Default: true, PreRelease: featuregate.Beta},
+	ClusterResourceSet:        {Default: true, PreRelease: featuregate.GA},
 	MachinePool:               {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks: {Default: true, PreRelease: featuregate.Beta},
 	MachineWaitForVolumeDetachConsiderVolumeAttachments: {Default: true, PreRelease: featuregate.Beta},

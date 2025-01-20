@@ -174,6 +174,7 @@ func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition)
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSet"
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.
+// For advanced use cases an add-on provider should be used instead.
 type ClusterResourceSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

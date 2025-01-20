@@ -19,29 +19,30 @@ package cache
 import (
 	"fmt"
 	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (c *cache) beforeCreate(_ string, obj client.Object) {
+func (c *cache) beforeCreate(_ string, obj client.Object, resourceVersion *uint64) {
 	now := time.Now().UTC()
 	obj.SetCreationTimestamp(metav1.Time{Time: now})
 	// TODO: UID
 	obj.SetAnnotations(appendAnnotations(obj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
-	obj.SetResourceVersion(fmt.Sprintf("v%d", 1))
+	*resourceVersion++
+	obj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
+	obj.SetGeneration(1)
 }
 
 func (c *cache) afterCreate(resourceGroup string, obj client.Object) {
 	c.informCreate(resourceGroup, obj)
 }
 
-func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object) {
+func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object, resourceVersion *uint64) {
 	newObj.SetCreationTimestamp(oldObj.GetCreationTimestamp())
 	newObj.SetResourceVersion(oldObj.GetResourceVersion())
+	newObj.SetGeneration(oldObj.GetGeneration())
 	// TODO: UID
 	newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, oldObj.GetAnnotations()[lastSyncTimeAnnotation]))
 	if !oldObj.GetDeletionTimestamp().IsZero() {
@@ -51,8 +52,9 @@ func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object) {
 		now := time.Now().UTC()
 		newObj.SetAnnotations(appendAnnotations(newObj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 
-		oldResourceVersion, _ := strconv.Atoi(strings.TrimPrefix(oldObj.GetResourceVersion(), "v"))
-		newObj.SetResourceVersion(fmt.Sprintf("v%d", oldResourceVersion+1))
+		*resourceVersion++
+		newObj.SetResourceVersion(fmt.Sprintf("%d", *resourceVersion))
+		newObj.SetGeneration(oldObj.GetGeneration() + 1)
 	}
 }
 

@@ -145,6 +145,9 @@ func (c *cache) List(resourceGroup string, list client.ObjectList, opts ...clien
 	if err := meta.SetList(list, items); err != nil {
 		return apierrors.NewInternalError(err)
 	}
+
+	list.SetResourceVersion(fmt.Sprintf("%d", tracker.lastResourceVersion))
+
 	return nil
 }
 
@@ -212,7 +215,7 @@ func (c *cache) store(resourceGroup string, obj client.Object, replaceExisting b
 				return apierrors.NewConflict(unsafeGuessGroupVersionResource(objGVK).GroupResource(), objKey.String(), fmt.Errorf("object has been modified"))
 			}
 
-			c.beforeUpdate(resourceGroup, trackedObj, obj)
+			c.beforeUpdate(resourceGroup, trackedObj, obj, &tracker.lastResourceVersion)
 
 			tracker.objects[objGVK][objKey] = obj.DeepCopyObject().(client.Object)
 			updateTrackerOwnerReferences(tracker, trackedObj, obj, objRef)
@@ -226,7 +229,7 @@ func (c *cache) store(resourceGroup string, obj client.Object, replaceExisting b
 		return apierrors.NewNotFound(unsafeGuessGroupVersionResource(objGVK).GroupResource(), objKey.String())
 	}
 
-	c.beforeCreate(resourceGroup, obj)
+	c.beforeCreate(resourceGroup, obj, &tracker.lastResourceVersion)
 
 	tracker.objects[objGVK][objKey] = obj.DeepCopyObject().(client.Object)
 	updateTrackerOwnerReferences(tracker, nil, obj, objRef)
@@ -422,7 +425,7 @@ func (c *cache) doTryDeleteLocked(resourceGroup string, tracker *resourceGroupTr
 		oldObj := obj.DeepCopyObject().(client.Object)
 		now := metav1.Time{Time: time.Now().UTC()}
 		obj.SetDeletionTimestamp(&now)
-		c.beforeUpdate(resourceGroup, oldObj, obj)
+		c.beforeUpdate(resourceGroup, oldObj, obj, &tracker.lastResourceVersion)
 
 		objects[objKey] = obj
 		c.afterUpdate(resourceGroup, oldObj, obj)

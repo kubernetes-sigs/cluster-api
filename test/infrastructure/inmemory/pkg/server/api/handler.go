@@ -318,7 +318,7 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 
 	h.log.V(3).Info(fmt.Sprintf("Serving List for %v", req.Request.URL), "resourceGroup", resourceGroup)
 
-	list, err := h.apiV1list(ctx, req, *gvk, inmemoryClient)
+	list, err := h.v1List(ctx, req, *gvk, inmemoryClient)
 	if err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
@@ -334,7 +334,7 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 	}
 }
 
-func (h *apiServerHandler) apiV1list(ctx context.Context, req *restful.Request, gvk schema.GroupVersionKind, inmemoryClient inmemoryclient.Client) (*unstructured.UnstructuredList, error) {
+func (h *apiServerHandler) v1List(ctx context.Context, req *restful.Request, gvk schema.GroupVersionKind, inmemoryClient inmemoryclient.Client) (*unstructured.UnstructuredList, error) {
 	// Reads and returns the requested data.
 	list := &unstructured.UnstructuredList{}
 	list.SetAPIVersion(gvk.GroupVersion().String())

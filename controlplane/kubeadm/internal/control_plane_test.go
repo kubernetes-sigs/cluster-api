@@ -17,8 +17,10 @@ limitations under the License.
 package internal
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -250,6 +253,75 @@ func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 		g := NewWithT(t)
 		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeFalse())
 	})
+}
+
+func TestStatusToLogKeyAndValues(t *testing.T) {
+	healthyMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "healthy"},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{Name: "healthy-node"},
+			Conditions: []clusterv1.Condition{
+				{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionTrue},
+				{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionTrue},
+				{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionTrue},
+				{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionTrue},
+				{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionTrue},
+			},
+		},
+	}
+
+	machineWithoutNode := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
+		Status: clusterv1.MachineStatus{
+			NodeRef: nil,
+			Conditions: []clusterv1.Condition{
+				{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionUnknown},
+				{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionUnknown},
+				{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionUnknown},
+				{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionUnknown},
+				{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionFalse}, // not a real use case, but used to test a code branch.
+			},
+		},
+	}
+
+	machineJustCreated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "just-created"}}
+
+	machineJustDeleted := healthyMachine.DeepCopy()
+	machineJustDeleted.Name = "just-deleted"
+
+	machineNotUpToDate := healthyMachine.DeepCopy()
+	machineNotUpToDate.Name = "not-up-to-date"
+
+	machineMarkedForRemediation := healthyMachine.DeepCopy()
+	machineMarkedForRemediation.Name = "marked-for-remediation"
+	machineMarkedForRemediation.Status.Conditions = append(machineMarkedForRemediation.Status.Conditions,
+		clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionFalse},
+		clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse},
+	)
+
+	g := NewWithT(t)
+	c := &ControlPlane{
+		KCP:                 &controlplanev1.KubeadmControlPlane{},
+		Machines:            collections.FromMachines(healthyMachine, machineWithoutNode, machineJustDeleted, machineNotUpToDate, machineMarkedForRemediation),
+		machinesNotUptoDate: collections.FromMachines(machineNotUpToDate),
+		EtcdMembers:         []*etcd.Member{{Name: "m1"}, {Name: "m2"}, {Name: "m3"}},
+	}
+
+	got := c.StatusToLogKeyAndValues(machineJustCreated, machineJustDeleted)
+
+	g.Expect(got).To(HaveLen(4))
+	g.Expect(got[0]).To(Equal("machines"))
+	machines := strings.Join([]string{
+		"healthy",
+		"just-created (just created)",
+		"just-deleted (just deleted)",
+		"marked-for-remediation (marked for remediation)",
+		"not-up-to-date (not up-to-date)",
+		"without-node (status.nodeRef not set, APIServerPod health unknown, ControllerManagerPod health unknown, SchedulerPod health unknown, EtcdPod health unknown, EtcdMember not healthy)",
+	}, ", ")
+	g.Expect(got[1]).To(Equal(machines), cmp.Diff(got[1], machines))
+	g.Expect(got[2]).To(Equal("etcdMembers"))
+	g.Expect(got[3]).To(Equal("m1, m2, m3"))
 }
 
 type machineOpt func(*clusterv1.Machine)

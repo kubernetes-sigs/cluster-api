@@ -235,7 +235,7 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 			}
 
 			// Skip objects which were already written.
-			if objResourceVersion < minResourceVersion {
+			if objResourceVersion <= minResourceVersion {
 				continue
 			}
 

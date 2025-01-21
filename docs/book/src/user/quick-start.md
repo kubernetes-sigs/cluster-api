@@ -709,7 +709,11 @@ Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Ge
 {{#/tab }}
 {{#tab OpenStack}}
 
+Cluster API Provider OpenStack depends on [openstack-resource-controller] since v0.12.
+
 ```bash
+# Install ORC (needed for CAPO >=v0.12)
+kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml
 # Initialize the management cluster
 clusterctl init --infrastructure openstack
 ```
@@ -1076,7 +1080,7 @@ export HARVESTER_ENDPOINT=""
 export HARVESTER_KUBECONFIG_B64="<HARVESTER_KUBECONFIG_ENCODED_IN_BASE64>"
 # Namespace for all resources in the Management Cluster
 export NAMESPACE="test"
-# Pod CIDR for the Workload Cluster, it should have the format: 192.168.0.0/16 
+# Pod CIDR for the Workload Cluster, it should have the format: 192.168.0.0/16
 export POD_CIDR="10.42.0.0/16"
 # Service CIDR for the Workload Cluster, it should have the format : 192.168.0.0/16 and be different from POD_CIDR
 export SERVICE_CIDR="10.43.0.0/16"
@@ -1144,7 +1148,7 @@ export IONOSCLOUD_DATACENTER_ID="<your-datacenter-id>"
 # The IP of the control plane endpoint
 export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
 # The location of the data center where the cluster will be deployed
-export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
+export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl
 # The image ID of the custom image that will be used for the VMs
 export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
 # The SSH key that will be used to access the VMs
@@ -1233,21 +1237,25 @@ clusterctl generate cluster --infrastructure nutanix --list-variables capi-quick
 A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image
 see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
 Depending on your OpenStack and underlying hypervisor the following options might be of interest:
+
 * [image-builder (OpenStack)](https://image-builder.sigs.k8s.io/capi/providers/openstack.html)
 * [image-builder (vSphere)](https://image-builder.sigs.k8s.io/capi/providers/vsphere.html)
 
 To see all required OpenStack environment variables execute:
+
 ```bash
 clusterctl generate cluster --infrastructure openstack --list-variables capi-quickstart
 ```
 
 The following script can be used to export some of them:
+
 ```bash
 wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-openstack/master/templates/env.rc -O /tmp/env.rc
 source /tmp/env.rc <path/to/clouds.yaml> <cloud>
 ```
 
 Apart from the script, the following OpenStack environment variables are required.
+
 ```bash
 # The list of nameservers for OpenStack Subnet being created.
 # Set this value when you need create a new network/subnet while the access through DNS is required.
@@ -1408,10 +1416,10 @@ export CONTROL_PLANE_MACHINE_COUNT=1
 export CONTROL_PLANE_PLANID=<plan_id>
 export WORKER_MACHINE_COUNT=1
 export WORKER_PLANID=<plan_id>
-export MACHINE_IMAGE=<snapshot_id>  
+export MACHINE_IMAGE=<snapshot_id>
 export REGION=<region>
 export PLANID=<plan_id>
-export VPCID=<vpc_id> 
+export VPCID=<vpc_id>
 export SSHKEY_ID=<sshKey_id>
 ```
 
@@ -1882,6 +1890,7 @@ kind delete cluster
 [KubeVirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [KubeVirt]: https://kubevirt.io/
 [oci-provider]: https://oracle.github.io/cluster-api-provider-oci/#getting-started
+[openstack-resource-controller]: https://k-orc.cloud/
 [Equinix Metal getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider]:../reference/providers.md
 [provider components]: ../reference/glossary.md#provider-components

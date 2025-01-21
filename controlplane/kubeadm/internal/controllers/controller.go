@@ -138,7 +138,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
-	r.ssaCache = ssa.NewCache()
+	r.ssaCache = ssa.NewCache("controlplane/kubeadm")
 
 	if r.managementCluster == nil {
 		r.managementCluster = &internal.Management{

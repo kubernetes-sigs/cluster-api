@@ -160,7 +160,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
 	if r.patchHelperFactory == nil {
-		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache())
+		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache("topology/cluster"))
 	}
 	return nil
 }

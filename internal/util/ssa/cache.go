@@ -54,21 +54,17 @@ type Cache interface {
 
 	// Has checks if the given key (still) exists in the Cache.
 	// Note: keys expire after the ttl.
-	Has(key, groupKind string) bool
+	Has(key, kind string) bool
 }
 
 // NewCache creates a new cache.
-func NewCache(opts ...NewCacheOption) Cache {
-	config := &newCacheConfig{}
-	for _, opt := range opts {
-		opt(config)
-	}
+func NewCache(controllerName string) Cache {
 	r := &ssaCache{
 		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add strings to the cache, so it's safe to cast to string.
 			return obj.(string), nil
 		}, ttl),
-		newCacheConfig: *config,
+		controllerName: controllerName,
 	}
 	go func() {
 		for {
@@ -83,23 +79,9 @@ func NewCache(opts ...NewCacheOption) Cache {
 	return r
 }
 
-type newCacheConfig struct {
-	owner string
-}
-
-// NewCacheOption is a configuration option supplied to NewCache.
-type NewCacheOption func(*newCacheConfig)
-
-// WithOwner allows definition of the owner field to be used in NewCache.
-func WithOwner(owner string) NewCacheOption {
-	return func(c *newCacheConfig) {
-		c.owner = owner
-	}
-}
-
 type ssaCache struct {
 	cache.Store
-	newCacheConfig
+	controllerName string
 }
 
 // Add adds the given key to the Cache.
@@ -116,7 +98,11 @@ func (r *ssaCache) Add(key string) {
 func (r *ssaCache) Has(key, kind string) bool {
 	// Note: We can ignore the error here because GetByKey never returns an error.
 	_, exists, _ := r.Store.GetByKey(key)
-	requestTotal.WithLabelValues(boolToStatus[exists], kind, r.newCacheConfig.owner).Inc()
+	if exists {
+		requestHits.WithLabelValues(kind, r.controllerName).Inc()
+	} else {
+		requestMisses.WithLabelValues(kind, r.controllerName).Inc()
+	}
 	return exists
 }
 
@@ -125,16 +111,16 @@ func (r *ssaCache) Has(key, kind string) bool {
 // once we found out that it would not produce a diff.
 // The identifier consists of: gvk, namespace, name and resourceVersion of the original object and a hash of the modified
 // object. This ensures that we re-run the request as soon as either original or modified changes.
-func ComputeRequestIdentifier(scheme *runtime.Scheme, original, modified client.Object) (id, kind string, err error) {
+func ComputeRequestIdentifier(scheme *runtime.Scheme, original, modified client.Object) (string, error) {
 	modifiedObjectHash, err := hash.Compute(modified)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for modified object")
+		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to compute hash for modified object")
 	}
 
 	gvk, err := apiutil.GVKForObject(original, scheme)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of original object %s", klog.KObj(original))
+		return "", errors.Wrapf(err, "failed to calculate request identifier: failed to get GroupVersionKind of original object %s", klog.KObj(original))
 	}
 
-	return fmt.Sprintf("%s.%s.%s.%d", gvk.String(), klog.KObj(original), original.GetResourceVersion(), modifiedObjectHash), gvk.GroupKind().Kind, nil
+	return fmt.Sprintf("%s.%s.%s.%d", gvk.String(), klog.KObj(original), original.GetResourceVersion(), modifiedObjectHash), nil
 }

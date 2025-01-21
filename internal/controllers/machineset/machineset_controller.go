@@ -154,7 +154,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
-	r.ssaCache = ssa.NewCache()
+	r.ssaCache = ssa.NewCache("machineset")
 	return nil
 }
 

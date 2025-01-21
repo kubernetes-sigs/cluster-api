@@ -50,6 +50,7 @@ import (
 const (
 	clusterName    = "test-cluster"
 	wrongNamespace = "wrong-namespace"
+	testController = "test-controller"
 )
 
 func TestReconcileMachinePoolPhases(t *testing.T) {
@@ -1424,7 +1425,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			r := &MachinePoolReconciler{
 				Client:   env,
-				ssaCache: ssa.NewCache(),
+				ssaCache: ssa.NewCache(testController),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1493,7 +1494,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			r := &MachinePoolReconciler{
 				Client:   env,
-				ssaCache: ssa.NewCache(),
+				ssaCache: ssa.NewCache(testController),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1558,7 +1559,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			r := &MachinePoolReconciler{
 				Client:   env,
-				ssaCache: ssa.NewCache(),
+				ssaCache: ssa.NewCache(testController),
 			}
 
 			scope := &scope{

@@ -96,7 +96,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
-		ssaCache: ssa.NewCache(),
+		ssaCache: ssa.NewCache("test-controller"),
 	}
 	controlPlane := &internal.ControlPlane{
 		KCP:      kcp,

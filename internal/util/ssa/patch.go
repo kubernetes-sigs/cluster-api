@@ -81,14 +81,14 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		return errors.Wrapf(err, "failed to apply object: failed to get GroupVersionKind of modified object %s", klog.KObj(modifiedUnstructured))
 	}
 
-	var requestIdentifier, kind string
+	var requestIdentifier string
 	if options.WithCachingProxy {
 		// Check if the request is cached.
-		requestIdentifier, kind, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modifiedUnstructured)
+		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modifiedUnstructured)
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply object")
 		}
-		if options.Cache.Has(requestIdentifier, kind) {
+		if options.Cache.Has(requestIdentifier, gvk.Kind) {
 			// If the request is cached return the original object.
 			if err := c.Scheme().Convert(options.Original, modified, ctx); err != nil {
 				return errors.Wrapf(err, "failed to write original into modified object")

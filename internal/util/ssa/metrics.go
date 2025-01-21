@@ -23,15 +23,24 @@ import (
 
 func init() {
 	// Register the metrics at the controller-runtime metrics registry.
-	ctrlmetrics.Registry.MustRegister(requestTotal)
+	ctrlmetrics.Registry.MustRegister(requestHits)
+	ctrlmetrics.Registry.MustRegister(requestMisses)
 }
 
 var (
-	// requestTotal reports request results.
-	requestTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "capi_ssa_cache_request_total",
-		Help: "Total number of ssa cache hit and miss requests.",
+	// requestHits reports request results.
+	requestHits = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "capi_ssa_cache_hits_total",
+		Help: "Total number of ssa cache hit requests.",
 	}, []string{
-		"status", "kind", "cache_owner",
+		"kind", "controller",
+	})
+
+	// requestMisses reports request results.
+	requestMisses = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "capi_ssa_cache_misses_total",
+		Help: "Total number of ssa cache miss requests.",
+	}, []string{
+		"kind", "controller",
 	})
 )

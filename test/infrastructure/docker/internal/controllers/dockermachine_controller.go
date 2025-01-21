@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -70,8 +71,7 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile handles DockerMachine events.
-func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	log := ctrl.LoggerFrom(ctx)
+func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DockerMachine instance.
@@ -150,10 +150,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
 	defer func() {
 		if err := patchDockerMachine(ctx, patchHelper, dockerMachine); err != nil {
-			log.Error(err, "Failed to patch DockerMachine")
-			if rerr == nil {
-				rerr = err
-			}
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 
@@ -188,14 +185,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle non-deleted machines
-	res, err := r.reconcileNormal(ctx, cluster, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
-	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
-	// the current cluster because of concurrent access.
-	if errors.Is(err, clustercache.ErrClusterNotConnected) {
-		log.V(5).Info("Requeuing because connection to the workload cluster is down")
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
-	}
-	return res, err
+	return r.reconcileNormal(ctx, cluster, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
 }
 
 func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMachine *infrav1.DockerMachine) error {

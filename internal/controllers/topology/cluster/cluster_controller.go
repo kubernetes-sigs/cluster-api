@@ -278,8 +278,6 @@ func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -340,15 +338,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Handle normal reconciliation loop.
-	result, err := r.reconcile(ctx, s)
-	if err != nil {
-		// Requeue if the reconcile failed because connection to workload cluster was down.
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-	}
-	return result, err
+	return r.reconcile(ctx, s)
 }
 
 // reconcile handles cluster reconciliation.

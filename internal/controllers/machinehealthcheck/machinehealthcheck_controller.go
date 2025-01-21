@@ -188,19 +188,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	result, err := r.reconcile(ctx, log, cluster, m)
-	if err != nil {
-		// Requeue if the reconcile failed because connection to workload cluster was down.
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-
-		// Requeue immediately if any errors occurred
-		return ctrl.Result{}, err
-	}
-
-	return result, nil
+	return r.reconcile(ctx, log, cluster, m)
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {

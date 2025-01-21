@@ -255,21 +255,11 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
-		res, err = r.reconcileDelete(ctx, controlPlane)
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-		return res, err
+		return r.reconcileDelete(ctx, controlPlane)
 	}
 
 	// Handle normal reconciliation loop.
-	res, err = r.reconcile(ctx, controlPlane)
-	if errors.Is(err, clustercache.ErrClusterNotConnected) {
-		log.V(5).Info("Requeuing because connection to the workload cluster is down")
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
-	}
-	return res, err
+	return r.reconcile(ctx, controlPlane)
 }
 
 // initControlPlaneScope initializes the control plane scope; this includes also checking for orphan machines and

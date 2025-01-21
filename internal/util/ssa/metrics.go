@@ -28,7 +28,6 @@ func init() {
 }
 
 var (
-	// requestHits reports request results.
 	cacheHits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "capi_ssa_cache_hits_total",
 		Help: "Total number of ssa cache hits.",
@@ -36,7 +35,6 @@ var (
 		"kind", "controller",
 	})
 
-	// requestMisses reports request results.
 	cacheMisses = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "capi_ssa_cache_misses_total",
 		Help: "Total number of ssa cache misses.",

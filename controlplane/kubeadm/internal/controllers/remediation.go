@@ -105,7 +105,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// by considering which machine has lower impact on etcd quorum.
 	machineToBeRemediated := getMachineToBeRemediated(machinesToBeRemediated, controlPlane.IsEtcdManaged())
 	if machineToBeRemediated == nil {
-		return ctrl.Result{}, errors.New("failed to find a machine to remediate within unhealthy machines")
+		return ctrl.Result{}, errors.New("failed to find a Machine to remediate within unhealthy Machines")
 	}
 
 	// Returns if the machine is in the process of being deleted.
@@ -341,14 +341,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	return ctrl.Result{Requeue: true}, nil
 }
 
-// Gets the machine to be remediated, which is the "most broken" among thw unhealthy machines, determined as the machine
+// Gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine
 // having the highest priority issue that other machines have not.
 // The following issues are considered (from highest to lowest priority):
 // - machine without .status.nodeRef
 // - machine with etcd issue or etcd status unknown (etcd member, etcd pod)
 // - machine with control plane component issue or status unknown (API server, controller manager, scheduler)
 //
-// Note. In case of more than one faulty machine the chance to recover mostly depends on the control plane being able to
+// Note: In case of more than one faulty machine the chance to recover mostly depends on the control plane being able to
 // successfully create a replacement Machine, because due to scale up preflight checks, this cannot happen if there are
 // still issues on the control plane after the first remediation.
 // This func tries to maximize those chances of a successful remediation by picking for remediation the "most broken" machine first.
@@ -375,7 +375,7 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 	if i.Status.NodeRef == nil && j.Status.NodeRef != nil {
 		return true
 	}
-	if i.Status.NodeRef != nil && i.Status.NodeRef == nil {
+	if i.Status.NodeRef != nil && j.Status.NodeRef == nil {
 		return false
 	}
 

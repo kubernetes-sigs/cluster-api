@@ -53,7 +53,12 @@ export USE_EXISTING_CLUSTER=false
 # - KUBERNETES_VERSION_UPGRADE_FROM
 # - KUBERNETES_VERSION_LATEST_CI
 # - KUBERNETES_VERSION_MANAGEMENT
-k8s::prepareKindestImagesVariables
+if [[ -n "${GINKGO_LABEL_FILTER}" ]]; then
+  echo "Preparing kindest/node images for Ginkgo label filter: ${GINKGO_LABEL_FILTER}"
+  k8s::prepareKindestImagesVariablesGingkoFilters
+else
+  k8s::prepareKindestImagesVariables
+fi
 k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run

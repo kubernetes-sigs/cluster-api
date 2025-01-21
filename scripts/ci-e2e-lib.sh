@@ -36,6 +36,60 @@ capi:buildDockerImages () {
 
 # k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION_MANAGEMENT, KUBERNETES_VERSION,
 # KUBERNETES_VERSION_UPGRADE_TO, KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_LATEST_CI
+# depending on what is set in GINKGO_LABEL_FILTER.
+# Note: We do this to ensure that the kindest/node image gets built if it does
+# not already exist, e.g. for pre-releases, but only if necessary.
+k8s::prepareKindestImagesVariablesGingkoFilters() {
+  # Always default KUBERNETES_VERSION_MANAGEMENT because we always create a management cluster out of it.
+  if [[ -z "${KUBERNETES_VERSION_MANAGEMENT:-}" ]]; then
+    KUBERNETES_VERSION_MANAGEMENT=$(grep KUBERNETES_VERSION_MANAGEMENT: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+    echo "Defaulting KUBERNETES_VERSION_MANAGEMENT to ${KUBERNETES_VERSION_MANAGEMENT} to trigger image build (because env var is not set)"
+  fi
+
+  if [[ ${GINKGO_LABEL_FILTER:-} == *"K8s-Install-ci-latest"* ]]; then
+    # If the test focuses on [K8s-Install-ci-latest], only default KUBERNETES_VERSION_LATEST_CI
+    # to the value in the e2e config and only if it is not set.
+    # Note: We do this because we want to specify KUBERNETES_VERSION_LATEST_CI *only* in the e2e config.
+    if [[ -z "${KUBERNETES_VERSION_LATEST_CI:-}" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  elif [[ ${GINKGO_LABEL_FILTER:-} != *"K8s-Upgrade"* ]]; then
+    # In any other case which is not [K8s-Upgrade], default KUBERNETES_VERSION if it is not set to make sure
+    # the corresponding kindest/node image exists.
+    if [[ -z "${KUBERNETES_VERSION:-}" ]]; then
+      KUBERNETES_VERSION=$(grep KUBERNETES_VERSION: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION to ${KUBERNETES_VERSION} to trigger image build (because env var is not set)"
+    fi
+  fi
+
+  # Tests not focusing on anything and skipping [Conformance] run a clusterctl upgrade test
+  # on the latest kubernetes version as management cluster.
+  if  [[ ${GINKGO_LABEL_FILTER} =~ ^!Conformance$ ]]; then
+    # Note: We do this because we want to specify KUBERNETES_VERSION_LATEST_CI *only* in the e2e config.
+    if [[ -z "${KUBERNETES_VERSION_LATEST_CI:-}" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  fi
+
+  # Tests not focusing on [PR-Blocking], [K8s-Install] or [K8s-Install-ci-latest],
+  # also run upgrade tests so default KUBERNETES_VERSION_UPGRADE_TO and KUBERNETES_VERSION_UPGRADE_FROM
+  # to the value in the e2e config if they are not set.
+  if [[ ${GINKGO_LABEL_FILTER:-} != *"PR-Blocking"* ]] && [[ ${GINKGO_LABEL_FILTER:-} != *"K8s-Install"* ]]; then
+    if [[ -z "${KUBERNETES_VERSION_UPGRADE_TO:-}" ]]; then
+      KUBERNETES_VERSION_UPGRADE_TO=$(grep KUBERNETES_VERSION_UPGRADE_TO: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_UPGRADE_TO to ${KUBERNETES_VERSION_UPGRADE_TO} to trigger image build (because env var is not set)"
+    fi
+    if [[ -z "${KUBERNETES_VERSION_UPGRADE_FROM:-}" ]]; then
+      KUBERNETES_VERSION_UPGRADE_FROM=$(grep KUBERNETES_VERSION_UPGRADE_FROM: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_UPGRADE_FROM to ${KUBERNETES_VERSION_UPGRADE_FROM} to trigger image build (because env var is not set)"
+    fi
+  fi
+}
+
+# k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION_MANAGEMENT, KUBERNETES_VERSION,
+# KUBERNETES_VERSION_UPGRADE_TO, KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_LATEST_CI
 # depending on what is set in GINKGO_FOCUS.
 # Note: We do this to ensure that the kindest/node image gets built if it does
 # not already exist, e.g. for pre-releases, but only if necessary.

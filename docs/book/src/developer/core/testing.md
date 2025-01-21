@@ -170,7 +170,7 @@ For example to run [pull-cluster-api-e2e-main](https://github.com/kubernetes/tes
 just execute:
 
 ```bash
-GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
+GINKGO_LABEL_FILTER="PR-Blocking" ./scripts/ci-e2e.sh
 ```
 
 ### Test execution via make test-e2e
@@ -190,7 +190,7 @@ kind images). This can be done by executing the `./scripts/ci-e2e.sh` script.
 # Notes:
 # * You can cancel the script as soon as it starts the actual test execution via `make test-e2e`.
 # * If you want to run other tests (e.g. upgrade tests), make sure all required env variables are set (see the Prow Job config).
-GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
+GINKGO_LABEL_FILTER="PR-Blocking" ./scripts/ci-e2e.sh
 ```
 
 Now, the tests can be run in an IDE. The following describes how this can be done in IntelliJ IDEA and VS Code. It should work
@@ -272,24 +272,24 @@ kustomize_substitutions:
 
 ### Running specific tests
 
-To run a subset of tests, a combination of either one or both of `GINKGO_FOCUS` and `GINKGO_SKIP` env variables can be set.
+To run a subset of tests the `GINKGO_LABEL_FILTER` env variable can be set.  See [Ginkgo Spec Labels v2](https://onsi.github.io/ginkgo/MIGRATING_TO_V2#spec-labels) for complete syntax documentation.
+
 Each of these can be used to match tests, for example:
-- `[PR-Blocking]` => Sanity tests run before each PR merge
-- `[K8s-Upgrade]` => Tests which verify k8s component version upgrades on workload clusters
-- `[Conformance]` => Tests which run the k8s conformance suite on workload clusters
-- `[ClusterClass]` => Tests which use a ClusterClass to create a workload cluster
-- `When testing KCP.*` => Tests which start with `When testing KCP`
+- `PR-Blocking` => Sanity tests run before each PR merge
+- `K8s-Upgrade` => Tests which verify k8s component version upgrades on workload clusters
+- `Conformance` => Tests which run the k8s conformance suite on workload clusters
+- `ClusterClass` => Tests which use a ClusterClass to create a workload cluster
+- `/When testing KCP.*/` => Tests which start with `When testing KCP`
 
 For example:
-` GINKGO_FOCUS="\\[PR-Blocking\\]" make test-e2e ` can be used to run the sanity E2E tests
-` GINKGO_SKIP="\\[K8s-Upgrade\\]" make test-e2e ` can be used to skip the upgrade E2E tests
+` GINKGO_LABEL_FILTER="PR-Blocking" make test-e2e ` can be used to run the sanity E2E tests
+` GINKGO_LABEL_FILTER="!K8s-Upgrade" make test-e2e ` can be used to skip the upgrade E2E tests
 
 ### Further customization
 
 The following env variables can be set to customize the test execution:
 
-- `GINKGO_FOCUS` to set ginkgo focus (default empty - all tests)
-- `GINKGO_SKIP` to set ginkgo skip (default empty - to allow running all tests)
+- `GINKGO_LABEL_FILTER` to set ginkgo label filter (default empty - all tests)
 - `GINKGO_NODES` to set the number of ginkgo parallel nodes (default to 1)
 - `E2E_CONF_FILE` to set the e2e test config file (default to ${REPO_ROOT}/test/e2e/config/docker.yaml)
 - `ARTIFACTS` to set the folder where test artifact will be stored (default to ${REPO_ROOT}/_artifacts)

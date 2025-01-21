@@ -39,11 +39,6 @@ const (
 	expirationInterval = 10 * time.Hour
 )
 
-var boolToStatus = map[bool]string{
-	true:  "hit",
-	false: "miss",
-}
-
 // Cache caches SSA request results.
 // Specifically we only use it to cache that a certain request
 // doesn't have to be repeated anymore because there was no diff.

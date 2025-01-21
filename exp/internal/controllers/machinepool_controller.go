@@ -145,7 +145,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: r.predicateLog,
 	}
-	r.ssaCache = ssa.NewCache()
+	r.ssaCache = ssa.NewCache("machinepool")
 
 	return nil
 }

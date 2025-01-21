@@ -48,7 +48,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -958,7 +957,6 @@ func TestReconcileRequest(t *testing.T) {
 			r := &Reconciler{
 				Client:               clientFake,
 				ClusterCache:         clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache:             ssa.NewCache(),
 				recorder:             record.NewFakeRecorder(10),
 				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
 				externalTracker: external.ObjectTracker{
@@ -1254,7 +1252,6 @@ func TestMachineConditions(t *testing.T) {
 				Client:       clientFake,
 				recorder:     record.NewFakeRecorder(10),
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache:     ssa.NewCache(),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},

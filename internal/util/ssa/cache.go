@@ -49,16 +49,17 @@ type Cache interface {
 
 	// Has checks if the given key (still) exists in the Cache.
 	// Note: keys expire after the ttl.
-	Has(key string) bool
+	Has(key, kind string) bool
 }
 
 // NewCache creates a new cache.
-func NewCache() Cache {
+func NewCache(controllerName string) Cache {
 	r := &ssaCache{
 		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add strings to the cache, so it's safe to cast to string.
 			return obj.(string), nil
 		}, ttl),
+		controllerName: controllerName,
 	}
 	go func() {
 		for {
@@ -75,6 +76,7 @@ func NewCache() Cache {
 
 type ssaCache struct {
 	cache.Store
+	controllerName string
 }
 
 // Add adds the given key to the Cache.
@@ -88,9 +90,14 @@ func (r *ssaCache) Add(key string) {
 
 // Has checks if the given key (still) exists in the Cache.
 // Note: keys expire after the ttl.
-func (r *ssaCache) Has(key string) bool {
+func (r *ssaCache) Has(key, kind string) bool {
 	// Note: We can ignore the error here because GetByKey never returns an error.
 	_, exists, _ := r.Store.GetByKey(key)
+	if exists {
+		cacheHits.WithLabelValues(kind, r.controllerName).Inc()
+	} else {
+		cacheMisses.WithLabelValues(kind, r.controllerName).Inc()
+	}
 	return exists
 }
 

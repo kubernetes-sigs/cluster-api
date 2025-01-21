@@ -47,7 +47,7 @@ func TestPatch(t *testing.T) {
 		}).Build()
 
 		fieldManager := "test-manager"
-		ssaCache := NewCache()
+		ssaCache := NewCache("test-controller")
 
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
@@ -68,7 +68,7 @@ func TestPatch(t *testing.T) {
 		// Update the object
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was not cached (as it changed the object)
-		g.Expect(ssaCache.Has(requestIdentifier)).To(BeFalse())
+		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetKind())).To(BeFalse())
 
 		// 3. Repeat the same update and verify that the request was cached as the object was not changed.
 		// Get the original object.
@@ -85,7 +85,7 @@ func TestPatch(t *testing.T) {
 		// Update the object
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was cached (as it did not change the object)
-		g.Expect(ssaCache.Has(requestIdentifier)).To(BeTrue())
+		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetKind())).To(BeTrue())
 	})
 
 	t.Run("Test patch with Machine", func(*testing.T) {
@@ -120,7 +120,7 @@ func TestPatch(t *testing.T) {
 			},
 		}
 		fieldManager := "test-manager"
-		ssaCache := NewCache()
+		ssaCache := NewCache("test-controller")
 
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
@@ -145,7 +145,7 @@ func TestPatch(t *testing.T) {
 		// Verify that gvk is still set
 		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Verify that request was not cached (as it changed the object)
-		g.Expect(ssaCache.Has(requestIdentifier)).To(BeFalse())
+		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeFalse())
 
 		// Wait for 1 second. We are also trying to verify in this test that the resourceVersion of the Machine
 		// is not increased. Under some circumstances this would only happen if the timestamp in managedFields would
@@ -170,7 +170,7 @@ func TestPatch(t *testing.T) {
 		// Update the object
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was cached (as it did not change the object)
-		g.Expect(ssaCache.Has(requestIdentifier)).To(BeTrue())
+		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeTrue())
 		// Verify that gvk is still set
 		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 	})

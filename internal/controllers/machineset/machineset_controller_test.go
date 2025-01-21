@@ -1287,7 +1287,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// for Machines, InfrastructureMachines and BootstrapConfigs.
 	reconciler := &Reconciler{
 		Client:   env,
-		ssaCache: ssa.NewCache(),
+		ssaCache: ssa.NewCache("test-controller"),
 	}
 	s := &scope{
 		machineSet: ms,

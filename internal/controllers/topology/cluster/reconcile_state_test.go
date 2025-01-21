@@ -63,6 +63,8 @@ var IgnoreNameGenerated = IgnorePaths{
 	"metadata.name",
 }
 
+const testController = "test-controller"
+
 func TestReconcileShim(t *testing.T) {
 	infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 	controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -95,7 +97,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -138,7 +140,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -188,7 +190,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -239,7 +241,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -280,7 +282,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             nil,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(nil, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(nil, ssa.NewCache(testController)),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1156,7 +1158,7 @@ func TestReconcileCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileCluster(ctx, s)
@@ -1283,7 +1285,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			created, err := r.reconcileInfrastructureCluster(ctx, s)
@@ -1557,7 +1559,7 @@ func TestReconcileControlPlane(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -1713,7 +1715,7 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 
 		r := Reconciler{
 			Client:             env,
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		created, err := r.reconcileControlPlane(ctx, s)
@@ -1878,7 +1880,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -2177,7 +2179,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			r := Reconciler{
 				Client:             env.GetClient(),
 				APIReader:          env.GetAPIReader(),
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileMachineDeployments(ctx, s)
@@ -2295,7 +2297,7 @@ func TestReconcileMachineDeploymentsCleanup(t *testing.T) {
 		r := Reconciler{
 			Client:             env.GetClient(),
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileMachineDeployments(ctx, s)
@@ -2360,7 +2362,7 @@ func TestReconcileMachineDeploymentsCleanup(t *testing.T) {
 		r := Reconciler{
 			Client:             env.GetClient(),
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileMachineDeployments(ctx, s)
@@ -2633,7 +2635,7 @@ func TestReconcileMachinePools(t *testing.T) {
 			r := Reconciler{
 				Client:             env.GetClient(),
 				APIReader:          env.GetAPIReader(),
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileMachinePools(ctx, s)
@@ -2753,7 +2755,7 @@ func TestReconcileMachinePoolsCleanup(t *testing.T) {
 		r := Reconciler{
 			Client:             env.GetClient(),
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileMachinePools(ctx, s)
@@ -3184,7 +3186,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -3458,7 +3460,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			r := Reconciler{
 				Client:             env.GetClient(),
 				APIReader:          env.GetAPIReader(),
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -3527,7 +3529,7 @@ func TestReconcileState(t *testing.T) {
 
 		r := Reconciler{
 			Client:             env,
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileState(ctx, s)
@@ -3574,7 +3576,7 @@ func TestReconcileState(t *testing.T) {
 
 		r := Reconciler{
 			Client:             env,
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileState(ctx, s)
@@ -3627,7 +3629,7 @@ func TestReconcileState(t *testing.T) {
 
 		r := Reconciler{
 			Client:             env,
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 			recorder:           env.GetEventRecorderFor("test"),
 		}
 		err = r.reconcileState(ctx, s)
@@ -3799,7 +3801,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache(testController)),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			if tt.current != nil {

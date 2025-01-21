@@ -200,7 +200,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: &predicateLog,
 	}
-	r.ssaCache = ssa.NewCache()
+	r.ssaCache = ssa.NewCache("dockermachinepool")
 
 	return nil
 }

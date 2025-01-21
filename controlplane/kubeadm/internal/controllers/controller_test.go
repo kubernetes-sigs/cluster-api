@@ -1351,7 +1351,7 @@ kubernetesVersion: metav1.16.1
 				Status: internal.ClusterStatus{},
 			},
 		},
-		ssaCache: ssa.NewCache(),
+		ssaCache: ssa.NewCache("test-controller"),
 	}
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -1678,7 +1678,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	reconciler := &KubeadmControlPlaneReconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
-		ssaCache:            ssa.NewCache(),
+		ssaCache:            ssa.NewCache("test-controller"),
 	}
 	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
 

@@ -88,7 +88,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply object")
 		}
-		if options.Cache.Has(requestIdentifier) {
+		if options.Cache.Has(requestIdentifier, gvk.Kind) {
 			// If the request is cached return the original object.
 			if err := c.Scheme().Convert(options.Original, modified, ctx); err != nil {
 				return errors.Wrapf(err, "failed to write original into modified object")

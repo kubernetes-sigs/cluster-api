@@ -58,7 +58,7 @@ type NodeDrainTimeoutSpecInput struct {
 
 	// Flavor, if specified, must refer to a template that uses a Cluster with ClusterClass.
 	// The cluster must use a KubeadmControlPlane and a MachineDeployment.
-	// If not specified, "node-drain" is used.
+	// If not specified, "topology" is used.
 	Flavor *string
 
 	// Allows to inject a function to be run after test namespace is created.
@@ -138,7 +138,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   infrastructureProvider,
-				Flavor:                   ptr.Deref(input.Flavor, "node-drain"),
+				Flavor:                   ptr.Deref(input.Flavor, "topology"),
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

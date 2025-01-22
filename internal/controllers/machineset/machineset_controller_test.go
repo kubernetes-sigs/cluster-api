@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
@@ -2353,7 +2354,10 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 	t.Run("should hold off on sync replicas when create Infrastructure of machine failed ", func(t *testing.T) {
 		g := NewWithT(t)
-		fakeClient := fake.NewClientBuilder().WithObjects().WithInterceptorFuncs(interceptor.Funcs{
+		scheme := runtime.NewScheme()
+		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects().WithInterceptorFuncs(interceptor.Funcs{
 			Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
 				// simulate scenarios where infra object creation fails
 				if obj.GetObjectKind().GroupVersionKind().Kind == "GenericInfrastructureMachine" {
@@ -2366,10 +2370,13 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeClient,
 		}
-		testCluster := &clusterv1.Cluster{}
-		testCluster.Namespace = "default"
-		testCluster.Name = "test-cluster"
-		version := "v1.14.2"
+		testCluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+		}
+
 		duration10m := &metav1.Duration{Duration: 10 * time.Minute}
 		machineSet := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2383,7 +2390,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
-						Version:     &version,
+						Version:     ptr.To("v1.14.2"),
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
 								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -2416,6 +2423,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 				},
 			},
 		}
+
 		bootstrapTmpl := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"spec": map[string]interface{}{

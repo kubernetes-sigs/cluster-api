@@ -113,16 +113,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	machine.Status.NodeInfo = &s.node.Status.NodeInfo
 
 	// Compute all the annotations that CAPI is setting on nodes;
-	// CAPI only enforces some annotations and never changes or removes them.
-	nodeAnnotations := map[string]string{
-		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
-		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
-		clusterv1.MachineAnnotation:          machine.Name,
-	}
-	if owner := metav1.GetControllerOfNoCopy(machine); owner != nil {
-		nodeAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
-		nodeAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
-	}
+	nodeAnnotations := r.getManagedAnnotations(machine)
 
 	// Compute labels to be propagated from Machines to nodes.
 	// NOTE: CAPI should manage only a subset of node labels, everything else should be preserved.
@@ -202,6 +193,36 @@ func (r *Reconciler) getManagedLabels(labels map[string]string) map[string]strin
 		}
 	}
 	return managedLabels
+}
+
+// getManagedAnnotations returns a map of Node annotations managed by CAPI.
+// This is not generalized with getManagedLabels because the domains used by labels and annotations are slightly different.
+func (r *Reconciler) getManagedAnnotations(machine *clusterv1.Machine) map[string]string {
+	// Always sync CAPI's bookkeeping annotations
+	managedAnnotations := map[string]string{
+		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
+		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
+		clusterv1.MachineAnnotation:          machine.Name,
+	}
+	if owner := metav1.GetControllerOfNoCopy(machine); owner != nil {
+		managedAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
+		managedAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
+	}
+	for key, value := range machine.GetAnnotations() {
+		// Always sync CAPI's default label node domain
+		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		if dnsSubdomainOrName == clusterv1.ManagedNodeAnnotationDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeAnnotationDomain) {
+			managedAnnotations[key] = value
+		}
+		// Sync if the annotations matches at least one user provided regex
+		for _, regex := range r.AdditionalSyncMachineAnnotations {
+			if regex.MatchString(key) {
+				managedAnnotations[key] = value
+				break
+			}
+		}
+	}
+	return managedAnnotations
 }
 
 // summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:

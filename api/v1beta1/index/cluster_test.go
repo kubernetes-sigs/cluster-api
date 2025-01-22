@@ -20,12 +20,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestClusterByClassName(t *testing.T) {
+func TestClusterByClusterClassRef(t *testing.T) {
 	testCases := []struct {
 		name     string
 		object   client.Object
@@ -39,20 +40,40 @@ func TestClusterByClassName(t *testing.T) {
 		{
 			name: "when cluster has a valid Topology",
 			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster",
+					Namespace: "default",
+				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
 						Class: "class1",
 					},
 				},
 			},
-			expected: []string{"class1"},
+			expected: []string{"default/class1"},
+		},
+		{
+			name: "when cluster has a valid Topology with namespace specified",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster",
+					Namespace: "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Class:          "class1",
+						ClassNamespace: "other",
+					},
+				},
+			},
+			expected: []string{"other/class1"},
 		},
 	}
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := ClusterByClusterClassClassName(test.object)
+			got := ClusterByClusterClassRef(test.object)
 			g.Expect(got).To(Equal(test.expected))
 		})
 	}

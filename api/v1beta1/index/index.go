@@ -36,7 +36,7 @@ func AddDefaultIndexes(ctx context.Context, mgr ctrl.Manager) error {
 	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		if err := ByClusterClassName(ctx, mgr); err != nil {
+		if err := ByClusterClassRef(ctx, mgr); err != nil {
 			return err
 		}
 	}

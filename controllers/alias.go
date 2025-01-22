@@ -92,18 +92,14 @@ type MachineSetReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-
-	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
-	DeprecatedInfraMachineNaming bool
 }
 
 func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinesetcontroller.Reconciler{
-		Client:                       r.Client,
-		APIReader:                    r.APIReader,
-		ClusterCache:                 r.ClusterCache,
-		WatchFilterValue:             r.WatchFilterValue,
-		DeprecatedInfraMachineNaming: r.DeprecatedInfraMachineNaming,
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		ClusterCache:     r.ClusterCache,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 

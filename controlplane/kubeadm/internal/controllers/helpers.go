@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apiserver/pkg/storage/names"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -200,17 +199,12 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		UID:        kcp.UID,
 	}
 
-	infraMachineName := machine.Name
-	if r.DeprecatedInfraMachineNaming {
-		infraMachineName = names.SimpleNameGenerator.GenerateName(kcp.Spec.MachineTemplate.InfrastructureRef.Name + "-")
-	}
-
 	// Clone the infrastructure template
 	infraRef, err := external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 		Client:      r.Client,
 		TemplateRef: &kcp.Spec.MachineTemplate.InfrastructureRef,
 		Namespace:   kcp.Namespace,
-		Name:        infraMachineName,
+		Name:        machine.Name,
 		OwnerRef:    infraCloneOwner,
 		ClusterName: cluster.Name,
 		Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),

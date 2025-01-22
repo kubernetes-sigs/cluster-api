@@ -91,9 +91,6 @@ type KubeadmControlPlaneReconciler struct {
 
 	RemoteConditionsGracePeriod time.Duration
 
-	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
-	DeprecatedInfraMachineNaming bool
-
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
 	ssaCache                  ssa.Cache

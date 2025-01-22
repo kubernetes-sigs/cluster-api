@@ -158,7 +158,7 @@ type Variable struct {
 
 // HolderReference represents a reference to an object which holds a template.
 type HolderReference struct {
-	// API version of the referent.
+	// apiVersion of the referent.
 	APIVersion string `json:"apiVersion"`
 
 	// kind of the referent.

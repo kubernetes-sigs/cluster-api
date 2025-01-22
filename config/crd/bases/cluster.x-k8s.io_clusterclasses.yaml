@@ -59,7 +59,7 @@ spec:
                 properties:
                   machineInfrastructure:
                     description: |-
-                      MachineTemplate defines the metadata and infrastructure information
+                      machineInfrastructure defines the metadata and infrastructure information
                       for control plane machines.
 
                       This field is supported if and only if the control plane provider template
@@ -134,7 +134,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -394,7 +394,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -643,7 +643,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -993,7 +993,7 @@ spec:
                           additionalProperties:
                             type: string
                           description: |-
-                            Map of string keys and values that can be used to organize and categorize
+                            labels is a map of string keys and values that can be used to organize and categorize
                             (scope and select) variables.
                           type: object
                       type: object
@@ -1333,7 +1333,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) variables.
                                   type: object
                               type: object
@@ -1487,7 +1487,7 @@ spec:
                           type: object
                         minReadySeconds:
                           description: |-
-                            Minimum number of seconds for which a newly created machine should
+                            minReadySeconds is the minimum number of seconds for which a newly created machine should
                             be ready.
                             Defaults to 0 (machine will be considered available as soon as it
                             is ready)
@@ -1532,7 +1532,7 @@ spec:
                           type: string
                         strategy:
                           description: |-
-                            The deployment strategy to use to replace existing machines with
+                            strategy is the deployment strategy to use to replace existing machines with
                             new ones.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
                           properties:
@@ -1564,7 +1564,7 @@ spec:
                               type: object
                             rollingUpdate:
                               description: |-
-                                Rolling update config params. Present only if
+                                rollingUpdate is the rolling update config params. Present only if
                                 MachineDeploymentStrategyType = RollingUpdate.
                               properties:
                                 deletePolicy:
@@ -1582,7 +1582,7 @@ spec:
                                   - type: integer
                                   - type: string
                                   description: |-
-                                    The maximum number of machines that can be scheduled above the
+                                    maxSurge is the maximum number of machines that can be scheduled above the
                                     desired number of machines.
                                     Value can be an absolute number (ex: 5) or a percentage of
                                     desired machines (ex: 10%).
@@ -1601,7 +1601,7 @@ spec:
                                   - type: integer
                                   - type: string
                                   description: |-
-                                    The maximum number of machines that can be unavailable during the update.
+                                    maxUnavailable is the maximum number of machines that can be unavailable during the update.
                                     Value can be an absolute number (ex: 5) or a percentage of desired
                                     machines (ex: 10%).
                                     Absolute number is calculated from percentage by rounding down.
@@ -1753,7 +1753,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -1796,7 +1796,7 @@ spec:
                           type: array
                         minReadySeconds:
                           description: |-
-                            Minimum number of seconds for which a newly created machine pool should
+                            minReadySeconds is the minimum number of seconds for which a newly created machine pool should
                             be ready.
                             Defaults to 0 (machine will be considered available as soon as it
                             is ready)
@@ -1968,7 +1968,7 @@ spec:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Map of string keys and values that can be used to organize and categorize
+                                    labels is a map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
                                     More info: http://kubernetes.io/docs/user-guide/labels
@@ -1999,19 +1999,19 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       type: string
@@ -2149,7 +2149,7 @@ spec:
                                 additionalProperties:
                                   type: string
                                 description: |-
-                                  Map of string keys and values that can be used to organize and categorize
+                                  labels is a map of string keys and values that can be used to organize and categorize
                                   (scope and select) variables.
                                 type: object
                             type: object
@@ -2495,7 +2495,7 @@ spec:
                                         additionalProperties:
                                           type: string
                                         description: |-
-                                          Map of string keys and values that can be used to organize and categorize
+                                          labels is a map of string keys and values that can be used to organize and categorize
                                           (scope and select) variables.
                                         type: object
                                     type: object

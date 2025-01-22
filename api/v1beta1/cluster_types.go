@@ -466,7 +466,7 @@ type ClusterSpec struct {
 	// +optional
 	Paused bool `json:"paused,omitempty"`
 
-	// Cluster network configuration.
+	// clusterNetwork represents the cluster network configuration.
 	// +optional
 	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 
@@ -515,7 +515,7 @@ type ClusterAvailabilityGate struct {
 
 // Topology encapsulates the information of the managed resources.
 type Topology struct {
-	// The name of the ClusterClass object to create the topology.
+	// class is the name of the ClusterClass object to create the topology.
 	Class string `json:"class"`
 
 	// classNamespace is the namespace of the ClusterClass object to create the topology.
@@ -527,7 +527,7 @@ type Topology struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$`
 	ClassNamespace string `json:"classNamespace,omitempty"`
 
-	// The Kubernetes version of the cluster.
+	// version is the Kubernetes version of the cluster.
 	Version string `json:"version"`
 
 	// rolloutAfter performs a rollout of the entire cluster one component at a time,
@@ -667,14 +667,14 @@ type MachineDeploymentTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// The deployment strategy to use to replace existing machines with
+	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
@@ -744,7 +744,7 @@ type MachinePoolTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine pool should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
@@ -825,15 +825,15 @@ type ClusterNetwork struct {
 	// +optional
 	APIServerPort *int32 `json:"apiServerPort,omitempty"`
 
-	// The network ranges from which service VIPs are allocated.
+	// services is the network ranges from which service VIPs are allocated.
 	// +optional
 	Services *NetworkRanges `json:"services,omitempty"`
 
-	// The network ranges from which Pod networks are allocated.
+	// pods is the network ranges from which Pod networks are allocated.
 	// +optional
 	Pods *NetworkRanges `json:"pods,omitempty"`
 
-	// Domain name for services.
+	// serviceDomain is the domain name for services.
 	// +optional
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
@@ -1008,10 +1008,10 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
-	// The hostname on which the API server is serving.
+	// host is the hostname on which the API server is serving.
 	Host string `json:"host"`
 
-	// The port on which the API server is serving.
+	// port is the port on which the API server is serving.
 	Port int32 `json:"port"`
 }
 

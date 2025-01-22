@@ -1084,7 +1084,7 @@ spec:
                               NB: if not provided, this will default to `/etc/kubernetes/pki`
                             type: string
                           clusterName:
-                            description: The cluster name
+                            description: clusterName is the cluster name
                             type: string
                           controlPlaneEndpoint:
                             description: |-
@@ -1965,7 +1965,7 @@ spec:
                 properties:
                   metadata:
                     description: |-
-                      Standard object's metadata.
+                      metadata is the standard object's metadata.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                     properties:
                       annotations:
@@ -1981,7 +1981,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -2191,7 +2191,7 @@ spec:
                               NB: if not provided, this will default to `/etc/kubernetes/pki`
                             type: string
                           clusterName:
-                            description: The cluster name
+                            description: clusterName is the cluster name
                             type: string
                           controlPlaneEndpoint:
                             description: |-
@@ -3371,13 +3371,14 @@ spec:
                                             properties:
                                               apiVersion:
                                                 description: |-
-                                                  Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                                  apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
                                                   the same encoding version as the input.
                                                   Defaults to client.authentication.k8s.io/v1 if not set.
                                                 type: string
                                               args:
-                                                description: Arguments to pass to
-                                                  the command when executing it.
+                                                description: args is the arguments
+                                                  to pass to the command when executing
+                                                  it.
                                                 items:
                                                   type: string
                                                 type: array

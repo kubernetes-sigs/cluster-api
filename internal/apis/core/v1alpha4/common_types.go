@@ -143,10 +143,10 @@ const (
 
 // MachineAddress contains information for the node's address.
 type MachineAddress struct {
-	// Machine address type, one of Hostname, ExternalIP or InternalIP.
+	// type is the machine address type, one of Hostname, ExternalIP or InternalIP.
 	Type MachineAddressType `json:"type"`
 
-	// The machine address.
+	// address is the machine address.
 	Address string `json:"address"`
 }
 
@@ -175,7 +175,7 @@ type MachineAddresses []MachineAddress
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
 type ObjectMeta struct {
-	// Map of string keys and values that can be used to organize and categorize
+	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels

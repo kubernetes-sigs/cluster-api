@@ -69,19 +69,19 @@ type Condition struct {
 	// +optional
 	Severity ConditionSeverity `json:"severity,omitempty"`
 
-	// Last time the condition transitioned from one status to another.
+	// lastTransitionTime is the last time the condition transitioned from one status to another.
 	// This should be when the underlying condition changed. If that is not known, then using the time when
 	// the API field changed is acceptable.
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
-	// The reason for the condition's last transition in CamelCase.
+	// reason is the reason for the condition's last transition in CamelCase.
 	// The specific API may choose whether or not this field is considered a guaranteed API.
 	// This field may not be empty.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
-	// A human readable message indicating details about the transition.
+	// message is a human readable message indicating details about the transition.
 	// This field may be empty.
 	// +optional
 	Message string `json:"message,omitempty"`

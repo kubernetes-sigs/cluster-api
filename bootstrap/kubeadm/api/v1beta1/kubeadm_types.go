@@ -142,7 +142,7 @@ type ClusterConfiguration struct {
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
-	// The cluster name
+	// clusterName is the cluster name
 	// +optional
 	ClusterName string `json:"clusterName,omitempty"`
 }
@@ -634,7 +634,7 @@ type KubeConfigAuthExec struct {
 	// command to execute.
 	Command string `json:"command"`
 
-	// Arguments to pass to the command when executing it.
+	// args is the arguments to pass to the command when executing it.
 	// +optional
 	Args []string `json:"args,omitempty"`
 
@@ -644,7 +644,7 @@ type KubeConfigAuthExec struct {
 	// +optional
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 
-	// Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+	// apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use
 	// the same encoding version as the input.
 	// Defaults to client.authentication.k8s.io/v1 if not set.
 	// +optional

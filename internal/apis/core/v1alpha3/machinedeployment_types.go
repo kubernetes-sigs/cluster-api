@@ -51,11 +51,11 @@ type MachineDeploymentSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Number of desired machines. Defaults to 1.
+	// replicas is the number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Label selector for machines. Existing MachineSets whose machines are
+	// selector is the label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.
 	// It must match the machine template's labels.
 	Selector metav1.LabelSelector `json:"selector"`
@@ -63,29 +63,29 @@ type MachineDeploymentSpec struct {
 	// template describes the machines that will be created.
 	Template MachineTemplateSpec `json:"template"`
 
-	// The deployment strategy to use to replace existing machines with
+	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// The number of old MachineSets to retain to allow rollback.
+	// revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// Defaults to 1.
 	// +optional
 	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 
-	// Indicates that the deployment is paused.
+	// paused indicates that the deployment is paused.
 	// +optional
 	Paused bool `json:"paused,omitempty"`
 
-	// The maximum time in seconds for a deployment to make progress before it
+	// progressDeadlineSeconds is the maximum time in seconds for a deployment to make progress before it
 	// is considered to be failed. The deployment controller will continue to
 	// process failed deployments and a condition with a ProgressDeadlineExceeded
 	// reason will be surfaced in the deployment status. Note that progress will
@@ -106,7 +106,7 @@ type MachineDeploymentStrategy struct {
 	// +optional
 	Type MachineDeploymentStrategyType `json:"type,omitempty"`
 
-	// Rolling update config params. Present only if
+	// rollingUpdate is the rolling update config params. Present only if
 	// MachineDeploymentStrategyType = RollingUpdate.
 	// +optional
 	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
@@ -118,7 +118,7 @@ type MachineDeploymentStrategy struct {
 
 // MachineRollingUpdateDeployment is used to control the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
-	// The maximum number of machines that can be unavailable during the update.
+	// maxUnavailable is the maximum number of machines that can be unavailable during the update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired
 	// machines (ex: 10%).
 	// Absolute number is calculated from percentage by rounding down.
@@ -133,7 +133,7 @@ type MachineRollingUpdateDeployment struct {
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 
-	// The maximum number of machines that can be scheduled above the
+	// maxSurge is the maximum number of machines that can be scheduled above the
 	// desired number of machines.
 	// Value can be an absolute number (ex: 5) or a percentage of
 	// desired machines (ex: 10%).
@@ -156,7 +156,7 @@ type MachineRollingUpdateDeployment struct {
 
 // MachineDeploymentStatus defines the observed state of MachineDeployment.
 type MachineDeploymentStatus struct {
-	// The generation observed by the deployment controller.
+	// observedGeneration is the generation observed by the deployment controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -166,26 +166,26 @@ type MachineDeploymentStatus struct {
 	// +optional
 	Selector string `json:"selector,omitempty"`
 
-	// Total number of non-terminated machines targeted by this deployment
+	// replicas is the total number of non-terminated machines targeted by this deployment
 	// (their labels match the selector).
 	// +optional
 	Replicas int32 `json:"replicas,omitempty"`
 
-	// Total number of non-terminated machines targeted by this deployment
+	// updatedReplicas is the total number of non-terminated machines targeted by this deployment
 	// that have the desired template spec.
 	// +optional
 	UpdatedReplicas int32 `json:"updatedReplicas,omitempty"`
 
-	// Total number of ready machines targeted by this deployment.
+	// readyReplicas is the total number of ready machines targeted by this deployment.
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
-	// Total number of available machines (ready for at least minReadySeconds)
+	// availableReplicas is the total number of available machines (ready for at least minReadySeconds)
 	// targeted by this deployment.
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
-	// Total number of unavailable machines targeted by this deployment.
+	// unavailableReplicas is the total number of unavailable machines targeted by this deployment.
 	// This is the total number of machines that are still required for
 	// the deployment to have 100% available capacity. They may either
 	// be machines that are running but not yet available or machines

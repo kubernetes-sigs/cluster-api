@@ -29,7 +29,7 @@ type KubeadmConfigTemplateSpec struct {
 
 // KubeadmConfigTemplateResource defines the Template structure.
 type KubeadmConfigTemplateResource struct {
-	// Standard object's metadata.
+	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`

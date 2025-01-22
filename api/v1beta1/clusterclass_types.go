@@ -243,14 +243,14 @@ type MachineDeploymentClass struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// The deployment strategy to use to replace existing machines with
+	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
@@ -377,7 +377,7 @@ type MachinePoolClass struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine pool should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
 	// be ready.
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
@@ -452,7 +452,7 @@ type ClusterClassVariable struct {
 //
 // Deprecated: This struct is deprecated and is going to be removed in the next apiVersion.
 type ClusterClassVariableMetadata struct {
-	// Map of string keys and values that can be used to organize and categorize
+	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -673,7 +673,7 @@ type JSONSchemaProps struct {
 // VariableSchemaMetadata is the metadata of a variable or a nested field within a variable.
 // It can be used to add additional data for higher level tools.
 type VariableSchemaMetadata struct {
-	// Map of string keys and values that can be used to organize and categorize
+	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`

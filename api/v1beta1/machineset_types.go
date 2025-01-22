@@ -241,7 +241,7 @@ type MachineTemplateSpec struct {
 	// +optional
 	ObjectMeta `json:"metadata,omitempty"`
 
-	// Specification of the desired behavior of the machine.
+	// spec is the specification of the desired behavior of the machine.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
 	Spec MachineSpec `json:"spec,omitempty"`
@@ -290,18 +290,18 @@ type MachineSetStatus struct {
 	// +optional
 	Replicas int32 `json:"replicas"`
 
-	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	// fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	//
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
-	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
+	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
-	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
+	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas"`
 

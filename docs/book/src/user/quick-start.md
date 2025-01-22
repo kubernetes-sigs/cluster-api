@@ -150,11 +150,11 @@ a target [management cluster] on the selected [infrastructure provider].
    #### Install the Calico CNI
    Now we'll need to install a CNI. In this example, we're using calico, but other CNIs should work as well. Please see
    [calico installation guide](https://projectcalico.docs.tigera.io/getting-started/kubernetes/self-managed-onprem/onpremises#install-calico)
-   for more details (use the "Manifest" tab). Below is an example of how to install calico version v3.24.4.
+   for more details (use the "Manifest" tab). Below is an example of how to install calico version v3.29.1.
 
    Use the Calico manifest to create the required resources; e.g.:
    ```bash
-   kubectl create -f  https://raw.githubusercontent.com/projectcalico/calico/v3.24.4/manifests/calico.yaml
+   kubectl create -f  https://raw.githubusercontent.com/projectcalico/calico/v3.29.1/manifests/calico.yaml
    ```
 
    {{#/tab }}
@@ -652,12 +652,13 @@ kubectl wait pods -n metallb-system -l app=metallb,component=controller --for=co
 kubectl wait pods -n metallb-system -l app=metallb,component=speaker --for=condition=Ready --timeout=2m
 ```
 
-Now, we'll create the `IPAddressPool` and the `L2Advertisement` custom resources. The script below creates the CRs with
-the right addresses, that match to the kind cluster addresses:
+Now, we'll create the `IPAddressPool` and the `L2Advertisement` custom resources. For that, we'll need to set the IP
+range. First, we'll read the `kind` network in order to find its subnet:
 ```bash
-GW_IP=$(docker network inspect -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' kind)
-NET_IP=$(echo ${GW_IP} | sed -E 's|^([0-9]+\.[0-9]+)\..*$|\1|g')
-cat <<EOF | sed -E "s|172.19|${NET_IP}|g" | kubectl apply -f -
+SUBNET=$(docker network inspect -f '{{range .IPAM.Config}}{{if .Gateway}}{{.Subnet}}{{end}}{{end}}' kind)
+PREFIX=$(echo $SUBNET | sed -E 's|^([0-9]+\.[0-9]+)\..*$|\1|g')
+
+cat <<EOF | kubectl apply -f -
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -665,7 +666,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 172.19.255.200-172.19.255.250
+  - ${PREFIX}.255.200-${PREFIX}.255.250
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
@@ -674,6 +675,16 @@ metadata:
   namespace: metallb-system
 EOF
 ```
+
+<aside class="note warning">
+
+<h1>Notice</h1>
+
+The example above is based on the Docker container runtime. The output of `docker network inspect` may be different when
+using another runtime. In such a case, the IPAddressPool's `spec.addresses` field should be populated manually,
+according to the specific network.
+
+</aside>
 
 #### Install KubeVirt on the kind cluster
 ```bash
@@ -1184,12 +1195,25 @@ Please visit the [KubeKey provider] for more information.
 {{#/tab }}
 {{#tab KubeVirt}}
 
+In this example, we'll use the image for Kubernetes v1.32.1: 
 ```bash
-export CAPK_GUEST_K8S_VERSION="v1.23.10"
-export CRI_PATH="/var/run/containerd/containerd.sock"
-export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2004-container-disk:${CAPK_GUEST_K8S_VERSION}"
+export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2404-container-disk:v1.32.1"
+export CAPK_GUEST_K8S_VERSION="${NODE_VM_IMAGE_TEMPLATE/:*/}"
+export CRI_PATH="unix:///var/run/containerd/containerd.sock"
 ```
 Please visit the [KubeVirt project][KubeVirt provider] for more information.
+
+<aside class="note">
+
+<h1>Note</h1>
+
+Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk), 
+[quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk), 
+or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
+
+Alternatively, create your own image; see [here](https://github.com/kubernetes-sigs/image-builder).
+
+</aside>
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -1727,7 +1751,7 @@ are enough for these two CNI to work on (actually) the same environment.
 
 The following script downloads the Calico manifest and modifies the required field. The CIDR and the port values are examples.
 ```bash
-curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.4/manifests/calico.yaml -o calico-workload.yaml
+curl https://raw.githubusercontent.com/projectcalico/calico/v3.29.1/manifests/calico.yaml -o calico-workload.yaml
 
 sed -i -E 's|^( +)# (- name: CALICO_IPV4POOL_CIDR)$|\1\2|g;'\
 's|^( +)# (  value: )"192.168.0.0/16"|\1\2"10.243.0.0/16"|g;'\

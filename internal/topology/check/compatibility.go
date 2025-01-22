@@ -86,7 +86,7 @@ func ObjectsAreInTheSameNamespace(current, desired client.Object) field.ErrorLis
 }
 
 // LocalObjectTemplatesAreCompatible checks if two referenced objects are compatible, meaning that
-// they are of the same GroupKind and in the same namespace.
+// they are of the same GroupKind.
 func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTemplate, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 

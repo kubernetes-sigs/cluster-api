@@ -226,6 +226,7 @@ linters-settings:
       - name: constant-logical-expr
   goconst:
     ignore-tests: true
+
 issues:
   exclude-files:
     - "zz_generated.*\\.go$"

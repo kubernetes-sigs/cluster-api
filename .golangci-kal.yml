@@ -1,0 +1,62 @@
+run:
+  timeout: 10m
+  go: "1.23"
+  allow-parallel-runners: true
+
+linters:
+  disable-all: true
+  enable:
+    - kal # linter for Kube API conventions
+   
+linters-settings:
+  custom:
+    kal:
+      type: "module"
+      description: KAL is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+      settings:
+        linters:
+          enable:
+          # Per discussion in July 2024, we are keeping phase fields for now.
+          # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
+          # and https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685919394.
+          # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
+          
+          # Linters below this line are disabled, pending conversation on how and when to enable them.
+          # - "conditions" # Ensure conditions have the correct json tags and markers.
+          # - "commentstart" # Ensure comments start with the serialized version of the field name.
+          # - "integers" # Ensure only int32 and int64 are used for integers.
+          # - "jsontags" # Ensure every field has a json tag.
+          # - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
+          # - "nobools" # Bools do not evolve over time, should use enums instead.
+          # - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
+          # - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+          # - "statussubresource" # All root objects that have a `status` field should have a status subresource.
+          disable:
+          - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
+        lintersConfig:
+          conditions:
+            isFirstField: Warn # Require conditions to be the first field in the status struct.
+            usePatchStrategy: Forbid # Conditions should not use the patch strategy on CRDs.
+            useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
+        # jsonTags:
+        #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
+        # optionalOrRequired:
+        #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
+        #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
+        # requiredFields:
+        #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
+
+issues:
+  exclude-files:
+    - "zz_generated.*\\.go$"
+    - "vendored_openapi\\.go$"
+    # We don't want to invest time to fix new linter findings in old API types.
+    - "internal/apis/.*"
+    - ".*_test.go"  # Exclude test files.
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  exclude-rules:
+  # KAL should only run on API folders.
+  - path-except: "api/*"
+    linters:
+      - kal

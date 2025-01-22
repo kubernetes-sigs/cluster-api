@@ -613,7 +613,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "should return error when creating a new Machine",
+			name: "should return error when creating a new Machine with invalid template",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kcpName,

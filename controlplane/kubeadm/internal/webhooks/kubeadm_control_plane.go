@@ -38,7 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/topology/names"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -473,9 +473,8 @@ func validateNamingStrategy(machineNamingStrategy *controlplanev1.MachineNamingS
 					machineNamingStrategy.Template,
 					"invalid template, {{ .random }} is missing",
 				))
-			return allErrs
 		}
-		name, err := names.KCPMachineNameGenerator(machineNamingStrategy.Template, "cluster", "kubeadmcontrolplane").GenerateName()
+		name, err := topologynames.KCPMachineNameGenerator(machineNamingStrategy.Template, "cluster", "kubeadmcontrolplane").GenerateName()
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(

@@ -1,5 +1,5 @@
 ---
-title: Label Sync Between Machines and underlying Kubernetes Nodes
+title: Label & Annotation Sync Between Machines and underlying Kubernetes Nodes
 authors:
 - "@arvinderpal" (original proposal author)
 - "@enxebre"     (original proposal author)
@@ -15,7 +15,7 @@ replaces:
 superseded-by:
 ---
 
-# Label Sync Between Machines and underlying Kubernetes Nodes
+# Label & Annotation Sync Between Machines and underlying Kubernetes Nodes
 
 ## Table of Contents
 
@@ -50,7 +50,7 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 ## Summary
 
-This document discusses how labels placed on a Machine can be kept in sync with the corresponding Kubernetes Node.
+This document discusses how labels and annotations placed on a Machine can be kept in sync with the corresponding Kubernetes Node.
 
 ## Motivation
 
@@ -58,9 +58,9 @@ Managing labels on Kubernetes nodes has been a long standing [issue](https://git
 
 The following challenges have been identified through various iterations:
 
-- Define how labels propagate from Machine to Node.
+- Define how labels and annotations propagate from Machine to Node.
 - Define how labels propagate from ClusterClass to KubeadmControlPlane/MachineDeployments/Machine Pools, and ultimately to Machines.
-- Define how to prevent that label propagation triggers unnecessary rollouts.
+- Define how to prevent that label and annotation propagation triggers unnecessary rollouts.
 
 With the "divide and conquer" principle in mind this proposal aims to address the first point only, while the remaining points are going to be addressed in separated, complementary efforts.
 
@@ -71,8 +71,6 @@ With the "divide and conquer" principle in mind this proposal aims to address th
 - Support a flag to sync additional user configured labels from the Machine to the Node.
 
 ### Non-Goals
-
-- Support for arbitrary/user-specified label prefixes.
 
 ## Proposal
 
@@ -90,14 +88,19 @@ As a cluster admin/user, for the purpose of workload placement, I would like a d
 
 As a cluster admin/user, I want that Cluster API label management on Kubernetes Nodes doesn't conflict with labels directly managed by users or by other controllers.
 
+
+### Story 4
+
+As a cluster admin/user, I would like a declarative and secure means by which to annotate my Cluster API-managed nodes.
+
 ### Implementation Details/Notes/Constraints
 
-While designing a solution for syncing labels between Machine and underlying Kubernetes Nodes two main concerns have been considered:
+While designing a solution for syncing labels and annotations between Machine and underlying Kubernetes Nodes two main concerns have been considered:
 
 - Security, because Node labels can be used to schedule and/or limit workloads to a predetermined set of nodes.
 - Impact on other components applying labels on Kubernetes Nodes, like e.g. Kubeadm, CPI etc.
 
-### Label domains & prefixes
+### Domains & prefixes
 
 A default list of labels would always be synced from the Machines to the Nodes. An additional list of labels can be synced from the Machine to the Node by providing a list of regexes as a flag to the manager. 
 
@@ -110,20 +113,33 @@ The following is the default list of label domains that would always be sync fro
 
 - Cluster API owns a specific domain: `node.cluster.x-k8s.io`.
 
-#### Synchronization of CAPI Labels
+There is also a default list of annotations that are always put on a Node, based on a Machine's properties. An additional list of annotations can be synced from the Machine to the Node by provider a list of regexes as a flag to the manager.
 
-The synchronization of labels between a Machine object and its linked Node is limited to the domains and prefixes described in the section above.
+The following is a list of the default annotations that would always be applied from Machines to Nodes for Cluster API's own bookkeeping:
 
-The synchronization process is going to use [server side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) in order to ensure that Cluster API will manage only the subset of labels coming from Machine objects and ignores labels applied to Nodes concurrently by other users/other components.
+- The `cluster.x-k8s.io/cluster-name` annotation is applied to a Node to easily ascertain what Cluster a Node is associated with.
+
+- The `cluster.x-k8s.io/cluster-namespace` annotation is applied to a Node to easily ascertain what Namespace a Node's Cluster is associated with.
+
+- The `cluster.x-k8s.io/machine` annotation is applied to a Node to easily ascertain the Machine managing the Node.
+
+Additionally, the `node.cluster.x-k8s.io` domain is owned by Cluster API, and will always be synced.
+
+
+#### Synchronization of CAPI Labels and Annotatioins
+
+The synchronization of labels and annotations between a Machine object and its linked Node is limited to the domains and prefixes described in the section above.
+
+The synchronization process is going to use [server side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) in order to ensure that Cluster API will manage only the subset of labels and annotations coming from Machine objects and ignores labels and annotations applied to Nodes concurrently by other users/other components.
 
 This requires to define an identity/manager name to be used by CAPI when performing this operation; additionally during implementation we are going to identify and address eventual additional steps required to properly transition existing Nodes to SSA, if required.
 From a preliminary investigation, the risk is that the manager that created the object and the new SSA manager will become co-owner of the same labels, and this will prevent deletion of labels.
 
 The synchronization process will be implemented in the Machine controller. Reconciliation is triggered both when Machine object changes, or when the Node changes (the machine controller watches Nodes within the workload cluster).
 
-#### Delay between Node Create and Label Sync
+#### Delay between Node Creation and Sync
 
-The Node object is first created when kubelet joins a node to the workload cluster (i.e. kubelet is up and running). There may be a delay (potentially several seconds) before the machine controller kicks in to apply the labels on the Node.
+The Node object is first created when kubelet joins a node to the workload cluster (i.e. kubelet is up and running). There may be a delay (potentially several seconds) before the machine controller kicks in to apply the labels and annotations on the Node.
 
 Kubernetes supports both equality and inequality requirements in label selection. In an equality based selection, the user wants to place a workload on node(s) matching a specific label (e.g. Node.Labels contains `my.prefix/foo=bar`). The delay in applying the label on the node, may cause a subsequent delay in the placement of the workload, but this is likely acceptable.
 
@@ -166,4 +182,5 @@ Users could also implement their own label synchronizer in their tooling, but th
 
 - [ ] 09/27/2022: First Draft of this document
 - [ ] 09/28/2022: First Draft of this document presented in the Cluster API office hours meeting
-- [ ] 01/09/2025: Update to support configurable label syncing Ref:[11657](https://github.com/kubernetes-sigs/cluster-api/issues/11657) 
+- [ ] 01/09/2025: Update to support configurable label syncing Ref:[11657](https://github.com/kubernetes-sigs/cluster-api/issues/11657)
+- [ ] 02/06/2025: Update to support synchronization of annotations from Machine to Node. Ref:[7409](https://github.com/kubernetes-sigs/cluster-api/issues/7409)

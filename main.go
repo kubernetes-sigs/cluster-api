@@ -114,20 +114,21 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
-	remoteConnectionGracePeriod   time.Duration
-	remoteConditionsGracePeriod   time.Duration
-	clusterTopologyConcurrency    int
-	clusterCacheConcurrency       int
-	clusterClassConcurrency       int
-	clusterConcurrency            int
-	extensionConfigConcurrency    int
-	machineConcurrency            int
-	machineSetConcurrency         int
-	machineDeploymentConcurrency  int
-	machinePoolConcurrency        int
-	clusterResourceSetConcurrency int
-	machineHealthCheckConcurrency int
-	additionalSyncMachineLabels   []string
+	remoteConnectionGracePeriod      time.Duration
+	remoteConditionsGracePeriod      time.Duration
+	clusterTopologyConcurrency       int
+	clusterCacheConcurrency          int
+	clusterClassConcurrency          int
+	clusterConcurrency               int
+	extensionConfigConcurrency       int
+	machineConcurrency               int
+	machineSetConcurrency            int
+	machineDeploymentConcurrency     int
+	machinePoolConcurrency           int
+	clusterResourceSetConcurrency    int
+	machineHealthCheckConcurrency    int
+	additionalSyncMachineLabels      []string
+	additionalSyncMachineAnnotations []string
 )
 
 func init() {
@@ -255,7 +256,10 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.")
 
 	fs.StringArrayVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
-		"List of regexes to select the additional set of labels to sync from the Machine to the Node. A label will be synced as long as it matches at least one of the regexes.")
+		"List of regexes to select an additional set of labels to sync from a Machine to its associated Node. A label will be synced as long as it matches at least one of the regexes.")
+
+	fs.StringArrayVar(&additionalSyncMachineAnnotations, "additional-sync-machine-annotations", []string{},
+		"List of regexes to select an additional set of labels to sync from a Machine to its associated Node. An annotation will be synced as long as it matches at least one of the regexes.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
 

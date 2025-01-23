@@ -54,6 +54,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
@@ -1438,9 +1439,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Sort the machines from newest to oldest.
 	// We are trying to remediate machines failing to come up first because
 	// there is a chance that they are not hosting any workloads (minimize disruption).
-	sort.SliceStable(machinesToRemediate, func(i, j int) bool {
-		return machinesToRemediate[i].CreationTimestamp.After(machinesToRemediate[j].CreationTimestamp.Time)
-	})
+	sortMachinesToRemediate(machinesToRemediate)
 
 	// Check if we should limit the in flight operations.
 	if len(machinesToRemediate) > maxInFlight {
@@ -1616,4 +1615,24 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
 
 	return false, patchHelper.Patch(ctx, obj)
+}
+
+// Returns the machines to be remediated in the following order
+//   - Machines with RemediateMachineAnnotation annotation if any,
+//   - Machines failing to come up first because
+//     there is a chance that they are not hosting any workloads (minimize disruption).
+func sortMachinesToRemediate(machines []*clusterv1.Machine) {
+	sort.SliceStable(machines, func(i, j int) bool {
+		if annotations.HasRemediateMachine(machines[i]) && !annotations.HasRemediateMachine(machines[j]) {
+			return true
+		}
+		if !annotations.HasRemediateMachine(machines[i]) && annotations.HasRemediateMachine(machines[j]) {
+			return false
+		}
+		// Use newest (and Name) as a tie-breaker criteria.
+		if machines[i].CreationTimestamp.Equal(&machines[j].CreationTimestamp) {
+			return machines[i].Name < machines[j].Name
+		}
+		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
+	})
 }

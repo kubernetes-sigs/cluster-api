@@ -347,6 +347,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 // Gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine
 // having the highest priority issue that other machines have not.
 // The following issues are considered (from highest to lowest priority):
+// - machine with RemediateMachineAnnotation annotation
 // - machine without .status.nodeRef
 // - machine with etcd issue or etcd status unknown (etcd member, etcd pod)
 // - machine with control plane component issue or status unknown (API server, controller manager, scheduler)
@@ -373,6 +374,14 @@ func getMachineToBeRemediated(unhealthyMachines collections.Machines, isEtcdMana
 
 // pickMachineToBeRemediated returns true if machine i should be remediated before machine j.
 func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool {
+	// If one machine has the RemediateMachineAnnotation annotation, remediate first.
+	if annotations.HasRemediateMachine(i) && !annotations.HasRemediateMachine(j) {
+		return true
+	}
+	if !annotations.HasRemediateMachine(i) && annotations.HasRemediateMachine(j) {
+		return false
+	}
+
 	// if one machine does not have a node ref, we assume that provisioning failed and there is no CP components at all,
 	// so remediate first; also without a node, it is not possible to get further info about status.
 	if i.Status.NodeRef == nil && j.Status.NodeRef != nil {

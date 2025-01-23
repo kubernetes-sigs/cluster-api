@@ -301,7 +301,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 			g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 		}
 		return nil
-	}, input.WaitForControlPlane...).Should(BeNil())
+	}, input.WaitForControlPlane...).Should(Succeed())
 }
 
 // assertControlPlaneTopologyFields asserts that all fields set in the ControlPlaneTopology have been set on the ControlPlane.
@@ -454,7 +454,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 				}
 				return nil
-			}, input.WaitForMachineDeployments...).Should(BeNil())
+			}, input.WaitForMachineDeployments...).Should(Succeed())
 		}
 	}
 }
@@ -580,7 +580,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 				}
 				return nil
-			}, input.WaitForMachinePools...).Should(BeNil())
+			}, input.WaitForMachinePools...).Should(Succeed())
 		}
 	}
 }
@@ -735,7 +735,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			}
 
 			return nil
-		}, input.WaitForMachineDeployments...).Should(BeNil())
+		}, input.WaitForMachineDeployments...).Should(Succeed())
 	}
 
 	// Verify that the ControlPlane has not been changed.
@@ -783,5 +783,5 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 			return errors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
 		}
 		return nil
-	}, input.WaitForMachineDeployments...).Should(BeNil())
+	}, input.WaitForMachineDeployments...).Should(Succeed())
 }

@@ -157,7 +157,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 				return errors.Errorf("URL not set on updated object: got: %s, want: %s", *conf.Spec.ClientConfig.URL, updatedServer.URL)
 			}
 			return nil
-		}, 30*time.Second, 100*time.Millisecond).Should(BeNil())
+		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())
 
 		// Reconcile the extension and assert discovery has succeeded.
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})

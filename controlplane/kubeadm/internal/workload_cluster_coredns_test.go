@@ -552,7 +552,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 						return errors.New("the coredns ConfigMap does not have the Corefile-backup entry or this it has an unexpected value")
 					}
 					return nil
-				}, "5s").Should(BeNil())
+				}, "5s").Should(Succeed())
 
 				// assert CoreDNS deployment
 				var actualDeployment appsv1.Deployment

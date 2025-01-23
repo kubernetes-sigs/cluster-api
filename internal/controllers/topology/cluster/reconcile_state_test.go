@@ -471,7 +471,13 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 			}
 
 			err := r.callAfterControlPlaneInitialized(ctx, s)
-			g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneInitialized) == 1).To(Equal(tt.wantHookToBeCalled))
+
+			if tt.wantHookToBeCalled {
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneInitialized)).To(Equal(1), "Expected hook to be called once")
+			} else {
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneInitialized)).To(Equal(0), "Did not expect hook to be called")
+			}
+
 			g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, tt.cluster)).To(Equal(tt.wantMarked))
 			g.Expect(err != nil).To(Equal(tt.wantError))
 		})
@@ -1089,7 +1095,13 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			}
 
 			err := r.callAfterClusterUpgrade(ctx, tt.s)
-			g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
+
+			if tt.wantHookToBeCalled {
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade)).To(Equal(1), "Expected hook to be called once")
+			} else {
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade)).To(Equal(0), "Did not expect hook to be called")
+			}
+
 			g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantMarked))
 			g.Expect(err != nil).To(Equal(tt.wantError))
 		})

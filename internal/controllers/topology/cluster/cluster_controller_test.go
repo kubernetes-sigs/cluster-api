@@ -578,7 +578,12 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(res).To(BeComparableTo(tt.wantResult))
 				g.Expect(hooks.IsOkToDelete(tt.cluster)).To(Equal(tt.wantOkToDelete))
-				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete) == 1).To(Equal(tt.wantHookToBeCalled))
+
+				if tt.wantHookToBeCalled {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(1), "Expected hook to be called once")
+				} else {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(0), "Did not expect hook to be called")
+				}
 			}
 		})
 	}

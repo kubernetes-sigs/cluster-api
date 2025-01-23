@@ -1205,7 +1205,13 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 
 				_, err := r.computeControlPlaneVersion(ctx, tt.s)
-				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
+
+				if tt.wantHookToBeCalled {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(1), "Expected hook to be called once")
+				} else {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(0), "Did not expect hook to be called")
+				}
+
 				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
 				g.Expect(err != nil).To(Equal(tt.wantErr))
 				if tt.wantHookToBeCalled && !tt.wantErr {

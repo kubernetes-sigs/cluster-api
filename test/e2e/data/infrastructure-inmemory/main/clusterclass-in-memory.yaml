@@ -1,56 +1,3 @@
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: in-memory
-spec:
-  controlPlane:
-    metadata:
-      annotations:
-    machineInfrastructure:
-      ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-        kind: InMemoryMachineTemplate
-        name: in-memory-control-plane
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-      kind: KubeadmControlPlaneTemplate
-      name: in-memory-control-plane
-    machineHealthCheck:
-      unhealthyConditions:
-        - type: Ready
-          status: Unknown
-          timeout: 300s
-        - type: Ready
-          status: "False"
-          timeout: 300s
-  infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-      kind: InMemoryClusterTemplate
-      name: in-memory-cluster
-  workers:
-    machineDeployments:
-      - class: default-worker
-        template:
-          bootstrap:
-            ref:
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-              kind: KubeadmConfigTemplate
-              name: in-memory-default-worker-bootstraptemplate
-          infrastructure:
-            ref:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-              kind: InMemoryMachineTemplate
-              name: in-memory-default-worker-machinetemplate
-        machineHealthCheck:
-          unhealthyConditions:
-            - type: Ready
-              status: Unknown
-              timeout: 300s
-            - type: Ready
-              status: "False"
-              timeout: 300s
----
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: InMemoryClusterTemplate
 metadata:
@@ -95,19 +42,19 @@ spec:
       behaviour:
         vm:
           provisioning:
-            startupDuration: "30s"
+            startupDuration: "10s"
             startupJitter: "0.2"
         node:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
         apiServer:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
         etcd:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
@@ -120,19 +67,19 @@ spec:
       behaviour:
         vm:
           provisioning:
-            startupDuration: "30s"
+            startupDuration: "10s"
             startupJitter: "0.2"
         node:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
         apiServer:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
         etcd:
           provisioning:
-            startupDuration: "10s"
+            startupDuration: "2s"
             startupJitter: "0.2"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
@@ -147,3 +94,61 @@ spec:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
             eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: in-memory
+spec:
+  controlPlane:
+    metadata:
+      annotations:
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: InMemoryMachineTemplate
+        name: in-memory-control-plane
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: in-memory-control-plane
+    machineHealthCheck:
+      unhealthyConditions:
+      - type: Ready
+        status: Unknown
+        timeout: 300s
+      - type: Ready
+        status: "False"
+        timeout: 300s
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+      kind: InMemoryClusterTemplate
+      name: in-memory-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: in-memory-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+            kind: InMemoryMachineTemplate
+            name: in-memory-default-worker-machinetemplate
+      machineHealthCheck:
+        unhealthyConditions:
+        - type: Ready
+          status: Unknown
+          timeout: 300s
+        - type: Ready
+          status: "False"
+          timeout: 300s
+  patches:
+  - name: test-patch
+    external:
+      generateExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
+      discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}

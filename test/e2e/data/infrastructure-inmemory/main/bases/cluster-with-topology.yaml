@@ -12,6 +12,7 @@ spec:
     serviceDomain: ${SERVICE_DOMAIN:="cluster.local"}
   topology:
     class: in-memory
+    classNamespace: ${NAMESPACE}
     version: ${KUBERNETES_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
@@ -20,3 +21,8 @@ spec:
         - class: default-worker
           name: md-0
           replicas: ${WORKER_MACHINE_COUNT}
+    variables:
+      - name: kubeadmControlPlaneMaxSurge
+        value: "1"
+      - name: imageRepository
+        value: "kindest"

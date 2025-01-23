@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -27,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -101,7 +103,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// NOTE: The current solution is considered acceptable for the most frequent use case (only one machine to be remediated),
 	// however, in the future this could potentially be improved for the scenario where more than one machine to be remediated exists
 	// by considering which machine has lower impact on etcd quorum.
-	machineToBeRemediated := getMachineToBeRemediated(machinesToBeRemediated)
+	machineToBeRemediated := getMachineToBeRemediated(machinesToBeRemediated, controlPlane.IsEtcdManaged())
+	if machineToBeRemediated == nil {
+		return ctrl.Result{}, errors.New("failed to find a Machine to remediate within unhealthy Machines")
+	}
 
 	// Returns if the machine is in the process of being deleted.
 	if !machineToBeRemediated.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -339,14 +344,88 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	return ctrl.Result{Requeue: true}, nil
 }
 
-// Gets the machine to be remediated, which is the oldest machine marked as unhealthy not yet provisioned (if any)
-// or the oldest machine marked as unhealthy.
-func getMachineToBeRemediated(unhealthyMachines collections.Machines) *clusterv1.Machine {
-	machineToBeRemediated := unhealthyMachines.Filter(collections.Not(collections.HasNode())).Oldest()
-	if machineToBeRemediated == nil {
-		machineToBeRemediated = unhealthyMachines.Oldest()
+// Gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine
+// having the highest priority issue that other machines have not.
+// The following issues are considered (from highest to lowest priority):
+// - machine without .status.nodeRef
+// - machine with etcd issue or etcd status unknown (etcd member, etcd pod)
+// - machine with control plane component issue or status unknown (API server, controller manager, scheduler)
+//
+// Note: In case of more than one faulty machine the chance to recover mostly depends on the control plane being able to
+// successfully create a replacement Machine, because due to scale up preflight checks, this cannot happen if there are
+// still issues on the control plane after the first remediation.
+// This func tries to maximize those chances of a successful remediation by picking for remediation the "most broken" machine first.
+func getMachineToBeRemediated(unhealthyMachines collections.Machines, isEtcdManaged bool) *clusterv1.Machine {
+	if unhealthyMachines.Len() == 0 {
+		return nil
 	}
-	return machineToBeRemediated
+
+	machinesToBeRemediated := unhealthyMachines.UnsortedList()
+	if len(machinesToBeRemediated) == 1 {
+		return machinesToBeRemediated[0]
+	}
+
+	sort.Slice(machinesToBeRemediated, func(i, j int) bool {
+		return pickMachineToBeRemediated(machinesToBeRemediated[i], machinesToBeRemediated[j], isEtcdManaged)
+	})
+	return machinesToBeRemediated[0]
+}
+
+// pickMachineToBeRemediated returns true if machine i should be remediated before machine j.
+func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool {
+	// if one machine does not have a node ref, we assume that provisioning failed and there is no CP components at all,
+	// so remediate first; also without a node, it is not possible to get further info about status.
+	if i.Status.NodeRef == nil && j.Status.NodeRef != nil {
+		return true
+	}
+	if i.Status.NodeRef != nil && j.Status.NodeRef == nil {
+		return false
+	}
+
+	// if one machine has unhealthy etcd member or pod, remediate first.
+	if isEtcdManaged {
+		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineEtcdMemberHealthyCondition); p != nil {
+			return *p
+		}
+		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineEtcdPodHealthyCondition); p != nil {
+			return *p
+		}
+
+		// Note: in the future we might consider etcd leadership and kubelet status to prevent being stuck when it is not possible
+		// to forward leadership, but this requires further investigation and most probably also to surface a few additional info in the controlPlane object.
+	}
+
+	// if one machine has unhealthy control plane component, remediate first.
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineAPIServerPodHealthyCondition); p != nil {
+		return *p
+	}
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineControllerManagerPodHealthyCondition); p != nil {
+		return *p
+	}
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineSchedulerPodHealthyCondition); p != nil {
+		return *p
+	}
+
+	// Use oldest (and Name) as a tie-breaker criteria.
+	if i.CreationTimestamp.Equal(&j.CreationTimestamp) {
+		return i.Name < j.Name
+	}
+	return i.CreationTimestamp.Before(&j.CreationTimestamp)
+}
+
+// pickMachineToBeRemediatedByConditionState returns true if condition t report issue on machine i and not on machine j,
+// false if the vice-versa apply, or nil if condition t doesn't provide a discriminating criteria for picking one machine or another for remediation.
+func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, t clusterv1.ConditionType) *bool {
+	iCondition := conditions.IsTrue(i, t)
+	jCondition := conditions.IsTrue(j, t)
+
+	if !iCondition && jCondition {
+		return ptr.To(true)
+	}
+	if iCondition && !jCondition {
+		return ptr.To(false)
+	}
+	return nil
 }
 
 // checkRetryLimits checks if KCP is allowed to remediate considering retry limits:

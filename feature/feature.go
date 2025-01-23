@@ -40,6 +40,8 @@ const (
 	// alpha: v0.3
 	// beta: v0.4
 	// GA: v1.10
+	//
+	// Deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release.
 	ClusterResourceSet featuregate.Feature = "ClusterResourceSet"
 
 	// ClusterTopology is a feature gate for the ClusterClass and managed topologies functionality.

@@ -31,7 +31,7 @@ import (
 
 var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterUpgradeWithRuntimeSDKSpec(ctx, func() ClusterUpgradeWithRuntimeSDKSpecInput {
-		version, err := semver.ParseTolerant(e2eConfig.GetVariable(KubernetesVersionUpgradeFrom))
+		version, err := semver.ParseTolerant(e2eConfig.MustGetVariable(KubernetesVersionUpgradeFrom))
 		Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
 		if version.LT(semver.MustParse("1.24.0")) {
 			Fail("This test only supports upgrades from Kubernetes >= v1.24.0")

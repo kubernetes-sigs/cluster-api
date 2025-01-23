@@ -220,7 +220,7 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
-	cniPath := config.GetVariable(CNIPath)
+	cniPath := config.MustGetVariable(CNIPath)
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", CNIPath)
 
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, CNIResources)
@@ -237,10 +237,10 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 		By("Creating the bootstrap cluster")
 		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
 			Name:               config.ManagementClusterName,
-			KubernetesVersion:  config.GetVariable(KubernetesVersionManagement),
+			KubernetesVersion:  config.MustGetVariable(KubernetesVersionManagement),
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
-			IPFamily:           config.GetVariable(IPFamily),
+			IPFamily:           config.MustGetVariable(IPFamily),
 			LogFolder:          filepath.Join(artifactFolder, "kind"),
 		})
 		Expect(clusterProvider).ToNot(BeNil(), "Failed to create a bootstrap cluster")

@@ -145,7 +145,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				Flavor:                   ptr.Deref(input.Flavor, "topology"),
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](int64(controlPlaneReplicas)),
 				WorkerMachineCount:       ptr.To[int64](1),
 			},

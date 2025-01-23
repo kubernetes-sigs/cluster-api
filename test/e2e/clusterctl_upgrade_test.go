@@ -285,7 +285,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_LATEST_CI"))
+		initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))
 		Expect(err).ToNot(HaveOccurred())
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:                 e2eConfig,

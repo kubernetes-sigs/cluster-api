@@ -136,7 +136,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 				Flavor:                   flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       nil,
 			},
@@ -180,7 +180,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 		}
 
 		By("Installing the autoscaler on the workload cluster")
-		autoscalerWorkloadYAMLPath := input.E2EConfig.GetVariable(AutoscalerWorkloadYAMLPath)
+		autoscalerWorkloadYAMLPath := input.E2EConfig.MustGetVariable(AutoscalerWorkloadYAMLPath)
 		framework.ApplyAutoscalerToWorkloadCluster(ctx, framework.ApplyAutoscalerToWorkloadClusterInput{
 			ArtifactFolder:                        input.ArtifactFolder,
 			InfrastructureMachineTemplateKind:     input.InfrastructureMachineTemplateKind,

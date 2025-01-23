@@ -22,13 +22,13 @@ import (
 
 const (
 	// PodDrainLabel is the label that can be set on Pods in workload clusters to ensure a Pod is not drained.
-	// The only valid value is "skip".
+	// The only valid values are "skip" and "wait-completed".
 	// This label takes precedence over MachineDrainRules defined in the management cluster.
 	PodDrainLabel = "cluster.x-k8s.io/drain"
 )
 
-// MachineDrainRuleDrainBehavior defines the drain behavior. Can be either "Drain" or "Skip".
-// +kubebuilder:validation:Enum=Drain;Skip
+// MachineDrainRuleDrainBehavior defines the drain behavior. Can be either "Drain", "Skip", or "WaitCompleted".
+// +kubebuilder:validation:Enum=Drain;Skip;WaitCompleted
 type MachineDrainRuleDrainBehavior string
 
 const (
@@ -37,6 +37,10 @@ const (
 
 	// MachineDrainRuleDrainBehaviorSkip means the drain for a Pod should be skipped.
 	MachineDrainRuleDrainBehaviorSkip MachineDrainRuleDrainBehavior = "Skip"
+
+	// MachineDrainRuleDrainBehaviorWaitCompleted means the Pod should not be evicted,
+	// but overall drain should wait until the Pod completes.
+	MachineDrainRuleDrainBehaviorWaitCompleted MachineDrainRuleDrainBehavior = "WaitCompleted"
 )
 
 // MachineDrainRuleSpec defines the spec of a MachineDrainRule.
@@ -112,7 +116,7 @@ type MachineDrainRuleSpec struct {
 // MachineDrainRuleDrainConfig configures if and how Pods are drained.
 type MachineDrainRuleDrainConfig struct {
 	// behavior defines the drain behavior.
-	// Can be either "Drain" or "Skip".
+	// Can be either "Drain", "Skip", or "WaitCompleted".
 	// "Drain" means that the Pods to which this MachineDrainRule applies will be drained.
 	// If behavior is set to "Drain" the order in which Pods are drained can be configured
 	// with the order field. When draining Pods of a Node the Pods will be grouped by order
@@ -120,6 +124,8 @@ type MachineDrainRuleDrainConfig struct {
 	// wait until all Pods of a group are terminated / removed from the Node before starting
 	// with the next group.
 	// "Skip" means that the Pods to which this MachineDrainRule applies will be skipped during drain.
+	// "WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted
+	// and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0.
 	// +required
 	Behavior MachineDrainRuleDrainBehavior `json:"behavior"`
 

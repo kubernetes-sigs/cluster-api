@@ -61,7 +61,8 @@ type PodDeleteList struct {
 func (l *PodDeleteList) Pods() []*corev1.Pod {
 	pods := []*corev1.Pod{}
 	for _, i := range l.items {
-		if i.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain {
+		if i.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain ||
+			i.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted {
 			pods = append(pods, i.Pod)
 		}
 	}
@@ -124,6 +125,8 @@ const (
 	PodDeleteStatusTypeOkay = "Okay"
 	// PodDeleteStatusTypeSkip is "Skip".
 	PodDeleteStatusTypeSkip = "Skip"
+	// PodDeleteStatusTypeWaitCompleted is "WaitCompleted".
+	PodDeleteStatusTypeWaitCompleted = "WaitCompleted"
 	// PodDeleteStatusTypeWarning is "Warning".
 	PodDeleteStatusTypeWarning = "Warning"
 	// PodDeleteStatusTypeError is "Error".
@@ -153,6 +156,15 @@ func MakePodDeleteStatusSkip() PodDeleteStatus {
 	return PodDeleteStatus{
 		DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
 		Reason:        PodDeleteStatusTypeSkip,
+	}
+}
+
+// MakePodDeleteStatusWaitCompleted is a helper method to return the corresponding PodDeleteStatus.
+func MakePodDeleteStatusWaitCompleted() PodDeleteStatus {
+	return PodDeleteStatus{
+		DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+		DrainOrder:    ptr.To[int32](0),
+		Reason:        PodDeleteStatusTypeWaitCompleted,
 	}
 }
 
@@ -270,10 +282,18 @@ func (d *Helper) skipDeletedFilter(ctx context.Context, pod *corev1.Pod) PodDele
 }
 
 func (d *Helper) drainLabelFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
-	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found && strings.EqualFold(labelValue, string(clusterv1.MachineDrainRuleDrainBehaviorSkip)) {
-		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
-		log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label", clusterv1.PodDrainLabel))
-		return MakePodDeleteStatusSkip()
+	log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
+	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found {
+		switch {
+		case strings.EqualFold(labelValue, string(clusterv1.MachineDrainRuleDrainBehaviorSkip)):
+			log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label with %s value", clusterv1.PodDrainLabel, labelValue))
+			return MakePodDeleteStatusSkip()
+		case strings.EqualFold(strings.Replace(labelValue, "-", "", 1), string(clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted)):
+			log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label with %s value", clusterv1.PodDrainLabel, labelValue))
+			return MakePodDeleteStatusWaitCompleted()
+		default:
+			log.V(4).Info(fmt.Sprintf("Warning: Pod has %s label with an unknown value: %s", clusterv1.PodDrainLabel, labelValue))
+		}
 	}
 	return MakePodDeleteStatusOkay()
 }
@@ -293,13 +313,16 @@ func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineD
 			}
 
 			// If the pod selector matches, use the drain behavior from the MachineDrainRule.
+			log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
 			switch mdr.Spec.Drain.Behavior {
 			case clusterv1.MachineDrainRuleDrainBehaviorDrain:
 				return MakePodDeleteStatusOkayWithOrder(mdr.Spec.Drain.Order)
 			case clusterv1.MachineDrainRuleDrainBehaviorSkip:
-				log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
 				log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because MachineDrainRule %s with behavior %s applies to the Pod", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorSkip))
 				return MakePodDeleteStatusSkip()
+			case clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted:
+				log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because MachineDrainRule %s with behavior %s applies to the Pod", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted))
+				return MakePodDeleteStatusWaitCompleted()
 			default:
 				return MakePodDeleteStatusWithError(
 					fmt.Sprintf("MachineDrainRule %q has unknown spec.drain.behavior: %q",

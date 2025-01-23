@@ -81,14 +81,18 @@ type NodeDrainTimeoutSpecInput struct {
 // * Ensure Node label is set & NodeDrainTimeout is set to 0 (wait forever)
 // * Deploy MachineDrainRules
 // * Deploy Deployment with unevictable Pods on CP & MD Nodes
+// * Deploy Deployment with unevictable Pods with `wait-completed` label on CP & MD Nodes
 // * Deploy Deployment with evictable Pods with finalizer on CP & MD Nodes
 // * Deploy additional resources if defined in input
 // * Trigger Node drain by scaling down the control plane to 1 and MachineDeployments to 0
 // * Get draining control plane and MachineDeployment Machines
-// * Verify drain of Deployments with order 1
-// * Verify drain of Deployments with order 5
+// * Verify drain of Deployments with order -5
+// * Verify drain of Deployments with order -1
 // * Verify skipped Pods are still there and don't have a deletionTimestamp
-// * Verify Node drains for control plane and MachineDeployment Machines are blocked (only by PDBs)
+// * Verify wait-completed Pods are still there and don't have a deletionTimestamp
+// * Verify Node drains for control plane and MachineDeployment Machines are blocked by WaitCompleted Pods
+// * Force deleting the WaitCompleted Pods
+// * Verify Node drains for control plane and MachineDeployment Machines are blocked by PDBs
 // * Set NodeDrainTimeout to 1s to unblock Node drain
 // * Verify machine deletion is blocked by waiting for volume detachment (only if VerifyNodeVolumeDetach is enabled)
 // * Unblocks waiting for volume detachment (only if VerifyNodeVolumeDetach is enabled)
@@ -196,18 +200,18 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
-		By("Deploy MachineDrainRules.")
+		By("Deploy MachineDrainRules")
 		machineDrainRules := []*clusterv1.MachineDrainRule{
-			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-1", 1),
-			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-5", 5),
-			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-10", 10),
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-first", -5),
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-second", -1),
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-last", 10),
 		}
 		for _, rule := range machineDrainRules {
 			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx, rule)).To(Succeed())
 		}
 
-		By("Deploy Deployment with unevictable Pods on control plane and MachineDeployment Nodes.")
-		framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+		By("Deploy Deployment with unevictable Pods on control plane and MachineDeployment Nodes")
+		framework.DeployUnevictablePod(ctx, framework.DeployPodAndWaitInput{
 			WorkloadClusterProxy: workloadClusterProxy,
 			ControlPlane:         controlplane,
 			DeploymentName:       cpDeploymentWithPDBName(),
@@ -215,12 +219,12 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 			ModifyDeployment: func(deployment *appsv1.Deployment) {
 				// Ensure we try to drain unevictable Pods last, otherwise they block drain of evictable Pods.
-				deployment.Spec.Template.Labels["mdr"] = "drain-order-10"
+				deployment.Spec.Template.Labels["mdr"] = "drain-order-last"
 			},
 			WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 		})
 		for _, md := range machineDeployments {
-			framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+			framework.DeployUnevictablePod(ctx, framework.DeployPodAndWaitInput{
 				WorkloadClusterProxy: workloadClusterProxy,
 				MachineDeployment:    md,
 				DeploymentName:       mdDeploymentWithPDBName(md.Name),
@@ -228,17 +232,42 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 				ModifyDeployment: func(deployment *appsv1.Deployment) {
 					// Ensure we try to drain unevictable Pods last, otherwise they block drain of evictable Pods.
-					deployment.Spec.Template.Labels["mdr"] = "drain-order-10"
+					deployment.Spec.Template.Labels["mdr"] = "drain-order-last"
+				},
+				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+			})
+		}
+		By("Deploy an unevictable Deployment with `wait-completed` label")
+		framework.DeployPodAndWait(ctx, framework.DeployPodAndWaitInput{
+			WorkloadClusterProxy: workloadClusterProxy,
+			ControlPlane:         controlplane,
+			DeploymentName:       cpDeploymentName("wait-completed"),
+			Namespace:            "unevictable-workload",
+			NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
+			ModifyDeployment: func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Labels["cluster.x-k8s.io/drain"] = string(clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted)
+			},
+			WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+		})
+		for _, md := range machineDeployments {
+			framework.DeployPodAndWait(ctx, framework.DeployPodAndWaitInput{
+				WorkloadClusterProxy: workloadClusterProxy,
+				MachineDeployment:    md,
+				DeploymentName:       mdDeploymentName("wait-completed", md.Name),
+				Namespace:            "unevictable-workload",
+				NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
+				ModifyDeployment: func(deployment *appsv1.Deployment) {
+					deployment.Spec.Template.Labels["cluster.x-k8s.io/drain"] = string(clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted)
 				},
 				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 			})
 		}
 
-		By("Deploy Deployments with evictable Pods with finalizer on control plane and MachineDeployment Nodes.")
+		By("Deploy Deployments with evictable Pods with finalizer on control plane and MachineDeployment Nodes")
 		evictablePodDeployments := map[string]map[string]string{
-			"drain-order-1": {"mdr": "drain-order-1"},
-			"drain-order-5": {"mdr": "drain-order-5"},
-			"skip":          {"cluster.x-k8s.io/drain": string(clusterv1.MachineDrainRuleDrainBehaviorSkip)},
+			"drain-order-first":  {"mdr": "drain-order-first"},
+			"drain-order-second": {"mdr": "drain-order-second"},
+			"skip":               {"cluster.x-k8s.io/drain": string(clusterv1.MachineDrainRuleDrainBehaviorSkip)},
 		}
 		for deploymentNamePrefix, deploymentLabels := range evictablePodDeployments {
 			framework.DeployEvictablePod(ctx, framework.DeployEvictablePodInput{
@@ -277,7 +306,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			input.CreateAdditionalResources(ctx, input.BootstrapClusterProxy, cluster)
 		}
 
-		By("Trigger Node drain by scaling down the control plane to 1 and MachineDeployments to 0.")
+		By("Trigger Node drain by scaling down the control plane to 1 and MachineDeployments to 0")
 		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
@@ -295,7 +324,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
 
-		By("Get draining control plane and MachineDeployment Machines.")
+		By("Get draining control plane and MachineDeployment Machines")
 		var drainingCPMachineKey client.ObjectKey
 		var drainingCPNodeName string
 		drainingMDMachineKeys := map[string]client.ObjectKey{}
@@ -332,7 +361,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
 		}
 
-		By("Verify drain of Deployments with order 1.")
+		By("Verify drain of Deployments with order -5")
 		verifyNodeDrainsBlockedAndUnblock(ctx, verifyNodeDrainsBlockedAndUnblockInput{
 			BootstrapClusterProxy: input.BootstrapClusterProxy,
 			WorkloadClusterProxy:  workloadClusterProxy,
@@ -340,21 +369,21 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			MachineDeployments:    machineDeployments,
 			DrainedCPMachineKey:   drainingCPMachineKey,
 			DrainedMDMachineKeys:  drainingMDMachineKeys,
-			DeploymentNamePrefix:  "drain-order-1",
+			DeploymentNamePrefix:  "drain-order-first",
 			CPConditionMessageSubstrings: []string{
-				// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-1")),
-				// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
-				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload\/%s`, cpDeploymentName("drain-order-5")),
+				// The evictable Pod with order -5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-first")),
+				// After the Pod with order -5 is gone, the drain continues with the Pod with order -1.
+				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted:.*evictable-workload\/%s.*`, cpDeploymentName("drain-order-second")),
 			},
 			MDConditionMessageSubstrings: func() map[string][]string {
 				messageSubStrings := map[string][]string{}
 				for _, md := range machineDeployments {
 					messageSubStrings[md.Name] = []string{
-						// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-1", md.Name)),
-						// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
-						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload\/%s`, mdDeploymentName("drain-order-5", md.Name)),
+						// The evictable Pod with order -5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-first", md.Name)),
+						// After the Pod with order -5 is gone, the drain continues with the Pod with order -1.
+						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted:.*evictable-workload\/%s.*`, mdDeploymentName("drain-order-second", md.Name)),
 					}
 				}
 				return messageSubStrings
@@ -362,7 +391,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			WaitForMachineDelete: input.E2EConfig.GetIntervals(specName, "wait-machine-deleted"),
 		})
 
-		By("Verify drain of Deployments with order 5.")
+		By("Verify drain of Deployments with order -1")
 		verifyNodeDrainsBlockedAndUnblock(ctx, verifyNodeDrainsBlockedAndUnblockInput{
 			BootstrapClusterProxy: input.BootstrapClusterProxy,
 			WorkloadClusterProxy:  workloadClusterProxy,
@@ -370,21 +399,21 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			MachineDeployments:    machineDeployments,
 			DrainedCPMachineKey:   drainingCPMachineKey,
 			DrainedMDMachineKeys:  drainingMDMachineKeys,
-			DeploymentNamePrefix:  "drain-order-5",
+			DeploymentNamePrefix:  "drain-order-second",
 			CPConditionMessageSubstrings: []string{
-				// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-5")),
-				// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
-				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload\/%s`, cpDeploymentWithPDBName()),
+				// The evictable Pod with order -1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+				fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, cpDeploymentName("drain-order-second")),
+				// After the Pod with order -1 is gone, the drain continues with the unevictable Pod.
+				fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted:.*unevictable-workload\/%s.*`, cpDeploymentWithPDBName()),
 			},
 			MDConditionMessageSubstrings: func() map[string][]string {
 				messageSubStrings := map[string][]string{}
 				for _, md := range machineDeployments {
 					messageSubStrings[md.Name] = []string{
-						// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
-						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-5", md.Name)),
-						// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
-						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload\/%s`, mdDeploymentWithPDBName(md.Name)),
+						// The evictable Pod with order -1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+						fmt.Sprintf(`(?m)\* Pod evictable-workload\/%s[^:]+: deletionTimestamp set, but still not removed from the Node`, mdDeploymentName("drain-order-second", md.Name)),
+						// After the Pod with order -1 is gone, the drain continues with the unevictable Pod.
+						fmt.Sprintf(`(?m)After above Pods have been removed from the Node, the following Pods will be evicted:.*unevictable-workload\/%s.*`, mdDeploymentWithPDBName(md.Name)),
 					}
 				}
 				return messageSubStrings
@@ -412,7 +441,64 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			Expect(skippedMDPods.Items[0].DeletionTimestamp.IsZero()).To(BeTrue())
 		}
 
-		By("Verify Node drains for control plane and MachineDeployment Machines are blocked (only by PDBs)")
+		By("Verify wait-completed Pods are still there and don't have a deletionTimestamp")
+		waitCPPods := &corev1.PodList{}
+		Expect(workloadClusterProxy.GetClient().List(ctx, waitCPPods,
+			client.InNamespace("unevictable-workload"),
+			client.MatchingLabels{"deployment": cpDeploymentName("wait-completed")},
+			client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainingCPNodeName)},
+		)).To(Succeed())
+		Expect(skippedCPPods.Items).To(HaveLen(1))
+		Expect(skippedCPPods.Items[0].DeletionTimestamp.IsZero()).To(BeTrue())
+		for _, md := range machineDeployments {
+			skippedMDPods := &corev1.PodList{}
+			Expect(workloadClusterProxy.GetClient().List(ctx, skippedMDPods,
+				client.InNamespace("unevictable-workload"),
+				client.MatchingLabels{"deployment": mdDeploymentName("wait-completed", md.Name)},
+				client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainingMDNodeNames[md.Name])},
+			)).To(Succeed())
+			Expect(skippedMDPods.Items).To(HaveLen(1))
+			Expect(skippedMDPods.Items[0].DeletionTimestamp.IsZero()).To(BeTrue())
+		}
+
+		By("Verify Node drains for control plane and MachineDeployment Machines are blocked by WaitCompleted Pods")
+		Eventually(func(g Gomega) {
+			drainedCPMachine := &clusterv1.Machine{}
+			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, drainedCPMachine)).To(Succeed())
+
+			condition := conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			// The evictable Pod should be gone now.
+			g.Expect(condition.Message).ToNot(ContainSubstring("deletionTimestamp set, but still not removed from the Node"))
+			// The unevictable Pod should still not be evicted because of the wait-completed label.
+			g.Expect(condition.Message).To(MatchRegexp(fmt.Sprintf(".*Pod unevictable-workload/%s.*: waiting for completion", cpDeploymentName("wait-completed"))))
+		}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		for _, md := range machineDeployments {
+			Eventually(func(g Gomega) {
+				drainedMDMachine := &clusterv1.Machine{}
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
+
+				condition := conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+				g.Expect(condition).ToNot(BeNil())
+				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				// The evictable Pod should be gone now.
+				g.Expect(condition.Message).ToNot(ContainSubstring("deletionTimestamp set, but still not removed from the Node"))
+				// The unevictable Pod should still not be evicted because of the wait-completed label.
+				g.Expect(condition.Message).To(MatchRegexp(fmt.Sprintf(".*Pod unevictable-workload/%s.*: waiting for completion", mdDeploymentName("wait-completed", md.Name))))
+			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		}
+
+		By("Force deleting the WaitCompleted Pods")
+		forceDeleteOpts := &client.DeleteOptions{GracePeriodSeconds: ptr.To[int64](0)}
+		waitDeploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: "unevictable-workload", Name: cpDeploymentName("wait-completed")}}
+		Expect(workloadClusterProxy.GetClient().Delete(ctx, waitDeploy, forceDeleteOpts)).To(Succeed())
+		for _, md := range machineDeployments {
+			waitDeploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: "unevictable-workload", Name: mdDeploymentName("wait-completed", md.Name)}}
+			Expect(workloadClusterProxy.GetClient().Delete(ctx, waitDeploy, forceDeleteOpts)).To(Succeed())
+		}
+
+		By("Verify Node drains for control plane and MachineDeployment Machines are blocked by PDBs")
 		Eventually(func(g Gomega) {
 			drainedCPMachine := &clusterv1.Machine{}
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, drainedCPMachine)).To(Succeed())

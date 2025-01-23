@@ -140,6 +140,32 @@ func TestGetPodsForEviction(t *testing.T) {
 			},
 		},
 	}
+	mdrBehaviorWaitCompleted := &clusterv1.MachineDrainRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdr-behavior-wait-completed",
+			Namespace: "test-namespace",
+		},
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+			},
+			Machines: nil, // Match all machines
+			Pods: []clusterv1.MachineDrainRulePodSelector{
+				{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app": "behavior-wait-completed",
+						},
+					},
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"kubernetes.io/metadata.name": "test-namespace",
+						},
+					},
+				},
+			},
+		},
+	}
 	mdrBehaviorUnknown := &clusterv1.MachineDrainRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mdr-behavior-unknown",
@@ -637,6 +663,15 @@ func TestGetPodsForEviction(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
+						Namespace: metav1.NamespaceDefault,
+						Labels: map[string]string{
+							clusterv1.PodDrainLabel: "wait-completed",
+						},
+					},
+				},
 			},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
@@ -661,6 +696,19 @@ func TestGetPodsForEviction(t *testing.T) {
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
 						Reason:        PodDeleteStatusTypeSkip,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
+							Namespace: metav1.NamespaceDefault,
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+						DrainOrder:    ptr.To[int32](0),
+						Reason:        PodDeleteStatusTypeWaitCompleted,
 					},
 				},
 			}},
@@ -714,8 +762,17 @@ func TestGetPodsForEviction(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-3-behavior-wait-completed",
+						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+						Labels: map[string]string{
+							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
+						},
+					},
+				},
 			},
-			machineDrainRules: []*clusterv1.MachineDrainRule{mdrBehaviorDrain, mdrBehaviorSkip, mdrBehaviorUnknown},
+			machineDrainRules: []*clusterv1.MachineDrainRule{mdrBehaviorDrain, mdrBehaviorSkip, mdrBehaviorUnknown, mdrBehaviorWaitCompleted},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
@@ -742,6 +799,19 @@ func TestGetPodsForEviction(t *testing.T) {
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
 						Reason:        PodDeleteStatusTypeSkip,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-3-behavior-wait-completed",
+							Namespace: "test-namespace",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+						DrainOrder:    ptr.To[int32](0),
+						Reason:        PodDeleteStatusTypeWaitCompleted,
 					},
 				},
 			}},
@@ -918,6 +988,19 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 			Pods:     nil, // Match all Pods
 		},
 	}
+	matchingMDRBehaviorWaitCompleted := &clusterv1.MachineDrainRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdr-behavior-wait-completed",
+			Namespace: "test-namespace",
+		},
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+			},
+			Machines: nil, // Match all machines
+			Pods:     nil, // Match all Pods
+		},
+	}
 	matchingMDRBehaviorUnknown := &clusterv1.MachineDrainRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mdr-behavior-unknown",
@@ -986,6 +1069,7 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 				matchingMDRBehaviorDrainB,
 				matchingMDRBehaviorDrainA,
 				matchingMDRBehaviorSkip,
+				matchingMDRBehaviorWaitCompleted,
 				matchingMDRBehaviorUnknown,
 				notMatchingMDRDifferentNamespace,
 				notMatchingMDRNotMatchingSelector,
@@ -995,6 +1079,7 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 				matchingMDRBehaviorDrainB,
 				matchingMDRBehaviorSkip,
 				matchingMDRBehaviorUnknown,
+				matchingMDRBehaviorWaitCompleted,
 			},
 		},
 	}
@@ -1356,6 +1441,202 @@ func TestEvictPods(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "EvictPods correctly with WaitCompleted pods",
+			podDeleteList: &PodDeleteList{items: []PodDelete{
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-1-ignored",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip, // Will be skipped because DrainBehavior is set to Skip
+						Reason:        PodDeleteStatusTypeWarning,
+						Message:       daemonSetWarning,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "pod-2-deletionTimestamp-set",
+							DeletionTimestamp: &metav1.Time{Time: time.Now()},
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-3-to-trigger-eviction-successfully",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-4-to-trigger-eviction-pod-not-found",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-6-to-trigger-eviction-namespace-terminating",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-7-to-trigger-eviction-some-other-error",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](-5), // min DrainOrder is -5 => will be evicted now
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-8-to-trigger-eviction-later",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+						DrainOrder:    ptr.To[int32](6), // min DrainOrder is -5 => will be evicted later
+						Reason:        PodDeleteStatusTypeOkay,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-9-wait-completed",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+						DrainOrder:    ptr.To[int32](0), // min DrainOrder is -5 => will not be evicted
+						Reason:        PodDeleteStatusTypeWaitCompleted,
+					},
+				},
+			}},
+			wantEvictionResult: EvictionResult{
+				PodsIgnored: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-1-ignored",
+						},
+					},
+				},
+				PodsDeletionTimestampSet: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-2-deletionTimestamp-set",
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-3-to-trigger-eviction-successfully",
+						},
+					},
+				},
+				PodsNotFound: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-4-to-trigger-eviction-pod-not-found",
+						},
+					},
+				},
+				PodsFailedEviction: map[string][]*corev1.Pod{
+					"Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 3 healthy pods and has 2 currently": {
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "pod-5-to-trigger-eviction-pdb-violated-1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "pod-5-to-trigger-eviction-pdb-violated-2",
+							},
+						},
+					},
+					"Cannot evict pod from terminating namespace: unable to create eviction (kube-controller-manager should set deletionTimestamp)": {
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "pod-6-to-trigger-eviction-namespace-terminating",
+							},
+						},
+					},
+					"some other error": {
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "pod-7-to-trigger-eviction-some-other-error",
+							},
+						},
+					},
+				},
+				PodsToTriggerEvictionLater: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-8-to-trigger-eviction-later",
+						},
+					},
+				},
+				PodsToWaitCompletedLater: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-9-wait-completed",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1651,6 +1932,20 @@ After above Pods have been removed from the Node, the following Pods will be evi
 						},
 					},
 				},
+				PodsToWaitCompletedNow: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-16-wait-completed",
+						},
+					},
+				},
+				PodsToWaitCompletedLater: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "pod-17-wait-completed",
+						},
+					},
+				},
 			},
 			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, ... (4 more): deletionTimestamp set, but still not removed from the Node
@@ -1660,7 +1955,9 @@ After above Pods have been removed from the Node, the following Pods will be evi
 * Pod pod-8-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 3
 * Pod pod-9-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 4
 * 1 Pod with other issues
-After above Pods have been removed from the Node, the following Pods will be evicted: pod-11-eviction-later, pod-12-eviction-later, pod-13-eviction-later, ... (2 more)`,
+* Pod pod-16-wait-completed: waiting for completion
+After above Pods have been removed from the Node, the following Pods will be evicted: pod-11-eviction-later, pod-12-eviction-later, pod-13-eviction-later, ... (2 more)
+After above Pods have been removed from the Node, waiting for the following Pods to complete without eviction: pod-17-wait-completed`,
 		},
 		{
 			name: "Compute long condition message correctly with more skipped errors",

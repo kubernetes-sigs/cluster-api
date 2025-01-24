@@ -65,8 +65,8 @@ func (webhook *KubeadmConfig) ValidateCreate(_ context.Context, obj runtime.Obje
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfig but got a %T", obj))
 	}
-	if c.Spec.BootCommands != nil && c.Spec.Format != "cloud-config" {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected config format to be cloud-config when using bootCommands, got %T", c.Spec.Format))
+	if c.Spec.BootCommands != nil && c.Spec.Format != bootstrapv1.CloudConfig {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected config format to be CloudConfig when using bootCommands, got %T", c.Spec.Format))
 	}
 
 	return nil, webhook.validate(c.Spec, c.Name)
@@ -78,8 +78,8 @@ func (webhook *KubeadmConfig) ValidateUpdate(_ context.Context, _, newObj runtim
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfig but got a %T", newObj))
 	}
-	if newC.Spec.BootCommands != nil && newC.Spec.Format != "cloud-config" {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected config format to be cloud-config when using bootCommands, got %T", newC.Spec.Format))
+	if newC.Spec.BootCommands != nil && newC.Spec.Format != bootstrapv1.CloudConfig {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected config format to be CloudConfig when using bootCommands, got %T", newC.Spec.Format))
 	}
 
 	return nil, webhook.validate(newC.Spec, newC.Name)

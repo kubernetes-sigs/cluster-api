@@ -7,7 +7,7 @@ metadata:
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ["fd00:100:64::/108"]
+      cidrBlocks: ["fd00:100:64::/112"]
     pods:
       cidrBlocks: ["fd00:100:96::/48"]
     serviceDomain: cluster.local

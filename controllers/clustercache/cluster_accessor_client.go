@@ -19,7 +19,6 @@ package clustercache
 import (
 	"context"
 	"fmt"
-	"maps"
 	"net/http"
 	"sync"
 	"time"
@@ -214,19 +213,13 @@ func createUncachedClient(scheme *runtime.Scheme, config *rest.Config, httpClien
 
 // createCachedClient creates a cached client for the given cluster, based on the rest.Config.
 func createCachedClient(ctx context.Context, clusterAccessorConfig *clusterAccessorConfig, config *rest.Config, httpClient *http.Client, mapper meta.RESTMapper) (client.Client, *stoppableCache, error) {
-	// The byObject map needs to be cloned to not hit concurrent read/writes on the Namespaces map.
-	byObject := maps.Clone(clusterAccessorConfig.Cache.ByObject)
-	for k, v := range byObject {
-		v.Namespaces = maps.Clone(v.Namespaces)
-		byObject[k] = v
-	}
-
+	// Create the cache for the cluster.
 	cacheOptions := cache.Options{
 		HTTPClient: httpClient,
 		Scheme:     clusterAccessorConfig.Scheme,
 		Mapper:     mapper,
 		SyncPeriod: clusterAccessorConfig.Cache.SyncPeriod,
-		ByObject:   byObject,
+		ByObject:   clusterAccessorConfig.Cache.ByObject,
 	}
 	remoteCache, err := cache.New(config, cacheOptions)
 	if err != nil {

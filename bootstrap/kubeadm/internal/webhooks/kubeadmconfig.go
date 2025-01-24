@@ -91,9 +91,5 @@ func (webhook *KubeadmConfig) validate(c bootstrapv1.KubeadmConfigSpec, name str
 		return nil
 	}
 
-	if c.BootCommands != nil && c.Format != bootstrapv1.CloudConfig {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected config format to be CloudConfig when using bootCommands, got %T", c.Format))
-	}
-
 	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind(), name, allErrs)
 }

@@ -556,7 +556,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.5 v1.6 v1.8 v1.9 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.5 v1.6 v1.8 v1.9 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 INMEMORY_TEMPLATES := test/e2e/data/infrastructure-inmemory
@@ -568,10 +568,6 @@ generate-e2e-templates-v0.3: $(KUSTOMIZE)
 .PHONY: generate-e2e-templates-v0.4
 generate-e2e-templates-v0.4: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v0.4/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v0.4/cluster-template.yaml
-
-.PHONY: generate-e2e-templates-v1.0
-generate-e2e-templates-v1.0: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.0/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.0/cluster-template.yaml
 
 .PHONY: generate-e2e-templates-v1.5
 generate-e2e-templates-v1.5: $(KUSTOMIZE)

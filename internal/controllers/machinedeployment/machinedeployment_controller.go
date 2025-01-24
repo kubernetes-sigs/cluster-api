@@ -337,10 +337,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 	// else delete owned machinesets.
 	for _, ms := range s.machineSets {
 		if ms.DeletionTimestamp.IsZero() {
-			log.Info("Deleting MachineSet", "MachineSet", klog.KObj(ms))
 			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete MachineSet %s", klog.KObj(ms))
 			}
+			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
+			log.Info("Deleting MachineSet (MachineDeployment deleted)", "MachineSet", klog.KObj(ms))
 		}
 	}
 

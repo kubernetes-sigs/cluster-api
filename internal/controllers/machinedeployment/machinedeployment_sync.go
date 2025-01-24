@@ -175,14 +175,12 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 	log = log.WithValues("MachineSet", klog.KObj(newMS))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	log.Info(fmt.Sprintf("Creating new MachineSet, %s", createReason))
-
 	// Create the MachineSet.
 	if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, newMS); err != nil {
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(newMS), err)
 		return nil, errors.Wrapf(err, "failed to create new MachineSet %s", klog.KObj(newMS))
 	}
-	log.V(4).Info("Created new MachineSet")
+	log.Info(fmt.Sprintf("MachineSet created (%s)", createReason))
 	r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s", klog.KObj(newMS))
 
 	// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
@@ -646,6 +644,8 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
 			return err
 		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		log.Info("Deleting MachineSet (cleanup of old MachineSet)", "MachineSet", klog.KObj(ms))
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 

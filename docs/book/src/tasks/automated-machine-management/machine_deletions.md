@@ -15,11 +15,14 @@ Machine deletion can be broken down into the following phases:
 3. Machine controller checks if the Machine should be drained, drain is skipped if:
     * The Machine has the `machine.cluster.x-k8s.io/exclude-node-draining` annotation
     * The `Machine.spec.nodeDrainTimeout` field is set and already expired (unset or `0` means no timeout)
+    * The Machine is owned by a KubeadmControlPlane and the pre-terminate hook has been already removed
 4. If the Machine should be drained, the Machine controller evicts all relevant Pods from the Node (see details in [Node drain](#node-drain))
 5. Machine controller checks if we should wait until all volumes are detached, this is skipped if:
     * The Machine has the `machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach` annotation
     * The `Machine.spec.nodeVolumeDetachTimeout` field is set and already expired (unset or `0` means no timeout)
+    * The Machine is owned by a KubeadmControlPlane and the pre-terminate hook has been already removed
 6. If we should wait for volume detach, the Machine controller waits until `Node.status.volumesAttached` is empty
+   and there are no more VolumeAttachment objects that indicate that there are still volumes attached to the Node
     * Typically the volumes are getting detached by CSI after the corresponding Pods have been evicted during drain
 7. Machine controller waits until all pre-terminate hooks succeeded, if any are registered
     * Pre-terminate hooks can be registered by adding annotations with the `pre-terminate.delete.hook.machine.cluster.x-k8s.io` prefix to the Machine object
@@ -43,17 +46,33 @@ Node drain can be broken down into the following phases:
 * Node is cordoned (i.e. the `Node.spec.unschedulable` field is set, which leads to the `node.kubernetes.io/unschedulable:NoSchedule` taint being added to the Node)
   * This prevents that Pods that already have been evicted are rescheduled to the same Node. Please only tolerate this taint 
     if you know what you are doing! Otherwise it can happen that the Machine controller is stuck continuously evicting the same Pods. 
-* Machine controller calculates the list of Pods that should be evicted. These are all Pods on the Node, except:
-  * Pods belonging to an existing DaemonSet (orphaned DaemonSet Pods have to be evicted as well)
-  * Mirror Pods, i.e. Pods with the `kubernetes.io/config.mirror` annotation (usually static Pods managed by kubelet, like `kube-apiserver`)
-* If there are no (more) Pods that have to be evicted and all Pods that have been evicted are gone, Node drain is completed
-* Otherwise an eviction will be triggered for all Pods that have to be evicted. There are various reasons why an eviction call could fail:
-  * The eviction would violate a PodDisruptionBudget, i.e. not enough Pod replicas would be available if the Pod would be evicted
-  * The namespace is in terminating, in this case the `kube-controller-manager` is responsible for setting the `.metadata.deletionTimestamp` on the Pod
-  * Other errors, e.g. a connection issue when calling the eviction API at the workload cluster
-* Please note that when an eviction goes through, this only means that the `.metadata.deletionTimestamp` is set on the Pod, but the 
-  Pod also has to be terminated and the Pod object has to go away for the drain to complete.
+* Machine controller calculates the list of Pods that have to be drained from the Node. Pods can be categorized as follows:
+  * Pods that are skipped/ignored during drain: 
+    * Pods belonging to an existing DaemonSet (orphaned DaemonSet Pods have to be evicted as well)
+    * Mirror Pods, i.e. Pods with the `kubernetes.io/config.mirror` annotation (usually static Pods managed by kubelet, like `kube-apiserver`)
+    * Pods with the `cluster.x-k8s.io/drain=skip` label
+    * Pods that match a `MachineDrainRule` with behavior `Skip`
+  * Pods that should not be evicted, but we have to wait for their completion:
+    * Pods with the `cluster.x-k8s.io/drain=wait-completed` label
+    * Pods that match a `MachineDrainRule` with behavior `WaitCompleted`
+  * Pods that should be evicted:
+    * Pods that match a `MachineDrainRule` with behavior `Drain`
+    * All Pods not belonging to any of the other categories
+* If there are no more Pods that have to be drained Node drain is completed
+* Otherwise we have to wait for Pods to complete and/or evict Pods
+  * There are various reasons why an eviction could fail:
+    * The eviction would violate a PodDisruptionBudget, i.e. not enough Pod replicas would be available if the Pod would be evicted
+    * The namespace is in terminating, in this case the `kube-controller-manager` is responsible for setting the `.metadata.deletionTimestamp` on the Pod
+    * Other errors, e.g. a connection issue when calling the eviction API of the workload cluster
+  * Please note that when an eviction goes through, this only means that the `.metadata.deletionTimestamp` is set on the Pod, but the 
+    Pod also has to be terminated and the Pod object has to go away for the drain to complete.
 * These steps are repeated every 20s until all relevant Pods have been drained from the Node
+
+Per default all Pods are drained at the same time. But with `MachineDrainRules` it's also possible to define a drain order
+for Pods with behavior `Drain` (Pods with `WaitCompleted` have a hard-coded order of 0). The Machine controller will drain
+Pods in batches based on their order (from highest to lowest order).
+
+For more details about `MachineDrainRules`, please see the corresponding [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240930-machine-drain-rules.md).
 
 Special cases:
 * If the Node doesn't exist anymore, Node drain is entirely skipped

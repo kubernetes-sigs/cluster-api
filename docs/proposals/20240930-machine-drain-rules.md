@@ -263,9 +263,9 @@ The following describes the new algorithm that decides which Pods should be drai
 * For each Pod (first match applies):
   * If the Pod is a DaemonSet Pod or a static Pod
     * \=\> use `behavior: Skip`
-  * If the Pod has `cluster.x-k8s.io/drain: skip`
+  * If the Pod has the `cluster.x-k8s.io/drain: skip` label
     * \=\> use `behavior: Skip`
-  * If the Pod has `cluster.x-k8s.io/drain: wait-completed`
+  * If the Pod has the `cluster.x-k8s.io/drain: wait-completed` label
     * \=\> use `behavior: WaitCompleted` and `order: 0`
   * If there is a matching `MachineDrainRule`
     * \=\> use `behavior` and `order` from the first matching `MachineDrainRule` (based on alphabetical order)

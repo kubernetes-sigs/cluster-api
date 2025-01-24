@@ -225,6 +225,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 				},
 			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
 			g.Expect(err).ToNot(HaveOccurred())
+			defer clusterCache.(interface{ Shutdown() }).Shutdown()
 
 			m := Management{
 				Client:              env.GetClient(),

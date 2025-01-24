@@ -356,6 +356,16 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		}
 	}
 
+	if c.BootCommands != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				pathPrefix.Child("bootCommands"),
+				cannotUseWithIgnition,
+			),
+		)
+	}
+
 	if c.DiskSetup == nil {
 		return allErrs
 	}

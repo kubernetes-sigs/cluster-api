@@ -94,6 +94,7 @@ func TestMain(m *testing.M) {
 			APIReader:                   mgr.GetAPIReader(),
 			ClusterCache:                clusterCache,
 			RemoteConditionsGracePeriod: 5 * time.Minute,
+			AdditionalSyncMachineLabels: nil,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}

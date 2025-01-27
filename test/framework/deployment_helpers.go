@@ -488,7 +488,7 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 	}, intervals...).Should(BeTrue())
 }
 
-type DeployUnevictablePodInput struct {
+type DeployPodAndWaitInput struct {
 	WorkloadClusterProxy ClusterProxy
 	ControlPlane         *controlplanev1.KubeadmControlPlane
 	MachineDeployment    *clusterv1.MachineDeployment
@@ -503,32 +503,8 @@ type DeployUnevictablePodInput struct {
 
 // DeployUnevictablePod will deploy a Deployment on a ControlPlane or MachineDeployment.
 // It will deploy one Pod replica to each Machine and then deploy a PDB to ensure none of the Pods can be evicted.
-func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) {
-	Expect(input.DeploymentName).ToNot(BeNil(), "Need a deployment name in DeployUnevictablePod")
-	Expect(input.Namespace).ToNot(BeNil(), "Need a namespace in DeployUnevictablePod")
-	Expect(input.WorkloadClusterProxy).ToNot(BeNil(), "Need a workloadClusterProxy in DeployUnevictablePod")
-	Expect((input.MachineDeployment == nil && input.ControlPlane != nil) ||
-		(input.MachineDeployment != nil && input.ControlPlane == nil)).To(BeTrue(), "Either MachineDeployment or ControlPlane must be set in DeployUnevictablePod")
-
-	EnsureNamespace(ctx, input.WorkloadClusterProxy.GetClient(), input.Namespace)
-
-	workloadDeployment := generateDeployment(generateDeploymentInput{
-		ControlPlane:      input.ControlPlane,
-		MachineDeployment: input.MachineDeployment,
-		Name:              input.DeploymentName,
-		Namespace:         input.Namespace,
-		NodeSelector:      input.NodeSelector,
-	})
-
-	input.ModifyDeployment(workloadDeployment)
-
-	workloadClient := input.WorkloadClusterProxy.GetClientSet()
-
-	AddDeploymentToWorkloadCluster(ctx, AddDeploymentToWorkloadClusterInput{
-		Namespace:  input.Namespace,
-		ClientSet:  workloadClient,
-		Deployment: workloadDeployment,
-	})
+func DeployUnevictablePod(ctx context.Context, input DeployPodAndWaitInput) {
+	DeployPodAndWait(ctx, input)
 
 	budget := &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
@@ -552,8 +528,35 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 
 	AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
 		Namespace: input.Namespace,
-		ClientSet: workloadClient,
+		ClientSet: input.WorkloadClusterProxy.GetClientSet(),
 		Budget:    budget,
+	})
+}
+
+// DeployPodAndWait will deploy a Deployment on a ControlPlane or MachineDeployment.
+func DeployPodAndWait(ctx context.Context, input DeployPodAndWaitInput) {
+	Expect(input.DeploymentName).ToNot(BeNil(), "Need a deployment name in DeployPodAndWait")
+	Expect(input.Namespace).ToNot(BeNil(), "Need a namespace in DeployPodAndWait")
+	Expect(input.WorkloadClusterProxy).ToNot(BeNil(), "Need a workloadClusterProxy in DeployPodAndWait")
+	Expect((input.MachineDeployment == nil && input.ControlPlane != nil) ||
+		(input.MachineDeployment != nil && input.ControlPlane == nil)).To(BeTrue(), "Either MachineDeployment or ControlPlane must be set in DeployPodAndWait")
+
+	EnsureNamespace(ctx, input.WorkloadClusterProxy.GetClient(), input.Namespace)
+
+	workloadDeployment := generateDeployment(generateDeploymentInput{
+		ControlPlane:      input.ControlPlane,
+		MachineDeployment: input.MachineDeployment,
+		Name:              input.DeploymentName,
+		Namespace:         input.Namespace,
+		NodeSelector:      input.NodeSelector,
+	})
+
+	input.ModifyDeployment(workloadDeployment)
+
+	AddDeploymentToWorkloadCluster(ctx, AddDeploymentToWorkloadClusterInput{
+		Namespace:  input.Namespace,
+		ClientSet:  input.WorkloadClusterProxy.GetClientSet(),
+		Deployment: workloadDeployment,
 	})
 
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
@@ -578,11 +581,11 @@ type DeployEvictablePodInput struct {
 // DeployEvictablePod will deploy a Deployment on a ControlPlane or MachineDeployment.
 // It will deploy one Pod replica to each Machine.
 func DeployEvictablePod(ctx context.Context, input DeployEvictablePodInput) {
-	Expect(input.DeploymentName).ToNot(BeNil(), "Need a deployment name in DeployUnevictablePod")
-	Expect(input.Namespace).ToNot(BeNil(), "Need a namespace in DeployUnevictablePod")
-	Expect(input.WorkloadClusterProxy).ToNot(BeNil(), "Need a workloadClusterProxy in DeployUnevictablePod")
+	Expect(input.DeploymentName).ToNot(BeNil(), "Need a deployment name in DeployEvictablePod")
+	Expect(input.Namespace).ToNot(BeNil(), "Need a namespace in DeployEvictablePod")
+	Expect(input.WorkloadClusterProxy).ToNot(BeNil(), "Need a workloadClusterProxy in DeployEvictablePod")
 	Expect((input.MachineDeployment == nil && input.ControlPlane != nil) ||
-		(input.MachineDeployment != nil && input.ControlPlane == nil)).To(BeTrue(), "Either MachineDeployment or ControlPlane must be set in DeployUnevictablePod")
+		(input.MachineDeployment != nil && input.ControlPlane == nil)).To(BeTrue(), "Either MachineDeployment or ControlPlane must be set in DeployEvictablePod")
 
 	EnsureNamespace(ctx, input.WorkloadClusterProxy.GetClient(), input.Namespace)
 

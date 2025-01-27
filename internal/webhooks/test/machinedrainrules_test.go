@@ -99,7 +99,25 @@ func Test_validate(t *testing.T) {
 			},
 			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
 				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
-				"spec.drain.order: Invalid value: 5: order must not be set if drain behavior is \"Skip\"",
+				"spec.drain.order: Invalid value: 5: order must not be set if drain behavior is \"Skip\" or \"WaitCompleted\"",
+		},
+		{
+			name: "Return error if order is set with drain behavior WaitCompleted",
+			machineDrainRule: &clusterv1.MachineDrainRule{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineDrainRuleSpec{
+					Drain: clusterv1.MachineDrainRuleDrainConfig{
+						Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
+						Order:    ptr.To[int32](5),
+					},
+				},
+			},
+			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
+				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
+				"spec.drain.order: Invalid value: 5: order must not be set if drain behavior is \"Skip\" or \"WaitCompleted\"",
 		},
 		{
 			name: "Return error for MachineDrainRules with invalid selector",

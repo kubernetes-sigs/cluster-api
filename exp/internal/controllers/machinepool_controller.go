@@ -228,14 +228,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Handle deletion reconciliation loop.
 	if !mp.ObjectMeta.DeletionTimestamp.IsZero() {
-		err := r.reconcileDelete(ctx, cluster, mp)
-		// Requeue if the reconcile failed because connection to workload cluster was down.
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-
-		return ctrl.Result{}, err
+		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, mp)
 	}
 
 	// Handle normal reconciliation loop.
@@ -243,13 +236,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		cluster:     cluster,
 		machinePool: mp,
 	}
-	res, err := r.reconcile(ctx, scope)
-	// Requeue if the reconcile failed because connection to workload cluster was down.
-	if errors.Is(err, clustercache.ErrClusterNotConnected) {
-		log.V(5).Info("Requeuing because connection to the workload cluster is down")
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
-	}
-	return res, err
+	return r.reconcile(ctx, scope)
 }
 
 func (r *MachinePoolReconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, error) {

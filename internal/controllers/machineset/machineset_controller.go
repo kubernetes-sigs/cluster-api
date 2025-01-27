@@ -168,8 +168,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(machineSet.Namespace, machineSet.Spec.ClusterName))
-	ctx = ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(machineSet.Namespace, machineSet.Spec.ClusterName)))
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, machineSet, clusterv1.MachineSetFinalizer); err != nil || finalizerAdded {
@@ -178,7 +177,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
-	ctx, log, err := clog.AddOwners(ctx, r.Client, machineSet)
+	ctx, _, err := clog.AddOwners(ctx, r.Client, machineSet)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -257,20 +256,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
 	)
 
-	result, kerr := doReconcile(ctx, s, reconcileNormal)
-	if kerr != nil {
-		// Requeue if the reconcile failed because connection to workload cluster was down.
-		if errors.Is(kerr, clustercache.ErrClusterNotConnected) {
-			if len(kerr.Errors()) > 1 {
-				log.Error(kerr, "Requeuing because connection to the workload cluster is down")
-			} else {
-				log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			}
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-		err = kerr
-	}
-	return result, err
+	return doReconcile(ctx, s, reconcileNormal)
 }
 
 type scope struct {

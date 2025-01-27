@@ -183,17 +183,9 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	errs := []error{}
-	errClusterNotConnectedOccurred := false
 	for _, cluster := range clusters {
 		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
-			// Requeue if the reconcile failed because connection to workload cluster was down.
-			if errors.Is(err, clustercache.ErrClusterNotConnected) {
-				log.V(5).Info("Requeuing because connection to the workload cluster is down")
-				errClusterNotConnectedOccurred = true
-			} else {
-				// Append the error if the error is not ErrClusterLocked.
-				errs = append(errs, err)
-			}
+			errs = append(errs, err)
 		}
 	}
 
@@ -216,13 +208,6 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 		}
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
-	}
-
-	// Requeue if ErrClusterNotConnected was returned for one of the clusters.
-	if errClusterNotConnectedOccurred {
-		// Requeue after a minute to not end up in exponential delayed requeue which
-		// could take up to 16m40s.
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	return ctrl.Result{}, nil

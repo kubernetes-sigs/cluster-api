@@ -11,7 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/distribution/reference v0.6.0
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46
-	github.com/evanphx/json-patch/v5 v5.9.0
+	github.com/evanphx/json-patch/v5 v5.9.10
 	github.com/fatih/color v1.18.0
 	github.com/flatcar/container-linux-config-transpiler v0.9.4
 	github.com/flatcar/ignition v0.36.2
@@ -31,9 +31,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/valyala/fastjson v1.6.4
-	go.etcd.io/etcd/api/v3 v3.5.17
-	go.etcd.io/etcd/client/pkg/v3 v3.5.17
-	go.etcd.io/etcd/client/v3 v3.5.17
+	go.etcd.io/etcd/api/v3 v3.5.18
+	go.etcd.io/etcd/client/pkg/v3 v3.5.18
+	go.etcd.io/etcd/client/v3 v3.5.18
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/oauth2 v0.25.0

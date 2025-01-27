@@ -6,10 +6,10 @@ replace sigs.k8s.io/cluster-api => ../
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/docker/docker v27.5.0+incompatible
+	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/emicklei/go-restful/v3 v3.12.1
-	github.com/evanphx/json-patch/v5 v5.9.0
+	github.com/evanphx/json-patch/v5 v5.9.10
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.6.0
@@ -20,8 +20,8 @@ require (
 	github.com/prometheus/common v0.55.0
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v1.0.0
-	go.etcd.io/etcd/api/v3 v3.5.17
-	go.etcd.io/etcd/client/v3 v3.5.17
+	go.etcd.io/etcd/api/v3 v3.5.18
+	go.etcd.io/etcd/client/v3 v3.5.18
 	golang.org/x/net v0.34.0
 	google.golang.org/grpc v1.65.1
 	k8s.io/api v0.32.1
@@ -125,7 +125,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.17 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.18 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect

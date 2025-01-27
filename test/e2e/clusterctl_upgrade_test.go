@@ -182,42 +182,6 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", func(
 	})
 })
 
-// Note: This test should not be changed during "prepare main branch".
-var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
-	// Get v1.0 latest stable release
-	version := "1.0"
-	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
-			InitWithBinary:         fmt.Sprintf(clusterctlDownloadURL, stableRelease),
-			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.X for v1beta1).
-			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease),
-			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
-			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
-			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
-			// We have to set this to an empty array as clusterctl v1.0 doesn't support
-			// runtime extension providers. If we don't do this the test will automatically
-			// try to deploy the latest version of our test-extension from docker.yaml.
-			InitWithRuntimeExtensionProviders: []string{},
-			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.0/bases.
-			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.23.17",
-			WorkloadKubernetesVersion:   "v1.23.17",
-			MgmtFlavor:                  "topology",
-			WorkloadFlavor:              "",
-			UseKindForManagementCluster: true,
-		}
-	})
-})
-
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release

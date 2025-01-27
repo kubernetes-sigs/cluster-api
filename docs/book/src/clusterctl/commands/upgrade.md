@@ -80,18 +80,15 @@ clusterctl upgrade apply \
 <h1>Clusterctl upgrade test coverage</h1>
 
 Cluster API only tests a subset of possible clusterctl upgrade paths as otherwise the test matrix would be overwhelming.
-Untested upgrade paths are not blocked by clusterctl and should work in general, they are just not tested. Users
-intending to use an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
+Untested upgrade paths are not blocked by clusterctl and should work in general, but users
+intending to perform an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
 
 The following is an example of the tested upgrade paths for v1.7:
 
-| From | To   | Note                                                 |
-|------|------|------------------------------------------------------|
-| v1.0 | v1.7 | v1.0 is the first release with the v1beta1 contract. |
-| v1.5 | v1.7 | v1.5 is v1.7 - 2.                                    |
-| v1.6 | v1.7 | v1.6 is v1.7 - 1.                                    |
-
-The idea is to always test upgrade from v1.0 and the previous two minor releases.
+| From | To   | Note                         |
+|------|------|------------------------------|
+| v1.5 | v1.7 | n-2 --> n (v1.5 is v1.7 - 2) |
+| v1.6 | v1.7 | n-1 --> n (v1.6 is v1.7 - 1) |
 
 </aside>
 

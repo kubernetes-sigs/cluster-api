@@ -53,15 +53,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.0}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.0}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.0/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/core-components.yaml"
     type: "url"
@@ -124,15 +115,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.0}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.0}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.0/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/bootstrap-components.yaml"
     type: "url"
@@ -195,15 +177,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.0}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.0}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.0/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/control-plane-components.yaml"
     type: "url"
@@ -268,16 +241,6 @@ providers:
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
     - sourcePath: "../data/infrastructure-docker/v0.4/cluster-template.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.0}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.0}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.0/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.0/cluster-template.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/infrastructure-components-development.yaml"
     type: "url"

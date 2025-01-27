@@ -803,10 +803,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		log.V(5).Info("Waiting for Cluster connection to come up to drain the Node")
-		s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
-		s.deletingMessage = "Waiting for Cluster connection to come up to drain the Node"
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to drain Node %s", nodeName)
 	}
 
 	node := &corev1.Node{}

@@ -59,9 +59,11 @@ Conditions:
 
 In this guide, we are building an _infrastructure provider_. We must tell cluster-api and its developer tooling which type of provider it is. Edit `config/default/kustomization.yaml` and add the following common label. The prefix `infrastructure-` [is used][label_prefix] to detect the provider type.
 
-```sh
-commonLabels:
-  cluster.x-k8s.io/provider: infrastructure-mailgun
+```yaml
+labels:
+- includeSelectors: true
+  pairs:
+    cluster.x-k8s.io/provider: infrastructure-mailgun
 ```
 
 Now you can apply your provider as well:

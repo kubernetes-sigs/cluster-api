@@ -151,6 +151,9 @@ func Run(ctx context.Context, input RunInput) int {
 	// Bootstrapping test environment
 	env := newEnvironment(input.ManagerCacheOptions, input.ManagerUncachedObjs...)
 
+	ctx, cancel := context.WithCancel(ctx)
+	env.cancelManager = cancel
+
 	if input.SetupIndexes != nil {
 		input.SetupIndexes(ctx, env.Manager)
 	}
@@ -385,9 +388,6 @@ func newEnvironment(managerCacheOptions cache.Options, uncachedObjs ...client.Ob
 
 // start starts the manager.
 func (e *Environment) start(ctx context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
-	e.cancelManager = cancel
-
 	go func() {
 		fmt.Println("Starting the test environment manager")
 		if err := e.Manager.Start(ctx); err != nil {

@@ -83,6 +83,10 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
 		}
+		go func() {
+			<-ctx.Done()
+			clusterCache.(interface{ Shutdown() }).Shutdown()
+		}()
 
 		// Setting ConnectionCreationRetryInterval to 2 seconds, otherwise client creation is
 		// only retried every 30s. If we get unlucky tests are then failing with timeout.

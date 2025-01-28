@@ -341,6 +341,7 @@ func TestGetNode(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
 	}
+	defer clusterCache.(interface{ Shutdown() }).Shutdown()
 
 	r := &Reconciler{
 		ClusterCache: clusterCache,

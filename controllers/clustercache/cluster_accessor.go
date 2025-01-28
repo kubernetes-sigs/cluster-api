@@ -54,6 +54,10 @@ type clusterAccessor struct {
 	// and health checking information (e.g. lastProbeSuccessTimestamp, consecutiveFailures).
 	// lockedStateLock must be *always* held (via lock or rLock) before accessing this field.
 	lockedState clusterAccessorLockedState
+
+	// cacheCtx is the ctx used when starting the cache.
+	// This ctx can be used by the ClusterCache to stop the cache.
+	cacheCtx context.Context //nolint:containedctx
 }
 
 // clusterAccessorConfig is the config of the clusterAccessor.
@@ -211,10 +215,11 @@ type clusterAccessorLockedHealthCheckingState struct {
 }
 
 // newClusterAccessor creates a new clusterAccessor.
-func newClusterAccessor(cluster client.ObjectKey, clusterAccessorConfig *clusterAccessorConfig) *clusterAccessor {
+func newClusterAccessor(cacheCtx context.Context, cluster client.ObjectKey, clusterAccessorConfig *clusterAccessorConfig) *clusterAccessor {
 	return &clusterAccessor{
-		cluster: cluster,
-		config:  clusterAccessorConfig,
+		cacheCtx: cacheCtx,
+		cluster:  cluster,
+		config:   clusterAccessorConfig,
 	}
 }
 

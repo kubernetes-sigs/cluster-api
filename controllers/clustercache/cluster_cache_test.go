@@ -77,6 +77,7 @@ func TestReconcile(t *testing.T) {
 		client:                env.Manager.GetAPIReader(),
 		clusterAccessorConfig: accessorConfig,
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		cacheCtx:              context.Background(),
 	}
 
 	// Add a Cluster source and start it (queue will be later used to verify the source works correctly)
@@ -537,6 +538,7 @@ func TestClusterCacheConcurrency(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	internalClusterCache, ok := cc.(*clusterCache)
 	g.Expect(ok).To(BeTrue())
+	defer internalClusterCache.Shutdown()
 
 	// Generate test clusters.
 	testClusters := generateTestClusters(clusterCount, brokenClusterPercentage)

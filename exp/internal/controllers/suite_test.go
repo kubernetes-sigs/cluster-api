@@ -65,6 +65,10 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
 		}
+		go func() {
+			<-ctx.Done()
+			clusterCache.(interface{ Shutdown() }).Shutdown()
+		}()
 
 		if err := (&MachinePoolReconciler{
 			Client:       mgr.GetClient(),

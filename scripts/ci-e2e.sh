@@ -53,7 +53,7 @@ export USE_EXISTING_CLUSTER=false
 # - KUBERNETES_VERSION_UPGRADE_FROM
 # - KUBERNETES_VERSION_LATEST_CI
 # - KUBERNETES_VERSION_MANAGEMENT
-if [[ -n "${GINKGO_LABEL_FILTER}" ]]; then
+if [[ -n "${GINKGO_LABEL_FILTER+x}" && -n "${GINKGO_LABEL_FILTER}" ]]; then
   echo "Preparing kindest/node images for Ginkgo label filter: ${GINKGO_LABEL_FILTER}"
   k8s::prepareKindestImagesVariablesGingkoFilters
 else

@@ -1682,6 +1682,15 @@ let's check the status using `kubectl get nodes`:
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
+```bash
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.32.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.32.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.32.0
+```
 
 {{#/tab }}
 {{#tab vcluster}}
@@ -1748,6 +1757,33 @@ After a short while, our nodes should be running and in `Ready` state, let’s c
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 
+{{#/tab }}
+{{#tab Other providers...}}
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+```
+
+After a short while, our nodes should be running and in `Ready` state,
+let's check the status using `kubectl get nodes`:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
+```
+```bash
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.32.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.32.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.32.0
+```
+
+{{#/tab }}
+{{#/tabs }}
+
 <aside class="note">
 
 <h1>Troubleshooting</h1>
@@ -1805,35 +1841,7 @@ kube-proxy-b9g5m                                              1/1     Running   
 kube-proxy-p6xx8                                              1/1     Running   0          3m49s
 kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
 ```
-
 </aside>
-
-{{#/tab }}
-{{#tab Other providers...}}
-
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-```
-
-After a short while, our nodes should be running and in `Ready` state,
-let's check the status using `kubectl get nodes`:
-
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
-```
-```bash
-NAME                                          STATUS   ROLES           AGE    VERSION
-capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.32.0
-capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.32.0
-capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.32.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.32.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.32.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.32.0
-```
-
-{{#/tab }}
-{{#/tabs }}
 
 ### Clean Up
 

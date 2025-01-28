@@ -295,10 +295,14 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		log.Info("Couldn't find controller Pod metadata, the ClusterCache will always access the cluster it is running on using the regular apiserver endpoint")
 	}
 
+	cacheCtx, cacheCtxCancel := context.WithCancelCause(context.Background())
+
 	cc := &clusterCache{
 		client:                mgr.GetClient(),
 		clusterAccessorConfig: buildClusterAccessorConfig(mgr.GetScheme(), options, controllerPodMetadata),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		cacheCtx:              cacheCtx,
+		cacheCtxCancel:        cacheCtxCancel,
 	}
 
 	err := ctrl.NewControllerManagedBy(mgr).
@@ -331,6 +335,12 @@ type clusterCache struct {
 	// This information is necessary so we can enqueue reconcile.Requests for reconcilers that
 	// got a cluster source via GetClusterSource.
 	clusterSources []clusterSource
+
+	// cacheCtx is passed to clusterAccessors to be used when starting caches.
+	cacheCtx context.Context //nolint:containedctx
+
+	// cacheCtxCancel is used during Shutdown to stop caches.
+	cacheCtxCancel context.CancelCauseFunc
 }
 
 // clusterSource stores the necessary information so we can enqueue reconcile.Requests for reconcilers that
@@ -523,7 +533,7 @@ func (cc *clusterCache) getOrCreateClusterAccessor(cluster client.ObjectKey) *cl
 
 	accessor, ok := cc.clusterAccessors[cluster]
 	if !ok {
-		accessor = newClusterAccessor(cluster, cc.clusterAccessorConfig)
+		accessor = newClusterAccessor(cc.cacheCtx, cluster, cc.clusterAccessorConfig)
 		cc.clusterAccessors[cluster] = accessor
 	}
 
@@ -654,6 +664,13 @@ func shouldSendEvent(now, lastProbeSuccessTime, lastEventSentTime time.Time, did
 // This method should only be used for tests and is not part of the public ClusterCache interface.
 func (cc *clusterCache) SetConnectionCreationRetryInterval(interval time.Duration) {
 	cc.clusterAccessorConfig.ConnectionCreationRetryInterval = interval
+}
+
+// Shutdown can be used to shut down the ClusterCache in unit tests.
+// This method should only be used for tests because it hasn't been designed for production usage
+// in a manager (race conditions with manager shutdown etc.).
+func (cc *clusterCache) Shutdown() {
+	cc.cacheCtxCancel(errors.New("ClusterCache is shutdown"))
 }
 
 func validateAndDefaultOptions(opts *Options) error {

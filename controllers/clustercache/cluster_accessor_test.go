@@ -66,7 +66,7 @@ func TestConnect(t *testing.T) {
 			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
 		},
 	}, nil)
-	accessor := newClusterAccessor(clusterKey, config)
+	accessor := newClusterAccessor(context.Background(), clusterKey, config)
 
 	// Connect when kubeconfig Secret doesn't exist (should fail)
 	err := accessor.Connect(ctx)
@@ -164,7 +164,7 @@ func TestDisconnect(t *testing.T) {
 			Timeout:   10 * time.Second,
 		},
 	}, nil)
-	accessor := newClusterAccessor(clusterKey, config)
+	accessor := newClusterAccessor(context.Background(), clusterKey, config)
 
 	// Connect (so we can disconnect afterward)
 	g.Expect(accessor.Connect(ctx)).To(Succeed())
@@ -271,7 +271,7 @@ func TestHealthCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			accessor := newClusterAccessor(clusterKey, &clusterAccessorConfig{
+			accessor := newClusterAccessor(context.Background(), clusterKey, &clusterAccessorConfig{
 				HealthProbe: &clusterAccessorHealthProbeConfig{
 					Timeout:          5 * time.Second,
 					FailureThreshold: 5,
@@ -324,7 +324,7 @@ func TestWatch(t *testing.T) {
 			Timeout:   10 * time.Second,
 		},
 	}, nil)
-	accessor := newClusterAccessor(clusterKey, config)
+	accessor := newClusterAccessor(context.Background(), clusterKey, config)
 
 	tw := &testWatcher{}
 	wi := WatcherOptions{

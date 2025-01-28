@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	goruntime "runtime"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -124,6 +126,7 @@ var (
 	clusterResourceSetConcurrency   int
 	machineHealthCheckConcurrency   int
 	useDeprecatedInfraMachineNaming bool
+	additionalSyncMachineLabels     []string
 )
 
 func init() {
@@ -249,6 +252,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
+
+	fs.StringArrayVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
+		"List of regexes to select the additional set of labels to sync from the Machine to the Node. A label will be synced as long as it matches at least one of the regexes.")
 
 	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
 		"Use deprecated infrastructure machine naming")
@@ -559,12 +565,28 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		setupLog.Error(err, "Unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
+
+	var errs []error
+	var additionalSyncMachineLabelRegexes []*regexp.Regexp
+	for _, re := range additionalSyncMachineLabels {
+		reg, err := regexp.Compile(re)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			additionalSyncMachineLabelRegexes = append(additionalSyncMachineLabelRegexes, reg)
+		}
+	}
+	if len(errs) > 0 {
+		setupLog.Error(fmt.Errorf("at least one of --additional-sync-machine-labels regexes is invalid: %w", kerrors.NewAggregate(errs)), "Unable to start manager")
+		os.Exit(1)
+	}
 	if err := (&controllers.MachineReconciler{
 		Client:                      mgr.GetClient(),
 		APIReader:                   mgr.GetAPIReader(),
 		ClusterCache:                clusterCache,
 		WatchFilterValue:            watchFilterValue,
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
+		AdditionalSyncMachineLabels: additionalSyncMachineLabelRegexes,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)

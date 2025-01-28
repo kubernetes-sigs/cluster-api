@@ -26,9 +26,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -110,8 +113,20 @@ func TestMain(m *testing.M) {
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 	SetDefaultEventuallyTimeout(timeout)
 
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
+
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:                m,
+		M: m,
+		ManagerCacheOptions: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				// Only cache Secrets with the cluster name label.
+				// This is similar to the real world.
+				&corev1.Secret{}: {
+					Label: clusterSecretCacheSelector,
+				},
+			},
+		},
 		SetupEnv:         func(e *envtest.Environment) { env = e },
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,

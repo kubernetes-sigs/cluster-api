@@ -204,58 +204,64 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 			return nil, fmt.Errorf("duplicate MachineDeployment %s found for label %s: %s", klog.KObj(m), clusterv1.ClusterTopologyMachineDeploymentNameLabel, mdTopologyName)
 		}
 
-		// Gets the bootstrapRef.
-		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-		if bootstrapRef == nil {
-			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a Bootstrap Config", klog.KObj(m))
-		}
-		// Gets the infraRef.
-		infraRef := &m.Spec.Template.Spec.InfrastructureRef
-		if infraRef.Name == "" {
-			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a InfrastructureMachineTemplate", klog.KObj(m))
-		}
-
-		// If the mdTopology exists in the Cluster, lookup the corresponding mdBluePrint and align
-		// the apiVersions in the bootstrapRef and infraRef.
-		// If the mdTopology doesn't exist, do nothing (this can happen if the mdTopology was deleted).
-		// **Note** We can't check if the MachineDeployment has a DeletionTimestamp, because at this point it could not be set yet.
-		if mdTopologyExistsInCluster, mdClassName := getMDClassName(cluster, mdTopologyName); mdTopologyExistsInCluster {
-			mdBluePrint, ok := blueprintMachineDeployments[mdClassName]
-			if !ok {
-				return nil, fmt.Errorf("failed to find MachineDeployment class %s in ClusterClass", mdClassName)
+		// Skip getting templates for MachineDeployments that are in deleting.
+		// Note: We don't need these templates for deleting MDs, but also this would likely fail because usually
+		// the MachineDeployment topology controller deletes the templates as soon as the MD is in deleting.
+		var bootstrapTemplate, infraMachineTemplate *unstructured.Unstructured
+		if m.DeletionTimestamp.IsZero() {
+			// Gets the bootstrapRef.
+			bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
+			if bootstrapRef == nil {
+				return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a Bootstrap Config", klog.KObj(m))
 			}
-			bootstrapRef, err = alignRefAPIVersion(mdBluePrint.BootstrapTemplate, bootstrapRef)
+			// Gets the infraRef.
+			infraRef := &m.Spec.Template.Spec.InfrastructureRef
+			if infraRef.Name == "" {
+				return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a InfrastructureMachineTemplate", klog.KObj(m))
+			}
+
+			// If the mdTopology exists in the Cluster, lookup the corresponding mdBluePrint and align
+			// the apiVersions in the bootstrapRef and infraRef.
+			// If the mdTopology doesn't exist, do nothing (this can happen if the mdTopology was deleted).
+			// **Note** We can't check if the MachineDeployment has a DeletionTimestamp, because at this point it could not be set yet.
+			if mdTopologyExistsInCluster, mdClassName := getMDClassName(cluster, mdTopologyName); mdTopologyExistsInCluster {
+				mdBluePrint, ok := blueprintMachineDeployments[mdClassName]
+				if !ok {
+					return nil, fmt.Errorf("failed to find MachineDeployment class %s in ClusterClass", mdClassName)
+				}
+				bootstrapRef, err = alignRefAPIVersion(mdBluePrint.BootstrapTemplate, bootstrapRef)
+				if err != nil {
+					return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
+				}
+				infraRef, err = alignRefAPIVersion(mdBluePrint.InfrastructureMachineTemplate, infraRef)
+				if err != nil {
+					return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
+				}
+			}
+
+			// Get the BootstrapTemplate.
+			bootstrapTemplate, err = r.getReference(ctx, bootstrapRef)
 			if err != nil {
 				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
 			}
-			infraRef, err = alignRefAPIVersion(mdBluePrint.InfrastructureMachineTemplate, infraRef)
+			// check that the referenced object has the ClusterTopologyOwnedLabel label.
+			// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+			// owned by the topology.
+			if !labels.IsTopologyOwned(bootstrapTemplate) {
+				return nil, fmt.Errorf("%s %s referenced from MachineDeployment %s is not topology owned", bootstrapTemplate.GetKind(), klog.KObj(bootstrapTemplate), klog.KObj(m))
+			}
+
+			// Get the InfraMachineTemplate.
+			infraMachineTemplate, err = r.getReference(ctx, infraRef)
 			if err != nil {
 				return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
 			}
-		}
-
-		// Get the BootstrapTemplate.
-		bootstrapTemplate, err := r.getReference(ctx, bootstrapRef)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Bootstrap reference could not be retrieved", klog.KObj(m)))
-		}
-		// check that the referenced object has the ClusterTopologyOwnedLabel label.
-		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
-		// owned by the topology.
-		if !labels.IsTopologyOwned(bootstrapTemplate) {
-			return nil, fmt.Errorf("%s %s referenced from MachineDeployment %s is not topology owned", bootstrapTemplate.GetKind(), klog.KObj(bootstrapTemplate), klog.KObj(m))
-		}
-
-		// Get the InfraMachineTemplate.
-		infraMachineTemplate, err := r.getReference(ctx, infraRef)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("MachineDeployment %s Infrastructure reference could not be retrieved", klog.KObj(m)))
-		}
-		// check that the referenced object has the ClusterTopologyOwnedLabel label.
-		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
-		// owned by the topology.
-		if !labels.IsTopologyOwned(infraMachineTemplate) {
-			return nil, fmt.Errorf("%s %s referenced from MachineDeployment %s is not topology owned", infraMachineTemplate.GetKind(), klog.KObj(infraMachineTemplate), klog.KObj(m))
+			// check that the referenced object has the ClusterTopologyOwnedLabel label.
+			// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+			// owned by the topology.
+			if !labels.IsTopologyOwned(infraMachineTemplate) {
+				return nil, fmt.Errorf("%s %s referenced from MachineDeployment %s is not topology owned", infraMachineTemplate.GetKind(), klog.KObj(infraMachineTemplate), klog.KObj(m))
+			}
 		}
 
 		// Gets the MachineHealthCheck.

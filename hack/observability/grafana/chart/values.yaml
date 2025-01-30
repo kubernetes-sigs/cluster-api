@@ -88,8 +88,37 @@ dashboardProviders:
       options:
         path: /var/lib/grafana/dashboards/default
 
-dashboardsConfigMaps:
-  default: grafana-dashboards
+extraConfigmapMounts:
+- name: grafana-dashboard-cluster-api-mgmt-apiserver-requests
+  configMap: grafana-dashboard-cluster-api-mgmt-apiserver-requests
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-mgmt-apiserver-requests.json
+  subPath: cluster-api-mgmt-apiserver-requests.json
+  optional: false
+- name: grafana-dashboard-cluster-api-performance
+  configMap: grafana-dashboard-cluster-api-performance
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-performance.json
+  subPath: cluster-api-performance.json
+  optional: false
+- name: grafana-dashboard-cluster-api-state
+  configMap: grafana-dashboard-cluster-api-state
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-state.json
+  subPath: cluster-api-state.json
+  optional: false
+- name: grafana-dashboard-cluster-api-wl-apiserver-requests
+  configMap: grafana-dashboard-cluster-api-wl-apiserver-requests
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-wl-apiserver-requests.json
+  subPath: cluster-api-wl-apiserver-requests.json
+  optional: false
+- name: grafana-dashboard-controller-runtime
+  configMap: grafana-dashboard-controller-runtime
+  mountPath: /var/lib/grafana/dashboards/default/controller-runtime.json
+  subPath: controller-runtime.json
+  optional: false
+- name: grafana-dashboard-runtime-extensions
+  configMap: grafana-dashboard-runtime-extensions
+  mountPath: /var/lib/grafana/dashboards/default/runtime-extensions.json
+  subPath: runtime-extensions.json
+  optional: false
 
 # Disable grafana test framework
 testFramework:

@@ -974,6 +974,10 @@ test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 kind-cluster: ## Create a new kind cluster designed for development with Tilt
 	hack/kind-install-for-capd.sh
 
+.PHONY: kind-cluster-kubevirt
+kind-cluster-kubevirt: ## Create a new kind cluster with KubeVirt designed for development with Tilt
+	hack/kind-install-for-capk.sh
+
 .PHONY: tilt-e2e-prerequisites
 tilt-e2e-prerequisites: ## Build the corresponding kindest/node images required for e2e testing and generate the e2e templates
 	scripts/build-kind.sh

@@ -96,7 +96,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("cluster", func(_ context.Context, o client.Object) []ctrl.Request {
 			return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(o)}}
@@ -110,12 +110,16 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
-		).
-		Watches(
+		)
+	if feature.Gates.Enabled(feature.MachinePool) {
+		b = b.Watches(
 			&expv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
-		).
+		)
+	}
+
+	c, err := b.
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Build(r)

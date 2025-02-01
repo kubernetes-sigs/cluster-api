@@ -351,14 +351,17 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 		unauthorizedErrorOccurred = true
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (unauthorized error occurred): %v", err))
+		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
 	case err != nil:
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (%d/%d): %v",
 			ca.lockedState.healthChecking.consecutiveFailures, ca.config.HealthProbe.FailureThreshold, err))
+		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
 	default:
 		ca.lockedState.healthChecking.consecutiveFailures = 0
 		ca.lockedState.healthChecking.lastProbeSuccessTimestamp = ca.lockedState.healthChecking.lastProbeTimestamp
 		log.V(6).Info("Health probe succeeded")
+		healthCheck.WithLabelValues(ca.cluster.String()).Set(1)
 	}
 
 	tooManyConsecutiveFailures := ca.lockedState.healthChecking.consecutiveFailures >= ca.config.HealthProbe.FailureThreshold

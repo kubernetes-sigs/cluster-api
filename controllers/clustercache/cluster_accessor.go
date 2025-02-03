@@ -241,6 +241,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 
 	if ca.Connected(ctx) {
 		log.V(6).Info("Skipping connect, already connected")
+		connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
 		return nil
 	}
 
@@ -255,6 +256,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			log.Error(retErr, "Connect failed")
+			connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
 			ca.lockedState.lastConnectionCreationErrorTimestamp = time.Now()
 		}
 	}()
@@ -264,6 +266,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	}
 
 	log.Info("Connected")
+	connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
 
 	// Only generate the clientCertificatePrivateKey once as there is no need to regenerate it after disconnect/connect.
 	// Note: This has to be done before setting connection, because otherwise this code wouldn't be re-entrant if the
@@ -298,7 +301,9 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 // Disconnect disconnects a connection to the workload cluster.
 func (ca *clusterAccessor) Disconnect(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
-
+	defer func() {
+		connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
+	}()
 	if !ca.Connected(ctx) {
 		log.V(6).Info("Skipping disconnect, already disconnected")
 		return

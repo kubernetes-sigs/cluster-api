@@ -35,4 +35,12 @@ var (
 			"cluster",
 		},
 	)
+	connectionUp = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "capi_clustercache_connection_up",
+			Help: "Whether the connection to the cluster is up.",
+		}, []string{
+			"cluster",
+		},
+	)
 )

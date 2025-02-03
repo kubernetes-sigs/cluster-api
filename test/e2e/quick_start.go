@@ -73,6 +73,10 @@ type QuickStartSpecInput struct {
 	// Allows to inject a function to be run after machines are provisioned.
 	// If not specified, this is a no-op.
 	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+
+	// ClusterctlVariables allows injecting variables to the cluster template.
+	// If not specified, this is a no-op.
+	ClusterctlVariables map[string]string
 }
 
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
@@ -143,6 +147,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: controlPlaneMachineCount,
 				WorkerMachineCount:       workerMachineCount,
+				ClusterctlVariables:      input.ClusterctlVariables,
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),

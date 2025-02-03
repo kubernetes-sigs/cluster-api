@@ -1,6 +1,5 @@
 # -*- mode: Python -*-
 
-envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
 kubernetes_version = "v1.31.2"
@@ -498,7 +497,7 @@ def deploy_additional_kustomizations():
         )
 
 def prepare_all():
-    tools_arg = "--tools kustomize,envsubst,clusterctl "
+    tools_arg = "--tools kustomize,clusterctl "
     tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
 
     cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {tools_arg}{tilt_settings_file_arg}".format(
@@ -552,7 +551,7 @@ def deploy_templates(filename, label, substitutions):
             deploy_cluster_template(template_name, label, filename, substitutions)
 
 def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
-    apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply --namespace=$NAMESPACE -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""
+    apply_clusterclass_cmd = clusterctl_cmd + " generate yaml --from " + filename + " | " + kubectl_cmd + " apply --namespace=$NAMESPACE -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""
     delete_clusterclass_cmd = kubectl_cmd + " --namespace=$NAMESPACE delete clusterclass " + clusterclass_name + ' --ignore-not-found=true; echo "\n"'
 
     local_resource(

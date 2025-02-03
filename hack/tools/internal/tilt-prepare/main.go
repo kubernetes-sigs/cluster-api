@@ -34,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,12 +62,11 @@ import (
 
 /*
 Example call for tilt up:
-	--tools kustomize,envsubst
+	--tools kustomize,clusterctl
 */
 
 const (
 	kustomizePath = "./hack/tools/bin/kustomize"
-	envsubstPath  = "./hack/tools/bin/envsubst"
 )
 
 var (
@@ -718,18 +718,13 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 			return
 		}
 
-		envsubstCmd := exec.CommandContext(ctx, envsubstPath)
-		var stdout2, stderr2 bytes.Buffer
-		envsubstCmd.Dir = rootPath
-		envsubstCmd.Stdin = bytes.NewReader(stdout1.Bytes())
-		envsubstCmd.Stdout = &stdout2
-		envsubstCmd.Stderr = &stderr2
-		if err := envsubstCmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, envsubstCmd.Args, stderr2.String())
+		out2, err := envsubst.Eval(stdout1.String(), os.Getenv)
+		if err != nil {
+			errCh <- errors.Wrapf(err, "[%s] failed to do envsubst on kustomized output", prefix)
 			return
 		}
 
-		objs, err := utilyaml.ToUnstructured(stdout2.Bytes())
+		objs, err := utilyaml.ToUnstructured([]byte(out2))
 		if err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed parse components yaml", prefix)
 			return

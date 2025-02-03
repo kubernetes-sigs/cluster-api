@@ -12,7 +12,7 @@ reviewers:
 - "@peterochodo"
 - "@zjs"
 creation-date: 2024-07-17
-last-updated: 2024-09-16
+last-updated: 2025-01-30
 status: implementable
 see-also:
 - [Proposal about custom Cluster API conditions (superseded by this document)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md)
@@ -320,7 +320,7 @@ type MachineInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)  | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)            | v1beta2 (tentative Aug 2025)                               | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |-------------------------------|------------------------------------------------------------|----------------------------------------------------|
 |                               | `Initialization` (new)                                     | `Initialization`                                   |
 | `BootstrapReady`              | `Initialization.BootstrapDataSecretCreated` (renamed)      | `Initialization.BootstrapDataSecretCreated`        |
@@ -422,11 +422,11 @@ type MachineReadinessGate struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024) | v1Beta2 (tentative Apr 2025) | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------|----------------------------------------------------|
-|                              | `MinReadySeconds` (renamed)  | `MinReadySeconds`                                  |
-| `ReadinessGates` (new)       | `ReadinessGates`             | `ReadinessGates`                                   |
-| other fields...              | other fields...              | other fields...                                    |
+| v1beta1 (CAPI 1.9)     | v1Beta2 (tentative Aug 2025) | v1beta2 after v1beta1 removal (tentative Aug 2026) |
+|------------------------|------------------------------|----------------------------------------------------|
+|                        | `MinReadySeconds` (renamed)  | `MinReadySeconds`                                  |
+| `ReadinessGates` (new) | `ReadinessGates`             | `ReadinessGates`                                   |
+| other fields...        | other fields...              | other fields...                                    |
 
 Notes:
 - As of today v1beta1 MachineDeployments, MachineSets, MachinePools already have a `spec.MinReadySeconds` field. 
@@ -503,7 +503,7 @@ type MachineSetStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)        | v1beta2 (tentative Apr 2025)                                     | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)                  | v1beta2 (tentative Aug 2025)                                     | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |-------------------------------------|------------------------------------------------------------------|----------------------------------------------------|
 | `V1Beta2` (new)                     | (removed)                                                        | (removed)                                          |
 | `V1Beta2.Conditions` (new)          | `Conditions` (renamed)                                           | `Conditions`                                       |
@@ -564,10 +564,10 @@ Following changes are implemented to MachineSet's spec:
 
 Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
-| other fields...              | other fields...                                | other fields...                                    |
+| v1beta1 (CAPI 1.9)     | v1beta2 (tentative Aug 2025)                   | v1beta2 after v1beta1 removal (tentative Aug 2026) |
+|------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds` | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...        | other fields...                                | other fields...                                    |
 
 #### MachineSet Print columns
 
@@ -632,7 +632,7 @@ type MachineDeploymentStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)                 | v1beta2 (tentative Aug 2025)                                    | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
 | `V1Beta2` (new)                    | (removed)                                                       | (removed)                                          |
 | `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                          | `Conditions`                                       |
@@ -683,10 +683,10 @@ Following changes are implemented to MachineDeployment's spec:
 
 Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
-| other fields...              | other fields...                                | other fields...                                    |
+| v1beta1 (CAPI 1.9)     | v1beta2 (tentative Aug 2025)                   | v1beta2 after v1beta1 removal (tentative Aug 2026) |
+|------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds` | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...        | other fields...                                | other fields...                                    |
 
 #### MachineDeployment Print columns
 
@@ -821,7 +821,7 @@ type WorkersStatus struct {
 // NOTE: `FailureReason`, `FailureMessage` fields won't be there anymore
 ```
 
-| v1beta1 (tentative Dec 2024)                   | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)                             | v1beta2 (tentative Aug 2025)                               | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |------------------------------------------------|------------------------------------------------------------|----------------------------------------------------|
 |                                                | `Initialization` (new)                                     | `Initialization`                                   |
 | `InfrastructureReady`                          | `Initialization.InfrastructureProvisioned` (renamed)       | `Initialization.InfrastructureProvisioned`         |
@@ -920,10 +920,10 @@ type ClusterAvailabilityGate struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024) | v1Beta2 (tentative Apr 2025) | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------|----------------------------------------------------|
-| `AvailabilityGates` (new)    | `AvailabilityGates`          | `AvailabilityGates`                                |
-| other fields...              | other fields...              | other fields...                                    |
+| v1beta1 (CAPI 1.9)        | v1Beta2 (tentative Aug 2025) | v1beta2 after v1beta1 removal (tentative Aug 2026) |
+|---------------------------|------------------------------|----------------------------------------------------|
+| `AvailabilityGates` (new) | `AvailabilityGates`          | `AvailabilityGates`                                |
+| other fields...           | other fields...              | other fields...                                    |
 
 Notes:
 - Similarly to Pod's `ReadinessGates`, also Cluster's `AvailabilityGates` accepts only conditions with positive polarity;
@@ -1004,7 +1004,7 @@ type KubeadmControlPlaneStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)                 | v1beta2 (tentative Aug 2025)                                    | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
 | `Ready` (deprecated)               | `Ready` (deprecated)                                            | (removed)                                          |
 | `V1Beta2` (new)                    | (removed)                                                       | (removed)                                          |
@@ -1149,7 +1149,7 @@ type MachinePoolInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                    | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+| v1beta1 (CAPI 1.9)                 | v1beta2 (tentative Aug 2025)                                    | v1beta2 after v1beta1 removal (tentative Aug 2026) |
 |------------------------------------|-----------------------------------------------------------------|----------------------------------------------------|
 |                                    | `Initialization` (new)                                          | `Initialization`                                   |
 | `BootstrapReady`                   | `Initialization.BootstrapDataSecretCreated` (renamed)           | `Initialization.BootstrapDataSecretCreated`        |
@@ -1207,10 +1207,10 @@ Following changes are implemented to MachinePool's spec:
 
 Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
-| other fields...              | other fields...                                | other fields...                                    |
+| v1beta1 (CAPI 1.9)     | v1beta2 (tentative Aug 2025)                   | v1beta2 after v1beta1 removal (tentative Aug 2026) |
+|------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds` | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...        | other fields...                                | other fields...                                    |
 
 #### MachinePool Print columns
 
@@ -1238,7 +1238,7 @@ Notes:
 
 The Cluster API contract defines a set of rules a provider is expected to comply with in order to interact with Cluster API.
 
-When the v1beta2 API will be released (tentative Apr 2025), also the Cluster API contract will be bumped to v1beta2.
+When the v1beta2 API will be released (tentative Aug 2025), also the Cluster API contract will be bumped to v1beta2.
 
 As written at the beginning of this document, this proposal is not going to change the fundamental way the Cluster API contract
 with infrastructure, bootstrap and control providers currently works (by using status fields; however, we are renaming a few fields
@@ -1258,9 +1258,9 @@ a mechanism that allows providers to adapt to a new contract incrementally, more
   Cluster API's v1beta2 release.
 
 - Each provider can implement changes described in the following paragraphs at its own pace, but the transition
-  _must be completed_ before v1beta1 removal (tentative Apr 2026).
+  _must be completed_ before v1beta1 removal (tentative Aug 2026).
 
-- Starting from the CAPI release when v1beta1 removal will happen (tentative Apr 2026), providers which are implementing
+- Starting from the CAPI release when v1beta1 removal will happen (tentative Aug 2026), providers which are implementing
   the v1beta1 contract will stop to work (they will work only with older versions of Cluster API).
 
 Additionally:
@@ -1270,7 +1270,7 @@ Additionally:
   with Kubernetes, Cluster API and the ecosystem).
 
 - However, providers choosing to keep using Cluster API custom conditions should be aware that starting from the
-  CAPI release when v1beta1 removal will happen (tentative Apr 2026), the Cluster API project will remove the
+  CAPI release when v1beta1 removal will happen (tentative Aug 2026), the Cluster API project will remove the
   Cluster API condition type, the `util/conditions` package, the code handling conditions in `util/patch.Helper` and
   everything related to the custom Cluster API `v1beta.Condition` type.
   (in other words, Cluster API custom condition must be replaced by provider's own custom conditions).
@@ -1288,7 +1288,7 @@ Following changes are planned for the contract for the InfrastructureCluster res
   - Rename `status.ready` into `status.initialization.provisioned`.
 - Remove `failureReason` and `failureMessage`.
 
-| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Apr 2026)                                         |
+| v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Aug 2026)                                         |
 |-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.provisioned` required               | (removed)                                                                                  |
 |                                                                       | `status.initialization.provisioned` (new), one of `status.ready` or `status.initialization.provisioned` required | `status.initialization.provisioned`                                                        |
@@ -1313,7 +1313,7 @@ Following changes are planned for the contract for the InfrastructureMachine res
   - Rename `status.ready` into `status.initialization.provisioned`.
 - Remove `failureReason` and `failureMessage`.
 
-| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Apr 2026)                                         |
+| v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Aug 2026)                                         |
 |-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.provisioned` required               | (removed)                                                                                  |
 |                                                                       | `status.initialization.provisioned` (new), one of `status.ready` or `status.initialization.provisioned` required | `status.initialization.provisioned`                                                        |
@@ -1338,7 +1338,7 @@ Following changes are planned for the contract for the BootstrapConfig resource:
   - Rename `status.ready` into `status.initialization.dataSecretCreated`.
 - Remove `failureReason` and `failureMessage`.
 
-| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                                  | v1beta2 after v1beta1 removal (tentative Apr 2026)                                                   |
+| v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                                  | v1beta2 after v1beta1 removal (tentative Aug 2026)                                                   |
 |-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
 | `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.dataSecretCreated`, required                     | (removed)                                                                                            |
 |                                                                       | `status.initialization.dataSecretCreated` (new), one of `status.ready` or `status.initialization.dataSecretCreated`, required | `status.initialization.dataSecretCreated`, required                                                  |
@@ -1365,7 +1365,7 @@ Following changes are planned for the contract for the ControlPlane resource:
 - Remove `failureReason` and `failureMessage`.
 - Align replica counters with CAPI core objects
 
-| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Apr 2026)                                                          |
+| v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Aug 2026)                                                          |
 |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                                                        | (removed)                                                                                                   |
 | `status.initialized`, required                                        | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                          | `status.initialization.controlPlaneInitialized`, required                                                   |
@@ -1436,13 +1436,13 @@ _Like any API change, this proposal will have impact on Cluster API users_
 Mitigations:
 
 This proposal abides to Kubernetes deprecation rules, and it also ensures isomorphic conversions to/from v1beta1 APIs
-can be supported (until v1beta1 removal, tentative Apr 2026).
+can be supported (until v1beta1 removal, tentative Aug 2026).
 
 On top of that, a few design decisions have been made with the specific intent to further minimize impact on
 users and providers e.g.
-- The decision to keep `Deprecated` fields in v1beta2 API (until v1beta1 removal, tentative Apr 2026).
+- The decision to keep `Deprecated` fields in v1beta2 API (until v1beta1 removal, tentative Aug 2026).
 - The decision to allow providers to adopt the Cluster API v1beta2 contract at their own pace (transition _must be completed_
-  before v1beta1 removal, tentative Apr 2026).
+  before v1beta1 removal, tentative Aug 2026).
 
 All in all, those decisions are consistent with the fact that in Cluster API we are already treating our APIs
 (and the Cluster API contract) as fully graduated APIs no matter if they are still beta.
@@ -1488,3 +1488,4 @@ Transition from v1beta1 API/contract to v1beta2 contract is detailed in previous
 - [x] 2024-07-17: Present proposal at a [community meeting](https://www.youtube.com/watch?v=frCg522ZfRQ)
   - [10000 feet overview](https://docs.google.com/presentation/d/1hhgCufOIuqHz6YR_RUPGo0uTjfm5YafjCb6JHY1_clY/edit?usp=sharing)
 - [x] 2024-09-16: Proposal approved
+- [x] 2025-01-30: v1beta2 tentative date moved from Apr 2025 to Aug 2025

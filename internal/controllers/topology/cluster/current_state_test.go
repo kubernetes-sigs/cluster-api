@@ -22,9 +22,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -115,6 +117,9 @@ func TestGetCurrentState(t *testing.T) {
 		WithBootstrapTemplate(machineDeploymentBootstrap).
 		WithInfrastructureTemplate(machineDeploymentInfrastructure).
 		Build()
+	machineDeploymentWithDeletionTimestamp := machineDeployment.DeepCopy()
+	machineDeploymentWithDeletionTimestamp.Finalizers = []string{clusterv1.MachineDeploymentFinalizer} // required by fake client
+	machineDeploymentWithDeletionTimestamp.DeletionTimestamp = ptr.To(metav1.Now())
 	machineDeployment2 := builder.MachineDeployment(metav1.NamespaceDefault, "md2").
 		WithLabels(map[string]string{
 			clusterv1.ClusterNameLabel:                          "cluster1",
@@ -1056,6 +1061,70 @@ func TestGetCurrentState(t *testing.T) {
 				MachinePools: emptyMachinePools,
 			},
 		},
+		{
+			name: "Pass reading a full Cluster with a deleting MachineDeployment",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithInfrastructureCluster(infraCluster).
+				WithControlPlane(controlPlaneWithInfra).
+				WithTopology(builder.ClusterTopology().
+					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+						Class: "mdClass",
+						Name:  "md1",
+					}).
+					Build()).
+				Build(),
+			blueprint: &scope.ClusterBlueprint{
+				ClusterClass:                  clusterClassWithControlPlaneInfra,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				},
+				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+					"mdClass": {
+						BootstrapTemplate:             machineDeploymentBootstrap,
+						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
+					},
+				},
+			},
+			objects: []client.Object{
+				infraCluster,
+				clusterClassWithControlPlaneInfra,
+				controlPlaneInfrastructureMachineTemplate,
+				controlPlaneWithInfra,
+				machineDeploymentWithDeletionTimestamp,
+				machineHealthCheckForMachineDeployment,
+				machineHealthCheckForControlPlane,
+			},
+			// Expect valid return of full ClusterState with MachineDeployment without corresponding templates.
+			want: &scope.ClusterState{
+				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithInfrastructureCluster(infraCluster).
+					WithControlPlane(controlPlaneWithInfra).
+					WithTopology(builder.ClusterTopology().
+						WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+							Class: "mdClass",
+							Name:  "md1",
+						}).
+						Build()).
+					Build(),
+				ControlPlane: &scope.ControlPlaneState{
+					Object:                        controlPlaneWithInfra,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+					MachineHealthCheck:            machineHealthCheckForControlPlane,
+				},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments: map[string]*scope.MachineDeploymentState{
+					"md1": {
+						Object:                        machineDeploymentWithDeletionTimestamp,
+						BootstrapTemplate:             nil,
+						InfrastructureMachineTemplate: nil,
+						MachineHealthCheck:            machineHealthCheckForMachineDeployment,
+					},
+				},
+				MachinePools: emptyMachinePools,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1094,6 +1163,11 @@ func TestGetCurrentState(t *testing.T) {
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())
 				return
+			}
+
+			// Don't compare the deletionTimestamps as there are some minor differences in how they are stored pre/post fake client.
+			for _, md := range append(maps.Values(got.MachineDeployments), maps.Values(tt.want.MachineDeployments)...) {
+				md.Object.DeletionTimestamp = nil
 			}
 
 			// Use EqualObject where the compared object is passed through the fakeClient. Elsewhere the Equal method is

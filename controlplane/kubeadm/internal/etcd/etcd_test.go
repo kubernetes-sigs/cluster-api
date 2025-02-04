@@ -74,13 +74,7 @@ func TestEtcdMembers_WithSuccess(t *testing.T) {
 				{ID: 1234, Name: "foo", PeerURLs: []string{"https://1.2.3.4:2000"}},
 			},
 		},
-		MoveLeaderResponse: &clientv3.MoveLeaderResponse{},
-		MemberUpdateResponse: &clientv3.MemberUpdateResponse{
-			Header: &etcdserverpb.ResponseHeader{},
-			Members: []*etcdserverpb.Member{
-				{ID: 1234, Name: "foo", PeerURLs: []string{"https://1.2.3.4:2000", "https://4.5.6.7:2000"}},
-			},
-		},
+		MoveLeaderResponse:   &clientv3.MoveLeaderResponse{},
 		MemberRemoveResponse: &clientv3.MemberRemoveResponse{},
 		AlarmResponse:        &clientv3.AlarmResponse{},
 		StatusResponse:       &clientv3.StatusResponse{},
@@ -98,9 +92,4 @@ func TestEtcdMembers_WithSuccess(t *testing.T) {
 
 	err = client.RemoveMember(ctx, 1234)
 	g.Expect(err).ToNot(HaveOccurred())
-
-	updatedMembers, err := client.UpdateMemberPeerURLs(ctx, 1234, []string{"https://4.5.6.7:2000"})
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(updatedMembers[0].PeerURLs).To(HaveLen(2))
-	g.Expect(updatedMembers[0].PeerURLs).To(Equal([]string{"https://1.2.3.4:2000", "https://4.5.6.7:2000"}))
 }

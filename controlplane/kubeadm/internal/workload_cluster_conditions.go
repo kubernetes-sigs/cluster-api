@@ -183,7 +183,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			continue
 		}
 
-		currentMembers, err := w.getCurrentEtcdMembers(ctx, machine, node.Name)
+		currentMembers, alarms, err := w.getCurrentEtcdMembers(ctx, machine, node.Name)
 		if err != nil {
 			// Note. even if we fail reading the member list from one node/etcd members we do not set EtcdMembersAgreeOnMemberList and EtcdMembersAgreeOnClusterID to false
 			// (those info are computed on what we can collect during inspection, so we can reason about availability even if there is a certain degree of problems in the cluster).
@@ -232,14 +232,18 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			})
 			continue
 		}
-		if len(member.Alarms) > 0 {
+		if len(alarms) > 0 {
 			alarmList := []string{}
-			for _, alarm := range member.Alarms {
-				switch alarm {
+			for _, alarm := range alarms {
+				if alarm.MemberID != member.ID {
+					continue
+				}
+
+				switch alarm.Type {
 				case etcd.AlarmOK:
 					continue
 				default:
-					alarmList = append(alarmList, etcd.AlarmTypeName[alarm])
+					alarmList = append(alarmList, etcd.AlarmTypeName[alarm.Type])
 				}
 			}
 			if len(alarmList) > 0 {
@@ -330,7 +334,7 @@ func unwrapAll(err error) error {
 	return err
 }
 
-func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1.Machine, nodeName string) ([]*etcd.Member, error) {
+func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1.Machine, nodeName string) ([]*etcd.Member, []etcd.MemberAlarm, error) {
 	// Create the etcd Client for the etcd Pod scheduled on the Node
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
 	if err != nil {
@@ -342,7 +346,7 @@ func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 			Message: fmt.Sprintf("Failed to connect to the etcd Pod on the %s Node: %s", nodeName, unwrapAll(err)),
 		})
-		return nil, errors.Wrapf(err, "failed to get current etcd members: failed to connect to the etcd Pod on the %s Node", nodeName)
+		return nil, nil, errors.Wrapf(err, "failed to get current etcd members: failed to connect to the etcd Pod on the %s Node", nodeName)
 	}
 	defer etcdClient.Close()
 
@@ -356,7 +360,7 @@ func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
 			Message: fmt.Sprintf("Etcd reports errors: %s", strings.Join(etcdClient.Errors, ", ")),
 		})
-		return nil, errors.Errorf("failed to get current etcd members: etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
+		return nil, nil, errors.Errorf("failed to get current etcd members: etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
 	}
 
 	// Gets the list etcd members known by this member.
@@ -372,10 +376,24 @@ func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 			Message: fmt.Sprintf("Failed to get answer from the etcd member on the %s Node: %s", nodeName, err.Error()),
 		})
-		return nil, errors.Wrapf(err, "failed to get answer from the etcd member on the %s Node", nodeName)
+		return nil, nil, errors.Wrapf(err, "failed to get answer from the etcd member on the %s Node", nodeName)
 	}
 
-	return currentMembers, nil
+	// Gets the list of etcd alarms.
+	alarms, err := etcdClient.Alarms(ctx)
+	if err != nil {
+		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed to get answer from the etcd alarms on the %s Node", nodeName)
+
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
+			Message: fmt.Sprintf("Failed to get answer from the etcd alarms on the %s Node: %s", nodeName, err.Error()),
+		})
+		return nil, nil, errors.Wrapf(err, "failed to get answer from the etcd alarms on the %s Node", nodeName)
+	}
+
+	return currentMembers, alarms, nil
 }
 
 func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeList, members []*etcd.Member) (bool, []string) {

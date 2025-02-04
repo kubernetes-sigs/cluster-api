@@ -114,9 +114,6 @@ type Member struct {
 
 	// IsLearner indicates if the member is raft learner.
 	IsLearner bool
-
-	// Alarms is the list of alarms for a member.
-	Alarms []AlarmType
 }
 
 // pbMemberToMember converts the protobuf representation of a cluster member to a Member struct.
@@ -127,7 +124,6 @@ func pbMemberToMember(m *etcdserverpb.Member) *Member {
 		PeerURLs:   m.GetPeerURLs(),
 		ClientURLs: m.GetClientURLs(),
 		IsLearner:  m.GetIsLearner(),
-		Alarms:     []AlarmType{},
 	}
 }
 
@@ -217,21 +213,11 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 		return nil, errors.Wrap(err, "failed to get list of members for etcd cluster")
 	}
 
-	alarms, err := c.Alarms(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	clusterID := response.Header.GetClusterId()
 	members := make([]*Member, 0)
 	for _, m := range response.Members {
 		newMember := pbMemberToMember(m)
 		newMember.ClusterID = clusterID
-		for _, c := range alarms {
-			if c.MemberID == newMember.ID {
-				newMember.Alarms = append(newMember.Alarms, c.Type)
-			}
-		}
 		members = append(members, newMember)
 	}
 

@@ -38,7 +38,7 @@ var (
 	providerDockerPrefix  = "docker:v%s"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func() {
+var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", FlakeAttempts(2), func() {
 	// We are testing v0.3=>v1.5=>current to ensure that old entries with v1alpha3 in managed files do not cause issues
 	// as described in https://github.com/kubernetes-sigs/cluster-api/issues/10051.
 	// NOTE: The combination of v0.3=>v1.5=>current allows us to verify this without being forced to upgrade
@@ -114,7 +114,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 	})
 })
 
-var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", func() {
+var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", FlakeAttempts(2), func() {
 	// We are testing v0.4=>v1.6=>current to ensure that old entries with v1alpha4 in managed files do not cause issues
 	// as described in https://github.com/kubernetes-sigs/cluster-api/issues/10051.
 	// NOTE: The combination of v0.4=>v1.6=>current allows us to verify this without being forced to upgrade

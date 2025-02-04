@@ -19,6 +19,8 @@ package config
 const (
 	// GitHubTokenVariable defines a variable hosting the GitHub access token.
 	GitHubTokenVariable = "github-token"
+	// GitLabAccessTokenVariable defines a variable hosting the GitLab access token. This can be used with Personal and Project access tokens.
+	GitLabAccessTokenVariable = "gitlab-access-token"
 )
 
 // VariablesClient has methods to work with environment variables and with variables defined in the clusterctl configuration file.

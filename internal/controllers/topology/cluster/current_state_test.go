@@ -17,12 +17,13 @@ limitations under the License.
 package cluster
 
 import (
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1166,7 +1167,7 @@ func TestGetCurrentState(t *testing.T) {
 			}
 
 			// Don't compare the deletionTimestamps as there are some minor differences in how they are stored pre/post fake client.
-			for _, md := range append(maps.Values(got.MachineDeployments), maps.Values(tt.want.MachineDeployments)...) {
+			for _, md := range append(slices.Collect(maps.Values(got.MachineDeployments)), slices.Collect(maps.Values(tt.want.MachineDeployments))...) {
 				md.Object.DeletionTimestamp = nil
 			}
 

@@ -126,7 +126,7 @@ kubectl --kubeconfig=/tmp/kubeconfig --server=https://127.0.0.1:$CONTROL_PLANE_E
 ### E2E tests
 
 CAPIM could be used to run a subset of CAPI E2E tests, but as of today we maintain only a smoke E2E scale test 
-(10 clusters, 1 CP and 3 workers each) that can be executed by setting `GINKGO_FOCUS="in-memory"`.
+(10 clusters, 1 CP and 3 workers each) that can be executed by setting `GINKGO_LABEL_FILTER="in-memory"`.
 
 See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/testing#running-the-end-to-end-tests-locally) for more details.
 

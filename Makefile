@@ -79,6 +79,7 @@ export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 #
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
+GINKGO_LABEL_FILTER ?=
 GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 2h
 GINKGO_POLL_PROGRESS_AFTER ?= 60m
@@ -973,7 +974,7 @@ test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integra
 .PHONY: test-e2e
 test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace -poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) \
-		-poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" \
+		-poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" --label-filter="$(GINKGO_LABEL_FILTER)" \
 		$(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) \
 		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) $(ROOT_DIR)/$(TEST_DIR)/e2e -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \

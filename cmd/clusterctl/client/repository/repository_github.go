@@ -61,8 +61,6 @@ var (
 	retryableOperationTimeout  = 1 * time.Minute
 )
 
-var rateLimitError *github.RateLimitError
-
 // gitHubRepository provides support for providers hosted on GitHub.
 //
 // We support GitHub repositories that use the release feature to publish artifacts and versions.
@@ -468,6 +466,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		if downloadReleaseError != nil {
 			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", *release.TagName, fileName)
 			// Return immediately if we are rate limited.
+			var rateLimitError *github.RateLimitError
 			if errors.As(downloadReleaseError, &rateLimitError) {
 				return false, retryError
 			}
@@ -501,7 +500,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 
 // handleGithubErr wraps error messages.
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
-	if errors.As(err, &rateLimitError) {
+	if _, ok := err.(*github.RateLimitError); ok {
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 

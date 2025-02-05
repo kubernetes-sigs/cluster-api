@@ -15,10 +15,10 @@ The following table shows the preliminary dates for the `v1.10` release cycle.
 | v1.10.0-beta.0 released                              | Release Lead | Tuesday 18th March 2025     | week 11  |
 | Communicate beta to providers                        | Comms Manager| Tuesday 18th March 2025     | week 11  |
 | *v1.8.x & v1.9.x released*                           | Release Lead | Tuesday 18th March 2025     | week 11  |
+| release-1.10 jobs created                            | CI Manager   | Tuesday 18th March 2025     | week 11  |
 | v1.10.0-beta.x released                              | Release Lead | Tuesday 25th March 2025     | week 12  |
 | KubeCon idle week                                    |      -       | 1st - 4th April 2025        | week 13  |
 | v1.10.0-rc.0 released                                | Release Lead | Tuesday 8nd April 2025      | week 14  |
-| release-1.10 jobs created                            | CI Manager   | Tuesday 8nd April 2025      | week 14  |
 | v1.10.0-rc.x released                                | Release Lead | Tuesday 15th April 2025     | week 15  |
 | **v1.10.0 released**                                 | Release Lead | Tuesday 22th April 2025     | week 16  |
 | *v1.8.x & v1.9.x released*                           | Release Lead | Tuesday 22th April 2025     | week 16  |

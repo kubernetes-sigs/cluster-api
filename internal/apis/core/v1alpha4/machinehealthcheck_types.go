@@ -40,13 +40,15 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions"`
 
-	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
+	// unhealthyRange specifies the range of unhealthy machines allowed.
 	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-	// is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+	// is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
 	// Eg. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy machines (and)
 	// (b) there are at most 5 unhealthy machines
@@ -54,8 +56,8 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
-	// Machines older than this duration without a node will be considered to have
-	// failed and will be remediated.
+	// nodeStartupTimeout is the duration after which machines without a node will be considered to
+	// have failed and will be remediated.
 	// If not set, this value is defaulted to 10 minutes.
 	// If you wish to disable this feature, set the value explicitly to 0.
 	// +optional
@@ -79,14 +81,20 @@ type MachineHealthCheckSpec struct {
 // specified as a duration.  When the named condition has been in the given
 // status for at least the timeout value, a node is considered unhealthy.
 type UnhealthyCondition struct {
+	// type of Node condition
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Type corev1.NodeConditionType `json:"type"`
 
+	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Status corev1.ConditionStatus `json:"status"`
 
+	// timeout is the duration that a node must be in a given status for,
+	// after which the node is considered unhealthy.
+	// For example, with a value of "1h", the node must match the status
+	// for at least 1 hour before being considered unhealthy.
 	Timeout metav1.Duration `json:"timeout"`
 }
 

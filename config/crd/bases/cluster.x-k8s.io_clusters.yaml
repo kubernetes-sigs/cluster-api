@@ -63,6 +63,7 @@ spec:
                       are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -77,6 +78,7 @@ spec:
                       VIPs are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -351,6 +353,7 @@ spec:
                       are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -365,6 +368,7 @@ spec:
                       VIPs are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -483,7 +487,7 @@ spec:
                 type: boolean
               topology:
                 description: |-
-                  This encapsulates the topology for the cluster.
+                  topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
                   feature gate flag to activate managed topologies support;
                   this feature is highly experimental, and parts of it might still be not implemented.
@@ -793,6 +797,7 @@ spec:
                       are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -807,6 +812,7 @@ spec:
                       VIPs are allocated.
                     properties:
                       cidrBlocks:
+                        description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
                         type: array
@@ -925,7 +931,7 @@ spec:
                 type: boolean
               topology:
                 description: |-
-                  This encapsulates the topology for the cluster.
+                  topology encapsulates the topology for the cluster.
                   NOTE: It is required to enable the ClusterTopology
                   feature gate flag to activate managed topologies support;
                   this feature is highly experimental, and parts of it might still be not implemented.
@@ -968,7 +974,8 @@ spec:
                             - type: integer
                             - type: string
                             description: |-
-                              Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+                              maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+                              Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
                               "selector" are not healthy.
                             x-kubernetes-int-or-string: true
                           nodeStartupTimeout:
@@ -1047,11 +1054,19 @@ spec:
                                 status for at least the timeout value, a node is considered unhealthy.
                               properties:
                                 status:
+                                  description: status of the condition, one of True,
+                                    False, Unknown.
                                   minLength: 1
                                   type: string
                                 timeout:
+                                  description: |-
+                                    timeout is the duration that a node must be in a given status for,
+                                    after which the node is considered unhealthy.
+                                    For example, with a value of "1h", the node must match the status
+                                    for at least 1 hour before being considered unhealthy.
                                   type: string
                                 type:
+                                  description: type of Node condition
                                   minLength: 1
                                   type: string
                               required:
@@ -1062,8 +1077,9 @@ spec:
                             type: array
                           unhealthyRange:
                             description: |-
+                              unhealthyRange specifies the range of unhealthy machines allowed.
                               Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-                              is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+                              is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
                               Eg. "[3-5]" - This means that remediation will be allowed only when:
                               (a) there are at least 3 unhealthy machines (and)
                               (b) there are at most 5 unhealthy machines
@@ -1256,7 +1272,8 @@ spec:
                                   - type: integer
                                   - type: string
                                   description: |-
-                                    Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+                                    maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+                                    Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
                                     "selector" are not healthy.
                                   x-kubernetes-int-or-string: true
                                 nodeStartupTimeout:
@@ -1335,11 +1352,19 @@ spec:
                                       status for at least the timeout value, a node is considered unhealthy.
                                     properties:
                                       status:
+                                        description: status of the condition, one
+                                          of True, False, Unknown.
                                         minLength: 1
                                         type: string
                                       timeout:
+                                        description: |-
+                                          timeout is the duration that a node must be in a given status for,
+                                          after which the node is considered unhealthy.
+                                          For example, with a value of "1h", the node must match the status
+                                          for at least 1 hour before being considered unhealthy.
                                         type: string
                                       type:
+                                        description: type of Node condition
                                         minLength: 1
                                         type: string
                                     required:
@@ -1350,8 +1375,9 @@ spec:
                                   type: array
                                 unhealthyRange:
                                   description: |-
+                                    unhealthyRange specifies the range of unhealthy machines allowed.
                                     Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-                                    is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+                                    is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
                                     Eg. "[3-5]" - This means that remediation will be allowed only when:
                                     (a) there are at least 3 unhealthy machines (and)
                                     (b) there are at most 5 unhealthy machines

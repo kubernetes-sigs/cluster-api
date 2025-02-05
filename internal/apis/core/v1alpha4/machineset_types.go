@@ -142,6 +142,10 @@ type MachineSetStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
+	// failureReason will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a succinct value suitable
+	// for machine interpretation.
+	//
 	// In the event that there is a terminal problem reconciling the
 	// replicas, both FailureReason and FailureMessage will be set. FailureReason
 	// will be populated with a succinct value suitable for machine
@@ -162,8 +166,13 @@ type MachineSetStatus struct {
 	// controller's output.
 	// +optional
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
+
+	// failureMessage will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a more verbose string suitable
+	// for logging and human consumption.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
 	// conditions defines current service state of the MachineSet.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`

@@ -3891,8 +3891,12 @@ spec:
                                                 credential plugin.
                                               properties:
                                                 name:
+                                                  description: name of the environment
+                                                    variable
                                                   type: string
                                                 value:
+                                                  description: value of the environment
+                                                    variable
                                                   type: string
                                               required:
                                               - name

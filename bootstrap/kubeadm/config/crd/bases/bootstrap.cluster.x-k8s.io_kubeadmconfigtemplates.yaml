@@ -46,7 +46,7 @@ spec:
             description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
             properties:
               template:
-                description: KubeadmConfigTemplateResource defines the Template structure.
+                description: template defines the desired state of KubeadmConfigTemplate.
                 properties:
                   spec:
                     description: |-
@@ -1005,7 +1005,7 @@ spec:
             description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
             properties:
               template:
-                description: KubeadmConfigTemplateResource defines the Template structure.
+                description: template defines the desired state of KubeadmConfigTemplate.
                 properties:
                   spec:
                     description: |-
@@ -1961,7 +1961,7 @@ spec:
             description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
             properties:
               template:
-                description: KubeadmConfigTemplateResource defines the Template structure.
+                description: template defines the desired state of KubeadmConfigTemplate.
                 properties:
                   metadata:
                     description: |-
@@ -3396,8 +3396,12 @@ spec:
                                                     credential plugin.
                                                   properties:
                                                     name:
+                                                      description: name of the environment
+                                                        variable
                                                       type: string
                                                     value:
+                                                      description: value of the environment
+                                                        variable
                                                       type: string
                                                   required:
                                                   - name

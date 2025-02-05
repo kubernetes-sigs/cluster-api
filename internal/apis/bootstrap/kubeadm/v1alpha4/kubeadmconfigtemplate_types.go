@@ -22,6 +22,7 @@ import (
 
 // KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
 type KubeadmConfigTemplateSpec struct {
+	// template defines the desired state of KubeadmConfigTemplate.
 	Template KubeadmConfigTemplateResource `json:"template"`
 }
 

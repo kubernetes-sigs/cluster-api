@@ -924,7 +924,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref common.ReferenceCa
 					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
-							Description: "This encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support; this feature is highly experimental, and parts of it might still be not implemented.",
+							Description: "topology encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support; this feature is highly experimental, and parts of it might still be not implemented.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Topology"),
 						},
 					},
@@ -2893,13 +2893,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref common
 					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy.",
+							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.",
 							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
 						},
 					},
 					"unhealthyRange": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"UnhealthyRange\". Takes precedence over MaxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines",
+							Description: "unhealthyRange specifies the range of unhealthy machines allowed. Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"unhealthyRange\". Takes precedence over maxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3011,13 +3011,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.
 					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.",
+							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.",
 							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
 						},
 					},
 					"unhealthyRange": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"UnhealthyRange\". Takes precedence over MaxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.",
+							Description: "unhealthyRange specifies the range of unhealthy machines allowed. Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"unhealthyRange\". Takes precedence over maxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3154,13 +3154,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckTopology(ref com
 					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy.",
+							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.",
 							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
 						},
 					},
 					"unhealthyRange": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"UnhealthyRange\". Takes precedence over MaxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines",
+							Description: "unhealthyRange specifies the range of unhealthy machines allowed. Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"unhealthyRange\". Takes precedence over maxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3826,14 +3826,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 					},
 					"failureReason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "In the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nIn the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"failureMessage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4221,7 +4221,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_NetworkRanges(ref common.Reference
 				Properties: map[string]spec.Schema{
 					"cidrBlocks": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "cidrBlocks is a list of CIDR blocks.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -4568,21 +4569,24 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "type of Node condition",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "status of the condition, one of True, False, Unknown.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"timeout": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "timeout is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},
 				},

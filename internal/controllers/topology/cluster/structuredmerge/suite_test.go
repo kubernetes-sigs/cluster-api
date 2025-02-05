@@ -64,6 +64,10 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
+		ManagerUncachedObjs: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
 		SetupEnv: func(e *envtest.Environment) { env = e },
 		// We are testing the patch helper against a real API Server, no need of additional indexes/reconcilers.
 		MinK8sVersion: "v1.22.0", // ClusterClass uses server side apply that went GA in 1.22; we do not support previous version because of bug/inconsistent behaviours in the older release.

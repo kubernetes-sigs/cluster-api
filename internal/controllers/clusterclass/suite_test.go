@@ -90,10 +90,13 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		ManagerUncachedObjs: []client.Object{},
-		SetupEnv:            func(e *envtest.Environment) { env = e },
-		SetupIndexes:        setupIndexes,
-		SetupReconcilers:    setupReconcilers,
+		ManagerUncachedObjs: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
 	}))
 }
 

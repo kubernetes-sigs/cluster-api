@@ -239,28 +239,28 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			flavor = *input.Flavor
 		}
 
-		clusterCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleClusterCount)),
+		clusterCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleClusterCount)),
 			input.ClusterCount, ptr.To[int64](10),
 		)
-		concurrency := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleConcurrency)),
+		concurrency := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleConcurrency)),
 			input.Concurrency, ptr.To[int64](5),
 		)
-		controlPlaneMachineCount := cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleControlPlaneMachineCount)),
+		controlPlaneMachineCount := cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleControlPlaneMachineCount)),
 			input.ControlPlaneMachineCount, ptr.To[int64](1),
 		)
-		machineDeploymentCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleMachineDeploymentCount)),
+		machineDeploymentCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleMachineDeploymentCount)),
 			input.MachineDeploymentCount, ptr.To[int64](1),
 		)
-		workerPerMachineDeploymentCount := cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleWorkerPerMachineDeploymentCount)),
+		workerPerMachineDeploymentCount := cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleWorkerPerMachineDeploymentCount)),
 			input.WorkerPerMachineDeploymentCount, ptr.To[int64](3),
 		)
-		additionalClusterClassCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableBestEffort(scaleAdditionalClusterClassCount)),
+		additionalClusterClassCount := *cmp.Or(variableAsInt64(input.E2EConfig.GetVariableOrEmpty(scaleAdditionalClusterClassCount)),
 			input.AdditionalClusterClassCount, ptr.To[int64](0),
 		)
-		deployClusterInSeparateNamespaces := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableBestEffort(scaleDeployClusterInSeparateNamespaces)),
+		deployClusterInSeparateNamespaces := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleDeployClusterInSeparateNamespaces)),
 			input.DeployClusterInSeparateNamespaces, ptr.To[bool](false),
 		)
-		useCrossNamespaceClusterClass := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableBestEffort(scaleUseCrossNamespaceClusterClass)),
+		useCrossNamespaceClusterClass := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleUseCrossNamespaceClusterClass)),
 			input.UseCrossNamespaceClusterClass, ptr.To[bool](false),
 		)
 		if useCrossNamespaceClusterClass {
@@ -311,7 +311,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			Flavor:                   flavor,
 			Namespace:                scaleClusterNamespacePlaceholder,
 			ClusterName:              scaleClusterNamePlaceholder,
-			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
+			KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeFrom),
 			ControlPlaneMachineCount: controlPlaneMachineCount,
 			WorkerMachineCount:       workerPerMachineDeploymentCount,
 			ClusterctlVariables:      variables,
@@ -410,9 +410,9 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			// Get the upgrade function for upgrading the workload clusters.
 			upgrader := getClusterUpgradeAndWaitFn(framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
 				ClusterProxy:                input.BootstrapClusterProxy,
-				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				KubernetesUpgradeVersion:    input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
+				EtcdImageTag:                input.E2EConfig.MustGetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.MustGetVariable(CoreDNSVersionUpgradeTo),
 				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),

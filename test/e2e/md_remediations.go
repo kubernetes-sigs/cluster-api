@@ -101,7 +101,7 @@ func MachineDeploymentRemediationSpec(ctx context.Context, inputGetter func() Ma
 				Flavor:                   ptr.Deref(input.Flavor, "md-remediation"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),
 			},

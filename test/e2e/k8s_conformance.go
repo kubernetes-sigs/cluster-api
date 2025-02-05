@@ -83,7 +83,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveKey(kubetestConfigurationVariable), "% spec requires a %s variable to be defined in the config file", specName, kubetestConfigurationVariable)
-		kubetestConfigFilePath = input.E2EConfig.GetVariable(kubetestConfigurationVariable)
+		kubetestConfigFilePath = input.E2EConfig.MustGetVariable(kubetestConfigurationVariable)
 		Expect(kubetestConfigFilePath).To(BeAnExistingFile(), "%s should be a valid kubetest config file")
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
@@ -113,7 +113,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
 			},

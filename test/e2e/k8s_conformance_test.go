@@ -48,7 +48,7 @@ var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] 
 	// KUBERNETES_VERSION env var. This only works without side effects on other tests because we are
 	// running this test in its separate job.
 	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
-		kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_LATEST_CI"))
+		kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Setenv("KUBERNETES_VERSION", kubernetesVersion)).To(Succeed())
 		return K8SConformanceSpecInput{

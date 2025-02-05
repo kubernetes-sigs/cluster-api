@@ -139,7 +139,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 		},
 	}
 	for key := range input.E2EConfig.Variables {
-		clusterctlConfigFile.Values[key] = input.E2EConfig.GetVariable(key)
+		clusterctlConfigFile.Values[key] = input.E2EConfig.MustGetVariable(key)
 	}
 	Expect(clusterctlConfigFile.write()).To(Succeed(), "Failed to write clusterctlConfigFile")
 
@@ -152,7 +152,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 		},
 	}
 	for key := range input.E2EConfig.Variables {
-		clusterctlConfigFileV1_2.Values[key] = input.E2EConfig.GetVariable(key)
+		clusterctlConfigFileV1_2.Values[key] = input.E2EConfig.MustGetVariable(key)
 	}
 	Expect(clusterctlConfigFileV1_2.write()).To(Succeed(), "Failed to write v1.2 clusterctlConfigFile")
 

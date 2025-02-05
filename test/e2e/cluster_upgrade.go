@@ -128,12 +128,8 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			workerMachineCount = *input.WorkerMachineCount
 		}
 
-		if input.E2EConfig.HasVariable(EtcdVersionUpgradeTo) {
-			etcdVersionUpgradeTo = input.E2EConfig.MustGetVariable(EtcdVersionUpgradeTo)
-		}
-		if input.E2EConfig.HasVariable(CoreDNSVersionUpgradeTo) {
-			coreDNSVersionUpgradeTo = input.E2EConfig.MustGetVariable(CoreDNSVersionUpgradeTo)
-		}
+		etcdVersionUpgradeTo = input.E2EConfig.GetVariableOrEmpty(EtcdVersionUpgradeTo)
+		coreDNSVersionUpgradeTo = input.E2EConfig.GetVariableOrEmpty(CoreDNSVersionUpgradeTo)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the Namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)

@@ -411,8 +411,8 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			upgrader := getClusterUpgradeAndWaitFn(framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
 				ClusterProxy:                input.BootstrapClusterProxy,
 				KubernetesUpgradeVersion:    input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
-				EtcdImageTag:                input.E2EConfig.MustGetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.MustGetVariable(CoreDNSVersionUpgradeTo),
+				EtcdImageTag:                input.E2EConfig.GetVariableOrEmpty(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.GetVariableOrEmpty(CoreDNSVersionUpgradeTo),
 				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),

@@ -336,7 +336,7 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 			if listReleasesErr != nil {
 				retryError = g.handleGithubErr(listReleasesErr, "failed to get the list of releases")
 				// Return immediately if we are rate limited.
-				if errors.As(listReleasesErr, &rateLimitError) {
+				if _, ok := listReleasesErr.(*github.RateLimitError); ok {
 					return false, retryError
 				}
 				return false, nil

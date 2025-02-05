@@ -47,41 +47,8 @@ import (
 // This operation is best effort, in the sense that in case of problems in retrieving member status, it sets
 // the condition to Unknown state without returning any error.
 func (w *Workload) UpdateEtcdConditions(ctx context.Context, controlPlane *ControlPlane) {
-	shouldRetry := func() bool {
-		// if CP is scaling up or down.
-		if ptr.Deref(controlPlane.KCP.Spec.Replicas, 0) != int32(len(controlPlane.Machines)) {
-			return true
-		}
-		// if CP machines are provisioning or deleting.
-		for _, m := range controlPlane.Machines {
-			if m.Status.NodeRef == nil {
-				return true
-			}
-			if !m.DeletionTimestamp.IsZero() {
-				return true
-			}
-		}
-		return false
-	}
-
 	if controlPlane.IsEtcdManaged() {
-		// Update etcd conditions.
-		// In case of well known temporary errors + control plane scaling up/down or rolling out, retry a few times.
-		// Note: it seems that reducing the number of them during every reconciles also improves stability,
-		// thus we are stopping doing retries (we only try once).
-		// However, we keep the code implementing retry support so we can easily revert this decision in a patch
-		// release if we need to.
-		maxRetry := 1
-		for i := range maxRetry {
-			retryableError := w.updateManagedEtcdConditions(ctx, controlPlane)
-			// if we should retry and there is a retry left, wait a bit.
-			if !retryableError || !shouldRetry() {
-				break
-			}
-			if i < maxRetry-1 {
-				time.Sleep(time.Duration(250*(i+1)) * time.Millisecond)
-			}
-		}
+		w.updateManagedEtcdConditions(ctx, controlPlane)
 		return
 	}
 	w.updateExternalEtcdConditions(ctx, controlPlane)
@@ -97,7 +64,7 @@ func (w *Workload) updateExternalEtcdConditions(_ context.Context, controlPlane 
 	// As soon as the v1beta1 condition above will be removed, we should drop this func entirely.
 }
 
-func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane *ControlPlane) (retryableError bool) {
+func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane *ControlPlane) {
 	// NOTE: This methods uses control plane nodes only to get in contact with etcd but then it relies on etcd
 	// as ultimate source of truth for the list of members and for their health.
 	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
@@ -121,7 +88,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Failed to get Nodes hosting the etcd cluster",
 		})
-		return retryableError
+		return
 	}
 
 	// Update conditions for etcd members on the nodes.
@@ -189,7 +156,6 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			// (those info are computed on what we can collect during inspection, so we can reason about availability even if there is a certain degree of problems in the cluster).
 
 			// While scaling up/down or rolling out new CP machines this error might happen.
-			retryableError = true
 			continue
 		}
 
@@ -214,7 +180,6 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			})
 
 			// While scaling up/down or rolling out new CP machines this error might happen because we are reading the list from different nodes at different time.
-			retryableError = true
 			continue
 		}
 
@@ -316,7 +281,6 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		trueReason:        controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
 		note:              "etcd member",
 	})
-	return retryableError
 }
 
 func unwrapAll(err error) error {

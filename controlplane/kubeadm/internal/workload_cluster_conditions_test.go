@@ -170,7 +170,6 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 		machines                                  []*clusterv1.Machine
 		injectClient                              client.Client // This test is injecting a fake client because it is required to create nodes with a controlled Status or to fail with a specific error.
 		injectEtcdClientGenerator                 etcdClientFor // This test is injecting a fake etcdClientGenerator because it is required to nodes with a controlled Status or to fail with a specific error.
-		expectedRetryableError                    bool
 		expectedKCPCondition                      *clusterv1.Condition
 		expectedKCPV1Beta2Condition               *metav1.Condition
 		expectedMachineConditions                 map[string]clusterv1.Conditions
@@ -188,8 +187,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			injectClient: &fakeClient{
 				listErr: errors.New("failed to list Nodes"),
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterInspectionFailedReason, "Failed to list Nodes which are hosting the etcd members"),
+			expectedKCPCondition: conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterInspectionFailedReason, "Failed to list Nodes which are hosting the etcd members"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.UnknownCondition(controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to get the Node which is hosting the etcd member"),
@@ -220,8 +218,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   nil,
+			expectedKCPCondition: nil,
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {},
 			},
@@ -251,8 +248,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   nil,
+			expectedKCPCondition: nil,
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {},
 			},
@@ -280,8 +276,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Control plane Node %s does not have a corresponding Machine", "n1"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Control plane Node %s does not have a corresponding Machine", "n1"),
 			expectedKCPV1Beta2Condition: &metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -305,8 +300,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			injectEtcdClientGenerator: &fakeEtcdClientGenerator{
 				forNodesErr: errors.New("failed to get client for node"),
 			},
-			expectedRetryableError: true,
-			expectedKCPCondition:   conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnknownReason, "Following Machines are reporting unknown etcd member status: m1"),
+			expectedKCPCondition: conditions.UnknownCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnknownReason, "Following Machines are reporting unknown etcd member status: m1"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.UnknownCondition(controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to the etcd Pod on the %s Node: failed to get client for node", "n1"),
@@ -346,8 +340,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					Errors: []string{"some errors"},
 				},
 			},
-			expectedRetryableError: true,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member status reports errors: %s", "some errors"),
@@ -387,8 +380,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					},
 				},
 			},
-			expectedRetryableError: true,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed to get answer from the etcd member on the %s Node", "n1"),
@@ -437,8 +429,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					},
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m1"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member reports alarms: %s", "NOSPACE"),
@@ -519,8 +510,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					}
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
@@ -607,8 +597,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					}
 				},
 			},
-			expectedRetryableError: true,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
@@ -677,8 +666,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					}
 				},
 			},
-			expectedRetryableError: true,
-			expectedKCPCondition:   conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
+			expectedKCPCondition: conditions.FalseCondition(controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterUnhealthyReason, clusterv1.ConditionSeverityError, "Following Machines are reporting etcd member errors: %s", "m2"),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
@@ -765,8 +753,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 					}
 				},
 			},
-			expectedRetryableError: false,
-			expectedKCPCondition:   conditions.TrueCondition(controlplanev1.EtcdClusterHealthyCondition),
+			expectedKCPCondition: conditions.TrueCondition(controlplanev1.EtcdClusterHealthyCondition),
 			expectedMachineConditions: map[string]clusterv1.Conditions{
 				"m1": {
 					*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
@@ -810,8 +797,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				Machines: collections.FromMachines(tt.machines...),
 			}
 
-			retryableError := w.updateManagedEtcdConditions(ctx, controlPane)
-			g.Expect(retryableError).To(Equal(tt.expectedRetryableError))
+			w.updateManagedEtcdConditions(ctx, controlPane)
 
 			if tt.expectedKCPCondition != nil {
 				g.Expect(*conditions.Get(tt.kcp, controlplanev1.EtcdClusterHealthyCondition)).To(conditions.MatchCondition(*tt.expectedKCPCondition))

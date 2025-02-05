@@ -180,6 +180,7 @@ The goal of this task is to inform all providers that a new beta.0 version a rel
 
 We should inform at least the following providers via a new issue on their respective repos that a new version of CAPI is being released (provide the release date) and that the beta.0 version is ready for them to test.
 
+* Addon provider fleet: https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/issues/new
 * Addon provider helm: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/issues/new
 * AWS: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
 * Azure: https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new

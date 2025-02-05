@@ -28,7 +28,6 @@ type FakeEtcdClient struct { //nolint:revive
 	EtcdEndpoints        []string
 	MemberListResponse   *clientv3.MemberListResponse
 	MemberRemoveResponse *clientv3.MemberRemoveResponse
-	MemberUpdateResponse *clientv3.MemberUpdateResponse
 	MoveLeaderResponse   *clientv3.MoveLeaderResponse
 	StatusResponse       *clientv3.StatusResponse
 	ErrorResponse        error
@@ -59,9 +58,6 @@ func (c *FakeEtcdClient) MemberList(_ context.Context) (*clientv3.MemberListResp
 func (c *FakeEtcdClient) MemberRemove(_ context.Context, i uint64) (*clientv3.MemberRemoveResponse, error) {
 	c.RemovedMember = i
 	return c.MemberRemoveResponse, c.ErrorResponse
-}
-func (c *FakeEtcdClient) MemberUpdate(_ context.Context, _ uint64, _ []string) (*clientv3.MemberUpdateResponse, error) {
-	return c.MemberUpdateResponse, c.ErrorResponse
 }
 func (c *FakeEtcdClient) Status(_ context.Context, _ string) (*clientv3.StatusResponse, error) {
 	return c.StatusResponse, nil

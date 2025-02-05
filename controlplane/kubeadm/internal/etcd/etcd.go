@@ -44,7 +44,6 @@ type etcd interface {
 	Endpoints() []string
 	MemberList(ctx context.Context) (*clientv3.MemberListResponse, error)
 	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
-	MemberUpdate(ctx context.Context, id uint64, peerURLs []string) (*clientv3.MemberUpdateResponse, error)
 	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
 	Status(ctx context.Context, endpoint string) (*clientv3.StatusResponse, error)
 }
@@ -254,24 +253,6 @@ func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
 	return errors.Wrapf(err, "failed to remove member: %v", id)
-}
-
-// UpdateMemberPeerURLs updates the list of peer URLs.
-func (c *Client) UpdateMemberPeerURLs(ctx context.Context, id uint64, peerURLs []string) ([]*Member, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
-	defer cancel()
-
-	response, err := c.EtcdClient.MemberUpdate(ctx, id, peerURLs)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update etcd member %v's peer list to %+v", id, peerURLs)
-	}
-
-	members := make([]*Member, 0, len(response.Members))
-	for _, m := range response.Members {
-		members = append(members, pbMemberToMember(m))
-	}
-
-	return members, nil
 }
 
 // Alarms retrieves all alarms on a cluster.

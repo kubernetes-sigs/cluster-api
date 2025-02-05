@@ -716,6 +716,11 @@ spec:
       jsonPath: .spec.topology.class
       name: ClusterClass
       type: string
+    - description: Template namespace of this Cluster
+      jsonPath: .spec.topology.classNamespace
+      name: ClusterClass_Namespace
+      priority: 10
+      type: string
     - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
       jsonPath: .status.phase
       name: Phase

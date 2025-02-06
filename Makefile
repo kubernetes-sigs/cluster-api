@@ -81,7 +81,8 @@ GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
 GINKGO_LABEL_FILTER ?=
 GINKGO_NODES ?= 1
-GINKGO_TIMEOUT ?= 2h
+GINKGO_TIMEOUT ?= 3h
+GINKGO_ARGS ?=
 GINKGO_POLL_PROGRESS_AFTER ?= 60m
 GINKGO_POLL_PROGRESS_INTERVAL ?= 5m
 E2E_CONF_FILE ?= $(ROOT_DIR)/$(TEST_DIR)/e2e/config/docker.yaml
@@ -973,13 +974,17 @@ test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integra
 
 .PHONY: test-e2e
 test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
-	$(GINKGO) -v --trace -poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) \
-		-poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" --label-filter="$(GINKGO_LABEL_FILTER)" \
-		$(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) \
-		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) $(ROOT_DIR)/$(TEST_DIR)/e2e -- \
-	    -e2e.artifacts-folder="$(ARTIFACTS)" \
-	    -e2e.config="$(E2E_CONF_FILE)" \
-	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
+	$(GINKGO) -v --trace --tags=e2e \
+		--nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) \
+		--label-filter="$(GINKGO_LABEL_FILTER)" --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
+		--poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) --poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) \
+		--fail-on-pending --fail-on-empty \
+		--no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" \
+		$(GINKGO_ARGS) ./test/e2e -- \
+		--e2e.artifacts-folder="$(ARTIFACTS)" \
+		--e2e.config="$(E2E_CONF_FILE)" \
+		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
+		--e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
 
 
 .PHONY: kind-cluster

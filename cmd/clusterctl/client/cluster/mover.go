@@ -1230,18 +1230,17 @@ func (o *objectMover) deleteSourceObject(ctx context.Context, nodeToDelete *node
 			sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
 	}
 
+	if err := cFrom.Delete(ctx, sourceObj); err != nil {
+		return errors.Wrapf(err, "error deleting %q %s/%s",
+			sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
+	}
+
 	if len(sourceObj.GetFinalizers()) > 0 {
 		if err := cFrom.Patch(ctx, sourceObj, removeFinalizersPatch); err != nil {
 			return errors.Wrapf(err, "error removing finalizers from %q %s/%s",
 				sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
 		}
 	}
-
-	if err := cFrom.Delete(ctx, sourceObj); err != nil {
-		return errors.Wrapf(err, "error deleting %q %s/%s",
-			sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
-	}
-
 	return nil
 }
 

@@ -1715,6 +1715,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 * Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
 * Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
 * Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
+* Pod pod-9-wait-completed: waiting for completion
 After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
 							},
 						},
@@ -1733,7 +1734,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
-					Message: "Machine deletion in progress since more than 15m, stage: DrainingNode, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors",
+					Message: "Machine deletion in progress since more than 15m, stage: DrainingNode, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 				},
 			},
 		},

@@ -215,8 +215,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	defer func() {
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
-			var connFailure *internal.RemoteClusterConnectionError
-			if errors.As(err, &connFailure) {
+			if errors.Is(err, &internal.RemoteClusterConnectionError{}) {
 				log.Error(err, "Could not connect to workload cluster to fetch status")
 			} else {
 				log.Error(err, "Failed to update KubeadmControlPlane status")

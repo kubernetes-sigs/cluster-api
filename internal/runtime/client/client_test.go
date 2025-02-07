@@ -984,6 +984,17 @@ func TestClient_CallAllExtensions(t *testing.T) {
 		},
 	}
 
+	secondBlockingConfig := extensionConfig.DeepCopy()
+	secondBlockingConfig.Status.Handlers[0].Priority = 2
+	secondBlockingConfig.Status.Handlers[1].Priority = 1
+	secondBlockingConfig.Status.Handlers[1].Serial = true
+	secondBlockingConfig.Status.Handlers[0].RequestHook.Hook = "RetryableFakeHook"
+	secondBlockingConfig.Status.Handlers[1].RequestHook.Hook = "RetryableFakeHook"
+	secondBlockingConfig.Status.Handlers[2].RequestHook.Hook = "RetryableFakeHook"
+
+	secondBlockingWithPriorityConfig := secondBlockingConfig.DeepCopy()
+	secondBlockingWithPriorityConfig.Status.Handlers[1].Priority = 3
+
 	type args struct {
 		hook     runtimecatalog.Hook
 		request  runtimehooksv1.RequestObject
@@ -1071,6 +1082,55 @@ func TestClient_CallAllExtensions(t *testing.T) {
 				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: true,
+		},
+		{
+			name:                       "should succeed and wait on previous blocking responses for serial handler",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{*secondBlockingConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/retryablefakehook/first-extension.*": retryResponse(runtimehooksv1.ResponseStatusSuccess, 1),
+					// second and third extension has no handler.
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.RetryableFakeHook,
+				request:  &fakev1alpha1.RetryableFakeRequest{},
+				response: &fakev1alpha1.RetryableFakeResponse{},
+			},
+		},
+		{
+			name:                       "should succeed and wait on blocking serial handler",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{*secondBlockingConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/retryablefakehook/first-extension.*":  response(runtimehooksv1.ResponseStatusSuccess),
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/retryablefakehook/second-extension.*": retryResponse(runtimehooksv1.ResponseStatusSuccess, 1),
+					// third-extension has no handler.
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.RetryableFakeHook,
+				request:  &fakev1alpha1.RetryableFakeRequest{},
+				response: &fakev1alpha1.RetryableFakeResponse{},
+			},
+		},
+		{
+			name:                       "should succeed and wait on blocking serial handler, which is called with priority",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{*secondBlockingWithPriorityConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/retryablefakehook/second-extension.*": retryResponse(runtimehooksv1.ResponseStatusSuccess, 1),
+					// second and third extension has no handler.
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.RetryableFakeHook,
+				request:  &fakev1alpha1.RetryableFakeRequest{},
+				response: &fakev1alpha1.RetryableFakeResponse{},
+			},
 		},
 		{
 			name:                       "should fail when one of the ExtensionHandlers returns 404",
@@ -1317,6 +1377,20 @@ func response(status runtimehooksv1.ResponseStatus) testServerResponse {
 	}
 }
 
+func retryResponse(status runtimehooksv1.ResponseStatus, retrySeconds int32) testServerResponse {
+	return testServerResponse{
+		response: &fakev1alpha1.RetryableFakeResponse{
+			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+				RetryAfterSeconds: retrySeconds,
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: status,
+				},
+			},
+		},
+		responseStatusCode: http.StatusOK,
+	}
+}
+
 func createSecureTestServer(server testServerConfig, callbacks ...func()) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -1335,7 +1409,10 @@ func createSecureTestServer(server testServerConfig, callbacks ...func()) *httpt
 				panic(err)
 			}
 			w.WriteHeader(resp.responseStatusCode)
-			_, _ = w.Write(respBody)
+			_, err = w.Write(respBody)
+			if err != nil {
+				panic(err)
+			}
 			return
 		}
 

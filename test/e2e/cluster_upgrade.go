@@ -184,10 +184,12 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				WaitForKubeProxyUpgrade:        input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForDNSUpgrade:              input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForEtcdUpgrade:             input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				PreWaitForControlPlaneToBeUpgraded: func() {
-					if input.PreWaitForControlPlaneToBeUpgraded != nil {
-						input.PreWaitForControlPlaneToBeUpgraded(input.BootstrapClusterProxy, namespace.Name, clusterName)
-					}
+				PreWaitForControlPlaneToBeUpgraded: []func(){
+					func() {
+						if input.PreWaitForControlPlaneToBeUpgraded != nil {
+							input.PreWaitForControlPlaneToBeUpgraded(input.BootstrapClusterProxy, namespace.Name, clusterName)
+						}
+					},
 				},
 			})
 		} else {

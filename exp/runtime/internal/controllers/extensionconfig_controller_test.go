@@ -229,6 +229,10 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		handlers := discoveredExtensionConfig.Status.Handlers
 		g.Expect(handlers).To(HaveLen(1))
 		g.Expect(handlers[0].Name).To(Equal("first.ext1"))
+		g.Expect(handlers[0].RequestHook.Hook).To(Equal("FakeHook"))
+		g.Expect(handlers[0].RequestHook.APIVersion).To(Equal("test.runtime.cluster.x-k8s.io/v1alpha1"))
+		g.Expect(handlers[0].Serial).To(BeTrue())
+		g.Expect(handlers[0].Priority).To(Equal(int32(100)))
 
 		// Expect exactly one condition and expect the condition to have type RuntimeExtensionDiscoveredCondition and
 		// Status true.
@@ -345,6 +349,8 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 				Hook:       "FakeHook",
 				APIVersion: fakev1alpha1.GroupVersion.String(),
 			},
+			Serial:   true,
+			Priority: 100,
 		})
 	}
 	response := &runtimehooksv1.DiscoveryResponse{

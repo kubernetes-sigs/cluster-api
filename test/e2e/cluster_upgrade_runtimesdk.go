@@ -277,12 +277,20 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 			WaitForKubeProxyUpgrade:        input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			WaitForDNSUpgrade:              input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			WaitForEtcdUpgrade:             input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			PreWaitForControlPlaneToBeUpgraded: func() {
-				beforeClusterUpgradeTestHandler(ctx,
-					input.BootstrapClusterProxy.GetClient(),
-					clusterRef,
-					input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+			PreWaitForControlPlaneToBeUpgraded: []func(){
+				func() {
+					justBeforeClusterUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterRef,
+						input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+				},
+				func() {
+					beforeClusterUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterRef,
+						input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
+						input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+				},
 			},
 			PreWaitForWorkersToBeUpgraded: func() {
 				machineSetPreflightChecksTestHandler(ctx,
@@ -577,6 +585,19 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			}
 		}
 		return blocked
+	}, intervals)
+}
+
+// justBeforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
+// JustBeforeClusterUpgrade hook passed, and BeforeClusterUpgrade hook is pending.
+func justBeforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
+	hookName := "JustBeforeClusterUpgrade"
+	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
+		// Wait for JustBeforeClusterUpgrade to pass and BeforeClusterUpgrade pending
+		return checkLifecycleHookResponses(ctx, c, cluster, map[string]string{
+			"JustBeforeClusterUpgrade": "Status: Success, RetryAfterSeconds: 0",
+			"BeforeClusterUpgrade":     "Status: Success, RetryAfterSeconds: 5",
+		}) != nil
 	}, intervals)
 }
 

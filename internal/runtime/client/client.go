@@ -143,6 +143,8 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 				},
 				TimeoutSeconds: handler.TimeoutSeconds,
 				FailurePolicy:  (*runtimev1.FailurePolicy)(handler.FailurePolicy),
+				Priority:       handler.Priority,
+				Serial:         handler.Serial,
 			},
 		)
 	}
@@ -193,6 +195,7 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 
 	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
 	responses := []runtimehooksv1.ResponseObject{}
+	retry := false
 	for _, registration := range registrations {
 		// Creates a new instance of the response parameter.
 		responseObject, err := c.catalog.NewResponse(gvh)
@@ -212,13 +215,28 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 			continue
 		}
 
+		if registration.Serial && retry {
+			log.V(5).Info(fmt.Sprintf("Serial handler %q waits for blocking response to complete", registration.Name))
+			break
+		}
+
 		err = c.CallExtension(ctx, hook, forObject, registration.Name, request, tmpResponse)
 		// If one of the extension handlers fails lets short-circuit here and return early.
 		if err != nil {
 			log.Error(err, "failed to call extension handlers")
 			return errors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
 		}
+
+		if retryResponse, isRetry := tmpResponse.(runtimehooksv1.RetryResponseObject); isRetry && !retry && retryResponse.GetRetryAfterSeconds() > 0 {
+			retry = isRetry
+		}
+
 		responses = append(responses, tmpResponse)
+
+		if registration.Serial && retry {
+			log.V(5).Info(fmt.Sprintf("Serial handler %q is blocking hook until it is completed", registration.Name))
+			break
+		}
 	}
 
 	// Aggregate all responses into a single response.

@@ -73,7 +73,7 @@ type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
 	WaitForKubeProxyUpgrade            []interface{}
 	WaitForDNSUpgrade                  []interface{}
 	WaitForEtcdUpgrade                 []interface{}
-	PreWaitForControlPlaneToBeUpgraded func()
+	PreWaitForControlPlaneToBeUpgraded []func()
 	PreWaitForWorkersToBeUpgraded      func()
 	SkipKubeProxyCheck                 bool
 }
@@ -113,7 +113,9 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 	// and blocking correctly.
 	if input.PreWaitForControlPlaneToBeUpgraded != nil {
 		log.Logf("Calling PreWaitForControlPlaneToBeUpgraded")
-		input.PreWaitForControlPlaneToBeUpgraded()
+		for _, f := range input.PreWaitForControlPlaneToBeUpgraded {
+			f()
+		}
 	}
 
 	log.Logf("Waiting for control-plane machines to have the upgraded Kubernetes version")

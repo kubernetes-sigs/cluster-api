@@ -241,7 +241,6 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 
 	if ca.Connected(ctx) {
 		log.V(6).Info("Skipping connect, already connected")
-		connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
 		return nil
 	}
 
@@ -258,6 +257,8 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 			log.Error(retErr, "Connect failed")
 			connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
 			ca.lockedState.lastConnectionCreationErrorTimestamp = time.Now()
+		} else {
+			connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
 		}
 	}()
 
@@ -266,7 +267,6 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	}
 
 	log.Info("Connected")
-	connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
 
 	// Only generate the clientCertificatePrivateKey once as there is no need to regenerate it after disconnect/connect.
 	// Note: This has to be done before setting connection, because otherwise this code wouldn't be re-entrant if the
@@ -301,17 +301,17 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 // Disconnect disconnects a connection to the workload cluster.
 func (ca *clusterAccessor) Disconnect(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
-	defer func() {
-		connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
-	}()
 	if !ca.Connected(ctx) {
 		log.V(6).Info("Skipping disconnect, already disconnected")
 		return
 	}
 
 	ca.lock(ctx)
-	defer ca.unlock(ctx)
 
+	defer func() {
+		ca.unlock(ctx)
+		connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
+	}()
 	log.Info("Disconnecting")
 
 	// Stopping the cache is non-blocking, so it's okay to do it while holding the lock.
@@ -357,16 +357,19 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (unauthorized error occurred): %v", err))
 		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
+		healthChecksTotal.WithLabelValues(ca.cluster.String(), "error").Inc()
 	case err != nil:
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (%d/%d): %v",
 			ca.lockedState.healthChecking.consecutiveFailures, ca.config.HealthProbe.FailureThreshold, err))
 		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
+		healthChecksTotal.WithLabelValues(ca.cluster.String(), "error").Inc()
 	default:
 		ca.lockedState.healthChecking.consecutiveFailures = 0
 		ca.lockedState.healthChecking.lastProbeSuccessTimestamp = ca.lockedState.healthChecking.lastProbeTimestamp
 		log.V(6).Info("Health probe succeeded")
 		healthCheck.WithLabelValues(ca.cluster.String()).Set(1)
+		healthChecksTotal.WithLabelValues(ca.cluster.String(), "success").Inc()
 	}
 
 	tooManyConsecutiveFailures := ca.lockedState.healthChecking.consecutiveFailures >= ca.config.HealthProbe.FailureThreshold

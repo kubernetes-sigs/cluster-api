@@ -24,20 +24,30 @@ import (
 func init() {
 	// Register the metrics at the controller-runtime metrics registry.
 	ctrlmetrics.Registry.MustRegister(healthCheck)
+	ctrlmetrics.Registry.MustRegister(connectionUp)
+	ctrlmetrics.Registry.MustRegister(healthChecksTotal)
 }
 
 var (
 	healthCheck = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "capi_clustercache_health_check",
+			Name: "capi_cluster_cache_health_check",
 			Help: "Result of a single clustercache healthcheck.",
 		}, []string{
 			"cluster",
 		},
 	)
+	healthChecksTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "capi_cluster_cache_health_checks_total",
+			Help: "Results of all healthchecks.",
+		}, []string{
+			"cluster", "status",
+		},
+	)
 	connectionUp = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "capi_clustercache_connection_up",
+			Name: "capi_cluster_cache_connection_up",
 			Help: "Whether the connection to the cluster is up.",
 		}, []string{
 			"cluster",

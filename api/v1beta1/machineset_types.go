@@ -309,6 +309,10 @@ type MachineSetStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
+	// failureReason will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a succinct value suitable
+	// for machine interpretation.
+	//
 	// In the event that there is a terminal problem reconciling the
 	// replicas, both FailureReason and FailureMessage will be set. FailureReason
 	// will be populated with a succinct value suitable for machine
@@ -332,10 +336,16 @@ type MachineSetStatus struct {
 	//
 	// +optional
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
+
+	// failureMessage will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a more verbose string suitable
+	// for logging and human consumption.
+	//
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
 	// conditions defines current service state of the MachineSet.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`

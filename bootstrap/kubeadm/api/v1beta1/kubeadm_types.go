@@ -662,7 +662,9 @@ type KubeConfigAuthExec struct {
 // KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
 // credential plugin.
 type KubeConfigAuthExecEnv struct {
-	Name  string `json:"name"`
+	// name of the environment variable
+	Name string `json:"name"`
+	// value of the environment variable
 	Value string `json:"value"`
 }
 

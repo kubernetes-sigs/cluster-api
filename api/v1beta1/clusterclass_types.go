@@ -296,13 +296,15 @@ type MachineHealthCheckClass struct {
 	// +optional
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
-	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
+	// unhealthyRange specifies the range of unhealthy machines allowed.
 	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-	// is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+	// is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
 	// Eg. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy machines (and)
 	// (b) there are at most 5 unhealthy machines

@@ -40,13 +40,14 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions"`
 
-	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
-	// Machines older than this duration without a node will be considered to have
-	// failed and will be remediated.
+	// nodeStartupTimeout is the duration after which machines without a node will be considered to
+	// have failed and will be remediated.
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 
@@ -68,14 +69,20 @@ type MachineHealthCheckSpec struct {
 // specified as a duration.  When the named condition has been in the given
 // status for at least the timeout value, a node is considered unhealthy.
 type UnhealthyCondition struct {
+	// type of Node condition
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Type corev1.NodeConditionType `json:"type"`
 
+	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Status corev1.ConditionStatus `json:"status"`
 
+	// timeout is the duration that a node must be in a given status for,
+	// after which the node is considered unhealthy.
+	// For example, with a value of "1h", the node must match the status
+	// for at least 1 hour before being considered unhealthy.
 	Timeout metav1.Duration `json:"timeout"`
 }
 

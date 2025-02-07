@@ -61,7 +61,7 @@ type ClusterSpec struct {
 	// +optional
 	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
 
-	// This encapsulates the topology for the cluster.
+	// topology encapsulates the topology for the cluster.
 	// NOTE: It is required to enable the ClusterTopology
 	// feature gate flag to activate managed topologies support;
 	// this feature is highly experimental, and parts of it might still be not implemented.
@@ -172,6 +172,7 @@ type ClusterNetwork struct {
 
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
+	// cidrBlocks is a list of CIDR blocks.
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 

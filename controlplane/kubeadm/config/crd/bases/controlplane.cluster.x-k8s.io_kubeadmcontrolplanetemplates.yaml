@@ -52,8 +52,7 @@ spec:
               of KubeadmControlPlaneTemplate.
             properties:
               template:
-                description: KubeadmControlPlaneTemplateResource describes the data
-                  needed to create a KubeadmControlPlane from a template.
+                description: template defines the desired state of KubeadmControlPlaneTemplate.
                 properties:
                   spec:
                     description: KubeadmControlPlaneSpec defines the desired state
@@ -1165,8 +1164,7 @@ spec:
               of KubeadmControlPlaneTemplate.
             properties:
               template:
-                description: KubeadmControlPlaneTemplateResource describes the data
-                  needed to create a KubeadmControlPlane from a template.
+                description: template defines the desired state of KubeadmControlPlaneTemplate.
                 properties:
                   metadata:
                     description: |-
@@ -2627,8 +2625,12 @@ spec:
                                                         credential plugin.
                                                       properties:
                                                         name:
+                                                          description: name of the
+                                                            environment variable
                                                           type: string
                                                         value:
+                                                          description: value of the
+                                                            environment variable
                                                           type: string
                                                       required:
                                                       - name

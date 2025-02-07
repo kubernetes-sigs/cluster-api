@@ -92,6 +92,7 @@ type ClusterNetwork struct {
 
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
+	// cidrBlocks is a list of CIDR blocks.
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 

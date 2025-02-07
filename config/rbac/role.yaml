@@ -72,7 +72,16 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions/status
+  verbs:
+  - patch
+  - update
 - apiGroups:
   - authentication.k8s.io
   resources:
@@ -93,6 +102,7 @@ rules:
   - clusters
   - clusters/finalizers
   - clusters/status
+  - machinedrainrules
   - machinehealthchecks/finalizers
   - machinehealthchecks/status
   verbs:
@@ -126,20 +136,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinedrainrules
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - ipam.cluster.x-k8s.io
   resources:
   - ipaddressclaims
+  - ipaddresses
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - runtime.cluster.x-k8s.io

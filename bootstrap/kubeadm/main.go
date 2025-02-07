@@ -27,6 +27,7 @@ import (
 
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -50,6 +51,7 @@ import (
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -90,11 +92,13 @@ var (
 	clusterConcurrency       int
 	clusterCacheConcurrency  int
 	kubeadmConfigConcurrency int
+	skipCRDMigrationPhases   string
 	tokenTTL                 time.Duration
 )
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
 	_ = bootstrapv1alpha3.AddToScheme(scheme)
@@ -140,6 +144,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
 		"Number of kubeadm configs to process simultaneously")
 
+	fs.StringVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", "",
+		"Comma-separated list of CRD migration phases to skip. Valid values are: All, StorageVersionMigration, CleanupManagedFields.")
+
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
@@ -181,6 +188,10 @@ func InitFlags(fs *pflag.FlagSet) {
 // Add RBAC for the authorized diagnostics endpoint.
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// ADD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=update;patch
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,verbs=get;list;watch;patch;update
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -337,6 +348,19 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
 		setupLog.Error(err, "Unable to create ClusterCache")
+		os.Exit(1)
+	}
+
+	if err := (&crdmigrator.CRDMigrator{
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		SkipCRDMigrationPhases: skipCRDMigrationPhases,
+		Config: map[client.Object]crdmigrator.ByObjectConfig{
+			&bootstrapv1.KubeadmConfig{}:         {UseCache: true},
+			&bootstrapv1.KubeadmConfigTemplate{}: {UseCache: false},
+		},
+	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
 		os.Exit(1)
 	}
 

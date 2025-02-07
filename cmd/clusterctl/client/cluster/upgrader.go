@@ -57,8 +57,9 @@ type UpgradePlan struct {
 
 // UpgradeOptions defines the options used to upgrade installation.
 type UpgradeOptions struct {
-	WaitProviders       bool
-	WaitProviderTimeout time.Duration
+	WaitProviders                    bool
+	WaitProviderTimeout              time.Duration
+	EnableCRDStorageVersionMigration bool
 }
 
 // isPartialUpgrade returns true if at least one upgradeItem in the plan does not have a target version.
@@ -363,28 +364,30 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
 	})
 
-	// Migrate CRs to latest CRD storage version, if necessary.
-	// Note: We have to do this before the providers are scaled down or deleted
-	// so conversion webhooks still work.
-	for _, upgradeItem := range providers {
-		// If there is not a specified next version, skip it (we are already up-to-date).
-		if upgradeItem.NextVersion == "" {
-			continue
-		}
+	if opts.EnableCRDStorageVersionMigration {
+		// Migrate CRs to latest CRD storage version, if necessary.
+		// Note: We have to do this before the providers are scaled down or deleted
+		// so conversion webhooks still work.
+		for _, upgradeItem := range providers {
+			// If there is not a specified next version, skip it (we are already up-to-date).
+			if upgradeItem.NextVersion == "" {
+				continue
+			}
 
-		// Gets the provider components for the target version.
-		components, err := u.getUpgradeComponents(ctx, upgradeItem)
-		if err != nil {
-			return err
-		}
+			// Gets the provider components for the target version.
+			components, err := u.getUpgradeComponents(ctx, upgradeItem)
+			if err != nil {
+				return err
+			}
 
-		c, err := u.proxy.NewClient(ctx)
-		if err != nil {
-			return err
-		}
+			c, err := u.proxy.NewClient(ctx)
+			if err != nil {
+				return err
+			}
 
-		if err := NewCRDMigrator(c).Run(ctx, components.Objs()); err != nil {
-			return err
+			if err := NewCRDMigrator(c).Run(ctx, components.Objs()); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -448,7 +451,11 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		}
 	}
 
-	return waitForProvidersReady(ctx, InstallOptions(opts), installQueue, u.proxy)
+	installOpts := InstallOptions{
+		WaitProviders:       opts.WaitProviders,
+		WaitProviderTimeout: opts.WaitProviderTimeout,
+	}
+	return waitForProvidersReady(ctx, installOpts, installQueue, u.proxy)
 }
 
 func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clusterctlv1.Provider) error {

@@ -28,18 +28,19 @@ import (
 )
 
 type upgradeApplyOptions struct {
-	kubeconfig                string
-	kubeconfigContext         string
-	contract                  string
-	coreProvider              string
-	bootstrapProviders        []string
-	controlPlaneProviders     []string
-	infrastructureProviders   []string
-	ipamProviders             []string
-	runtimeExtensionProviders []string
-	addonProviders            []string
-	waitProviders             bool
-	waitProviderTimeout       int
+	kubeconfig                       string
+	kubeconfigContext                string
+	contract                         string
+	coreProvider                     string
+	bootstrapProviders               []string
+	controlPlaneProviders            []string
+	infrastructureProviders          []string
+	ipamProviders                    []string
+	runtimeExtensionProviders        []string
+	addonProviders                   []string
+	waitProviders                    bool
+	waitProviderTimeout              int
+	enableCRDStorageVersionMigration bool
 }
 
 var ua = &upgradeApplyOptions{}
@@ -94,6 +95,10 @@ func init() {
 		"Wait for providers to be upgraded.")
 	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,
 		"Wait timeout per provider upgrade in seconds. This value is ignored if --wait-providers is false")
+	upgradeApplyCmd.Flags().BoolVar(&ua.enableCRDStorageVersionMigration, "enable-crd-storage-version-migration", false,
+		"Enable CRD storage version migration")
+	_ = upgradeApplyCmd.Flags().MarkDeprecated("enable-crd-storage-version-migration",
+		"Storage version migration during upgrades has been deprecated and will be removed in Cluster API v1.13")
 }
 
 func runUpgradeApply() error {
@@ -120,16 +125,17 @@ func runUpgradeApply() error {
 	}
 
 	return c.ApplyUpgrade(ctx, client.ApplyUpgradeOptions{
-		Kubeconfig:                client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
-		Contract:                  ua.contract,
-		CoreProvider:              ua.coreProvider,
-		BootstrapProviders:        ua.bootstrapProviders,
-		ControlPlaneProviders:     ua.controlPlaneProviders,
-		InfrastructureProviders:   ua.infrastructureProviders,
-		IPAMProviders:             ua.ipamProviders,
-		RuntimeExtensionProviders: ua.runtimeExtensionProviders,
-		AddonProviders:            ua.addonProviders,
-		WaitProviders:             ua.waitProviders,
-		WaitProviderTimeout:       time.Duration(ua.waitProviderTimeout) * time.Second,
+		Kubeconfig:                       client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
+		Contract:                         ua.contract,
+		CoreProvider:                     ua.coreProvider,
+		BootstrapProviders:               ua.bootstrapProviders,
+		ControlPlaneProviders:            ua.controlPlaneProviders,
+		InfrastructureProviders:          ua.infrastructureProviders,
+		IPAMProviders:                    ua.ipamProviders,
+		RuntimeExtensionProviders:        ua.runtimeExtensionProviders,
+		AddonProviders:                   ua.addonProviders,
+		WaitProviders:                    ua.waitProviders,
+		WaitProviderTimeout:              time.Duration(ua.waitProviderTimeout) * time.Second,
+		EnableCRDStorageVersionMigration: ua.enableCRDStorageVersionMigration,
 	})
 }

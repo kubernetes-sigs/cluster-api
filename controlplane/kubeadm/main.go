@@ -52,6 +52,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
@@ -96,6 +97,7 @@ var (
 	remoteConditionsGracePeriod    time.Duration
 	kubeadmControlPlaneConcurrency int
 	clusterCacheConcurrency        int
+	skipCRDMigrationPhases         string
 	etcdDialTimeout                time.Duration
 	etcdCallTimeout                time.Duration
 )
@@ -146,6 +148,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
 		"Number of kubeadm control planes to process simultaneously")
 
+	fs.StringVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", "",
+		"Comma-separated list of CRD migration phases to skip. Valid values are: All, StorageVersionMigration, CleanupManagedFields.")
+
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
@@ -193,6 +198,9 @@ func InitFlags(fs *pflag.FlagSet) {
 // Add RBAC for the authorized diagnostics endpoint.
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// ADD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=update;patch
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -384,6 +392,19 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
 		setupLog.Error(err, "Unable to create ClusterCache")
+		os.Exit(1)
+	}
+
+	if err := (&crdmigrator.CRDMigrator{
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		SkipCRDMigrationPhases: skipCRDMigrationPhases,
+		Config: map[client.Object]crdmigrator.ByObjectConfig{
+			&controlplanev1.KubeadmControlPlane{}:         {UseCache: true},
+			&controlplanev1.KubeadmControlPlaneTemplate{}: {UseCache: false},
+		},
+	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
 		os.Exit(1)
 	}
 

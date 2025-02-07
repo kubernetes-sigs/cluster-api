@@ -33,13 +33,13 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 )
 
 var scheme = runtime.NewScheme()
 
 func init() {
-	_ = cloudv1.AddToScheme(scheme)
+	_ = v1alpha2.AddToScheme(scheme)
 }
 
 func Test_cache_scale(t *testing.T) {
@@ -89,7 +89,7 @@ func Test_cache_scale(t *testing.T) {
 					item := rand.Intn(objectsForResourceGroups) //nolint:gosec // Intentionally using a weak random number generator here.
 					switch operation {
 					case 0: // create or get
-						machine := &cloudv1.CloudMachine{
+						machine := &v1alpha2.CloudMachine{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: machineName(item),
 							},
@@ -104,13 +104,13 @@ func Test_cache_scale(t *testing.T) {
 						g.Expect(err).ToNot(HaveOccurred())
 						createCount.Add(1)
 					case 1: // list
-						obj := &cloudv1.CloudMachineList{}
+						obj := &v1alpha2.CloudMachineList{}
 						err := c.List(resourceGroup, obj)
 						g.Expect(err).ToNot(HaveOccurred())
 						listCount.Add(1)
 					case 2: // delete
 						g.Expect(err).ToNot(HaveOccurred())
-						machine := &cloudv1.CloudMachine{
+						machine := &v1alpha2.CloudMachine{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: machineName(item),
 							},

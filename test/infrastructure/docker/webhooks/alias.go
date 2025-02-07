@@ -45,3 +45,35 @@ type DockerMachineTemplate struct{}
 func (webhook *DockerMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.DockerMachineTemplate{}).SetupWebhookWithManager(mgr)
 }
+
+// DevCluster implements a validating and defaulting webhook for DevCluster.
+type DevCluster struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *DevCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.DevCluster{}).SetupWebhookWithManager(mgr)
+}
+
+// DevClusterTemplate implements a validating webhook for DevClusterTemplate.
+type DevClusterTemplate struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *DevClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.DevClusterTemplate{}).SetupWebhookWithManager(mgr)
+}
+
+// DevMachine implements a validating webhook for DevMachine.
+type DevMachine struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *DevMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.DevMachine{}).SetupWebhookWithManager(mgr)
+}
+
+// DevMachineTemplate implements a validating webhook for DevMachineTemplate.
+type DevMachineTemplate struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.DevMachineTemplate{}).SetupWebhookWithManager(mgr)
+}

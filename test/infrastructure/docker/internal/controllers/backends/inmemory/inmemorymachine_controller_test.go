@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package inmemory
 
 import (
 	"context"
@@ -39,8 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
-	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -83,15 +83,17 @@ func init() {
 }
 
 func TestReconcileNormalCloudMachine(t *testing.T) {
-	inMemoryMachine := &infrav1.InMemoryMachine{
+	inMemoryMachine := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
-		Spec: infrav1.InMemoryMachineSpec{
-			Behaviour: &infrav1.InMemoryMachineBehaviour{
-				VM: &infrav1.InMemoryVMBehaviour{
-					Provisioning: infrav1.CommonProvisioningSettings{
-						StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+		Spec: infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{
+					VM: &infrav1.InMemoryVMSpec{
+						Provisioning: infrav1.CommonProvisioningSettings{
+							StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+						},
 					},
 				},
 			},
@@ -101,7 +103,7 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 	t.Run("create CloudMachine", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -130,10 +132,10 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 					time.Sleep(res.RequeueAfter / 100 * 90)
 				}
 				return res.IsZero()
-			}, inMemoryMachine.Spec.Behaviour.VM.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
+			}, inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
 			g.Expect(conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", inMemoryMachine.CreationTimestamp.Time, inMemoryMachine.Spec.Behaviour.VM.Provisioning.StartupDuration.Duration))
+			g.Expect(conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", inMemoryMachine.CreationTimestamp.Time, inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -147,26 +149,39 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 }
 
 func TestReconcileNormalNode(t *testing.T) {
-	inMemoryMachineWithVMNotYetProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithVMNotYetProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
-	}
-
-	inMemoryMachineWithVMProvisioned := &infrav1.InMemoryMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
-		Spec: infrav1.InMemoryMachineSpec{
-			Behaviour: &infrav1.InMemoryMachineBehaviour{
-				Node: &infrav1.InMemoryNodeBehaviour{
-					Provisioning: infrav1.CommonProvisioningSettings{
-						StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+		Spec: infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{
+					VM: &infrav1.InMemoryVMSpec{
+						Provisioning: infrav1.CommonProvisioningSettings{
+							StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+						},
 					},
 				},
 			},
 		},
-		Status: infrav1.InMemoryMachineStatus{
+	}
+
+	inMemoryMachineWithVMProvisioned := &infrav1.DevMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bar",
+		},
+		Spec: infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{
+					Node: &infrav1.InMemoryNodeSpec{
+						Provisioning: infrav1.CommonProvisioningSettings{
+							StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+						},
+					},
+				},
+			},
+		},
+		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
 				{
 					Type:               infrav1.VMProvisionedCondition,
@@ -180,7 +195,7 @@ func TestReconcileNormalNode(t *testing.T) {
 	t.Run("no-op if VM is not yet ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -202,7 +217,7 @@ func TestReconcileNormalNode(t *testing.T) {
 	t.Run("create node if VM is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -231,13 +246,13 @@ func TestReconcileNormalNode(t *testing.T) {
 					time.Sleep(res.RequeueAfter / 100 * 90)
 				}
 				return res.IsZero()
-			}, inMemoryMachineWithVMProvisioned.Spec.Behaviour.Node.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
+			}, inMemoryMachineWithVMProvisioned.Spec.Backend.InMemory.Node.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(conditions.IsTrue(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.VMProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithVMProvisioned.Spec.Behaviour.Node.Provisioning.StartupDuration.Duration))
+			g.Expect(conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.VMProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithVMProvisioned.Spec.Backend.InMemory.Node.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -251,26 +266,28 @@ func TestReconcileNormalNode(t *testing.T) {
 }
 
 func TestReconcileNormalEtcd(t *testing.T) {
-	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar0",
 		},
 	}
 
-	inMemoryMachineWithNodeProvisioned1 := &infrav1.InMemoryMachine{
+	inMemoryMachineWithNodeProvisioned1 := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar1",
 		},
-		Spec: infrav1.InMemoryMachineSpec{
-			Behaviour: &infrav1.InMemoryMachineBehaviour{
-				Etcd: &infrav1.InMemoryEtcdBehaviour{
-					Provisioning: infrav1.CommonProvisioningSettings{
-						StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+		Spec: infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{
+					Etcd: &infrav1.InMemoryEtcdSpec{
+						Provisioning: infrav1.CommonProvisioningSettings{
+							StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+						},
 					},
 				},
 			},
 		},
-		Status: infrav1.InMemoryMachineStatus{
+		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
 				{
 					Type:               infrav1.NodeProvisionedCondition,
@@ -288,7 +305,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 	t.Run("no-op if Node is not yet ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -324,7 +341,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
 			InMemoryManager: manager,
 			APIServerMux:    wcmux,
@@ -356,7 +373,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 					time.Sleep(res.RequeueAfter / 100 * 90)
 				}
 				return res.IsZero()
-			}, inMemoryMachineWithNodeProvisioned1.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
+			}, inMemoryMachineWithNodeProvisioned1.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -366,7 +383,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdLeaderFromAnnotationName))
 
 			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned1.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration))
+			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned1.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -385,7 +402,11 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g := NewWithT(t)
 
 		inMemoryMachineWithNodeProvisioned1 := inMemoryMachineWithNodeProvisioned1.DeepCopy()
-		inMemoryMachineWithNodeProvisioned1.Spec = infrav1.InMemoryMachineSpec{}
+		inMemoryMachineWithNodeProvisioned1.Spec = infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{},
+			},
+		}
 
 		inMemoryMachineWithNodeProvisioned2 := inMemoryMachineWithNodeProvisioned1.DeepCopy()
 		inMemoryMachineWithNodeProvisioned2.Name = "bar2"
@@ -403,7 +424,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
 			InMemoryManager: manager,
 			APIServerMux:    wcmux,
@@ -458,26 +479,28 @@ func TestReconcileNormalEtcd(t *testing.T) {
 }
 
 func TestReconcileNormalApiServer(t *testing.T) {
-	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
 	}
 
-	inMemoryMachineWithNodeProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithNodeProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
-		Spec: infrav1.InMemoryMachineSpec{
-			Behaviour: &infrav1.InMemoryMachineBehaviour{
-				APIServer: &infrav1.InMemoryAPIServerBehaviour{
-					Provisioning: infrav1.CommonProvisioningSettings{
-						StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+		Spec: infrav1.DevMachineSpec{
+			Backend: infrav1.DevMachineBackendSpec{
+				InMemory: &infrav1.InMemoryMachineBackendSpec{
+					APIServer: &infrav1.InMemoryAPIServerSpec{
+						Provisioning: infrav1.CommonProvisioningSettings{
+							StartupDuration: metav1.Duration{Duration: 2 * time.Second},
+						},
 					},
 				},
 			},
 		},
-		Status: infrav1.InMemoryMachineStatus{
+		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
 				{
 					Type:               infrav1.NodeProvisionedCondition,
@@ -495,7 +518,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 	t.Run("no-op if Node is not yet ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -531,7 +554,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.ClusterCA)).Build(),
 			InMemoryManager: manager,
 			APIServerMux:    wcmux,
@@ -563,13 +586,13 @@ func TestReconcileNormalApiServer(t *testing.T) {
 					time.Sleep(res.RequeueAfter / 100 * 90)
 				}
 				return res.IsZero()
-			}, inMemoryMachineWithNodeProvisioned.Spec.Behaviour.APIServer.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
+			}, inMemoryMachineWithNodeProvisioned.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned.Spec.Behaviour.APIServer.Provisioning.StartupDuration.Duration))
+			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -586,35 +609,35 @@ func TestReconcileNormalApiServer(t *testing.T) {
 }
 
 func TestReconcileNormalScheduler(t *testing.T) {
-	testReconcileNormalComponent(t, "kube-scheduler", func(r InMemoryMachineReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+	testReconcileNormalComponent(t, "kube-scheduler", func(r MachineBackendReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 		return r.reconcileNormalScheduler
 	})
 }
 
 func TestReconcileNormalControllerManager(t *testing.T) {
-	testReconcileNormalComponent(t, "kube-controller-manager", func(r InMemoryMachineReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+	testReconcileNormalComponent(t, "kube-controller-manager", func(r MachineBackendReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 		return r.reconcileNormalControllerManager
 	})
 }
 
-func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc func(InMemoryMachineReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error)) {
+func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc func(MachineBackendReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error)) {
 	t.Helper()
-
-	inMemoryMachineWithAPIServerNotYetProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithAPIServerNotYetProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
 	}
 
-	inMemoryMachineWithAPIServerProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithAPIServerProvisioned := &infrav1.DevMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
-		Status: infrav1.InMemoryMachineStatus{
+		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
 				{
-					Type:   infrav1.APIServerProvisionedCondition,
-					Status: corev1.ConditionTrue,
+					Type:               infrav1.APIServerProvisionedCondition,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
 				},
 			},
 		},
@@ -623,7 +646,7 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 	t.Run("no-op for worker machines", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -646,7 +669,7 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 	t.Run("no-op if API server is not yet ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
@@ -669,7 +692,7 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 	t.Run(fmt.Sprintf("create %s pod if API server is ready", component), func(t *testing.T) {
 		g := NewWithT(t)
 
-		r := InMemoryMachineReconciler{
+		r := MachineBackendReconciler{
 			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())

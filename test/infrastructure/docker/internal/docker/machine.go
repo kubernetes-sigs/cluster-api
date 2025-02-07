@@ -95,7 +95,7 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string,
 	// We tolerate this until removal;
 	// after removal IPFamily will become an internal CAPD concept.
 	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
+	ipFamily, err := cluster.GetIPFamily()
 	if err != nil {
 		return nil, fmt.Errorf("create docker machine: %s", err)
 	}
@@ -132,7 +132,7 @@ func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labe
 	// We tolerate this until removal;
 	// after removal IPFamily will become an internal CAPD concept.
 	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521 .
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
+	ipFamily, err := cluster.GetIPFamily()
 	if err != nil {
 		return nil, fmt.Errorf("list docker machines by cluster: %s", err)
 	}
@@ -457,7 +457,7 @@ func (m *Machine) SetNodeProviderID(ctx context.Context, c client.Client) error 
 // 1) For all CAPD Nodes it sets the ProviderID on the Kubernetes Node.
 // 2) If the cloudProviderTaint is set it updates the addresses in the Kubernetes Node `.status.addresses`.
 // 3) If the cloudProviderTaint is set it removes it to inform Kubernetes that this Node is now initialized.
-func (m *Machine) CloudProviderNodePatch(ctx context.Context, c client.Client, dockerMachine *infrav1.DockerMachine) error {
+func (m *Machine) CloudProviderNodePatch(ctx context.Context, c client.Client, addresses []clusterv1.MachineAddress) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	dockerNode, err := m.getDockerNode(ctx)
@@ -492,7 +492,7 @@ func (m *Machine) CloudProviderNodePatch(ctx context.Context, c client.Client, d
 			nodeAddressMap[addr] = true
 		}
 		log.Info("Setting Kubernetes node IP Addresses")
-		for _, addr := range dockerMachine.Status.Addresses {
+		for _, addr := range addresses {
 			if _, ok := nodeAddressMap[corev1.NodeAddress{Address: addr.Address, Type: corev1.NodeAddressType(addr.Type)}]; ok {
 				continue
 			}

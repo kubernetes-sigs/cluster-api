@@ -48,6 +48,8 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - devclusters
+  - devmachines
   - dockerclusters
   - dockermachinepools
   - dockermachines
@@ -62,6 +64,10 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - devclusters/finalizers
+  - devclusters/status
+  - devmachines/finalizers
+  - devmachines/status
   - dockerclusters/finalizers
   - dockerclusters/status
   - dockermachinepools/finalizers

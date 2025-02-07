@@ -19,7 +19,6 @@ package docker
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,7 +26,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/loadbalancer"
 )
@@ -48,7 +46,7 @@ type LoadBalancer struct {
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
-func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster) (*LoadBalancer, error) {
+func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, imageRepository, imageTag string, port string) (*LoadBalancer, error) {
 	if cluster.Name == "" {
 		return nil, errors.New("create load balancer: cluster name is empty")
 	}
@@ -68,42 +66,39 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	// We tolerate this until removal;
 	// after removal IPFamily will become an internal CAPD concept.
 	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
+	ipFamily, err := cluster.GetIPFamily()
 	if err != nil {
 		return nil, fmt.Errorf("create load balancer: %s", err)
 	}
 
-	image := getLoadBalancerImage(dockerCluster)
+	image := getLoadBalancerImage(imageRepository, imageTag)
 
+	frontendControlPlanePort := port
+	if frontendControlPlanePort == "0" {
+		frontendControlPlanePort = "6443"
+	}
 	return &LoadBalancer{
 		name:                     cluster.Name,
 		image:                    image,
 		container:                container,
 		ipFamily:                 ipFamily,
 		lbCreator:                &Manager{},
-		frontendControlPlanePort: strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port),
+		frontendControlPlanePort: port,
 		backendControlPlanePort:  "6443",
 	}, nil
 }
 
 // getLoadBalancerImage will return the image (e.g. "kindest/haproxy:2.1.1-alpine") to use for
 // the load balancer.
-func getLoadBalancerImage(dockerCluster *infrav1.DockerCluster) string {
-	// Check if a non-default image was provided
+func getLoadBalancerImage(imageRepository, imageTag string) string {
 	image := loadbalancer.Image
-	imageRepo := loadbalancer.DefaultImageRepository
-	imageTag := loadbalancer.DefaultImageTag
-
-	if dockerCluster != nil {
-		if dockerCluster.Spec.LoadBalancer.ImageRepository != "" {
-			imageRepo = dockerCluster.Spec.LoadBalancer.ImageRepository
-		}
-		if dockerCluster.Spec.LoadBalancer.ImageTag != "" {
-			imageTag = dockerCluster.Spec.LoadBalancer.ImageTag
-		}
+	if imageRepository == "" {
+		imageRepository = loadbalancer.DefaultImageRepository
 	}
-
-	return fmt.Sprintf("%s/%s:%s", imageRepo, image, imageTag)
+	if imageTag == "" {
+		imageTag = loadbalancer.DefaultImageTag
+	}
+	return fmt.Sprintf("%s/%s:%s", imageRepository, image, imageTag)
 }
 
 // ContainerName is the name of the docker container with the load balancer.

@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 )
 
 func Test_cache_client(t *testing.T) {
@@ -38,7 +38,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		iMachine, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		iMachine, err := c.GetInformer(context.TODO(), &v1alpha2.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = iMachine.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -48,7 +48,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
@@ -73,7 +73,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup does not exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
@@ -97,12 +97,12 @@ func Test_cache_client(t *testing.T) {
 			c.lock.RLock()
 			defer c.lock.RUnlock()
 
-			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exists in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must exists in object tracker for foo")
 			key := types.NamespacedName{Name: "bar"}
-			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).To(HaveKey(key), "Object bar must exists in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).To(HaveKey(key), "Object bar must exists in object tracker for foo")
 
-			r := c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)][key]
-			g.Expect(r.GetObjectKind().GroupVersionKind()).To(BeComparableTo(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			r := c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)][key]
+			g.Expect(r.GetObjectKind().GroupVersionKind()).To(BeComparableTo(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must be set")
 			g.Expect(r.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(r.GetResourceVersion()).To(Equal("1"), "resourceVersion must be set")
 			g.Expect(r.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
@@ -116,7 +116,7 @@ func Test_cache_client(t *testing.T) {
 
 			createMachine(t, c, "foo", "bazzz")
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bazzz",
 				},
@@ -130,7 +130,7 @@ func Test_cache_client(t *testing.T) {
 			t.Run("fails for invalid owner reference", func(t *testing.T) {
 				g := NewWithT(t)
 
-				obj := &cloudv1.CloudMachine{
+				obj := &v1alpha2.CloudMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "child",
 						OwnerReferences: []metav1.OwnerReference{
@@ -149,12 +149,12 @@ func Test_cache_client(t *testing.T) {
 			t.Run("fails if referenced object does not exist", func(t *testing.T) {
 				g := NewWithT(t)
 
-				obj := &cloudv1.CloudMachine{
+				obj := &v1alpha2.CloudMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "child",
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								APIVersion: cloudv1.GroupVersion.String(),
+								APIVersion: v1alpha2.GroupVersion.String(),
 								Kind:       "CloudMachine",
 								Name:       "parentx",
 							},
@@ -169,12 +169,12 @@ func Test_cache_client(t *testing.T) {
 				g := NewWithT(t)
 
 				createMachine(t, c, "foo", "parent")
-				obj := &cloudv1.CloudMachine{
+				obj := &v1alpha2.CloudMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "child",
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								APIVersion: cloudv1.GroupVersion.String(),
+								APIVersion: v1alpha2.GroupVersion.String(),
 								Kind:       "CloudMachine",
 								Name:       "parent",
 							},
@@ -188,9 +188,9 @@ func Test_cache_client(t *testing.T) {
 				c.lock.RLock()
 				defer c.lock.RUnlock()
 
-				parentRef := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent"}}
+				parentRef := ownReference{gvk: v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects).To(HaveKey(parentRef), "there should be ownedObjects for parent")
-				childRef := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "child"}}
+				childRef := ownReference{gvk: v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "child"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects[parentRef]).To(HaveKey(childRef), "parent should own child")
 			})
 		})
@@ -203,7 +203,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("", types.NamespacedName{Name: "foo"}, obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -212,7 +212,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if name is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("foo", types.NamespacedName{}, obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -233,7 +233,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("bar", types.NamespacedName{Name: "bar"}, obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -242,7 +242,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if gvk doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("foo", types.NamespacedName{Name: "bar"}, obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -253,7 +253,7 @@ func Test_cache_client(t *testing.T) {
 
 			createMachine(t, c, "foo", "barz")
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("foo", types.NamespacedName{Name: "bar"}, obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -264,12 +264,12 @@ func Test_cache_client(t *testing.T) {
 
 			createMachine(t, c, "foo", "bar")
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Get("foo", types.NamespacedName{Name: "bar"}, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check all the computed fields are as expected.
-			g.Expect(obj.GetObjectKind().GroupVersionKind()).To(BeComparableTo(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			g.Expect(obj.GetObjectKind().GroupVersionKind()).To(BeComparableTo(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must be set")
 			g.Expect(obj.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(obj.GetResourceVersion()).To(Equal("2"), "resourceVersion must be set")
 			g.Expect(obj.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
@@ -284,7 +284,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachineList{}
+			obj := &v1alpha2.CloudMachineList{}
 			err := c.List("", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -305,7 +305,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachineList{}
+			obj := &v1alpha2.CloudMachineList{}
 			err := c.List("bar", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -317,18 +317,18 @@ func Test_cache_client(t *testing.T) {
 			createMachine(t, c, "foo", "bar")
 			createMachine(t, c, "foo", "baz")
 
-			obj := &cloudv1.CloudMachineList{}
+			obj := &v1alpha2.CloudMachineList{}
 			err := c.List("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(obj.Items).To(HaveLen(2))
 
 			i1 := obj.Items[0]
-			g.Expect(i1.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			g.Expect(i1.GetObjectKind().GroupVersionKind()).To(Equal(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must be set")
 			g.Expect(i1.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must be present")
 
 			i2 := obj.Items[1]
-			g.Expect(i2.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			g.Expect(i2.GetObjectKind().GroupVersionKind()).To(Equal(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must be set")
 			g.Expect(i2.GetAnnotations()).To(HaveKey(lastSyncTimeAnnotation), "last sync annotation must be present")
 		})
 
@@ -340,7 +340,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		i, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		i, err := c.GetInformer(context.TODO(), &v1alpha2.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = i.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -350,7 +350,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Update("", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -371,7 +371,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if name is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Update("foo", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -380,7 +380,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bar",
 				},
@@ -393,7 +393,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if Object doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bar",
 				},
@@ -467,7 +467,7 @@ func Test_cache_client(t *testing.T) {
 			t.Run("fails for invalid owner reference", func(t *testing.T) {
 				g := NewWithT(t)
 
-				obj := &cloudv1.CloudMachine{
+				obj := &v1alpha2.CloudMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "child",
 						OwnerReferences: []metav1.OwnerReference{
@@ -491,7 +491,7 @@ func Test_cache_client(t *testing.T) {
 				objUpdate := objBefore.DeepCopy()
 				objUpdate.OwnerReferences = []metav1.OwnerReference{
 					{
-						APIVersion: cloudv1.GroupVersion.String(),
+						APIVersion: v1alpha2.GroupVersion.String(),
 						Kind:       "CloudMachine",
 						Name:       "parentx",
 					},
@@ -506,12 +506,12 @@ func Test_cache_client(t *testing.T) {
 				createMachine(t, c, "foo", "parent1")
 				createMachine(t, c, "foo", "parent2")
 
-				objBefore := &cloudv1.CloudMachine{
+				objBefore := &v1alpha2.CloudMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "child2",
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								APIVersion: cloudv1.GroupVersion.String(),
+								APIVersion: v1alpha2.GroupVersion.String(),
 								Kind:       "CloudMachine",
 								Name:       "parent1",
 							},
@@ -531,11 +531,11 @@ func Test_cache_client(t *testing.T) {
 				c.lock.RLock()
 				defer c.lock.RUnlock()
 
-				parent1Ref := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent1"}}
+				parent1Ref := ownReference{gvk: v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent1"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects).ToNot(HaveKey(parent1Ref), "there should not be ownedObjects for parent1")
-				parent2Ref := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent2"}}
+				parent2Ref := ownReference{gvk: v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "parent2"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects).To(HaveKey(parent2Ref), "there should be ownedObjects for parent2")
-				childRef := ownReference{gvk: cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "child2"}}
+				childRef := ownReference{gvk: v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind), key: types.NamespacedName{Namespace: "", Name: "child2"}}
 				g.Expect(c.resourceGroups["foo"].ownedObjects[parent2Ref]).To(HaveKey(childRef), "parent2 should own child")
 			})
 		})
@@ -552,7 +552,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		i, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		i, err := c.GetInformer(context.TODO(), &v1alpha2.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = i.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -562,7 +562,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Delete("", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -579,7 +579,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if name is empty", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{}
+			obj := &v1alpha2.CloudMachine{}
 			err := c.Delete("foo", obj)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
@@ -592,7 +592,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("fails if gvk doesn't exist", func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bar",
 				},
@@ -607,7 +607,7 @@ func Test_cache_client(t *testing.T) {
 
 			createMachine(t, c, "foo", "barz")
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bar",
 				},
@@ -628,8 +628,8 @@ func Test_cache_client(t *testing.T) {
 			c.lock.RLock()
 			defer c.lock.RUnlock()
 
-			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exist in object tracker for foo")
-			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "bar"}), "Object bar must not exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "bar"}), "Object bar must not exist in object tracker for foo")
 
 			g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=bar, Deleted"))
 		})
@@ -646,7 +646,7 @@ func Test_cache_client(t *testing.T) {
 				c.garbageCollectorQueue.ShutDown()
 			}()
 
-			objBefore := &cloudv1.CloudMachine{
+			objBefore := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "baz",
 					Finalizers: []string{"foo"},
@@ -660,7 +660,7 @@ func Test_cache_client(t *testing.T) {
 			err = c.Delete("foo", objBefore)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			objAfterUpdate := &cloudv1.CloudMachine{}
+			objAfterUpdate := &v1alpha2.CloudMachine{}
 			err = c.Get("foo", types.NamespacedName{Name: "baz"}, objAfterUpdate)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -686,12 +686,12 @@ func Test_cache_client(t *testing.T) {
 
 			createMachine(t, c, "foo", "parent3")
 
-			obj := &cloudv1.CloudMachine{
+			obj := &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "child3",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: cloudv1.GroupVersion.String(),
+							APIVersion: v1alpha2.GroupVersion.String(),
 							Kind:       "CloudMachine",
 							Name:       "parent3",
 						},
@@ -701,12 +701,12 @@ func Test_cache_client(t *testing.T) {
 			err := c.Create("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			obj = &cloudv1.CloudMachine{
+			obj = &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "grandchild3",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: cloudv1.GroupVersion.String(),
+							APIVersion: v1alpha2.GroupVersion.String(),
 							Kind:       "CloudMachine",
 							Name:       "child3",
 						},
@@ -716,7 +716,7 @@ func Test_cache_client(t *testing.T) {
 			err = c.Create("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			obj = &cloudv1.CloudMachine{
+			obj = &v1alpha2.CloudMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "parent3",
 				},
@@ -727,22 +727,22 @@ func Test_cache_client(t *testing.T) {
 			c.lock.RLock()
 			defer c.lock.RUnlock()
 
-			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exist in object tracker for foo")
-			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "parent3"}), "Object parent3 must not exist in object tracker for foo")
-			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "child3"}), "Object child3 must not exist in object tracker for foo")
-			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "grandchild3"}), "Object grandchild3 must not exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "parent3"}), "Object parent3 must not exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "child3"}), "Object child3 must not exist in object tracker for foo")
+			g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "grandchild3"}), "Object grandchild3 must not exist in object tracker for foo")
 		})
 
 		// TODO: test finalizers and ownner references together
 	})
 }
 
-func createMachine(t *testing.T, c *cache, resourceGroup, name string) *cloudv1.CloudMachine {
+func createMachine(t *testing.T, c *cache, resourceGroup, name string) *v1alpha2.CloudMachine {
 	t.Helper()
 
 	g := NewWithT(t)
 
-	obj := &cloudv1.CloudMachine{
+	obj := &v1alpha2.CloudMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

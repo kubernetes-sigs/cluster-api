@@ -4,16 +4,16 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.0
-  name: inmemoryclusters.infrastructure.cluster.x-k8s.io
+  name: devclusters.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
     categories:
     - cluster-api
-    kind: InMemoryCluster
-    listKind: InMemoryClusterList
-    plural: inmemoryclusters
-    singular: inmemorycluster
+    kind: DevCluster
+    listKind: DevClusterList
+    plural: devclusters
+    singular: devcluster
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -21,14 +21,14 @@ spec:
       jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
       name: Cluster
       type: string
-    - description: Time duration since creation of InMemoryCluster
+    - description: Time duration since creation of the DevCluster
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1alpha1
+    name: v1beta1
     schema:
       openAPIV3Schema:
-        description: InMemoryCluster is the schema for the in-memory cluster API.
+        description: DevCluster is the schema for the dev cluster infrastructure API.
         properties:
           apiVersion:
             description: |-
@@ -48,10 +48,84 @@ spec:
           metadata:
             type: object
           spec:
-            description: InMemoryClusterSpec defines the desired state of the InMemoryCluster.
+            description: DevClusterSpec defines the desired state of the DevCluster
+              infrastructure.
             properties:
+              backend:
+                description: backend defines backends for a DevCluster.
+                properties:
+                  docker:
+                    description: docker defines a backend for a DevCluster using docker
+                      containers.
+                    properties:
+                      failureDomains:
+                        additionalProperties:
+                          description: |-
+                            FailureDomainSpec is the Schema for Cluster API failure domains.
+                            It allows controllers to understand how many failure domains a cluster can optionally span across.
+                          properties:
+                            attributes:
+                              additionalProperties:
+                                type: string
+                              description: attributes is a free form map of attributes
+                                an infrastructure provider might use or require.
+                              type: object
+                            controlPlane:
+                              description: controlPlane determines if this failure
+                                domain is suitable for use by control plane machines.
+                              type: boolean
+                          type: object
+                        description: |-
+                          failureDomains are usually not defined in the spec.
+                          The docker provider is special since failure domains don't mean anything in a local docker environment.
+                          Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
+                          controllers to do what they will with the defined failure domains.
+                        type: object
+                      loadBalancer:
+                        description: loadBalancer allows defining configurations for
+                          the cluster load balancer.
+                        properties:
+                          customHAProxyConfigTemplateRef:
+                            description: |-
+                              CustomHAProxyConfigTemplateRef allows you to replace the default HAProxy config file.
+                              This field is a reference to a config map that contains the configuration template. The key of the config map should be equal to 'value'.
+                              The content of the config map will be processed and will replace the default HAProxy config file. Please use it with caution, as there are
+                              no checks to ensure the validity of the configuration. This template will support the following variables that will be passed by the controller:
+                              $IPv6 (bool) indicates if the cluster is IPv6, $FrontendControlPlanePort (string) indicates the frontend control plane port,
+                              $BackendControlPlanePort (string) indicates the backend control plane port, $BackendServers (map[string]string) indicates the backend server
+                              where the key is the server name and the value is the address. This map is dynamic and is updated every time a new control plane
+                              node is added or removed. The template will also support the JoinHostPort function to join the host and port of the backend server.
+                            properties:
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          imageRepository:
+                            description: |-
+                              ImageRepository sets the container registry to pull the haproxy image from.
+                              if not set, "kindest" will be used instead.
+                            type: string
+                          imageTag:
+                            description: |-
+                              ImageTag allows to specify a tag for the haproxy image.
+                              if not set, "v20210715-a6da3463" will be used instead.
+                            type: string
+                        type: object
+                    type: object
+                  inMemory:
+                    description: inMemory defines a backend for a DevCluster that
+                      runs in memory.
+                    type: object
+                type: object
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
+                description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
                   host:
@@ -66,12 +140,14 @@ spec:
                 - host
                 - port
                 type: object
+            required:
+            - backend
             type: object
           status:
-            description: InMemoryClusterStatus defines the observed state of the InMemoryCluster.
+            description: DevClusterStatus defines the observed state of the DevCluster.
             properties:
               conditions:
-                description: Conditions defines current service state of the InMemoryCluster.
+                description: conditions defines current service state of the DevCluster.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -115,16 +191,37 @@ spec:
                   - type
                   type: object
                 type: array
+              failureDomains:
+                additionalProperties:
+                  description: |-
+                    FailureDomainSpec is the Schema for Cluster API failure domains.
+                    It allows controllers to understand how many failure domains a cluster can optionally span across.
+                  properties:
+                    attributes:
+                      additionalProperties:
+                        type: string
+                      description: attributes is a free form map of attributes an
+                        infrastructure provider might use or require.
+                      type: object
+                    controlPlane:
+                      description: controlPlane determines if this failure domain
+                        is suitable for use by control plane machines.
+                      type: boolean
+                  type: object
+                description: |-
+                  failureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
+                  will use this if we populate it.
+                type: object
               ready:
-                description: Ready denotes that the in-memory cluster (infrastructure)
-                  is ready.
+                description: ready denotes that the dev cluster infrastructure is
+                  ready.
                 type: boolean
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified
-                  in InMemoryCluster's status with the V1Beta2 version.
+                  in DevCluster's status with the V1Beta2 version.
                 properties:
                   conditions:
-                    description: conditions represents the observations of a InMemoryCluster's
+                    description: conditions represents the observations of a DevCluster's
                       current state.
                     items:
                       description: Condition contains details for one aspect of the

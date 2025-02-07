@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,42 +22,44 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// InMemoryClusterTemplateSpec defines the desired state of InMemoryClusterTemplate.
-type InMemoryClusterTemplateSpec struct {
-	Template InMemoryClusterTemplateResource `json:"template"`
+// DevMachineTemplateSpec defines the desired state of DevMachineTemplate.
+type DevMachineTemplateSpec struct {
+	Template DevMachineTemplateResource `json:"template"`
 }
 
-// +kubebuilder:resource:path=inmemoryclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=devmachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of InMemoryClusterTemplate"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the DevMachineTemplate"
 
-// InMemoryClusterTemplate is the Schema for the inmemoryclustertemplates API.
-type InMemoryClusterTemplate struct {
+// DevMachineTemplate is the schema for the in-memory machine template API.
+type DevMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec InMemoryClusterTemplateSpec `json:"spec,omitempty"`
+	Spec DevMachineTemplateSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// InMemoryClusterTemplateList contains a list of InMemoryClusterTemplate.
-type InMemoryClusterTemplateList struct {
+// DevMachineTemplateList contains a list of DevMachineTemplate.
+type DevMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []InMemoryClusterTemplate `json:"items"`
+	Items           []DevMachineTemplate `json:"items"`
 }
 
 func init() {
-	objectTypes = append(objectTypes, &InMemoryClusterTemplate{}, &InMemoryClusterTemplateList{})
+	objectTypes = append(objectTypes, &DevMachineTemplate{}, &DevMachineTemplateList{})
 }
 
-// InMemoryClusterTemplateResource describes the data needed to create a InMemoryCluster from a template.
-type InMemoryClusterTemplateResource struct {
+// DevMachineTemplateResource describes the data needed to create a DevMachine from a template.
+type DevMachineTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
-	Spec       InMemoryClusterSpec  `json:"spec"`
+
+	// Spec is the specification of the desired behavior of the machine.
+	Spec DevMachineSpec `json:"spec"`
 }

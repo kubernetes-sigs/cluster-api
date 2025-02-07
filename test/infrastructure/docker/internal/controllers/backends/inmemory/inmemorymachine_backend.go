@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers implements controller functionality.
-package controllers
+package inmemory
 
 import (
 	"context"
@@ -36,147 +35,34 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
-	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/paused"
-	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-// InMemoryMachineReconciler reconciles a InMemoryMachine object.
-type InMemoryMachineReconciler struct {
+// MachineBackendReconciler reconciles a InMemoryMachine object.
+type MachineBackendReconciler struct {
 	client.Client
 	InMemoryManager inmemoryruntime.Manager
 	APIServerMux    *inmemoryserver.WorkloadClustersMux
-
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines/status;inmemorymachines/finalizers,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machinesets;machines,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-
-// Reconcile handles InMemoryMachine events.
-func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	// Fetch the InMemoryMachine instance
-	inMemoryMachine := &infrav1.InMemoryMachine{}
-	if err := r.Client.Get(ctx, req.NamespacedName, inMemoryMachine); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
+// ReconcileNormal handle in memory backend for DevMachine not yet deleted.
+func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+	if inMemoryMachine.Spec.Backend.InMemory == nil {
+		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, inMemoryMachine, infrav1.MachineFinalizer); err != nil || finalizerAdded {
-		return ctrl.Result{}, err
-	}
-
-	// AddOwners adds the owners of InMemoryMachine as k/v pairs to the logger.
-	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, log, err := clog.AddOwners(ctx, r.Client, inMemoryMachine)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Fetch the Machine.
-	machine, err := util.GetOwnerMachine(ctx, r.Client, inMemoryMachine.ObjectMeta)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if machine == nil {
-		log.Info("Waiting for Machine Controller to set OwnerRef on InMemoryMachine")
-		return ctrl.Result{}, nil
-	}
-
-	log = log.WithValues("Machine", klog.KObj(machine))
-	ctx = ctrl.LoggerInto(ctx, log)
-
-	// Fetch the Cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
-	if err != nil {
-		log.Info("InMemoryMachine owner Machine is missing cluster label or cluster does not exist")
-		return ctrl.Result{}, err
-	}
-	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterNameLabel))
-		return ctrl.Result{}, nil
-	}
-
-	log = log.WithValues("Cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
-
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, inMemoryMachine); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
-	// Fetch the in-memory Cluster.
-	inMemoryCluster := &infrav1.InMemoryCluster{}
-	inMemoryClusterName := client.ObjectKey{
-		Namespace: inMemoryMachine.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-	if err := r.Client.Get(ctx, inMemoryClusterName, inMemoryCluster); err != nil {
-		log.Info("InMemoryCluster is not available yet")
-		return ctrl.Result{}, nil
-	}
-
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(inMemoryMachine, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Always attempt to Patch the InMemoryMachine object and status after each reconciliation.
-	defer func() {
-		inMemoryMachineConditions := []clusterv1.ConditionType{
-			infrav1.VMProvisionedCondition,
-			infrav1.NodeProvisionedCondition,
-		}
-		if util.IsControlPlaneMachine(machine) {
-			inMemoryMachineConditions = append(inMemoryMachineConditions,
-				infrav1.EtcdProvisionedCondition,
-				infrav1.APIServerProvisionedCondition,
-			)
-		}
-		// Always update the readyCondition by summarizing the state of other conditions.
-		// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
-		conditions.SetSummary(inMemoryMachine,
-			conditions.WithConditions(inMemoryMachineConditions...),
-			conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
-		)
-		if err := patchHelper.Patch(ctx, inMemoryMachine, patch.WithOwnedConditions{Conditions: inMemoryMachineConditions}); err != nil {
-			rerr = kerrors.NewAggregate([]error{rerr, err})
-		}
-	}()
-
-	// Handle deleted machines
-	if !inMemoryMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, machine, inMemoryMachine)
-	}
-
-	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, cluster, machine, inMemoryMachine)
-}
-
-func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
@@ -202,7 +88,7 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 	}
 
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error){
 		r.reconcileNormalCloudMachine,
 		r.reconcileNormalNode,
 		r.reconcileNormalETCD,
@@ -232,7 +118,7 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// Compute the name for resource group.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
@@ -256,8 +142,8 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 
 	// Wait for the VM to be provisioned; provisioned happens a configurable time after the cloud machine creation.
 	provisioningDuration := time.Duration(0)
-	if inMemoryMachine.Spec.Behaviour != nil && inMemoryMachine.Spec.Behaviour.VM != nil {
-		x := inMemoryMachine.Spec.Behaviour.VM.Provisioning
+	if inMemoryMachine.Spec.Backend.InMemory.VM != nil {
+		x := inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
 		if x.StartupJitter != "" {
@@ -286,7 +172,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the VM is not provisioned yet
 	if !conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
 		return ctrl.Result{}, nil
@@ -294,8 +180,8 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 
 	// Wait for the node/kubelet to start up; node/kubelet start happens a configurable time after the VM is provisioned.
 	provisioningDuration := time.Duration(0)
-	if inMemoryMachine.Spec.Behaviour != nil && inMemoryMachine.Spec.Behaviour.Node != nil {
-		x := inMemoryMachine.Spec.Behaviour.Node.Provisioning
+	if inMemoryMachine.Spec.Backend.InMemory.Node != nil {
+		x := inMemoryMachine.Spec.Backend.InMemory.Node.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
 		if x.StartupJitter != "" {
@@ -381,11 +267,11 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 	return ctrl.Result{}, nil
 }
 
-func calculateProviderID(inMemoryMachine *infrav1.InMemoryMachine) string {
+func calculateProviderID(inMemoryMachine *infrav1.DevMachine) string {
 	return fmt.Sprintf("in-memory://%s", inMemoryMachine.Name)
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -398,8 +284,8 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 
 	// Wait for the etcd pod to start up; etcd pod start happens a configurable time after the Node is provisioned.
 	provisioningDuration := time.Duration(0)
-	if inMemoryMachine.Spec.Behaviour != nil && inMemoryMachine.Spec.Behaviour.Etcd != nil {
-		x := inMemoryMachine.Spec.Behaviour.Etcd.Provisioning
+	if inMemoryMachine.Spec.Backend.InMemory.Etcd != nil {
+		x := inMemoryMachine.Spec.Backend.InMemory.Etcd.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
 		if x.StartupJitter != "" {
@@ -541,7 +427,7 @@ type etcdInfo struct {
 	members   sets.Set[string]
 }
 
-func (r *InMemoryMachineReconciler) getEtcdInfo(ctx context.Context, inmemoryClient inmemoryruntime.Client) (etcdInfo, error) {
+func (r *MachineBackendReconciler) getEtcdInfo(ctx context.Context, inmemoryClient inmemoryruntime.Client) (etcdInfo, error) {
 	etcdPods := &corev1.PodList{}
 	if err := inmemoryClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
@@ -590,7 +476,7 @@ func (r *InMemoryMachineReconciler) getEtcdInfo(ctx context.Context, inmemoryCli
 	return info, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -603,8 +489,8 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 
 	// Wait for the API server pod to start up; API server pod start happens a configurable time after the Node is provisioned.
 	provisioningDuration := time.Duration(0)
-	if inMemoryMachine.Spec.Behaviour != nil && inMemoryMachine.Spec.Behaviour.APIServer != nil {
-		x := inMemoryMachine.Spec.Behaviour.APIServer.Provisioning
+	if inMemoryMachine.Spec.Backend.InMemory.APIServer != nil {
+		x := inMemoryMachine.Spec.Backend.InMemory.APIServer.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
 		if x.StartupJitter != "" {
@@ -705,7 +591,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -752,7 +638,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -799,7 +685,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalKubeadmObjects(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -866,7 +752,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -912,7 +798,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -975,9 +861,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+// ReconcileDelete handle in memory backend for deleted DevMachine.
+func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+	if inMemoryMachine.Spec.Backend.InMemory == nil {
+		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
+	}
+
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error){
 		// TODO: revisit order when we implement behaviour for the deletion workflow
 		r.reconcileDeleteNode,
 		r.reconcileDeleteETCD,
@@ -1006,7 +897,7 @@ func (r *InMemoryMachineReconciler) reconcileDelete(ctx context.Context, cluster
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
@@ -1024,7 +915,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Cont
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
@@ -1044,7 +935,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, clu
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -1078,7 +969,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, clu
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -1107,7 +998,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -1130,7 +1021,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteScheduler(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
-func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -1153,75 +1044,27 @@ func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller.
-func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil {
-		return errors.New("Client, InMemoryManager and APIServerMux must not be nil")
+// PatchDevMachine patch a DevMachine.
+func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHelper *patch.Helper, inMemoryMachine *infrav1.DevMachine, isControlPlane bool) error {
+	if inMemoryMachine.Spec.Backend.InMemory == nil {
+		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
 
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "inmemorymachine")
-	clusterToInMemoryMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infrav1.InMemoryMachineList{}, mgr.GetScheme())
-	if err != nil {
-		return err
+	inMemoryMachineConditions := []clusterv1.ConditionType{
+		infrav1.VMProvisionedCondition,
+		infrav1.NodeProvisionedCondition,
 	}
-
-	err = ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.InMemoryMachine{}).
-		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Watches(
-			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
-			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
-		).
-		Watches(
-			&infrav1.InMemoryCluster{},
-			handler.EnqueueRequestsFromMapFunc(r.InMemoryClusterToInMemoryMachines),
-			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
-		).
-		Watches(
-			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
-			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
-			)),
-		).Complete(r)
-	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+	if isControlPlane {
+		inMemoryMachineConditions = append(inMemoryMachineConditions,
+			infrav1.EtcdProvisionedCondition,
+			infrav1.APIServerProvisionedCondition,
+		)
 	}
-	return nil
-}
-
-// InMemoryClusterToInMemoryMachines is a handler.ToRequestsFunc to be used to enqueue
-// requests for reconciliation of InMemoryMachines.
-func (r *InMemoryMachineReconciler) InMemoryClusterToInMemoryMachines(ctx context.Context, o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
-	c, ok := o.(*infrav1.InMemoryCluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a InMemoryCluster but got a %T", o))
-	}
-
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
-	switch {
-	case apierrors.IsNotFound(err) || cluster == nil:
-		return result
-	case err != nil:
-		return result
-	}
-
-	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
-	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
-		return nil
-	}
-	for _, m := range machineList.Items {
-		if m.Spec.InfrastructureRef.Name == "" {
-			continue
-		}
-		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-		result = append(result, ctrl.Request{NamespacedName: name})
-	}
-
-	return result
+	// Always update the readyCondition by summarizing the state of other conditions.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
+	conditions.SetSummary(inMemoryMachine,
+		conditions.WithConditions(inMemoryMachineConditions...),
+		conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
+	)
+	return patchHelper.Patch(ctx, inMemoryMachine, patch.WithOwnedConditions{Conditions: inMemoryMachineConditions})
 }

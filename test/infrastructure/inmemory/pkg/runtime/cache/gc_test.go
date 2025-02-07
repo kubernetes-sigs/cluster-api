@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 )
 
 func Test_cache_gc(t *testing.T) {
@@ -45,7 +45,7 @@ func Test_cache_gc(t *testing.T) {
 
 	c.AddResourceGroup("foo")
 
-	obj := &cloudv1.CloudMachine{
+	obj := &v1alpha2.CloudMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "baz",
 			Finalizers: []string{"foo"},
@@ -78,8 +78,8 @@ func Test_cache_gc(t *testing.T) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exists in object tracker for foo")
-	g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey("baz"), "object baz must not exist in object tracker for foo")
+	g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)), "gvk must exists in object tracker for foo")
+	g.Expect(c.resourceGroups["foo"].objects[v1alpha2.GroupVersion.WithKind(v1alpha2.CloudMachineKind)]).ToNot(HaveKey("baz"), "object baz must not exist in object tracker for foo")
 
 	cancel()
 }

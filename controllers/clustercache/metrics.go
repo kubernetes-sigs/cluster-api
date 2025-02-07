@@ -32,7 +32,7 @@ var (
 	healthCheck = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "capi_cluster_cache_health_check",
-			Help: "Result of a single clustercache healthcheck.",
+			Help: "Result of the last clustercache healthcheck for a cluster.",
 		}, []string{
 			"cluster",
 		},
@@ -40,7 +40,7 @@ var (
 	healthChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "capi_cluster_cache_health_checks_total",
-			Help: "Results of all healthchecks.",
+			Help: "Results of all clustercache  healthchecks.",
 		}, []string{
 			"cluster", "status",
 		},

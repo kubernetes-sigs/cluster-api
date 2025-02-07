@@ -145,7 +145,7 @@ var (
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
 	dialer, err := proxy.NewDialer(config.Proxy)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create a dialer for etcd client")
+		return nil, errors.Wrapf(err, "unable to create a dialer for %s", config.Endpoint)
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
@@ -169,7 +169,10 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 	client, err := newEtcdClient(ctx, etcdClient, callTimeout)
 	if err != nil {
 		closeErr := etcdClient.Close()
-		return nil, errors.Wrap(kerrors.NewAggregate([]error{err, closeErr}), "unable to create etcd client")
+		if closeErr != nil {
+			return nil, err
+		}
+		return nil, kerrors.NewAggregate([]error{err, closeErr})
 	}
 	return client, nil
 }
@@ -177,7 +180,7 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Duration) (*Client, error) {
 	endpoints := etcdClient.Endpoints()
 	if len(endpoints) == 0 {
-		return nil, errors.New("etcd client was not configured with any endpoints")
+		return nil, errors.New("invalid argument: newEtcdClient cannot be called without any endpoint")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
@@ -209,7 +212,7 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 
 	response, err := c.EtcdClient.MemberList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get list of members for etcd cluster")
+		return nil, errors.Wrap(err, "failed to get etcd members")
 	}
 
 	clusterID := response.Header.GetClusterId()
@@ -229,7 +232,7 @@ func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
 	defer cancel()
 
 	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
-	return errors.Wrapf(err, "failed to move etcd leader: %v", newLeaderID)
+	return errors.Wrapf(err, "failed to move etcd leader to: %v", newLeaderID)
 }
 
 // RemoveMember removes a given member.
@@ -238,7 +241,7 @@ func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
 	defer cancel()
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
-	return errors.Wrapf(err, "failed to remove member: %v", id)
+	return errors.Wrapf(err, "failed to remove etcd member: %v", id)
 }
 
 // Alarms retrieves all alarms on a cluster.
@@ -248,7 +251,7 @@ func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
 
 	alarmResponse, err := c.EtcdClient.AlarmList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get alarms for etcd cluster")
+		return nil, errors.Wrap(err, "failed to get etcd alarms")
 	}
 
 	memberAlarms := make([]MemberAlarm, 0, len(alarmResponse.Alarms))

@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"crypto/tls"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -83,7 +84,7 @@ func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 		}
 		return client, nil
 	}
-	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to any etcd node")
+	return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node.

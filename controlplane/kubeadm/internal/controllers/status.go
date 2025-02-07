@@ -168,7 +168,7 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 	setMachinesUpToDateCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
 	setDeletingCondition(ctx, controlPlane.KCP, controlPlane.DeletingReason, controlPlane.DeletingMessage)
-	setAvailableCondition(ctx, controlPlane.KCP, controlPlane.IsEtcdManaged(), controlPlane.EtcdMembers, controlPlane.EtcdMembersAgreeOnMemberList, controlPlane.EtcdMembersAgreeOnClusterID, controlPlane.EtcdMembersAndMachinesAreMatching, controlPlane.Machines)
+	setAvailableCondition(ctx, controlPlane.KCP, controlPlane.IsEtcdManaged(), controlPlane.EtcdMembers, controlPlane.EtcdMembersAndMachinesAreMatching, controlPlane.Machines)
 }
 
 func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
@@ -513,7 +513,7 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 	})
 }
 
-func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, etcdIsManaged bool, etcdMembers []*etcd.Member, etcdMembersAgreeOnMemberList, etcdMembersAgreeOnClusterID, etcdMembersAndMachinesAreMatching bool, machines collections.Machines) {
+func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, etcdIsManaged bool, etcdMembers []*etcd.Member, etcdMembersAndMachinesAreMatching bool, machines collections.Machines) {
 	if !kcp.Status.Initialized {
 		v1beta2conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
@@ -545,26 +545,6 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason,
 				Message: "Failed to get etcd members",
-			})
-			return
-		}
-
-		if !etcdMembersAgreeOnMemberList {
-			v1beta2conditions.Set(kcp, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-				Message: "At least one etcd member reports a list of etcd members different than the list reported by other members",
-			})
-			return
-		}
-
-		if !etcdMembersAgreeOnClusterID {
-			v1beta2conditions.Set(kcp, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-				Message: "At least one etcd member reports a cluster ID different than the cluster ID reported by other members",
 			})
 			return
 		}

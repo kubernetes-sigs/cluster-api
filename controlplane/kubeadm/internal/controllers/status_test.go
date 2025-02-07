@@ -850,8 +850,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						},
 					},
 				},
-				EtcdMembers:                  []*etcd.Member{},
-				EtcdMembersAgreeOnMemberList: false,
+				EtcdMembers: []*etcd.Member{},
 			},
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
@@ -887,8 +886,6 @@ func Test_setAvailableCondition(t *testing.T) {
 				EtcdMembers: []*etcd.Member{
 					{Name: "m1", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -939,8 +936,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1011,53 +1006,6 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "KCP is not available, etcd members do not agree on member list",
-			controlPlane: &internal.ControlPlane{
-				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
-							},
-						},
-					},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
-				},
-				EtcdMembers:                  []*etcd.Member{},
-				EtcdMembersAgreeOnMemberList: false,
-			},
-			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-				Message: "At least one etcd member reports a list of etcd members different than the list reported by other members",
-			},
-		},
-		{
-			name: "KCP is not available, etcd members do not agree on cluster ID",
-			controlPlane: &internal.ControlPlane{
-				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
-							},
-						},
-					},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
-				},
-				EtcdMembers:                  []*etcd.Member{},
-				EtcdMembersAgreeOnMemberList: true,
-				EtcdMembersAgreeOnClusterID:  false,
-			},
-			expectCondition: metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
-				Message: "At least one etcd member reports a cluster ID different than the cluster ID reported by other members",
-			},
-		},
-		{
 			name: "KCP is not available, etcd members and machines list do not match",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
@@ -1071,8 +1019,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
 				},
 				EtcdMembers:                       []*etcd.Member{},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: false,
 			},
 			expectCondition: metav1.Condition{
@@ -1125,8 +1071,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1177,8 +1121,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1231,8 +1173,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1273,8 +1213,6 @@ func Test_setAvailableCondition(t *testing.T) {
 				EtcdMembers: []*etcd.Member{
 					{Name: "m1", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1335,8 +1273,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m3", IsLearner: false},
 					{Name: "", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1400,8 +1336,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m3", IsLearner: false},
 					{Name: "m4", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1463,8 +1397,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m3", IsLearner: false},
 					{Name: "m4", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1517,8 +1449,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1579,8 +1509,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m3", IsLearner: false},
 					{Name: "m4", IsLearner: true},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1625,8 +1553,6 @@ func Test_setAvailableCondition(t *testing.T) {
 				EtcdMembers: []*etcd.Member{
 					{Name: "m1", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1678,8 +1604,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					{Name: "m2", IsLearner: false},
 					{Name: "m3", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1718,8 +1642,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 				),
 				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1768,8 +1690,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 				),
 				EtcdMembers:                       nil,
-				EtcdMembersAgreeOnMemberList:      false,
-				EtcdMembersAgreeOnClusterID:       false,
 				EtcdMembersAndMachinesAreMatching: false,
 			},
 			expectCondition: metav1.Condition{
@@ -1815,8 +1735,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 				),
 				EtcdMembers:                       nil,
-				EtcdMembersAgreeOnMemberList:      false,
-				EtcdMembersAgreeOnClusterID:       false,
 				EtcdMembersAndMachinesAreMatching: false,
 			},
 			expectCondition: metav1.Condition{
@@ -1853,8 +1771,6 @@ func Test_setAvailableCondition(t *testing.T) {
 				EtcdMembers: []*etcd.Member{
 					{Name: "m1", IsLearner: false},
 				},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1892,8 +1808,6 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 				),
 				EtcdMembers:                       []*etcd.Member{{Name: "m1"}},
-				EtcdMembersAgreeOnMemberList:      true,
-				EtcdMembersAgreeOnClusterID:       true,
 				EtcdMembersAndMachinesAreMatching: true,
 			},
 			expectCondition: metav1.Condition{
@@ -1908,7 +1822,7 @@ func Test_setAvailableCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setAvailableCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.IsEtcdManaged(), tt.controlPlane.EtcdMembers, tt.controlPlane.EtcdMembersAgreeOnMemberList, tt.controlPlane.EtcdMembersAgreeOnClusterID, tt.controlPlane.EtcdMembersAndMachinesAreMatching, tt.controlPlane.Machines)
+			setAvailableCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.IsEtcdManaged(), tt.controlPlane.EtcdMembers, tt.controlPlane.EtcdMembersAndMachinesAreMatching, tt.controlPlane.Machines)
 
 			availableCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition)
 			g.Expect(availableCondition).ToNot(BeNil())

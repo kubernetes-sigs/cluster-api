@@ -15,8 +15,8 @@ All tools are preconfigured, and most notably kube-state-metrics already collect
 
 Additionally, Cluster API includes both CAPD (Cluster API provider for Docker) and CAPIM (Cluster API provider in-memory). Both allow you to quickly create development clusters with the limited resources available on a developer workstation, however:
 
-- CAPD gives you a fully functional cluster running in containers; scalability and performance are limited by the size of your machine.
-- CAPIM gives you a fake cluster running in memory; you can scale more easily but the clusters do not support any Kubernetes feature other than what is strictly required for CAPI, CABPK and KCP to work.
+- CAPD with docker backend gives you a fully functional cluster running in containers; scalability and performance are limited by the size of your machine.
+- CAPD with the inmemory backend gives you a fake cluster running in memory; you can scale more easily but the clusters do not support any Kubernetes feature other than what is strictly required for CAPI, CABPK and KCP to work.
 
 <aside class="note warning">
 

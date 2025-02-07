@@ -75,13 +75,7 @@ providers = {
         'type': 'InfrastructureProvider',
         'configFolder': 'test/infrastructure/docker/config/default',
     },
-    'infrastructure-in-memory': {
-          'componentsFile': 'infrastructure-components-in-memory-development.yaml',
-          'nextVersion': 'v1.10.99',
-          'type': 'InfrastructureProvider',
-          'configFolder': 'test/infrastructure/inmemory/config/default',
-      },
-      'runtime-extension-test': {
+    'runtime-extension-test': {
         'componentsFile': 'runtime-extension-components-development.yaml',
         'nextVersion': 'v1.10.99',
         'type': 'RuntimeExtensionProvider',
@@ -154,9 +148,6 @@ def write_local_repository(provider, version, components_file, components_yaml, 
 
         if provider == "infrastructure-docker":
             copy_tree("test/infrastructure/docker/templates", provider_folder)
-
-        if provider == "infrastructure-in-memory":
-            copy_tree("test/infrastructure/inmemory/templates", provider_folder)
 
         return components_path
     except Exception as e:
@@ -307,10 +298,6 @@ def print_instructions(repos):
     if 'infrastructure-docker' in providerList:
         print('please check the documentation for additional steps required for using the docker provider')
         print
-    if 'infrastructure-in-memory' in providerList:
-        print ('please check the documentation for additional steps required for using the in-memory provider')
-        print
-
 
 load_settings()
 

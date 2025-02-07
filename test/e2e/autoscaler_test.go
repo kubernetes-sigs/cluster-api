@@ -32,7 +32,6 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 			BootstrapClusterProxy:                 bootstrapClusterProxy,
 			ArtifactFolder:                        artifactFolder,
 			SkipCleanup:                           skipCleanup,
-			InfrastructureProvider:                ptr.To("docker"),
 			InfrastructureMachineTemplateKind:     "dockermachinetemplates",
 			InfrastructureMachinePoolTemplateKind: "dockermachinepooltemplates",
 			InfrastructureMachinePoolKind:         "dockermachinepools",

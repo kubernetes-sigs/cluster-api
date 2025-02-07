@@ -37,7 +37,6 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 			SkipCleanup:              skipCleanup,
 			ControlPlaneMachineCount: ptr.To[int64](3),
 			Flavor:                   ptr.To("topology"),
-			InfrastructureProvider:   ptr.To("docker"),
 
 			ClusterDeletionPhases: []ClusterDeletionPhase{
 				{

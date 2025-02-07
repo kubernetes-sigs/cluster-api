@@ -19,8 +19,6 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/capd-manager-{ARCH}:dev
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/capim-manager-{ARCH}:dev
-  loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
   loadBehavior: tryLoad
 - name: quay.io/jetstack/cert-manager-cainjector:v1.16.3
@@ -310,20 +308,11 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-in-memory.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
-    - sourcePath: "../data/shared/main/metadata.yaml"
-
-- name: in-memory
-  type: InfrastructureProvider
-  versions:
-  - name: v1.10.99 # next; use manifest from source files
-    value: ../../../test/infrastructure/inmemory/config/default
-    files:
-    # Add cluster templates
-    - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
-    - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/clusterclass-in-memory.yaml"
     - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: test-extension

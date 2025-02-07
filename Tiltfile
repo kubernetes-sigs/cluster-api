@@ -117,19 +117,6 @@ providers = {
         ],
         "label": "CAPD",
     },
-    "in-memory": {
-        "context": "test/infrastructure/inmemory",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
-        "image": "gcr.io/k8s-staging-cluster-api/capim-manager",
-        "live_reload_deps": [
-            "main.go",
-            "../../go.mod",
-            "../../go.sum",
-            "api",
-            "controllers",
-            "internal",
-        ],
-        "label": "CAPIM",
-    },
     "test-extension": {
         "context": "test/extension",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/test-extension",
@@ -518,7 +505,6 @@ def cluster_templates():
 
     template_dirs = settings.get("template_dirs", {
         "docker": ["./test/infrastructure/docker/templates"],
-        "in-memory": ["./test/infrastructure/inmemory/templates"],
     })
 
     for provider, provider_dirs in template_dirs.items():

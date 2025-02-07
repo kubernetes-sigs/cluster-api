@@ -24,16 +24,15 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing the machinery for scale testing using in-memory provider", func() {
+var _ = Describe("When testing the machinery for scale testing using in-memory backend", func() {
 	// Note: This test does not support MachinePools.
 	ScaleSpec(ctx, func() ScaleSpecInput {
 		return ScaleSpecInput{
 			E2EConfig:                         e2eConfig,
 			ClusterctlConfigPath:              clusterctlConfigPath,
-			InfrastructureProvider:            ptr.To("in-memory"),
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
-			Flavor:                            ptr.To(""),
+			Flavor:                            ptr.To("in-memory"),
 			SkipCleanup:                       skipCleanup,
 			ClusterCount:                      ptr.To[int64](10),
 			Concurrency:                       ptr.To[int64](5),

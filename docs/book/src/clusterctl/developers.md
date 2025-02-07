@@ -96,7 +96,7 @@ You must pass `--config ...` to all the clusterctl commands you are running duri
 The above config file changes the location of the [overrides layer] folder thus ensuring
 you dev session isn't hijacked by other local artifacts.
 
-With the exceptions of the Docker and the in memory provider, the local repository folder does not contain cluster templates,
+With the exceptions of the Docker provider, the local repository folder does not contain cluster templates,
 so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.
 
 </aside>

@@ -31,18 +31,18 @@ func init() {
 var (
 	healthCheck = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "capi_cluster_cache_health_check",
+			Name: "capi_cluster_cache_healthcheck",
 			Help: "Result of the last clustercache healthcheck for a cluster.",
 		}, []string{
-			"cluster",
+			"cluster", "cluster_namespace",
 		},
 	)
 	healthChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "capi_cluster_cache_health_checks_total",
-			Help: "Results of all clustercache  healthchecks.",
+			Name: "capi_cluster_cache_healthchecks_total",
+			Help: "Results of all clustercache healthchecks.",
 		}, []string{
-			"cluster", "status",
+			"cluster", "cluster_namespace", "status",
 		},
 	)
 	connectionUp = prometheus.NewGaugeVec(
@@ -50,7 +50,7 @@ var (
 			Name: "capi_cluster_cache_connection_up",
 			Help: "Whether the connection to the cluster is up.",
 		}, []string{
-			"cluster",
+			"cluster", "cluster_namespace",
 		},
 	)
 )

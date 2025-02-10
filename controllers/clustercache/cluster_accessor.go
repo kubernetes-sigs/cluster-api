@@ -255,10 +255,10 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			log.Error(retErr, "Connect failed")
-			connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
+			connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
 			ca.lockedState.lastConnectionCreationErrorTimestamp = time.Now()
 		} else {
-			connectionUp.WithLabelValues(ca.cluster.String()).Set(1)
+			connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(1)
 		}
 	}()
 
@@ -310,7 +310,7 @@ func (ca *clusterAccessor) Disconnect(ctx context.Context) {
 
 	defer func() {
 		ca.unlock(ctx)
-		connectionUp.WithLabelValues(ca.cluster.String()).Set(0)
+		connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
 	}()
 	log.Info("Disconnecting")
 
@@ -356,20 +356,20 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 		unauthorizedErrorOccurred = true
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (unauthorized error occurred): %v", err))
-		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
-		healthChecksTotal.WithLabelValues(ca.cluster.String(), "error").Inc()
+		healthCheck.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
+		healthChecksTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "error").Inc()
 	case err != nil:
 		ca.lockedState.healthChecking.consecutiveFailures++
 		log.V(6).Info(fmt.Sprintf("Health probe failed (%d/%d): %v",
 			ca.lockedState.healthChecking.consecutiveFailures, ca.config.HealthProbe.FailureThreshold, err))
-		healthCheck.WithLabelValues(ca.cluster.String()).Set(0)
-		healthChecksTotal.WithLabelValues(ca.cluster.String(), "error").Inc()
+		healthCheck.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
+		healthChecksTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "error").Inc()
 	default:
 		ca.lockedState.healthChecking.consecutiveFailures = 0
 		ca.lockedState.healthChecking.lastProbeSuccessTimestamp = ca.lockedState.healthChecking.lastProbeTimestamp
 		log.V(6).Info("Health probe succeeded")
-		healthCheck.WithLabelValues(ca.cluster.String()).Set(1)
-		healthChecksTotal.WithLabelValues(ca.cluster.String(), "success").Inc()
+		healthCheck.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(1)
+		healthChecksTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "success").Inc()
 	}
 
 	tooManyConsecutiveFailures := ca.lockedState.healthChecking.consecutiveFailures >= ca.config.HealthProbe.FailureThreshold

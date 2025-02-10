@@ -145,7 +145,7 @@ var (
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
 	dialer, err := proxy.NewDialer(config.Proxy)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to create a dialer for %s", config.Endpoint)
+		return nil, errors.Wrapf(err, "unable to create a dialer for the etcd client connecting to %s", config.Endpoint)
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
@@ -169,9 +169,6 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 	client, err := newEtcdClient(ctx, etcdClient, callTimeout)
 	if err != nil {
 		closeErr := etcdClient.Close()
-		if closeErr != nil {
-			return nil, err
-		}
 		return nil, kerrors.NewAggregate([]error{err, closeErr})
 	}
 	return client, nil

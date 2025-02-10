@@ -249,7 +249,7 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterNotHealthyV1Beta2Reason,
 				Message: "* Control plane Node n1 does not have a corresponding Machine",
 			},
-			expectedEtcdMembersAndMachinesAreMatching: false, // without reading members, we can not make assumptions.
+			expectedEtcdMembersAndMachinesAreMatching: true,
 		},
 		{
 			name: "failure creating the etcd client should report unknown condition",

@@ -347,6 +347,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 		nodeNames = append(nodeNames, node.Name)
 		if c := conditions.Get(machine, controlplanev1.MachineEtcdMemberHealthyCondition); c != nil {
 			nodeEtcdHealthyCondition[node.Name] = *c
+			continue
 		}
 		nodeEtcdHealthyCondition[node.Name] = clusterv1.Condition{
 			Type:   controlplanev1.MachineEtcdMemberHealthyCondition,
@@ -380,10 +381,9 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 	membersAndMachinesAreMatching := true
 	var kcpErrors []string
 
-	// If it failed to get members, consider the check failed in case there is at least a machine already provisioned
-	// (tolerate if we fail getting members when the cluster is still creating or provisioning the first machine).
+	// If it failed to get members, consider the check failed in case there is at least a machine already provisioned.
 	if members == nil {
-		if len(controlPlane.Machines.Filter(collections.HasNode())) > 0 || len(controlPlane.Machines) == 0 {
+		if len(controlPlane.Machines.Filter(collections.HasNode())) > 0 {
 			membersAndMachinesAreMatching = false
 		}
 		return membersAndMachinesAreMatching, nil

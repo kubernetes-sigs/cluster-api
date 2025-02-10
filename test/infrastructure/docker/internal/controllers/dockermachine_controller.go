@@ -62,6 +62,8 @@ type DockerMachineReconciler struct {
 
 // Reconcile handles DockerMachine events.
 func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
+
 	// Fetch the DockerMachine instance.
 	dockerMachine := &infrav1.DockerMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachine); err != nil {

@@ -4,7 +4,7 @@
 
 This backend is an implementation of an infrastructure provider for the Cluster API project using in memory, fake objects.
 
-The in memory backed is designed to test CAPI workflows using as few resources as possible on a single developer workstation; if 
+The in memory backend is designed to test CAPI workflows using as few resources as possible on a single developer workstation; if 
 the machine is powerful enough, it can be used to test scaling CAPI with thousands of clusters and machines.
 
 It is also important to notice that the in memory backend doesn't provision a working Kubernetes cluster; 

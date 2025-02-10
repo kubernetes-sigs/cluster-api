@@ -235,6 +235,35 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 			expectedEtcdMembersAndMachinesAreMatching: true, // there is a single provisioning machine, member list not yet available (too early to say members and machines do not match).
 		},
 		{
+			name: "If there are provisioning machines, a node without machine should be ignored in v1beta1, reported in v1beta2 (with providerID)",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("dummy-provider-id")), // without NodeRef (provisioning)
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{*fakeNode("n1")},
+				},
+			},
+			expectedKCPCondition: nil,
+			expectedMachineConditions: map[string]clusterv1.Conditions{
+				"m1": {},
+			},
+			expectedKCPV1Beta2Condition: &metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
+				Message: "* Machine m1:\n" +
+					"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID dummy-provider-id to exist",
+			},
+			expectedMachineV1Beta2Conditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason, Message: "Waiting for a Node with spec.providerID dummy-provider-id to exist"},
+				},
+			},
+			expectedEtcdMembersAndMachinesAreMatching: true,
+		},
+
+		{
 			name:     "If there are no provisioning machines, a node without machine should be reported as False condition at KCP level",
 			machines: []*clusterv1.Machine{},
 			injectClient: &fakeClient{

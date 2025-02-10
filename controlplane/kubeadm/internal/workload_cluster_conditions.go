@@ -328,7 +328,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 // Note: sorting by last known etcd health is a best effort operations; only nodes with a corresponding machine are considered.
 func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines collections.Machines) []string {
 	// Get the list of nodes and the corresponding MachineEtcdMemberHealthyCondition
-	nodeNames := []string{}
+	eligibleNodes := sets.Set[string]{}
 	nodeEtcdHealthyCondition := map[string]clusterv1.Condition{}
 
 	for _, node := range nodes.Items {
@@ -344,7 +344,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 			continue
 		}
 
-		nodeNames = append(nodeNames, node.Name)
+		eligibleNodes.Insert(node.Name)
 		if c := conditions.Get(machine, controlplanev1.MachineEtcdMemberHealthyCondition); c != nil {
 			nodeEtcdHealthyCondition[node.Name] = *c
 			continue
@@ -356,6 +356,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 	}
 
 	// Sort by nodes by last known etcd member health.
+	nodeNames := eligibleNodes.UnsortedList()
 	sort.Slice(nodeNames, func(i, j int) bool {
 		iCondition := nodeEtcdHealthyCondition[nodeNames[i]]
 		jCondition := nodeEtcdHealthyCondition[nodeNames[j]]
@@ -372,7 +373,8 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 		// Note: we are not making assumption on the chances to connect when last known etcd health is FALSE and UNKNOWN.
 
 		// Otherwise pick randomly one of the nodes to avoid trying to connect always to the same nodes first.
-		return time.Now().UnixMilli()%2 == 0
+		// Note: the list originate from set.UnsortedList which internally uses a Map, and we consider this enough as a randomizer.
+		return i < j
 	})
 	return nodeNames
 }

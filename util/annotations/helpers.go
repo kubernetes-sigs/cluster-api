@@ -68,11 +68,12 @@ func ReplicasManagedByExternalAutoscaler(o metav1.Object) bool {
 	return hasTruthyAnnotationValue(o, clusterv1.ReplicasManagedByAnnotation)
 }
 
-// AddAnnotations sets the desired annotations on the object and returns true if the annotations have changed.
-func AddAnnotations(o metav1.Object, desired map[string]string) bool {
+// AddAnnotations sets the desired annotations on the object and returns true and the changed keys if the annotations have changed.
+func AddAnnotations(o metav1.Object, desired map[string]string) (bool, []string) {
 	if len(desired) == 0 {
-		return false
+		return false, []string{}
 	}
+	changedKeys := make([]string, 0)
 	annotations := o.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -82,10 +83,11 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 		if cur, ok := annotations[k]; !ok || cur != v {
 			annotations[k] = v
 			hasChanged = true
+			changedKeys = append(changedKeys, k)
 		}
 	}
 	o.SetAnnotations(annotations)
-	return hasChanged
+	return hasChanged, changedKeys
 }
 
 // hasAnnotation returns true if the object has the specified annotation.

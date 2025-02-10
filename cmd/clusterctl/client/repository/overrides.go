@@ -74,6 +74,13 @@ func (o *overrides) Path() (string, error) {
 		return "", err
 	}
 	basepath := filepath.Join(configDirectory, overrideFolder)
+	// Fallback to the .cluster-api directory in home if the above does not exist.
+	if _, err := os.Stat(basepath); os.IsNotExist(err) {
+		fallbackBasepath := filepath.Join(xdg.Home, config.ConfigFolder, overrideFolder)
+		if _, err := os.Stat(fallbackBasepath); err == nil {
+			basepath = fallbackBasepath
+		}
+	}
 	f, err := o.configVariablesClient.Get(overrideFolderKey)
 	if err == nil && strings.TrimSpace(f) != "" {
 		basepath = f

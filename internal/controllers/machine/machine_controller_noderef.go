@@ -176,12 +176,15 @@ func (r *Reconciler) getManagedLabels(labels map[string]string) map[string]strin
 		dnsSubdomainOrName := strings.Split(key, "/")[0]
 		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
 			managedLabels[key] = value
+			break
 		}
 		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
 			managedLabels[key] = value
+			break
 		}
 		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
 			managedLabels[key] = value
+			break
 		}
 
 		// Sync if the labels matches at least one user provided regex.
@@ -209,10 +212,11 @@ func (r *Reconciler) getManagedAnnotations(machine *clusterv1.Machine) map[strin
 		managedAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
 	}
 	for key, value := range machine.GetAnnotations() {
-		// Always sync CAPI's default label node domain
+		// Always sync CAPI's default annotation node domain
 		dnsSubdomainOrName := strings.Split(key, "/")[0]
 		if dnsSubdomainOrName == clusterv1.ManagedNodeAnnotationDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeAnnotationDomain) {
 			managedAnnotations[key] = value
+			break
 		}
 		// Sync if the annotations matches at least one user provided regex
 		for _, regex := range r.AdditionalSyncMachineAnnotations {
@@ -301,8 +305,27 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine) error {
 	newNode := node.DeepCopy()
 
-	// Adds the annotations CAPI sets on the node.
-	hasAnnotationChanges := annotations.AddAnnotations(newNode, newAnnotations)
+	// Adds the annotations from the Machine.
+	// NOTE: in order to handle deletion we are tracking the annotations set from the Machine in an annotation.
+	// At the next reconcile we are going to use this for deleting annotations previously set by the Machine, but
+	// not present anymore. Annotations not set from machines should be always preserved.
+	if newNode.Annotations == nil {
+		newNode.Annotations = make(map[string]string)
+	}
+	hasAnnotationChanges := false
+	annotationsFromPreviousReconcile := strings.Split(newNode.Annotations[clusterv1.AnnotationsFromMachineAnnotation], ",")
+	if len(annotationsFromPreviousReconcile) == 1 && annotationsFromPreviousReconcile[0] == "" {
+		annotationsFromPreviousReconcile = []string{}
+	}
+	// Adds the annotations CAPI sets on the node and computes the changes.
+	hasAnnotationChanges, annotationsFromCurrentReconcile := annotations.AddAnnotations(newNode, newAnnotations)
+	// Make sure any annotations that were in the previous reconcile but aren't in the current set are removed.
+	for _, k := range annotationsFromPreviousReconcile {
+		if _, ok := newAnnotations[k]; !ok {
+			delete(newNode.Annotations, k)
+			hasAnnotationChanges = true
+		}
+	}
 
 	// Adds the labels from the Machine.
 	// NOTE: in order to handle deletion we are tracking the labels set from the Machine in an annotation.
@@ -331,6 +354,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		}
 	}
 	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: strings.Join(labelsFromCurrentReconcile, ",")})
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: strings.Join(annotationsFromCurrentReconcile, ",")})
 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)

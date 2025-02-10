@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 var (
@@ -169,64 +170,14 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 // getManagedLabels gets a map[string]string and returns another map[string]string
 // filtering out labels not managed by CAPI.
-func (r *Reconciler) getManagedLabels(labels map[string]string) map[string]string {
-	managedLabels := make(map[string]string)
-	for key, value := range labels {
-		// Always sync the default set of labels.
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
-		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
-			managedLabels[key] = value
-			break
-		}
-		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
-			managedLabels[key] = value
-			break
-		}
-		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
-			managedLabels[key] = value
-			break
-		}
-
-		// Sync if the labels matches at least one user provided regex.
-		for _, regex := range r.AdditionalSyncMachineLabels {
-			if regex.MatchString(key) {
-				managedLabels[key] = value
-				break
-			}
-		}
-	}
-	return managedLabels
+func (r *Reconciler) getManagedLabels(machineLabels map[string]string) map[string]string {
+	return labels.GetManagedLabels(machineLabels, r.AdditionalSyncMachineLabels...)
 }
 
 // getManagedAnnotations returns a map of Node annotations managed by CAPI.
 // This is not generalized with getManagedLabels because the domains used by labels and annotations are slightly different.
 func (r *Reconciler) getManagedAnnotations(machine *clusterv1.Machine) map[string]string {
-	// Always sync CAPI's bookkeeping annotations
-	managedAnnotations := map[string]string{
-		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
-		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
-		clusterv1.MachineAnnotation:          machine.Name,
-	}
-	if owner := metav1.GetControllerOfNoCopy(machine); owner != nil {
-		managedAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
-		managedAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
-	}
-	for key, value := range machine.GetAnnotations() {
-		// Always sync CAPI's default annotation node domain
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
-		if dnsSubdomainOrName == clusterv1.ManagedNodeAnnotationDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeAnnotationDomain) {
-			managedAnnotations[key] = value
-			break
-		}
-		// Sync if the annotations matches at least one user provided regex
-		for _, regex := range r.AdditionalSyncMachineAnnotations {
-			if regex.MatchString(key) {
-				managedAnnotations[key] = value
-				break
-			}
-		}
-	}
-	return managedAnnotations
+	return annotations.GetManagedAnnotations(machine, r.AdditionalSyncMachineAnnotations...)
 }
 
 // summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
@@ -321,6 +272,10 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	hasAnnotationChanges, annotationsFromCurrentReconcile := annotations.AddAnnotations(newNode, newAnnotations)
 	// Make sure any annotations that were in the previous reconcile but aren't in the current set are removed.
 	for _, k := range annotationsFromPreviousReconcile {
+		// Don't include the annotation used to track other annotations
+		if k == clusterv1.AnnotationsFromMachineAnnotation {
+			continue
+		}
 		if _, ok := newAnnotations[k]; !ok {
 			delete(newNode.Annotations, k)
 			hasAnnotationChanges = true

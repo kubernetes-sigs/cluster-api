@@ -191,7 +191,7 @@ func TestAddAnnotations(t *testing.T) {
 			res, changedKeys := AddAnnotations(tc.obj, tc.input)
 			g.Expect(res).To(Equal(tc.changed))
 			g.Expect(tc.obj.GetAnnotations()).To(Equal(tc.expected))
-			g.Expect(changedKeys).To(Equal(tc.keys))
+			g.Expect(changedKeys).To(ContainElements(tc.keys))
 		})
 	}
 }

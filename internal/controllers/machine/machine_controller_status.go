@@ -710,6 +710,9 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 				if strings.Contains(deletingCondition.Message, "failed to evict Pod") {
 					delayReasons = append(delayReasons, "Pod eviction errors")
 				}
+				if strings.Contains(deletingCondition.Message, "waiting for completion") {
+					delayReasons = append(delayReasons, "Pods not completed yet")
+				}
 				if len(delayReasons) > 0 {
 					msg += fmt.Sprintf(", delay likely due to %s", strings.Join(delayReasons, ", "))
 				}

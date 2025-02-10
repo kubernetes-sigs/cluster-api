@@ -457,6 +457,9 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 				if strings.Contains(deletingCondition.Message, "failed to evict Pod") {
 					delayReasons.Insert("Pod eviction errors")
 				}
+				if strings.Contains(deletingCondition.Message, "waiting for completion") {
+					delayReasons.Insert("Pods not completed yet")
+				}
 			}
 		}
 	}
@@ -481,7 +484,7 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 	message += "in deletion since more than 15m"
 	if len(delayReasons) > 0 {
 		reasonList := []string{}
-		for _, r := range []string{"PodDisruptionBudgets", "Pods not terminating", "Pod eviction errors"} {
+		for _, r := range []string{"PodDisruptionBudgets", "Pods not terminating", "Pod eviction errors", "Pods not completed yet"} {
 			if delayReasons.Has(r) {
 				reasonList = append(reasonList, r)
 			}

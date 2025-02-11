@@ -68,6 +68,7 @@ updated info about which API version they are supporting.
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix)
 
 ## Addon
+- [Fleet](https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/)
 - [Helm](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/)
 
 ## Runtime Extensions

@@ -108,7 +108,8 @@ const (
 
 // Add-on providers.
 const (
-	HelmAddonProviderName = "helm"
+	HelmAddonProviderName  = "helm"
+	FleetAddonProviderName = "rancher-fleet"
 )
 
 // Runtime extensions providers.
@@ -442,6 +443,11 @@ func (p *providersClient) defaults() []Provider {
 		},
 
 		// Add-on providers
+		&provider{
+			name:         FleetAddonProviderName,
+			url:          "https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
+		},
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",

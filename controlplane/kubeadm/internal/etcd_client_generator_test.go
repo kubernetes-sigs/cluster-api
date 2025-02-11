@@ -71,7 +71,7 @@ func TestFirstAvailableNode(t *testing.T) {
 			cc: func(context.Context, string) (*etcd.Client, error) {
 				return nil, errors.New("something went wrong")
 			},
-			expectedErr: "could not establish a connection to any etcd node: something went wrong",
+			expectedErr: "could not establish a connection to etcd members hosted on node-1,node-2: something went wrong",
 		},
 		{
 			name:  "Returns client when some of the nodes are down but at least one node is up",
@@ -204,7 +204,7 @@ func TestForLeader(t *testing.T) {
 			cc: func(context.Context, string) (*etcd.Client, error) {
 				return nil, errors.New("node down")
 			},
-			expectedErr: "could not establish a connection to the etcd leader: [could not establish a connection to any etcd node: node down, failed to connect to etcd node]",
+			expectedErr: "could not establish a connection to the etcd leader: [could not establish a connection to etcd members hosted on node-down-1: node down, failed to connect to etcd node, could not establish a connection to etcd members hosted on node-down-2: node down, could not establish a connection to etcd members hosted on node-down-3: node down]",
 		},
 	}
 

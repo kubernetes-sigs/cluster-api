@@ -1090,11 +1090,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return nil
 	}
 
-	// No op if there are potential issues affecting the list of etcdMembers
-	if !controlPlane.EtcdMembersAgreeOnMemberList || !controlPlane.EtcdMembersAgreeOnClusterID {
-		return nil
-	}
-
 	// No op if for any reason the etcdMember list is not populated at this stage.
 	if controlPlane.EtcdMembers == nil {
 		return nil

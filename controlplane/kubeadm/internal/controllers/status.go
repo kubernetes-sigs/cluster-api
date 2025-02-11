@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
@@ -94,7 +93,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to create remote cluster client")
+		return fmt.Errorf("failed to create remote cluster client: %w", err)
 	}
 	status, err := workloadCluster.ClusterStatus(ctx)
 	if err != nil {

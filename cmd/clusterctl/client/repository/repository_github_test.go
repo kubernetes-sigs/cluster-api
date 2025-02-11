@@ -1134,7 +1134,7 @@ func Test_handleGithubErr(t *testing.T) {
 			},
 			message: "",
 			args:    nil,
-			want:    ErrRateLimit,
+			want:    errRateLimit,
 		},
 		{
 			name: "Return ErrorResponse",

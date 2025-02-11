@@ -222,7 +222,11 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	return r.reconcile(ctx, controlPlane)
 }
 
-func (r *KubeadmControlPlaneReconciler) deferPatch(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane, patchHelper *patch.Helper) (res ctrl.Result, reterr error) {
+func (r *KubeadmControlPlaneReconciler) deferPatch(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane, patchHelper *patch.Helper) (ctrl.Result, error) {
+	var (
+		res    ctrl.Result
+		reterr error
+	)
 	log := ctrl.LoggerFrom(ctx)
 	// Always attempt to update status.
 	if err := r.updateStatus(ctx, controlPlane); err != nil {
@@ -265,7 +269,8 @@ func (r *KubeadmControlPlaneReconciler) deferPatch(ctx context.Context, kcp *con
 			res = ctrl.Result{RequeueAfter: 20 * time.Second}
 		}
 	}
-	return
+
+	return res, reterr
 }
 
 // initControlPlaneScope initializes the control plane scope; this includes also checking for orphan machines and

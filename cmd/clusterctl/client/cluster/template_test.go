@@ -542,7 +542,7 @@ func Test_handleGithubErr(t *testing.T) {
 			},
 			message: "",
 			args:    nil,
-			want:    RateLimitError,
+			want:    errRateLimit,
 		},
 	}
 	for _, tt := range tests {

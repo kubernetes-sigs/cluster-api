@@ -471,7 +471,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		extensionURL.RawQuery = values.Encode()
 
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+		ctx, cancel = context.WithTimeoutCause(ctx, opts.timeout, errors.New("http request timeout expired"))
 		defer cancel()
 	}
 

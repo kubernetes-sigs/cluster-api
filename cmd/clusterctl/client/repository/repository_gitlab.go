@@ -147,7 +147,7 @@ func (g *gitLabRepository) GetFile(ctx context.Context, version, path string) ([
 		return content, nil
 	}
 
-	timeoutctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeoutctx, cancel := context.WithTimeoutCause(ctx, 30*time.Second, errors.New("http request timeout expired"))
 	defer cancel()
 	request, err := http.NewRequestWithContext(timeoutctx, http.MethodGet, url, http.NoBody)
 	if err != nil {

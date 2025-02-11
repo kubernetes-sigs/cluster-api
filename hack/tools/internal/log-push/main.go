@@ -170,7 +170,7 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 	klog.Infof("Getting logs from gs://%s/%s", bucket, folder)
 
 	// Set timeout.
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	ctx, cancel := context.WithTimeoutCause(ctx, 2*time.Minute, errors.New("client timeout expired"))
 	defer cancel()
 
 	// Create GCS client.

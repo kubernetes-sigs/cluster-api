@@ -151,7 +151,7 @@ func Run(ctx context.Context, input RunInput) int {
 	// Bootstrapping test environment
 	env := newEnvironment(input.ManagerCacheOptions, input.ManagerUncachedObjs...)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
 
 	if input.SetupIndexes != nil {
@@ -227,7 +227,7 @@ type Environment struct {
 	Config *rest.Config
 
 	env           *envtest.Environment
-	cancelManager context.CancelFunc
+	cancelManager context.CancelCauseFunc
 }
 
 // newEnvironment creates a new environment spinning up a local api-server.
@@ -401,7 +401,7 @@ func (e *Environment) start(ctx context.Context) {
 // stop stops the test environment.
 func (e *Environment) stop() error {
 	fmt.Println("Stopping the test environment")
-	e.cancelManager()
+	e.cancelManager(errors.New("test environment stopped"))
 	return e.env.Stop()
 }
 

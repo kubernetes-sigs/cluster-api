@@ -180,7 +180,7 @@ func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Durati
 		return nil, errors.New("etcd client was not configured with any endpoints")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, callTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, callTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	status, err := etcdClient.Status(ctx, endpoints[0])
@@ -204,7 +204,7 @@ func (c *Client) Close() error {
 
 // Members retrieves a list of etcd members.
 func (c *Client) Members(ctx context.Context) ([]*Member, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	response, err := c.EtcdClient.MemberList(ctx)
@@ -225,7 +225,7 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 
 // MoveLeader moves the leader to the provided member ID.
 func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
@@ -234,7 +234,7 @@ func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
 
 // RemoveMember removes a given member.
 func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
@@ -243,7 +243,7 @@ func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
 
 // Alarms retrieves all alarms on a cluster.
 func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	alarmResponse, err := c.EtcdClient.AlarmList(ctx)

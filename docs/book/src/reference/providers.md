@@ -12,7 +12,6 @@ updated info about which API version they are supporting.
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
-- [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
 
@@ -24,7 +23,6 @@ updated info about which API version they are supporting.
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
-- [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [RKE2](https://github.com/rancher/cluster-api-provider-rke2)
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
 

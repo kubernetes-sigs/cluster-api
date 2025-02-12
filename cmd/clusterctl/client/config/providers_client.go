@@ -79,7 +79,6 @@ const (
 	KubeadmBootstrapProviderName             = "kubeadm"
 	TalosBootstrapProviderName               = "talos"
 	MicroK8sBootstrapProviderName            = "microk8s"
-	OracleCloudNativeBootstrapProviderName   = "ocne"
 	KubeKeyK3sBootstrapProviderName          = "kubekey-k3s"
 	RKE2BootstrapProviderName                = "rke2"
 	K0smotronBootstrapProviderName           = "k0sproject-k0smotron"
@@ -92,7 +91,6 @@ const (
 	TalosControlPlaneProviderName               = "talos"
 	MicroK8sControlPlaneProviderName            = "microk8s"
 	NestedControlPlaneProviderName              = "nested"
-	OracleCloudNativeControlPlaneProviderName   = "ocne"
 	KubeKeyK3sControlPlaneProviderName          = "kubekey-k3s"
 	KamajiControlPlaneProviderName              = "kamaji"
 	RKE2ControlPlaneProviderName                = "rke2"
@@ -358,11 +356,6 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
-			name:         OracleCloudNativeBootstrapProviderName,
-			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
-			providerType: clusterctlv1.BootstrapProviderType,
-		},
-		&provider{
 			name:         RKE2BootstrapProviderName,
 			url:          "https://github.com/rancher/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
@@ -402,11 +395,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NestedControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
-			providerType: clusterctlv1.ControlPlaneProviderType,
-		},
-		&provider{
-			name:         OracleCloudNativeControlPlaneProviderName,
-			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

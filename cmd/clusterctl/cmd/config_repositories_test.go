@@ -109,7 +109,6 @@ k0sproject-k0smotron    BootstrapProvider          https://github.com/k0sproject
 kubeadm                 BootstrapProvider          https://github.com/kubernetes-sigs/cluster-api/releases/latest/                                   bootstrap-components.yaml
 kubekey-k3s             BootstrapProvider          https://github.com/kubesphere/kubekey/releases/latest/                                            bootstrap-components.yaml
 microk8s                BootstrapProvider          https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/             bootstrap-components.yaml
-ocne                    BootstrapProvider          https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/                          bootstrap-components.yaml
 rke2                    BootstrapProvider          https://github.com/rancher/cluster-api-provider-rke2/releases/latest/                             bootstrap-components.yaml
 talos                   BootstrapProvider          https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/               bootstrap-components.yaml
 canonical-kubernetes    ControlPlaneProvider       https://github.com/canonical/cluster-api-k8s/releases/latest/                                     control-plane-components.yaml
@@ -119,7 +118,6 @@ kubeadm                 ControlPlaneProvider       https://github.com/kubernetes
 kubekey-k3s             ControlPlaneProvider       https://github.com/kubesphere/kubekey/releases/latest/                                            control-plane-components.yaml
 microk8s                ControlPlaneProvider       https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/         control-plane-components.yaml
 nested                  ControlPlaneProvider       https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/                   control-plane-components.yaml
-ocne                    ControlPlaneProvider       https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/                          control-plane-components.yaml
 rke2                    ControlPlaneProvider       https://github.com/rancher/cluster-api-provider-rke2/releases/latest/                             control-plane-components.yaml
 talos                   ControlPlaneProvider       https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/           control-plane-components.yaml
 aws                     InfrastructureProvider                                                                                                       my-aws-infrastructure-components.yaml
@@ -193,10 +191,6 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: BootstrapProvider
   URL: https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/
 - File: bootstrap-components.yaml
-  Name: ocne
-  ProviderType: BootstrapProvider
-  URL: https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/
-- File: bootstrap-components.yaml
   Name: rke2
   ProviderType: BootstrapProvider
   URL: https://github.com/rancher/cluster-api-provider-rke2/releases/latest/
@@ -232,10 +226,6 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: nested
   ProviderType: ControlPlaneProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/
-- File: control-plane-components.yaml
-  Name: ocne
-  ProviderType: ControlPlaneProvider
-  URL: https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/
 - File: control-plane-components.yaml
   Name: rke2
   ProviderType: ControlPlaneProvider

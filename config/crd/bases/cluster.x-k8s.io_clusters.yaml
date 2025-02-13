@@ -928,6 +928,15 @@ spec:
                     description: The name of the ClusterClass object to create the
                       topology.
                     type: string
+                  classNamespace:
+                    description: |-
+                      classNamespace is the namespace of the ClusterClass object to create the topology.
+                      If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
+                      Value must follow the DNS1123Subdomain syntax.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$
+                    type: string
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
                     properties:

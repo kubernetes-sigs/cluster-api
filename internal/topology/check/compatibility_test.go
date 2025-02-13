@@ -210,7 +210,7 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 			APIVersion: "test.group.io/versiontwo",
 		},
 	}
-	incompatibleNamespaceChangeTemplate := clusterv1.LocalObjectTemplate{
+	compatibleNamespaceChangeTemplate := clusterv1.LocalObjectTemplate{
 		Ref: &corev1.ObjectReference{
 			Namespace:  "different",
 			Name:       "foo",
@@ -253,15 +253,15 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "Allow change to template namespace",
+			current: template,
+			desired: compatibleNamespaceChangeTemplate,
+			wantErr: false,
+		},
+		{
 			name:    "Block change to template API Group",
 			current: template,
 			desired: incompatibleAPIGroupChangeTemplate,
-			wantErr: true,
-		},
-		{
-			name:    "Block change to template namespace",
-			current: template,
-			desired: incompatibleNamespaceChangeTemplate,
 			wantErr: true,
 		},
 		{
@@ -409,11 +409,11 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 		Name:       "baz",
 		Namespace:  "default",
 	}
-	compatibleRef := &corev1.ObjectReference{
+	compatibleRefOther := &corev1.ObjectReference{
 		APIVersion: "group.test.io/another-foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
+		Namespace:  "other",
 	}
 
 	tests := []struct {
@@ -450,7 +450,7 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 		},
 
 		{
-			name: "pass for compatible clusterClasses",
+			name: "pass for compatible clusterClasses (with different namespace)",
 			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -473,26 +473,26 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						Build()).
 				Build(),
-			desired: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+			desired: builder.ClusterClass("other", "class1").
 				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+					builder.InfrastructureClusterTemplate("other", "infra1").Build()).
 				WithControlPlaneTemplate(
-					refToUnstructured(compatibleRef)).
+					refToUnstructured(compatibleRefOther)).
 				WithControlPlaneInfrastructureMachineTemplate(
-					refToUnstructured(compatibleRef)).
+					refToUnstructured(compatibleRefOther)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+							builder.InfrastructureMachineTemplate("other", "infra1").Build()).
 						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+							builder.BootstrapTemplate("other", "bootstrap1").Build()).
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(
-							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+							builder.InfrastructureMachinePoolTemplate("other", "infra1").Build()).
 						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+							builder.BootstrapTemplate("other", "bootstrap1").Build()).
 						Build()).
 				Build(),
 			wantErr: false,

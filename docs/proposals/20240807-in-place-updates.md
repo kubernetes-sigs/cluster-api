@@ -22,53 +22,52 @@ status: experimental
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Glossary](#glossary)
-- [Summary](#summary)
-- [Motivation](#motivation)
-  - [Divide and conquer](#divide-and-conquer)
-  - [Tenets](#tenets)
-    - [Same UX](#same-ux)
-    - [Fallback to Immutable rollouts](#fallback-to-immutable-rollouts)
-    - [Clean separation of concern](#clean-separation-of-concern)
-  - [Goals](#goals)
-  - [Non-Goals](#non-goals)
-- [Proposal](#proposal)
-  - [User Stories](#user-stories)
-    - [Story 1](#story-1)
-    - [Story 2](#story-2)
-    - [Story 3](#story-3)
-    - [Story 4](#story-4)
-    - [Story 5](#story-5)
-    - [Story 6](#story-6)
-    - [Story 7](#story-7)
-  - [High level flow](#high-level-flow)
-  - [Defining the Update Plan](#defining-the-update-plan)
-  - [MachineDeployment updates](#machinedeployment-updates)
-  - [KCP updates](#kcp-updates)
-  - [Machine updates](#machine-updates)
-  - [Infra Machine Template changes](#infra-machine-template-changes)
-  - [Remediation](#remediation)
-  - [Examples](#examples)
-    - [KCP kubernetes version update](#kcp-kubernetes-version-update)
-    - [Update worker node memory](#update-worker-node-memory)
-    - [Update worker nodes OS from Linux to Windows](#update-worker-nodes-os-from-linux-to-windows)
-  - [API Changes](#api-changes)
-    - [Machine](#machine)
-    - [MachineDeployment](#machinedeployment)
-    - [KCP](#kcp)
-    - [External Update RuntimeExtension](#external-update-runtimeextension)
-      - [`CanUpdateMachine` endpoint](#canupdatemachine-endpoint)
-      - [Request](#request)
-      - [Response](#response)
-      - [`UpdateMachine` endpoint](#updatemachine-endpoint)
-      - [Request](#request-1)
-      - [Response](#response-1)
-  - [Security Model](#security-model)
-  - [Risks and Mitigations](#risks-and-mitigations)
-- [Additional Details](#additional-details)
-  - [Test Plan](#test-plan)
-  - [Graduation Criteria](#graduation-criteria)
-- [Implementation History](#implementation-history)
+- [In-place updates in Cluster API](#in-place-updates-in-cluster-api)
+  - [Table of Contents](#table-of-contents)
+  - [Glossary](#glossary)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Divide and conquer](#divide-and-conquer)
+    - [Tenets](#tenets)
+      - [Same UX](#same-ux)
+      - [Fallback to Immutable rollouts](#fallback-to-immutable-rollouts)
+      - [Clean separation of concern](#clean-separation-of-concern)
+    - [Goals](#goals)
+    - [Non-Goals/Future work](#non-goalsfuture-work)
+  - [Proposal](#proposal)
+    - [User Stories](#user-stories)
+      - [Story 1](#story-1)
+      - [Story 2](#story-2)
+      - [Story 3](#story-3)
+      - [Story 4](#story-4)
+      - [Story 5](#story-5)
+      - [Story 6](#story-6)
+      - [Story 7](#story-7)
+    - [High level flow](#high-level-flow)
+    - [Deciding the update strategy](#deciding-the-update-strategy)
+    - [MachineDeployment updates](#machinedeployment-updates)
+    - [KCP updates](#kcp-updates)
+    - [Machine updates](#machine-updates)
+    - [Infra Machine Template changes](#infra-machine-template-changes)
+    - [Remediation](#remediation)
+    - [Examples](#examples)
+      - [KCP kubernetes version update](#kcp-kubernetes-version-update)
+      - [Update worker node memory](#update-worker-node-memory)
+      - [Update worker nodes OS from Linux to Windows](#update-worker-nodes-os-from-linux-to-windows)
+    - [API Changes](#api-changes)
+      - [External Update RuntimeExtension](#external-update-runtimeextension)
+        - [`CanUpdateMachine` endpoint](#canupdatemachine-endpoint)
+        - [Request](#request)
+        - [Response](#response)
+        - [`UpdateMachine` endpoint](#updatemachine-endpoint)
+        - [Request](#request-1)
+        - [Response](#response-1)
+    - [Security Model](#security-model)
+    - [Risks and Mitigations](#risks-and-mitigations)
+  - [Additional Details](#additional-details)
+    - [Test Plan](#test-plan)
+    - [Graduation Criteria](#graduation-criteria)
+  - [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -82,17 +81,19 @@ __External Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke extern
 
 __External Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
 
+__Marking Machine as Pending/Done__: Using the `sigs.k8s.io/cluster-api/internal/hooks.MarkAsPending()` and `sigs.k8s.io/cluster-api/internal/hooks.MarkAsDone()` functions to track that updaters should be called and to mark machine as done updating.
+
 ## Summary
 
 The proposal introduces update extensions allowing users to execute custom strategies when performing Cluster API rollouts.
 
 An External Update Extension implementing custom update strategies will report the subset of changes they know how to perform. Cluster API will orchestrate the different extensions, polling the update progress from them.
 
-If the totality of the required changes cannot be covered by the defined extensions, Cluster API will allow to fall back to the current behavior (rolling update).
+If the totality of the required changes cannot be covered by the defined extensions, Cluster API will fall back to the current behavior (rolling update).
 
 ## Motivation
 
-Cluster API by default performs rollouts by deleting a machine and creating a new one.
+Cluster API by default performs rollouts by creating a new machine and deleting the old one.
 
 This approach, inspired by the principle of immutable infrastructure (the very same used by Kubernetes to manage Pods), has a set of considerable advantages:
 * It is simple to explain, it is predictable, consistent and easy to reason about with users and between engineers.
@@ -132,7 +133,7 @@ Cluster API user experience MUST be the same when using default, immutable updat
 
 #### Fallback to Immutable rollouts
 
-If external update extensions can not cover the totality of the desired changes, users SHOULD be able to defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
+If external update extensions can not cover the totality of the desired changes, CAPI WILL defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
 * It allows to implement custom rollout strategies incrementally, without the need to cover all use cases up-front.
 * There are case when replacing the machine will always be necessary:
@@ -154,15 +155,21 @@ The responsibility to determine which machine should be rolled out as well as th
 - Support External Update Extensions for both Control Plane (KCP or others) and MachineDeployment controlled machines.
 - Allow in-place updates for single-node clusters without the requirement to reprovision hosts.
 
-### Non-Goals
+### Non-Goals/Future work
 
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
+- Introduce any changes to KCP (or any other control plane provider), MachineDeployment, MachineSet, Machine APIs.
+- Ammend the desired state to something that the registered updaters can cover or register additional updaters capable of handling the desired changes.
 
 ## Proposal
 
-We propose a pluggable update strategy architecture that allows External Update Extension to handle the update process. The design decouples core CAPI controllers from the specific extension implementation responsible for updating a machine. The External Update Strategy will be configured reusing the existing field in KCP and MD resources, by introducing new type of strategy called `ExternalUpdate` (reusing the existing field in KCP and MD). This allows us to provide a consistent user experience: the interaction with the CAPI resources is the same as in rolling updates.
+We propose a pluggable update strategy architecture that allows External Update Extension to handle the update process.
+
+Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism and be contained within the experimental package. This means that any changes in behavior are controlled by the feature gate `InPlaceUpdates`, which must be enabled by users for the new in-place updates workflow to be available. It is disabled unless explicitly configured.
 
 This proposal introduces a Lifecycle Hook named `ExternalUpdate` for communication between CAPI and external update implementers. Multiple external updaters can be registered, each of them only covering a subset of machine changes. The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the reponse, compose and orchestrate them to achieve the desired state.
+
+With the introduction of this experimental feature, users may want to apply the in-place updates workflow to a subset of CAPI clusters only. By leveraging CAPI's `RuntimeExtension`, we can provide a namespace selector via [`ExtensionConfig`](https://cluster-api.sigs.k8s.io/tasks/experimental-features/runtime-sdk/implement-extensions#extensionconfig). This allows us to support cluster selection at the namespace level (only clusters/machines namespaces that match the selector) without applying API changes.
 
 ### User Stories
 
@@ -202,35 +209,38 @@ sequenceDiagram
         participant hook as External updater
     end
 
-
-    Operator->>+apiserver: make changes to KCP <br>(ExternalUpdate strategy)
+    Operator->>+apiserver: Make changes to KCP
     apiserver->>+capi: Notify changes
     apiserver->>-Operator: OK
     loop For all External Updaters
         capi->>+hook: Can update?
         hook->>capi: Supported changes
     end
-    capi->>capi: Define Update Plan
-    loop For all machines
-        capi->>apiserver: Mark Machine with Update Plan
+    capi->>capi: Decide Update Strategy
+    loop For all Machines
+        capi->>apiserver: Mark Machine as pending
         apiserver->>mach: Notify changes
-        loop For all updaters in plan
+        mach->>apiserver: Set UpToDate condition to False
+        loop For all External Updaters
             mach->>hook: Run updater
         end
-        mach->>apiserver: Mark Machine as updated
+        mach->>apiserver: Mark Hooks in Machine as Done
+        mach->>apiserver: Set UpToDate condition to True
     end
 ```
 
 When configured, external updates will, roughly, follow these steps:
 1. CP/MD Controller: detect an update is required.
-2. CP/MD Controller: query defined update extensions, and based on the subset of changes each of them supports, defines the final update plan.
-3. CP/MD Controller: mark machines for update.
-4. Machine Controller: invoke all the updaters included in the plan, sequentially, one by one.
-5. Machine Controller: make machine is updated.
+2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place.
+3. CP/MD Controller: mark machines as pending using `sigs.k8s.io/cluster-api/internal/hooks.MarkAsPending()` function to track that updaters should be called.
+4. Machine Controller: set `UpToDate` condition on machines to `False`.
+5. Machine Controller: invoke all registered updaters, sequentially, one by one.
+6. Machine Controller: once updaters finish use `sigs.k8s.io/cluster-api/internal/hooks.MarkAsDone()` to mark machine as done updating.
+7. Machine Controller: set `UpToDate` condition on machines to `True`.
 
 The following sections dive deep into these steps, zooming in into the different component interactions and defining how the main error cases are handled.
 
-### Defining the Update Plan
+### Deciding the update strategy
 
 ```mermaid
 sequenceDiagram
@@ -243,7 +253,7 @@ sequenceDiagram
         participant hook2 as External updater 2
     end
 
-    Operator->>+apiserver: make changes to CP/MD <br>(ExternalUpdate strategy)
+    Operator->>+apiserver: make changes to CP/MD
     apiserver->>+capi: Notify changes
     apiserver->>-Operator: OK
     capi->>+hook: Can update?
@@ -251,7 +261,7 @@ sequenceDiagram
     capi->>+hook2: Can update?
     hook2->>capi: Set of changes
     alt all changes covered?
-        capi->>apiserver: Define Update Plan
+        capi->>apiserver: Decide Update Strategy
     else
         alt fallback strategy?
             capi->>apiserver: Re-create machines
@@ -263,13 +273,11 @@ sequenceDiagram
 
 Both `KCP` and `MachineDeployment` controllers follow a similar pattern around updates, they first detect if an update is required and then based on the configured strategy follow the appropiate update logic (note that today there is only one valid strategy, `RollingUpdate`).
 
-With `ExternalUpdate` strategy, CAPI controllers will compute the set of desired changes and iterate over the registered external updaters, requesting through the Runtime Hook the set of changes each updater can handle. The changes supported by an updater can be the complete set of desired changes, a subset of them or an empty set, signaling it cannot handle any of the desired changes.
+With `InPlaceUpdates` feature gate enabled, CAPI controllers will compute the set of desired changes and iterate over the registered external updaters, requesting through the Runtime Hook the set of changes each updater can handle. The changes supported by an updater can be the complete set of desired changes, a subset of them or an empty set, signaling it cannot handle any of the desired changes.
 
-On each iteration, the controller will substract from the set of desired changes the subset returned by the updater. 
+If any combination of the updaters can handle the desired changes then CAPI will determine that the update can be performed using the external strategy. 
 
-If this set is reduced to zero, then CAPI will determine that the update can be performed using the external strategy. CAPI will define the update plan as a list of sequential external updaters in a particular order and proceed to execute it. The update plan will be stored in the Machine object as an array of strings (the names of the selected external updaters).
-
-If after iterating over all external updaters the remaining set still contains uncovered changes, CAPI will determine the desired state cannot be reached through external updaters. If a fallback rolling update strategy has been configured (this is optional), CAPI will replace the machines. If no fallback strategy is configured, we will surface the issue in the resource status. Machines will remain unchanged and the desired state won't be reached unless remediated by the user. Depending on the scenario, users can: ammend the desired state to something that the registered updaters can cover, register additional updaters capable of handling the desired changes or simply enable the fallback strategy.
+If any of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
 
 ### MachineDeployment updates
 
@@ -285,34 +293,32 @@ box Management Cluster
     participant hook as External updater
 end
 
-Operator->>apiserver: make changes to MD <br>(ExternalUpdate strategy)
+Operator->>apiserver: make changes to MD
 apiserver->>capi: Notify changes
 apiserver->>Operator: OK
-capi->>capi: Define Update Plan
+capi->>capi: Decide Update Strategy
 capi->>apiserver: Create new MachineSet
 loop For all machines
-    capi->>apiserver: Add Update Plan to Machine<br> and move to new Machine Set
-    apiserver->>msc: Notify changes
-    msc->>apiserver: Update Machine Spec
+    capi->>apiserver: Mark as pending, update spec, and move to new Machine Set
     apiserver->>mach: Notify changes
+    mach->>apiserver: Set UpToDate condition to False
     loop For all updaters in plan
         mach->>hook: Run updater
     end
-    mach->>apiserver: Mark Machine as updated
+    mach->>apiserver: Mark Hooks in Machine as Done
+    mach->>apiserver: Set UpToDate condition to True
 end
 ```
 
-The MachineDeployment controller updates machines in place in a very similar way to rolling updates: by creating a new MachineSet and moving the machines from the old MS to the new one. We want to stress that the Machine objects won't be deleted and recreated like in the current rolling strategy. The MachineDeployment will just update the OwnerRefs, effectively moving the existing Machine object from one MS to another. The number of machines moved at once might be made configurable on the MachineDeployment in the same way `maxSurge` and `maxUnavailable` control this for rolling updates.
+The MachineDeployment controller updates machines in place in a very similar way to rolling updates: by creating a new MachineSet and moving the machines from the old MS to the new one. We want to stress that the Machine objects won't be deleted and recreated like in the current rolling strategy. The MachineDeployment will just update the OwnerRefs and labels, effectively moving the existing Machine object from one MS to another. The number of machines moved at once might be made configurable on the MachineDeployment in the same way `maxSurge` and `maxUnavailable` control this for rolling updates.
 
-When the new MachineSet controller sees a new Machine with an outdated spec, it updates the spec to match the one in the MS. This update is what triggers the Machine controller to start executing the external updaters.
-
-> TODO: we might want the MachineDeployment to store the update plan in the MachineSet and have the MachineSet pass it down to the Machine. This should not change the high level design, so the decision will come after this first draft.
+When the new MachineSet controller sees a new Machine with an outdated spec, it updates the spec to match the one in the MS. This update together with marking machine as pending and setting a condition is what triggers the Machine controller to start executing 
+the external updaters.
 
 ### KCP updates
 
 ```mermaid
 sequenceDiagram
-participant Operator
 box Management Cluster
     participant apiserver as kube-api server
     participant capi as KCP controller
@@ -320,22 +326,24 @@ box Management Cluster
     participant hook as External updater
 end
 
-Operator->>apiserver: make changes to KCP <br>(ExternalUpdate strategy)
+Operator->>apiserver: make changes to KCP
 apiserver->>capi: Notify changes
 apiserver->>Operator: OK
-capi->>capi: Define Update Plan
+capi->>capi: Decide Update Strategy
 loop For all machines
-    capi->>apiserver: Add Update Plan to Machine <br> and update Spec 
+    capi->>apiserver: Mark Machine as pending, update spec
     apiserver->>mach: Notify changes
-    loop For all updaters in plan
-        mach->>hook: Run updater
+    mach->>apiserver: Set UpToDate condition to False
+    loop For each External Updater
+        mach->>hook: Run until completion
     end
-    mach->>apiserver: Mark Machine as updated
+    mach->>apiserver: Mark Hooks in Machine as Done
+    mach->>apiserver: Set UpToDate condition to True
 end
 ```
 
-The KCP external updates will work in a very similar way to MachineDeployments but removing the MachineSet level of indirection. In this case, it's the KCP controller the one in charge of both adding the update plan to the Machine and also updating the Machine spec. This follows this same pattern as for rolling updates, where the KCP controller directly creates and deletes Machines. Machines will be updates one by one, sequentially.
-
+The KCP external updates will work in a very similar way to MachineDeployments but removing the MachineSet level of indirection. In this case, it's the KCP controller responsible for marking the machine as pending and updating 
+the Machine spec, while the Machine controller manages setting the `UpToDate` condition. This follows this same pattern as for rolling updates, where the KCP controller directly creates and deletes Machines. Machines will be updated one by one, sequentially.
 
 ### Machine updates
 
@@ -345,51 +353,57 @@ box Management Cluster
     participant apiserver as kube-api server
     participant capi as CAPI
     participant mach as Machine Controller
-    participant hook as External updater 1
-    participant hook2 as External updater 2
+    participant hook as External updater
+    participant hook1 as Other external updaters
 end
 
 box Workload Cluster
     participant infra as Infrastructure
 end
 
-capi->>apiserver: Define Update Plan<br>and new Machine Spec
+capi->>apiserver: Decide Update Strategy
+capi->>apiserver: Mark Machine as pending, update spec
 apiserver->>mach: Notify changes
 mach->>hook: Start update
-hook->>infra: Update components
-loop Until finished
-    mach->>hook: finished?
+loop For all External Updaters
+  mach->>hook: call UpdateMachine
+  hook->>infra: Update components
+  alt is pending
     hook->>mach: try in X secs
+    Note over hook,mach: Retry loop
+  else is done
+    hook->>mach: Done
+  end
+  mach->>hook1: call UpdateMachine
+  hook1->>infra: Update components
+  alt is pending
+    hook1->>mach: try in X secs
+    Note over hook1,mach: Retry loop
+  else is done
+    hook1->>mach: Done
+  end
 end
-mach->>apiserver: Remove Updater 1 from plan
-mach->>hook2: Start update
-hook2->>infra: Update components
-loop Until finished
-    mach->>hook2: finished?
-    hook2->>mach: try in X secs
-end
-mach->>apiserver: Remove Updater 2 from plan
-mach->>apiserver: Mark Machine as up to date
-
+mach->>apiserver: Mark Hooks in Machine as Done
+mach->>apiserver: Set UpToDate condition to True
 ```
 
-Once a the Machine update plan is set and the Machine's spec has been updated with the desired changes, the Machine controller takes over. This controller is responsible for executing the right updaters in the right order, tracking the progress of those updaters and exposing this progress in the Machine status.
+Once a Machine is marked as pending and `UpToDate` condition is set and the Machine's spec has been updated with the desired changes, the Machine controller takes over. This controller is responsible for calling the updaters and tracking the progress of those updaters and exposing this progress in the Machine conditions.
 
-The Machine controller will follow the order in which the names of the updaters have been defined in the Machine object, executing them one by one, sequentially.
+The Machine controller currently calls registered external updaters sequentially but without a defined order. We are explicitly not trying to design a solution for ordering of execution at this stage. However, determining a specific ordering mechanism or dependency management between update extensions will need to be addressed in future iterations of this proposal.
 
-The controller will trigger updaters by hitting another RuntimeHook endpoint (eg. `/UpdateMachine`). This endpoint will take the Machine name as input. The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until it reaches a terminal state.
+The controller will trigger updaters by hitting another RuntimeHook endpoint (eg. `/UpdateMachine`). The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until it reaches a terminal state.
 
 CAPI expects the `/UpdateMachine` endpoint of an updater to be idempotent: for the same Machine with the same spec, the endpoint can be called any number of times (before and after it completes), and the end result should be the same. CAPI guarantees that once an `/UpdateMachine` endpoint has been called once, it won't change the Machine spec until the update reaches a terminal state.
 
-Once the update completes, the Machine controller will remove the name of the updater that has finished from the list of updaters and will start the next one. If the update fails, this will be reflected in the Machine status.
+Once all of the updaters are complete, the Machine controller will mark machine as done. If the update fails, this will be reflected in the Machine status.
 
-If all updaters succeed, the controller will mark the Machine as up to date and remove the update plan from the Machine.
+From this point on, the `KCP` or `MachineDeployment` controller will take over and set the `UpToDate` condition to `True`.
 
 ### Infra Machine Template changes
 
 As mentioned before, the user experience to update in-place should be the exact same one as for rolling updates. This includes the need to rotate the Infra machine template. For providers that bundle the kubernetes components in some kind of image, this means that when upgrading kubernetes versions, a new image will be required.
 
-This might seem counter-intuitive, given the update will be made in-place, so there is no nee for a new image. However, not only this ensures the experience is the same as in rolling updates, but it also allows new Machines to be created for that MachineDeployment/CP in case a scale up or fallback to rolling is required.
+This might seem counter-intuitive, given the update will be made in-place, so there is no need for a new image. However, not only this ensures the experience is the same as in rolling updates, but it also allows new Machines to be created for that MachineDeployment/CP in case a scale up is required or fallback to rolling update.
 
 We leave up to the external updater implementers to decide how to deal with these changes. Some infra providers might have the ability to swap the image in an existing running machine, in which case they can offer a true in-place update for this field. For the ones that can't do this but want to allow changes that require a new image (like kubernetes updates), they should "ignore" the image field when processing the update, leaving the machine in a dirty state.
 
@@ -405,13 +419,15 @@ However, in-place updates might cause Nodes to become unhealthy while the update
 
 ### Examples
 
+*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
+
 This section aims to showcase our vision for the In-Places Updates end state. It shows a high level picture of a few common usecases, specially around how the different components interact through the API.
 
-Note that these examples don't show all the low level details. In addition, some other details are subject to change, specially API fields. Some of those details might not yet be defined in this doc and will be added later, the examples here are just to help communicate the vision.
+Note that these examples don't show all the low level details. Some of those details might not yet be defined in this doc and will be added later, the examples here are just to help communicate the vision.
 
 Let's imagine a vSphere cluster with a KCP control plane that has two fictional In-Place update extensions already deployed and registered through their respective `ExtensionConfig`.
 1. `vsphere-vm-memory-update`: The extension uses vSphere APIs to hot-add memory to VMs if "Memory Hot Add" is enabled or through a power cycle.
-1. `kcp-version-upgrade`: Updates the kubernetes version of KCP machines by using an agent that first updates the kubernetes related packages (`kubeadm`, `kubectl`, etc.) and then runs the `kubeadm upgrade` command. The In-place Update extension communicates with this agent, sending instructions with the kubernetes version a machine needs to be update to.
+2. `kcp-version-upgrade`: Updates the kubernetes version of KCP machines by using an agent that first updates the kubernetes related packages (`kubeadm`, `kubectl`, etc.) and then runs the `kubeadm upgrade` command. The In-place Update extension communicates with this agent, sending instructions with the kubernetes version a machine needs to be updated to.
 
 
 #### KCP kubernetes version update
@@ -440,15 +456,23 @@ sequenceDiagram
         hook2->>capi: I can update []
         capi->>+hook: Can update [spec.version,<br>clusterConfiguration.kubernetesVersion]?
         hook->>capi: I can update [spec.version,<br>clusterConfiguration.kubernetesVersion]
-        capi->>apiserver: Mark Machine with Update Plan
+        capi->>capi: Decide Update Strategy
+        capi->>apiserver: Mark Machine as pending, update spec
         apiserver->>mach: Notify changes
+        mach->>apiserver: Set UpToDate condition to False
+        apiserver->>mach: Notify changes
+        mach->>hook2: Run update in<br> in Machine
+        hook2->>mach: Done
         mach->>hook: Run update in<br> in Machine
-        hook->>mach: In progress
+        hook->>mach: In progress, requeue in 5 min
         hook->>machines: Update packages and<br>run kubeadm upgrade 1.31
         machines->>hook: Done
+        mach->>hook2: Run update in<br> in Machine
+        hook2->>mach: Done
         mach->>hook: Run update in<br> in Machine
         hook->>mach: Done
-        mach->>apiserver: Mark Machine as updated
+        mach->>apiserver: Mark Hooks in Machine as Done
+        mach->>apiserver: Set UpToDate condition
     end
 ```
 
@@ -467,15 +491,12 @@ spec:
 + version: v1.31.0
 ```
 
-The KCP computes the difference between the current CP machines (plus bootstrap config and infra machine) and their desired state and detecs a difference for the machine `spec.version` and for the KubeadmConfig `spec.clusterConfiguration.kubernetesVersion`. It then start to construct an update plan.
+The KCP computes the difference between the current CP machines (plus bootstrap config and infra machine) and their desired state and detects a difference for the machine `spec.version` and for the KubeadmConfig `spec.clusterConfiguration.kubernetesVersion`. It then starts calling the external update extensions to see if they can handle these changes.
 
-First, it makes a request to the `vsphere-vm-memory-update/CanUpdateMachine` endpoint of the first update extension registered, the `vsphere-vm-memory-update` exstension:
+First, it makes a request to the `vsphere-vm-memory-update/CanUpdateMachine` endpoint of the one of update extension registered, the `vsphere-vm-memory-update` extension in this case:
 
 ```json
 {
-    "desiredMachine": {...},
-    "desiredBootstrapConfig": {...},
-    "desiredInfraMachine": {...},
     "changes": ["machine.spec.version", "bootstrap.spec.clusterConfiguration.kubernetesVersion"],
 }
 ```
@@ -489,14 +510,11 @@ The `vsphere-vm-memory-update` extension does not support any or the required ch
 }
 ```
 
-Given the there are still changes not covered, KCP continues with the next update extension, making the same request to the `kcp-version-upgrade/CanUpdateMachine` endpoint of the `kcp-version-upgrade` extension:
+Given that there are still changes not covered, KCP continue with the next update extension, making the same request to the `kcp-version-upgrade/CanUpdateMachine` endpoint of the `kcp-version-upgrade` extension:
 
 
 ```json
 {
-    "desiredMachine": {...},
-    "desiredBootstrapConfig": {...},
-    "desiredInfraMachine": {...},
     "changes": ["machine.spec.version", "bootstrap.spec.clusterConfiguration.kubernetesVersion"],
 }
 ```
@@ -510,12 +528,14 @@ The `kcp-version-upgrade` extension detects that this is a KCP machine, verifies
 }
 ```
 
-Now that the KCP knows how to cover all desired changes, it proceeds to mark the first selected KCP machine for update. It sets the `updaters` field, which is the signal for the Machine controller to treat this changes differently (as an external update).
+Now that the KCP knows how to cover all desired changes, it proceeds to mark the first selected KCP machine for update. It sets the pending hook annotation and condition on the machine, which is the signal for the Machine controller to treat this changes differently (as an external update).
 
 ```diff
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
++ annotations:
++   runtime.cluster.x-k8s.io/pending-hooks: ExternalUpdate
   name: kcp-1-hfg374h
 spec:
 - version: v1.30.0
@@ -528,47 +548,39 @@ spec:
 -     uid: fc69d363-272a-4b91-aa35-72ccdaa7a427
 +     name: kcp-1-hfg374h-flkf3
 +     uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
-+  updaters:
-+  - kcp-version-upgrade
-```
-
-These changes are observed by the Machine controller, which marks the machine as not up to date:
-
-```diff
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: Machine
-metadata:
-  name: kcp-1-hfg374h
-spec:
-  version: v1.31.0
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-      kind: KubeadmConfig
-      name: kcp-1-hfg374h-flkf3
-      uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
-   updaters:
-   - kcp-version-upgrade
 status:
   conditions:
 + - lastTransitionTime: "2024-12-31T23:50:00Z"
 +   status: "False"
 +   type: UpToDate
-
 ```
 
-Then it executes all updaters in order (in this case only one). To trigger the updater, it calls the `kcp-version-upgrade/UpdateMachine` endpoint:
+These changes are observed by the Machine controller. Then it call all updaters. To trigger the updater, it calls the update extensions one by one. The `vsphere-vm-memory-update/UpdateMachine` receives the first request:
 
 ```json
 {
-    "machine": {
-        "name": "kcp-1-hfg374h",
-        "namespace": "default",
-    }
+    "machineRef": {...},
 }
 ```
 
-When the `kcp-version-upgrade` extension receives the request, it verifies it read the Machine object, verifies it's a CP machine and triggers the upgrade process by sending the order to the agent. It then responds to the Machine controller:
+Since this extension has not been able to cover any of the changes, it responds with the `Done` (machine controller doesn't need to know if the update was accepted or rejected):
+
+```json
+{
+    "error": null,
+    "status": "Done"
+}
+```
+
+The Machine controller then sends a simillar request to `kcp-version-upgrade/UpdateMachine` endpoint:
+
+```json
+{
+    "machineRef": {...},
+}
+```
+
+When the `kcp-version-upgrade` extension receives the request, it verifies it can read the Machine object, verifies it's a CP machine and triggers the upgrade process by sending the order to the agent. It then responds to the Machine controller:
 
 ```json
 {
@@ -578,18 +590,15 @@ When the `kcp-version-upgrade` extension receives the request, it verifies it re
 }
 ```
 
-The Machine controller then requeues the reconcile request for this Machine for 5 minutes later. On the next reconciliation, it detects that the Machine still has one updater in its spec, so it repeats the request to the `kcp-version-upgrade/UpdateMachine` endpoint:
+The Machine controller then requeues the reconcile request for this Machine for 5 minutes later. On the next reconciliation it repeats the request to the `vsphere-vm-memory-update/UpdateMachine` endpoint:
 
 ```json
 {
-    "machine": {
-        "name": "kcp-1-hfg374h",
-        "namespace": "default",
-    }
+    "machineRef": {...},
 }
 ```
 
-The `kcp-version-upgrade` which has tracked the upgrade process reported by the agent, responds:
+The `vsphere-vm-memory-update` which is idempotent, returns `Done` response, once again.
 
 ```json
 {
@@ -598,7 +607,48 @@ The `kcp-version-upgrade` which has tracked the upgrade process reported by the 
 }
 ```
 
-The Machine controller then removes the updater from the spec and marks the machine as up to date:
+The Machine controller then repeats the request to the previously pending `kcp-version-upgrade/UpdateMachine` endpoint:
+
+```json
+{
+    "machineRef": {...},
+}
+```
+
+The `kcp-version-upgrade` which has tracked the upgrade process reported by the agent and received the completion event, responds:
+
+```json
+{
+    "error": null,
+    "status": "Done"
+}
+```
+
+All in-place `ExternalUpdate` hooks are completed execution, so the Machine controller removes the annotation:
+
+```diff
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Machine
+metadata:
+- annotations:
+-   runtime.cluster.x-k8s.io/pending-hooks: ExternalUpdate
+  name: kcp-1-hfg374h
+spec:
+  version: v1.31.0
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+      kind: KubeadmConfig
+      name: kcp-1-hfg374h-flkf3
+      uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
+status:
+  conditions:
+  - lastTransitionTime: "2024-12-31T23:50:00Z"
+    status: "False"
+    type: UpToDate
+```
+
+On the next KCP reconciliation, it detects that this machine doesn't have any pending hooks and sets the `UpToDate` condition to `True`.
 
 ```diff
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -613,8 +663,6 @@ spec:
       kind: KubeadmConfig
       name: kcp-1-hfg374h-flkf3
       uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
--  updaters:
--  - kcp-version-upgrade
 status:
   conditions:
 - - lastTransitionTime: "2024-12-31T23:50:00Z"
@@ -623,8 +671,6 @@ status:
 +   status: "True"
     type: UpToDate
 ```
-
-On the next KCP reconciliation, it detects that this machine doesn't differ anymore from the desired state, picking the next and repeating the same process.
 
 This process is repeated a third time with the last KCP machine, finally marking the KCP object as up to date.
 
@@ -650,9 +696,10 @@ sequenceDiagram
     apiserver->>-Operator: OK
     capi->>+hook: Can update [spec.memoryMiB]?
         hook->>capi: I can update [spec.memoryMiB]
+    capi->>capi: Decide Update Strategy
     capi->>apiserver: Create new MachineSet
     loop For all Machines
-        capi->>apiserver: Mark Machine with Update Plan<br> and move to new MachineSet
+        capi->>apiserver: Mark as pending and move to new Machine Set
         apiserver->>msc: Notify changes
         msc->>apiserver: Update Machine's<br> spec.memoryMiB
         apiserver->>mach: Notify changes
@@ -663,6 +710,8 @@ sequenceDiagram
         mach->>hook: Run update in<br> in Machine
         hook->>mach: Done
         mach->>apiserver: Mark Machine as updated
+        mach->>apiserver: Mark Hooks in Machine as Done
+        msc->>apiserver: Set UpToDate condition
     end
 ```
 
@@ -672,7 +721,8 @@ The user starts the process by creating a new VSphereMachineTemplate with the up
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
 metadata:
-  name: md-1-2
+-  name: md-1-1
++  name: md-1-2
 spec:
   template:
     spec:
@@ -697,13 +747,10 @@ spec:
 +       name: md-1-2
 ```
 
-The `vsphere-vm-memory-update` extension informs that can cover all requested changes:
+The `vsphere-vm-memory-update` extension informs that can cover required requested changes:
 
 ```json
 {
-    "desiredMachine": {...},
-    "desiredBootstrapConfig": {...},
-    "desiredInfraMachine": {...},
     "changes": ["infraMachine.spec.memoryMiB"],
 }
 ```
@@ -715,14 +762,26 @@ The `vsphere-vm-memory-update` extension informs that can cover all requested ch
 }
 ```
 
-There is no need to continue with the `kcp-version-upgrade` since all covers are already covered, which completes the update plan.
+The request is also made to `kcp-version-upgrade` but it responds with an empty array, indicating it cannot handle any of the changes:
 
-The Machine controller then creates a new MachineSet with the new spec and moves the first Machine to it by updating its `OwnerRefs`:
+```json
+{
+    "error": null,
+    "acceptedChanges": [],
+}
+```
+
+The Machine controller then creates a new MachineSet with the new spec and moves the first Machine to it by updating its `OwnerRefs`, it also marks the Machine as pending:
 
 ```diff
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
++ labels:
++   cluster.x-k8s.io/cluster-name: cluster1
++   cluster.x-k8s.io/deployment-name: md-1
++ annotations:
++   runtime.cluster.x-k8s.io/pending-hooks: ExternalUpdate
   name: md-1-6bp6g
   ownerReferences:
   - apiVersion: cluster.x-k8s.io/v1beta1
@@ -731,19 +790,26 @@ metadata:
 +   name: md-1-hndio
 ```
 
-The MachineSet controller detects that this machine is out of date and proceeds to update the Machine's spec:
+The MachineSet controller detects that this machine is out of date and is pending external update execution and proceeds to update the Machine's spec and sets the `UpToDate` condition to `False`:
 
 ```diff
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
   name: md-1-6bp6g
+  annotations:
+    runtime.cluster.x-k8s.io/pending-hooks: ExternalUpdate
 spec:
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: VSphereMachine
 -   name: md-1-1-whtwq
 +   name: md-1-2-nfdol
+status:
++ conditions:
++ - lastTransitionTime: "2024-12-31T23:50:00Z"
++   status: "False"
++   type: UpToDate
 ```
 
 From that point, the Machine controller follows the same process as in the first example.
@@ -792,7 +858,8 @@ The user starts the process by creating a new VSphereMachineTemplate with the up
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
 metadata:
-  name: md-1-3
+-  name: md-1-2
++  name: md-1-3
 spec:
   template:
     spec:
@@ -819,13 +886,10 @@ spec:
 +       name: md-1-3
 ```
 
-Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions informs that they cannot handle any of the changes:
+Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions inform that they cannot handle any of the changes:
 
 ```json
 {
-    "desiredMachine": {...},
-    "desiredBootstrapConfig": {...},
-    "desiredInfraMachine": {...},
     "changes": ["infraMachine.spec.template"],
 }
 ```
@@ -837,36 +901,11 @@ Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions inf
 }
 ```
 
-Since the fallback to machine replacement is enabled, the MachineDeployment controller proceeds with the rollout process as it does today, replacing the old machines with new ones.
+Since the fallback to machine replacement is a default strategy and always enabled, the MachineDeployment controller proceeds with the rollout process as it does today, replacing the old machines with new ones.
 
 ### API Changes
 
-#### Machine
-
-> TODO: we will add this later, after we get feedback from the first daft
-> >
-> Requirements:
->
-> * Can store the update plan: array of strings
-> * Can indicate a Machine is up to date or not and if it's on-going an update.
-
-#### MachineDeployment
-
-> TODO: we will add this later, after we get feedback from the first daft
-> >
-> Requirements:
->
-> * Can configure external as the rollout strategy
-> * Can configure rolling as the fallback strategy when external strategy is selected
-
-#### KCP
-
-> TODO: we will add this later, after we get feedback from the first daft
-> >
-> Requirements:
->
-> * Can configure external as the rollout strategy
-> * Can configure rolling as the fallback strategy when external strategy is selected
+*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
 
 #### External Update RuntimeExtension
 
@@ -875,18 +914,17 @@ Since the fallback to machine replacement is enabled, the MachineDeployment cont
 ##### `CanUpdateMachine` endpoint
 ##### Request
 > Requirements:
-> * Current Machine Spec
-> * Desired Machine Spec, including bootstrap and and infra machine templates
+> * Desired Machine/Bootstrap/InfraMachine changes
 
 ##### Response
 > Requirements:
-> * Set of supported changes, probably and array of strings (the path in the object)
+> * Set of supported changes, probably an array of strings (the path in the object)
 > * Error
 
 ##### `UpdateMachine` endpoint
 ##### Request
 > Requirements:
-> * Machine reference
+> *  Machine reference - namespace, name
 
 ##### Response
 > Requirements:
@@ -901,7 +939,7 @@ However, each external updater should define their own security model. Depending
 
 ### Risks and Mitigations
 
-1. One of the risks for this process could be that during a single node cluster in-place update, extension implementation might decline the update and that would result in falling back to rolling update strategy, which could lead to breaking a cluster if not using the feature as intended (allowing fallback strategy for this specific case). Good documentation with examples can be provided to avoid such scenarios.
+1. One of the risks for this process could be that during a single node cluster in-place update, extension implementation might decline the update and that would result in falling back to rolling update strategy by default, which could possibly lead to breaking a cluster. For the first iteration, users must ensure that the changes they make will be accepted by their updater.
 
 ## Additional Details
 
@@ -911,9 +949,10 @@ To test the external update strategy, we will implement a "CAPD Kubeadm Updater"
 
 ### Graduation Criteria
 
-The initial plan is to provide support for external update strategy in the KCP and MD controllers under a feature flag (which would be unset by default) and to have the webhook API in an `alpha` stage )which will allow us to iterate faster).
+The initial plan is to provide support for external update strategy in the KCP and MD controllers under a feature flag (which would be unset by default) and to have the webhook API in an `alpha` stage ) which will allow us to iterate faster).
 
-The main criteria for graduating this feature will be community adoption and API stability. Once the feature is stable, we have fixes to any known bugs and the webhook API has remained stable without backward incompatible changes for some time, we will propose to the community moving the API out of the `alpha` stage.
+The main criteria for graduating this feature will be community adoption and API stability. Once the feature is stable, we have fixes to any known bugs and the webhook API has remained stable without backward incompatible changes for some time, we will propose to the community moving the API out of the `alpha` stage. It will then be promoted out of experimental and the feature flag for enabling/disabling the functionality will be deprecated. When this happens
+we will provide a way to toggle the in-place possibly though the API.
 
 ## Implementation History
 

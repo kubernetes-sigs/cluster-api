@@ -114,12 +114,12 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	machine.Status.NodeInfo = &s.node.Status.NodeInfo
 
 	// Compute all the annotations that CAPI is setting on nodes;
-	nodeAnnotations := r.getManagedAnnotations(machine)
+	nodeAnnotations := annotations.GetManagedAnnotations(machine, r.AdditionalSyncMachineAnnotations...)
 
 	// Compute labels to be propagated from Machines to nodes.
 	// NOTE: CAPI should manage only a subset of node labels, everything else should be preserved.
 	// NOTE: Once we reconcile node labels for the first time, the NodeUninitializedTaint is removed from the node.
-	nodeLabels := r.getManagedLabels(machine.Labels)
+	nodeLabels := labels.GetManagedLabels(machine.Labels, r.AdditionalSyncMachineLabels...)
 
 	// Get interruptible instance status from the infrastructure provider and set the interruptible label on the node.
 	interruptible := false
@@ -166,18 +166,6 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
 	return ctrl.Result{}, nil
-}
-
-// getManagedLabels gets a map[string]string and returns another map[string]string
-// filtering out labels not managed by CAPI.
-func (r *Reconciler) getManagedLabels(machineLabels map[string]string) map[string]string {
-	return labels.GetManagedLabels(machineLabels, r.AdditionalSyncMachineLabels...)
-}
-
-// getManagedAnnotations returns a map of Node annotations managed by CAPI.
-// This is not generalized with getManagedLabels because the domains used by labels and annotations are slightly different.
-func (r *Reconciler) getManagedAnnotations(machine *clusterv1.Machine) map[string]string {
-	return annotations.GetManagedAnnotations(machine, r.AdditionalSyncMachineAnnotations...)
 }
 
 // summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:

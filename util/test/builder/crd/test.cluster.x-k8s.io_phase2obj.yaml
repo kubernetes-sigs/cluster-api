@@ -111,11 +111,11 @@ spec:
                 - type
                 x-kubernetes-list-type: map
               deprecated:
-                description: Phase2ObjStatusDeprecated defines the status.Deprecated
+                description: Phase2ObjDeprecatedStatus defines the status.Deprecated
                   of a Phase2Obj.
                 properties:
                   v1beta1:
-                    description: Phase2ObjStatusDeprecatedV1Beta1 defines the status.Deprecated.V1Beta2
+                    description: Phase2ObjDeprecatedV1Beta1Status defines the status.Deprecated.V1Beta2
                       of a Phase2Obj.
                     properties:
                       conditions:

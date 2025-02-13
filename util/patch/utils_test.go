@@ -262,7 +262,7 @@ func TestIdentifyConditionsFieldsPath(t *testing.T) {
 		}{
 			{obj: &builder.Phase1Obj{}},
 			{obj: &builder.Phase1Obj{Status: builder.Phase1ObjStatus{V1Beta2: nil}}},
-			{obj: &builder.Phase1Obj{Status: builder.Phase1ObjStatus{V1Beta2: &builder.Phase1ObjStatusV1Beta2{Conditions: nil}}}},
+			{obj: &builder.Phase1Obj{Status: builder.Phase1ObjStatus{V1Beta2: &builder.Phase1ObjV1Beta2Status{Conditions: nil}}}},
 		}
 		for _, tt := range tests {
 			metav1ConditionsFields, clusterv1ConditionsFields, err := identifyConditionsFieldsPath(tt.obj)
@@ -279,8 +279,8 @@ func TestIdentifyConditionsFieldsPath(t *testing.T) {
 		}{
 			{obj: &builder.Phase2Obj{}},
 			{obj: &builder.Phase2Obj{Status: builder.Phase2ObjStatus{Deprecated: nil}}},
-			{obj: &builder.Phase2Obj{Status: builder.Phase2ObjStatus{Deprecated: &builder.Phase2ObjStatusDeprecated{V1Beta1: nil}}}},
-			{obj: &builder.Phase2Obj{Status: builder.Phase2ObjStatus{Deprecated: &builder.Phase2ObjStatusDeprecated{V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{Conditions: nil}}}}},
+			{obj: &builder.Phase2Obj{Status: builder.Phase2ObjStatus{Deprecated: &builder.Phase2ObjDeprecatedStatus{V1Beta1: nil}}}},
+			{obj: &builder.Phase2Obj{Status: builder.Phase2ObjStatus{Deprecated: &builder.Phase2ObjDeprecatedStatus{V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{Conditions: nil}}}}},
 		}
 		for _, tt := range tests {
 			metav1ConditionsFields, clusterv1ConditionsFields, err := identifyConditionsFieldsPath(tt.obj)

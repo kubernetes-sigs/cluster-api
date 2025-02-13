@@ -67,7 +67,7 @@ func TestSet(t *testing.T) {
 						LastTransitionTime: now,
 					},
 				},
-				V1Beta2: &builder.Phase1ObjStatusV1Beta2{
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
 					Conditions: []metav1.Condition{
 						{
 							Type:               "barCondition",
@@ -100,8 +100,8 @@ func TestSet(t *testing.T) {
 						LastTransitionTime: now,
 					},
 				},
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "barCondition",

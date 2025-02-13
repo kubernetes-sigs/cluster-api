@@ -72,6 +72,7 @@ const (
 	K0smotronProviderName      = "k0sproject-k0smotron"
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 	VultrProviderName          = "vultr-vultr"
+	OpenNebulaProviderName     = "opennebula"
 )
 
 // Bootstrap providers.
@@ -331,6 +332,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         VultrProviderName,
 			url:          "https://github.com/vultr/cluster-api-provider-vultr/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         OpenNebulaProviderName,
+			url:          "https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

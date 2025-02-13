@@ -42,7 +42,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -778,7 +780,7 @@ func TestGetManagedLabels(t *testing.T) {
 			r := &Reconciler{
 				AdditionalSyncMachineLabels: tt.additionalSyncMachineLabels,
 			}
-			got := r.getManagedLabels(tt.allLabels)
+			got := labels.GetManagedLabels(tt.allLabels, r.AdditionalSyncMachineLabels...)
 			g.Expect(got).To(BeEquivalentTo(tt.managedLabels))
 		})
 	}
@@ -887,7 +889,7 @@ func TestGetManagedAnnotations(t *testing.T) {
 			r := &Reconciler{
 				AdditionalSyncMachineAnnotations: tt.additionalSyncMachineAnnotations,
 			}
-			got := r.getManagedAnnotations(testMachine)
+			got := annotations.GetManagedAnnotations(testMachine, r.AdditionalSyncMachineAnnotations...)
 			g.Expect(got).To(BeEquivalentTo(tt.managedAnnotations))
 		})
 	}

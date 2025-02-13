@@ -1190,7 +1190,7 @@ var (
 // the objects gets immediately deleted (force delete).
 func (o *objectMover) deleteSourceObject(ctx context.Context, nodeToDelete *node) error {
 	// Don't delete cluster-wide nodes or nodes that are below a hierarchy that starts with a global object (e.g. a secrets owned by a global identity object).
-	if nodeToDelete.isGlobal || nodeToDelete.isGlobalHierarchy {
+	if nodeToDelete.isGlobal || nodeToDelete.isGlobalHierarchy || nodeToDelete.shouldNotDelete {
 		return nil
 	}
 

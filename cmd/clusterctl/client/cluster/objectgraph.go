@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -28,16 +29,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 )
 
 const clusterTopologyNameKey = "cluster.spec.topology.class"
+const clusterTopologyNamespaceKey = "cluster.spec.topology.classNamespace"
 const clusterResourceSetBindingClusterNameKey = "clusterresourcesetbinding.spec.clustername"
 
 type empty struct{}
@@ -73,6 +80,9 @@ type node struct {
 	// a secrets holding credentials for a global identity object.
 	// When this flag is true the object should not be deleted from the source cluster.
 	isGlobalHierarchy bool
+
+	// shouldNotDelete marks object and direct its descendants to not be deleted
+	shouldNotDelete bool
 
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
@@ -149,6 +159,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 				n.additionalInfo = map[string]interface{}{}
 			}
 			n.additionalInfo[clusterTopologyNameKey] = cluster.GetClassKey().Name
+			n.additionalInfo[clusterTopologyNamespaceKey] = cluster.GetClassKey().Namespace
 		}
 	}
 
@@ -433,7 +444,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		objList := new(unstructured.UnstructuredList)
 
 		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
-			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
+			return getObjList(ctx, o.proxy, &typeMeta, selectors, objList)
 		}); err != nil {
 			return err
 		}
@@ -449,7 +460,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
 					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
-						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+						return getObjList(ctx, o.proxy, &typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return err
 					}
@@ -471,6 +482,76 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		}
 	}
 
+	// On top of the object in the namespace being moved (secrets from the providers namespace),
+	// it is also required to discover ClusterClasses in other namespaces referenced by clusters in the namespace being moved.
+	discoveredExternalCC := sets.Set[string]{}
+	for _, cluster := range o.getClusters() {
+		className, hasName := cluster.additionalInfo[clusterTopologyNameKey]
+		classNamespace, hasNamespace := cluster.additionalInfo[clusterTopologyNamespaceKey]
+		// If the cluster doesn't have a reference to a ClusterClass, no-op.
+		if !hasName || !hasNamespace {
+			continue
+		}
+
+		// If the cluster reference a ClusterClass in the namespace being moved, no-op (it has been already discovered).
+		if classNamespace == namespace {
+			continue
+		}
+
+		// If the referenced ClusterClass has been already discovered, no-op.
+		externalCCKey := klog.KRef(classNamespace.(string), className.(string))
+		if discoveredExternalCC.Has(externalCCKey.String()) {
+			continue
+		}
+
+		// Get the CC and referenced templates.
+		ccUnstructured, err := o.fetchRef(ctx, discoveryBackoff, &corev1.ObjectReference{
+			Kind:       "ClusterClass",
+			Namespace:  externalCCKey.Namespace,
+			Name:       externalCCKey.Name,
+			APIVersion: clusterv1.GroupVersion.String(),
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to get ClusterClass")
+		}
+
+		cc := &clusterv1.ClusterClass{}
+		if err := localScheme.Convert(ccUnstructured, cc, nil); err != nil {
+			return errors.Wrap(err, "failed to convert Unstructured to ClusterClass")
+		}
+
+		errs := []error{}
+		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.Infrastructure.Ref)
+		errs = append(errs, err)
+		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.Ref)
+		errs = append(errs, err)
+
+		if cc.Spec.ControlPlane.MachineInfrastructure != nil {
+			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.Ref)
+			errs = append(errs, err)
+		}
+
+		for _, mdClass := range cc.Spec.Workers.MachineDeployments {
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Infrastructure.Ref)
+			errs = append(errs, err)
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Bootstrap.Ref)
+			errs = append(errs, err)
+		}
+
+		for _, mpClass := range cc.Spec.Workers.MachinePools {
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Infrastructure.Ref)
+			errs = append(errs, err)
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Bootstrap.Ref)
+			errs = append(errs, err)
+		}
+
+		if err := kerrors.NewAggregate(errs); err != nil {
+			return errors.Wrap(err, "failed to fetch ClusterClass references")
+		}
+
+		discoveredExternalCC.Insert(externalCCKey.String())
+	}
+
 	log.V(1).Info("Total objects", "count", len(o.uidToNode))
 
 	// Completes the graph by searching for soft ownership relations such as secrets linked to the cluster
@@ -480,23 +561,52 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 	// Completes the graph by setting for each node the list of tenants the node belongs to.
 	o.setTenants()
 
-	return nil
+	// Ensure objects which are referenced across namespaces are not deleted.
+	return o.setShouldNotDelete(ctx, namespace)
 }
 
-func getObjList(ctx context.Context, proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
+// fetchRef collects specified reference and adds to moved objects.
+func (o *objectGraph) fetchRef(ctx context.Context, opts wait.Backoff, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+	if ref == nil {
+		return nil, nil
+	}
+
+	var obj *unstructured.Unstructured
+
+	if err := retryWithExponentialBackoff(ctx, opts, func(ctx context.Context) error {
+		c, err := o.proxy.NewClient(ctx)
+		if err != nil {
+			return err
+		}
+
+		obj, err = external.Get(ctx, c, ref)
+		return err
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to get referenced %q resource", ref.String())
+	}
+
+	if err := o.addObj(obj); err != nil {
+		return nil, errors.Wrapf(err, "failed to add obj (Kind=%s, Name=%s) to graph", obj.GetKind(), obj.GetName())
+	}
+
+	return obj, nil
+}
+
+func getObjList(ctx context.Context, proxy Proxy, typeMeta *metav1.TypeMeta, selectors []client.ListOption, objList client.ObjectList) error {
 	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	objList.SetAPIVersion(typeMeta.APIVersion)
-	objList.SetKind(typeMeta.Kind)
+	if typeMeta != nil {
+		objList.GetObjectKind().SetGroupVersionKind(typeMeta.GroupVersionKind())
+	}
 
 	if err := c.List(ctx, objList, selectors...); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to list %q resources", objList.GroupVersionKind())
+		return errors.Wrapf(err, "failed to list %q resources", objList.GetObjectKind().GroupVersionKind())
 	}
 	return nil
 }
@@ -615,15 +725,20 @@ func (o *objectGraph) setSoftOwnership() {
 	}
 
 	clusterClasses := o.getClusterClasses()
+
 	// Cluster that uses a ClusterClass are soft owned by that ClusterClass.
 	for _, clusterClass := range clusterClasses {
 		for _, cluster := range clusters {
 			// if the cluster uses a managed topology and uses the clusterclass
 			// set the clusterclass as a soft owner of the cluster.
-			if className, ok := cluster.additionalInfo[clusterTopologyNameKey]; ok {
-				if className == clusterClass.identity.Name && clusterClass.identity.Namespace == cluster.identity.Namespace {
-					cluster.addSoftOwner(clusterClass)
-				}
+			className, hasName := cluster.additionalInfo[clusterTopologyNameKey]
+			classNamespace, hasNamespace := cluster.additionalInfo[clusterTopologyNamespaceKey]
+			if namespace, ok := classNamespace.(string); !hasNamespace || !ok {
+				classNamespace = cmp.Or(namespace, cluster.identity.Namespace)
+			}
+
+			if hasName && className == clusterClass.identity.Name && clusterClass.identity.Namespace == classNamespace {
+				cluster.addSoftOwner(clusterClass)
 			}
 		}
 	}
@@ -649,18 +764,18 @@ func (o *objectGraph) setSoftOwnership() {
 func (o *objectGraph) setTenants() {
 	for _, node := range o.getNodes() {
 		if node.forceMoveHierarchy {
-			o.setTenant(node, node, node.isGlobal)
+			o.setTenantHierarchy(node, node, node.isGlobal)
 		}
 	}
 }
 
-// setTenant sets a tenant for a node and for its own dependents/sofDependents.
-func (o *objectGraph) setTenant(node, tenant *node, isGlobalHierarchy bool) {
+// setTenantHierarchy sets a tenant for a node and for its own dependents/softDependents.
+func (o *objectGraph) setTenantHierarchy(node, tenant *node, isGlobalHierarchy bool) {
 	node.tenant[tenant] = empty{}
 	node.isGlobalHierarchy = node.isGlobalHierarchy || isGlobalHierarchy
 	for _, other := range o.getNodes() {
 		if other.isOwnedBy(node) || other.isSoftOwnedBy(node) {
-			o.setTenant(other, tenant, isGlobalHierarchy)
+			o.setTenantHierarchy(other, tenant, isGlobalHierarchy)
 		}
 	}
 }
@@ -671,6 +786,71 @@ func (o *objectGraph) checkVirtualNode() {
 	for _, node := range o.uidToNode {
 		if node.virtual {
 			log.V(5).Info("Object won't be moved because it's not included in GVK considered for move", "kind", node.identity.Kind, "name", node.identity.Name)
+		}
+	}
+}
+
+// Ensure objects which are referenced across namespaces are not deleted.
+func (o *objectGraph) setShouldNotDelete(ctx context.Context, namespace string) error {
+	if namespace == "" {
+		return nil
+	}
+
+	// If there are ClusterClasses outside of the namespace being moved, those CC should not be deleted (we are moving a namespace).
+	for _, class := range o.getClusterClasses() {
+		if class.identity.Namespace != namespace {
+			class.shouldNotDelete = true
+			// Ensure that also the templates referenced by the CC won't be deleted.
+			o.setShouldNotDeleteHierarchy(class)
+		}
+	}
+
+	// If there are clusters outside of the namespace being moved and referencing one of ClusterClass in the namespace being moved,
+	// ensure those ClusterClass are not deleted.
+	discoveryBackoff := newReadBackoff()
+	allClusters := &clusterv1.ClusterList{}
+	if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
+		return getObjList(ctx, o.proxy, nil, []client.ListOption{}, allClusters)
+	}); err != nil {
+		return err
+	}
+
+	for _, cluster := range allClusters.Items {
+		// ignore cluster in the namespace being moved.
+		if cluster.Namespace == namespace {
+			continue
+		}
+
+		// ignore cluster not using a CC.
+		if cluster.Spec.Topology == nil {
+			continue
+		}
+
+		// ignore cluster not referencing a CC in the namespace being moved.
+		if cluster.Spec.Topology.ClassNamespace != namespace {
+			continue
+		}
+
+		// Otherwise mark the referenced CC as should not be deleted.
+		for _, class := range o.getClusterClasses() {
+			if class.identity.Namespace == cluster.Spec.Topology.ClassNamespace && class.identity.Name == cluster.Spec.Topology.Class {
+				class.shouldNotDelete = true
+				// Ensure that also the templates referenced by the CC won't be deleted.
+				o.setShouldNotDeleteHierarchy(class)
+			}
+		}
+	}
+
+	return nil
+}
+
+// setShouldNotDeleteHierarchy sets should not delete for a node and for its own dependents/softDependents.
+func (o *objectGraph) setShouldNotDeleteHierarchy(node *node) {
+	node.shouldNotDelete = true
+	for _, other := range o.getNodes() {
+		// Skip removal only for direct owners from the object namespace
+		if other.isOwnedBy(node) {
+			o.setShouldNotDeleteHierarchy(other)
 		}
 	}
 }

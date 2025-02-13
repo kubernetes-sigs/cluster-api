@@ -725,3 +725,19 @@ func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInp
 		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
 }
+
+type DeletePodDisruptionBudgetInput struct {
+	ClientSet *kubernetes.Clientset
+	Budget    string
+	Namespace string
+}
+
+func DeletePodDisruptionBudget(ctx context.Context, input DeletePodDisruptionBudgetInput) {
+	Eventually(func() error {
+		err := input.ClientSet.PolicyV1().PodDisruptionBudgets(input.Namespace).Delete(ctx, input.Budget, metav1.DeleteOptions{})
+		if apierrors.IsNotFound(err) || err == nil {
+			return nil
+		}
+		return fmt.Errorf("podDisruptionBudget needs to be deleted: %v", err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be deleted")
+}

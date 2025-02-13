@@ -164,6 +164,10 @@ GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep 
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
+GOLANGCI_LINT_KAL_BIN := golangci-lint-kal
+GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep name: | sed 's/name: golangci-lint-kal-//')
+GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN)-$(GOLANGCI_LINT_KAL_VER))
+
 GOVULNCHECK_BIN := govulncheck
 GOVULNCHECK_VER := v1.1.4
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
@@ -653,11 +657,12 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 ##@ lint and verify:
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint the codebase
+lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	$(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:
@@ -666,6 +671,14 @@ lint-dockerfiles:
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
+
+.PHONY: lint-api
+lint-api: $(GOLANGCI_LINT_KAL)
+	$(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
+
+.PHONY: lint-api-fix
+lint-api-fix: $(GOLANGCI_LINT_KAL)
+	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint-api
 
 .PHONY: tiltfile-fix
 tiltfile-fix: ## Format the Tiltfile
@@ -1491,6 +1504,9 @@ $(GINKGO): # Build ginkgo from tools folder.
 
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+$(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom configuration.
+	cd $(TOOLS_DIR); $(GOLANGCI_LINT) custom
 
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)

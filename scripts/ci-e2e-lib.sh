@@ -170,7 +170,7 @@ kind::prepareKindestImage() {
 
   # if pre-pull failed, or ALWAYS_BUILD_KIND_IMAGES is true build the images locally.
  if [[ "$retVal" != 0 ]] || [[ "$ALWAYS_BUILD_KIND_IMAGES" = "true" ]]; then
-    echo "+ building image for Kuberentes $version locally. This is either because the image wasn't available in docker hub or ALWAYS_BUILD_KIND_IMAGES is set to true"
+    echo "+ building image for Kubernetes $version locally. This is either because the image wasn't available in docker hub or ALWAYS_BUILD_KIND_IMAGES is set to true"
     kind::buildNodeImage "$version"
   fi
 }
@@ -221,16 +221,19 @@ k8s::checkoutBranch() {
   else
     # otherwise we are requiring a Kubernetes version that should be built from HEAD
     # of one of the existing branches
-    echo "+ checking for existing branches"
-    git fetch --all
-
     local major
     local minor
     major=$(echo "${version#v}" | awk '{split($0,a,"."); print a[1]}')
     minor=$(echo "${version#v}" | awk '{split($0,a,"."); print a[2]}')
 
+    echo "+ Trying to fetch branch release-$major.$minor"
+    # shellcheck disable=SC2015
+    git fetch --filter=blob:none https://github.com/kubernetes/kubernetes.git "release-$major.$minor" \
+      && git checkout FETCH_HEAD \
+      && git branch --force "release-$major.$minor" || true
+
     local releaseBranch
-    releaseBranch="$(git branch -r | grep "release-$major.$minor$" || true)"
+    releaseBranch="$(git branch | grep "release-$major.$minor$" | awk '{print $NF}' || true)"
     if [[ "$releaseBranch" != "" ]]; then
       # if there is already a release branch for the required Kubernetes branch, use it
       echo "+ checkout $releaseBranch branch"

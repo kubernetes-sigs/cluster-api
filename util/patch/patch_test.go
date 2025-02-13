@@ -1784,7 +1784,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
 
 			t.Log("Validating the object has not been updated")
-			g.Eventually(func() *builder.Phase1ObjStatusV1Beta2 {
+			g.Eventually(func() *builder.Phase1ObjV1Beta2Status {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil

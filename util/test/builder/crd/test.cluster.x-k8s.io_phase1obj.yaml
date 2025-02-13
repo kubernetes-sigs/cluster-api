@@ -97,7 +97,7 @@ spec:
                   type: object
                 type: array
               v1beta2:
-                description: Phase1ObjStatusV1Beta2 defines the status.V1Beta2 of
+                description: Phase1ObjV1Beta2Status defines the status.V1Beta2 of
                   a Phase1Obj.
                 properties:
                   conditions:

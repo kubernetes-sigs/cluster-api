@@ -78,7 +78,7 @@ func TestGet(t *testing.T) {
 						LastTransitionTime: now,
 					},
 				},
-				V1Beta2: &builder.Phase1ObjStatusV1Beta2{
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
 					Conditions: []metav1.Condition{
 						{
 							Type:               "barCondition",
@@ -112,8 +112,8 @@ func TestGet(t *testing.T) {
 		foo := &builder.Phase2Obj{
 			Status: builder.Phase2ObjStatus{
 				Conditions: nil,
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",
@@ -135,8 +135,8 @@ func TestGet(t *testing.T) {
 		foo := &builder.Phase2Obj{
 			Status: builder.Phase2ObjStatus{
 				Conditions: []metav1.Condition{},
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",
@@ -165,8 +165,8 @@ func TestGet(t *testing.T) {
 						Reason:             "fooReason",
 					},
 				},
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",
@@ -321,7 +321,7 @@ func TestUnstructuredGet(t *testing.T) {
 						LastTransitionTime: now,
 					},
 				},
-				V1Beta2: &builder.Phase1ObjStatusV1Beta2{
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
 					Conditions: []metav1.Condition{
 						{
 							Type:               "barCondition",
@@ -359,8 +359,8 @@ func TestUnstructuredGet(t *testing.T) {
 		foo := &builder.Phase2Obj{
 			Status: builder.Phase2ObjStatus{
 				Conditions: nil,
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",
@@ -386,8 +386,8 @@ func TestUnstructuredGet(t *testing.T) {
 		foo := &builder.Phase2Obj{
 			Status: builder.Phase2ObjStatus{
 				Conditions: []metav1.Condition{},
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",
@@ -420,8 +420,8 @@ func TestUnstructuredGet(t *testing.T) {
 						Reason:             "fooReason",
 					},
 				},
-				Deprecated: &builder.Phase2ObjStatusDeprecated{
-					V1Beta1: &builder.Phase2ObjStatusDeprecatedV1Beta1{
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
 						Conditions: clusterv1.Conditions{
 							{
 								Type:               "bazCondition",

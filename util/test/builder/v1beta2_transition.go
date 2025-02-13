@@ -129,11 +129,11 @@ type Phase1ObjStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// +optional
-	V1Beta2 *Phase1ObjStatusV1Beta2 `json:"v1beta2,omitempty"`
+	V1Beta2 *Phase1ObjV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
-// Phase1ObjStatusV1Beta2 defines the status.V1Beta2 of a Phase1Obj.
-type Phase1ObjStatusV1Beta2 struct {
+// Phase1ObjV1Beta2Status defines the status.V1Beta2 of a Phase1Obj.
+type Phase1ObjV1Beta2Status struct {
 
 	// +optional
 	// +listType=map
@@ -163,7 +163,7 @@ func (o *Phase1Obj) GetV1Beta2Conditions() []metav1.Condition {
 // SetV1Beta2Conditions sets conditions for an API object.
 func (o *Phase1Obj) SetV1Beta2Conditions(conditions []metav1.Condition) {
 	if o.Status.V1Beta2 == nil {
-		o.Status.V1Beta2 = &Phase1ObjStatusV1Beta2{}
+		o.Status.V1Beta2 = &Phase1ObjV1Beta2Status{}
 	}
 	o.Status.V1Beta2.Conditions = conditions
 }
@@ -206,18 +206,18 @@ type Phase2ObjStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// +optional
-	Deprecated *Phase2ObjStatusDeprecated `json:"deprecated,omitempty"`
+	Deprecated *Phase2ObjDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// Phase2ObjStatusDeprecated defines the status.Deprecated of a Phase2Obj.
-type Phase2ObjStatusDeprecated struct {
+// Phase2ObjDeprecatedStatus defines the status.Deprecated of a Phase2Obj.
+type Phase2ObjDeprecatedStatus struct {
 
 	// +optional
-	V1Beta1 *Phase2ObjStatusDeprecatedV1Beta1 `json:"v1beta1,omitempty"`
+	V1Beta1 *Phase2ObjDeprecatedV1Beta1Status `json:"v1beta1,omitempty"`
 }
 
-// Phase2ObjStatusDeprecatedV1Beta1 defines the status.Deprecated.V1Beta2 of a Phase2Obj.
-type Phase2ObjStatusDeprecatedV1Beta1 struct {
+// Phase2ObjDeprecatedV1Beta1Status defines the status.Deprecated.V1Beta2 of a Phase2Obj.
+type Phase2ObjDeprecatedV1Beta1Status struct {
 
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
@@ -234,10 +234,10 @@ func (o *Phase2Obj) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on this object.
 func (o *Phase2Obj) SetConditions(conditions clusterv1.Conditions) {
 	if o.Status.Deprecated == nil {
-		o.Status.Deprecated = &Phase2ObjStatusDeprecated{V1Beta1: &Phase2ObjStatusDeprecatedV1Beta1{}}
+		o.Status.Deprecated = &Phase2ObjDeprecatedStatus{V1Beta1: &Phase2ObjDeprecatedV1Beta1Status{}}
 	}
 	if o.Status.Deprecated.V1Beta1 == nil {
-		o.Status.Deprecated.V1Beta1 = &Phase2ObjStatusDeprecatedV1Beta1{}
+		o.Status.Deprecated.V1Beta1 = &Phase2ObjDeprecatedV1Beta1Status{}
 	}
 	o.Status.Deprecated.V1Beta1.Conditions = conditions
 }

@@ -101,7 +101,7 @@ func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph, f
 		objList := new(unstructured.UnstructuredList)
 
 		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
-			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
+			return getObjList(ctx, o.proxy, &typeMeta, selectors, objList)
 		}); err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph, f
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
 					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
-						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+						return getObjList(ctx, o.proxy, &typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return nil, err
 					}

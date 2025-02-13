@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -719,6 +719,16 @@ Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https
 Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Getting Started Guide][oci-provider]
 
 {{#/tab }}
+{{#tab OpenNebula}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure opennebula
+```
+
+Please visit [OpenNebula Cluster API Provider Wiki][CAPONE Wiki].
+
+{{#/tab }}
 {{#tab OpenStack}}
 
 Cluster API Provider OpenStack depends on [openstack-resource-controller] since v0.12.
@@ -895,7 +905,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1267,6 +1277,35 @@ To see all required Nutanix environment variables execute:
 ```bash
 clusterctl generate cluster --infrastructure nutanix --list-variables capi-quickstart
 ```
+
+{{#/tab }}
+{{#tab OpenNebula}}
+
+```bash
+# OpenNebula API endpoint and credentials
+export ONE_XMLRPC='http://10.2.11.40:2633/RPC2'
+export ONE_AUTH='oneadmin:opennebula'
+
+# VM and VR templates to construct workload clusters from
+export MACHINE_TEMPLATE_NAME='capone131'
+export ROUTER_TEMPLATE_NAME='capone131-vr'
+
+# VNs to deploy workload clusters into
+export PUBLIC_NETWORK_NAME='service'
+export PRIVATE_NETWORK_NAME='private'
+
+# Name of the new workload cluster
+export CLUSTER_NAME='one'
+
+# Cloud-Provider image to deploy inside the new workload cluster
+export CCM_IMG='ghcr.io/opennebula/cloud-provider-opennebula:latest'
+
+# Initial size of the new workload cluster
+export CONTROL_PLANE_MACHINE_COUNT='1'
+export WORKER_MACHINE_COUNT='1'
+```
+
+Please visit [OpenNebula Cluster API Provider Wiki][CAPONE Wiki].
 
 {{#/tab }}
 {{#tab OpenStack}}
@@ -1937,3 +1976,4 @@ kind delete cluster
 [CAPI Operator quickstart]: ./quick-start-operator.md
 [Proxmox getting started guide]: https://github.com/ionos-cloud/cluster-api-provider-proxmox/blob/main/docs/Usage.md
 [Tinkerbell getting started guide]: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/blob/main/docs/QUICK-START.md
+[CAPONE Wiki]: https://github.com/OpenNebula/cluster-api-provider-opennebula/wiki

@@ -145,6 +145,7 @@ my-infra-provider       InfrastructureProvider     /home/.config/cluster-api/ove
 nested                  InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/                   infrastructure-components.yaml
 nutanix                 InfrastructureProvider     https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/             infrastructure-components.yaml
 oci                     InfrastructureProvider     https://github.com/oracle/cluster-api-provider-oci/releases/latest/                               infrastructure-components.yaml
+opennebula              InfrastructureProvider     https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/                    infrastructure-components.yaml
 openstack               InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/                infrastructure-components.yaml
 outscale                InfrastructureProvider     https://github.com/outscale/cluster-api-provider-outscale/releases/latest/                        infrastructure-components.yaml
 packet                  InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/                   infrastructure-components.yaml
@@ -335,6 +336,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: oci
   ProviderType: InfrastructureProvider
   URL: https://github.com/oracle/cluster-api-provider-oci/releases/latest/
+- File: infrastructure-components.yaml
+  Name: opennebula
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/
 - File: infrastructure-components.yaml
   Name: openstack
   ProviderType: InfrastructureProvider

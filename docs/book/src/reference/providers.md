@@ -51,6 +51,7 @@ updated info about which API version they are supporting.
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [Oracle Cloud Infrastructure (OCI)](https://github.com/oracle/cluster-api-provider-oci)
+- [OpenNebula](https://github.com/OpenNebula/cluster-api-provider-opennebula)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Outscale](https://github.com/outscale/cluster-api-provider-outscale)
 - [Proxmox](https://github.com/ionos-cloud/cluster-api-provider-proxmox)

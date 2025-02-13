@@ -333,6 +333,7 @@ providers.
 | CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt     |
 | CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3       |
 | CAPN          | cluster.x-k8s.io/provider=infrastructure-nested       |
+| CAPONE        | cluster.x-k8s.io/provider=infrastructure-opennebula   |
 | CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |
 | CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci          |
 | CAPP          | cluster.x-k8s.io/provider=infrastructure-packet       |

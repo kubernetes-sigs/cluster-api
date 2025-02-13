@@ -123,6 +123,10 @@ The following is a list of the default annotations that would always be applied 
 
 - The `cluster.x-k8s.io/machine` annotation is applied to a Node to easily ascertain the Machine managing the Node.
 
+- The `cluster.x-k8s.io/owner-kind` annotation is applied to a Node to easily ascertain the kind of the cluster api object owning the Node.
+
+- The `cluster.x-k8s.io/owner-name` annotation is applied to a Node to easily ascertain the name of the cluster api object owning the Node.
+
 Additionally, the `node.cluster.x-k8s.io` domain is owned by Cluster API, and will always be synced.
 
 
@@ -130,7 +134,9 @@ Additionally, the `node.cluster.x-k8s.io` domain is owned by Cluster API, and wi
 
 The synchronization of labels and annotations between a Machine object and its linked Node is limited to the domains and prefixes described in the section above.
 
-The synchronization process is going to use [server side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) in order to ensure that Cluster API will manage only the subset of labels and annotations coming from Machine objects and ignores labels and annotations applied to Nodes concurrently by other users/other components.
+Due to an issue in Node.Status.Address patchStrategy marker, it is not possible to use [server side apply.](https://kubernetes.io/docs/reference/using-api/server-side-apply/) In order to ensure that Cluster API will manage only the subset of labels and annotations coming from Machine objects and ignores labels and annotations applied to Nodes concurrently by other users/other components.
+
+Therefore the synchronisation will be implemented using a regular patch and two annotations ("cluster.x-k8s.io/labels-from-machine", "cluster.x-k8s.io/annotations-from-machine") to keep track of annotation owned by cluster API.
 
 This requires to define an identity/manager name to be used by CAPI when performing this operation; additionally during implementation we are going to identify and address eventual additional steps required to properly transition existing Nodes to SSA, if required.
 From a preliminary investigation, the risk is that the manager that created the object and the new SSA manager will become co-owner of the same labels, and this will prevent deletion of labels.

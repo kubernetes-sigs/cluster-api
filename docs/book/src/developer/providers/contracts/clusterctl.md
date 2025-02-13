@@ -414,6 +414,12 @@ ClusterClass definitions MUST be stored in the same location as the component YA
 in the Cluster template; Cluster template files using a ClusterClass are usually simpler because they are no longer
 required to have all the templates.
 
+Additionally, namespace of the ClusterClass can differ from the Cluster. This requires specifying
+Cluster.spec.topology.classNamespace field in the Cluster template;
+Cluster template may define classNamespace as `classNamespace: ${CLUSTER_CLASS_NAMESPACE:=""}`, which would allow to
+optionally specify namespace of the referred ClusterClass via env. Empty or missing value is uses Cluster namespace
+by default.
+
 Each provider should create user facing documentation with the list of available ClusterClass definitions.
 
 #### Target namespace

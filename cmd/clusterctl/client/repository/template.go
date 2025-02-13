@@ -17,8 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -144,7 +142,7 @@ func NewTemplate(input TemplateInput) (Template, error) {
 
 // MergeTemplates merges the provided Templates into one Template.
 // Notes on the merge operation:
-//   - The merge operation returns an error if all the templates do not have the same TargetNamespace.
+//   - The merge operation sets targetNamespace empty if all the templates do not share the same TargetNamespace.
 //   - The Variables of the resulting template is a union of all Variables in the templates.
 //   - The default value is picked from the first template that defines it.
 //     The defaults of the same variable in the subsequent templates will be ignored.
@@ -173,7 +171,7 @@ func MergeTemplates(templates ...Template) (Template, error) {
 		}
 
 		if merged.targetNamespace != tmpl.TargetNamespace() {
-			return nil, fmt.Errorf("cannot merge templates with different targetNamespaces")
+			merged.targetNamespace = ""
 		}
 
 		merged.objs = append(merged.objs, tmpl.Objs()...)

@@ -16,13 +16,14 @@ linters-settings:
       settings:
         linters:
           enable:
+          - "conditions" # Ensure conditions have the correct json tags and markers.
+
           # Per discussion in July 2024, we are keeping phase fields for now.
           # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
           # and https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685919394.
           # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
           
           # Linters below this line are disabled, pending conversation on how and when to enable them.
-          # - "conditions" # Ensure conditions have the correct json tags and markers.
           # - "commentstart" # Ensure comments start with the serialized version of the field name.
           # - "integers" # Ensure only int32 and int64 are used for integers.
           # - "jsontags" # Ensure every field has a json tag.
@@ -58,5 +59,9 @@ issues:
   exclude-rules:
   # KAL should only run on API folders.
   - path-except: "api/*"
+    linters:
+      - kal
+  - path: "api/v1beta1/*|api/v1alpha1/*"
+    text: "Conditions field must be a slice of metav1.Condition"
     linters:
       - kal

@@ -79,6 +79,7 @@ type MachineDrainRuleSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="entries in machines must be unique"
 	Machines []MachineDrainRuleMachineSelector `json:"machines,omitempty"`
 
 	// pods defines to which Pods this MachineDrainRule should be applied.
@@ -110,6 +111,7 @@ type MachineDrainRuleSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="entries in pods must be unique"
 	Pods []MachineDrainRulePodSelector `json:"pods,omitempty"`
 }
 

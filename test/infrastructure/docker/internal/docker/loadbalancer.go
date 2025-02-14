@@ -83,7 +83,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, imageRepos
 		container:                container,
 		ipFamily:                 ipFamily,
 		lbCreator:                &Manager{},
-		frontendControlPlanePort: port,
+		frontendControlPlanePort: frontendControlPlanePort,
 		backendControlPlanePort:  "6443",
 	}, nil
 }

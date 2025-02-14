@@ -324,7 +324,6 @@ providers.
 | CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh         |
 | CAPC          | cluster.x-k8s.io/provider=infrastructure-cloudstack   |
 | CAPD          | cluster.x-k8s.io/provider=infrastructure-docker       |
-| CAPIM         | cluster.x-k8s.io/provider=infrastructure-in-memory    |
 | CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean |
 | CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp          |
 | CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner      |

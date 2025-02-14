@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// DevClusterReconciler reconciles a InMemoryCluster object.
+// DevClusterReconciler reconciles a DevCluster object.
 type DevClusterReconciler struct {
 	client.Client
 
@@ -75,9 +75,10 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DevCluster"), mgr.GetClient(), &infrav1.DevCluster{})),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-			),
+			)),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

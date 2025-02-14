@@ -54,7 +54,7 @@ func (webhook *DevCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.DevCluster{}).SetupWebhookWithManager(mgr)
 }
 
-// DevClusterTemplate implements a validating webhook for DevClusterTemplate.
+// DevClusterTemplate implements a validating and defaulting webhook for DevClusterTemplate.
 type DevClusterTemplate struct{}
 
 // SetupWebhookWithManager sets up ClusterResourceSet webhooks.
@@ -62,7 +62,7 @@ func (webhook *DevClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) err
 	return (&webhooks.DevClusterTemplate{}).SetupWebhookWithManager(mgr)
 }
 
-// DevMachine implements a validating webhook for DevMachine.
+// DevMachine implements a validating and defaulting webhook for DevMachine.
 type DevMachine struct{}
 
 // SetupWebhookWithManager sets up ClusterResourceSet webhooks.

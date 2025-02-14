@@ -58,11 +58,13 @@ type MachineBackendReconciler struct {
 }
 
 // ReconcileNormal handle in memory backend for DevMachine not yet deleted.
-func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, InMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
-
+	if InMemoryCluster.Spec.Backend.Docker == nil {
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
+	}
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
@@ -862,9 +864,12 @@ func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, c
 }
 
 // ReconcileDelete handle in memory backend for deleted DevMachine.
-func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, InMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
+	}
+	if InMemoryCluster.Spec.Backend.Docker == nil {
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	// Call the inner reconciliation methods.
@@ -1047,7 +1052,7 @@ func (r *MachineBackendReconciler) reconcileDeleteControllerManager(ctx context.
 // PatchDevMachine patch a DevMachine.
 func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHelper *patch.Helper, inMemoryMachine *infrav1.DevMachine, isControlPlane bool) error {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without an InMemory backend")
+		return errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
 
 	inMemoryMachineConditions := []clusterv1.ConditionType{

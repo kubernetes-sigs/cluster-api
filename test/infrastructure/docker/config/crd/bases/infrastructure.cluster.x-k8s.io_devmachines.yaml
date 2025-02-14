@@ -227,7 +227,7 @@ spec:
             description: DevMachineStatus defines the observed state of DevMachine.
             properties:
               addresses:
-                description: addresses contains the associated addresses for the docker
+                description: addresses contains the associated addresses for the dev
                   machine.
                 items:
                   description: MachineAddress contains information for the node's
@@ -254,7 +254,7 @@ spec:
                     properties:
                       loadBalancerConfigured:
                         description: |-
-                          lßoadBalancerConfigured denotes that the machine has been
+                          loadBalancerConfigured denotes that the machine has been
                           added to the load balancer
                         type: boolean
                     type: object

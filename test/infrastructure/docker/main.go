@@ -422,7 +422,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachine")
+		setupLog.Error(err, "Unable to create controller", "controller", "DevMachine")
 		os.Exit(1)
 	}
 
@@ -433,7 +433,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		InMemoryManager:  inMemoryManager,
 		APIServerMux:     apiServerMux,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-		setupLog.Error(err, "Unable to create controller", "controller", "DockerCluster")
+		setupLog.Error(err, "Unable to create controller", "controller", "DevCluster")
 		os.Exit(1)
 	}
 }

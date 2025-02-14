@@ -45,7 +45,8 @@ import (
 // DockerClusterReconciler reconciles a DockerCluster object.
 type DockerClusterReconciler struct {
 	client.Client
-	ContainerRuntime container.Runtime
+	ContainerRuntime  container.Runtime
+	backendReconciler *dockerbackend.ClusterBackEndReconciler
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -91,25 +92,6 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	var backendReconciler = &dockerbackend.ClusterBackEndReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
-			devCluster, ok := obj.(*infrav1.DevCluster)
-			if !ok {
-				panic(fmt.Sprintf("Expected obj to be *infrav1.DevCluster, got %T", obj))
-			}
-			dockerCluster := &infrav1.DockerCluster{}
-			devClusterToDockerCluster(devCluster, dockerCluster)
-			return patch.NewHelper(dockerCluster, crClient)
-		},
-		PatchDevClusterFunc: func(ctx context.Context, patchHelper *patch.Helper, devCluster *infrav1.DevCluster) error {
-			dockerCluster := &infrav1.DockerCluster{}
-			devClusterToDockerCluster(devCluster, dockerCluster)
-			return patchDockerCluster(ctx, patchHelper, dockerCluster)
-		},
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
 	if err != nil {
@@ -129,18 +111,13 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	// Support FailureDomains
-	// In cloud providers this would likely look up which failure domains are supported and set the status appropriately.
-	// In the case of Docker, failure domains don't mean much so we simply copy the Spec into the Status.
-	dockerCluster.Status.FailureDomains = dockerCluster.Spec.FailureDomains
-
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
-		return backendReconciler.ReconcileDelete(ctx, cluster, devCluster)
+		return r.backendReconciler.ReconcileDelete(ctx, cluster, devCluster)
 	}
 
 	// Handle non-deleted clusters
-	return backendReconciler.ReconcileNormal(ctx, cluster, devCluster)
+	return r.backendReconciler.ReconcileNormal(ctx, cluster, devCluster)
 }
 
 // SetupWithManager will add watches for this controller.
@@ -164,6 +141,26 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.backendReconciler = &dockerbackend.ClusterBackEndReconciler{
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
+			devCluster, ok := obj.(*infrav1.DevCluster)
+			if !ok {
+				panic(fmt.Sprintf("Expected obj to be *infrav1.DevCluster, got %T", obj))
+			}
+			dockerCluster := &infrav1.DockerCluster{}
+			devClusterToDockerCluster(devCluster, dockerCluster)
+			return patch.NewHelper(dockerCluster, crClient)
+		},
+		PatchDevClusterFunc: func(ctx context.Context, patchHelper *patch.Helper, devCluster *infrav1.DevCluster) error {
+			dockerCluster := &infrav1.DockerCluster{}
+			devClusterToDockerCluster(devCluster, dockerCluster)
+			return patchDockerCluster(ctx, patchHelper, dockerCluster)
+		},
+	}
+
 	return nil
 }
 

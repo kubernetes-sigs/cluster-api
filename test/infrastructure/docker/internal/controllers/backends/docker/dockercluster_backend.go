@@ -46,7 +46,7 @@ type ClusterBackEndReconciler struct {
 // ReconcileNormal handle docker backend for DevCluster not yet deleted.
 func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		panic("ClusterBackEndReconciler can't be called for DevClusters without a Docker backend")
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	// Support FailureDomains
@@ -93,7 +93,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 // ReconcileDelete handle docker backend for delete DevMachines.
 func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		panic("ClusterBackEndReconciler can't be called for DevClusters without a Docker backend")
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
 	}
 
 	// Create a helper for managing a docker container hosting the loadbalancer.
@@ -141,7 +141,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 // PatchDevCluster patch a DevCluster.
 func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHelper *patch.Helper, dockerCluster *infrav1.DevCluster) error {
 	if dockerCluster.Spec.Backend.Docker == nil {
-		panic("ClusterBackEndReconciler can't be called for DevClusters without a Docker backend")
+		return errors.New("DockerBackendReconciler can't be called for DevClusters without a Docker backend")
 	}
 
 	// Always update the readyCondition by summarizing the state of other conditions.

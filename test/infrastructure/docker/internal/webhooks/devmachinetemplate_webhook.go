@@ -32,18 +32,33 @@ import (
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
+// DevMachineTemplate implements a custom validation and defaulting webhook for DevMachineTemplate.
+// +kubebuilder:object:generate=false
+type DevMachineTemplate struct{}
+
 func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.DevMachineTemplate{}).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-devmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,versions=v1beta1,name=validation.devmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-devmachinetemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,versions=v1beta1,name=default.devmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// DevMachineTemplate implements a custom validation webhook for DevMachineTemplate.
-// +kubebuilder:object:generate=false
-type DevMachineTemplate struct{}
+var _ webhook.CustomDefaulter = &DevMachineTemplate{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (webhook *DevMachineTemplate) Default(_ context.Context, obj runtime.Object) error {
+	clusterTemplate, ok := obj.(*infrav1.DevMachineTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", obj))
+	}
+	defaultDevMachineSpec(&clusterTemplate.Spec.Template.Spec)
+	return nil
+}
+
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-devmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,versions=v1beta1,name=validation.devmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var _ webhook.CustomValidator = &DevMachineTemplate{}
 

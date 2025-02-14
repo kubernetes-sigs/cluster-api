@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,7 +66,7 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return errors.New("Client, InMemoryManager and APIServerMux, ContainerRuntime and ClusterCache must not be nil")
 	}
 
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachine")
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devmachine")
 	clusterToDevMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infrav1.DevMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -80,17 +79,20 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DevMachine"))),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&infrav1.DevCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.DevClusterToDevMachines),
+			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDevMachines),
-			builder.WithPredicates(
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
-			),
+			)),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("devmachine", clusterToDevMachines)).
 		Complete(r)
@@ -174,7 +176,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, devClusterName, devCluster); err != nil {
-		log.Info("DockerCluster is not available yet")
+		log.Info("DevCluster is not available yet")
 		return ctrl.Result{}, nil
 	}
 
@@ -198,14 +200,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Handle non-deleted machines
-	res, err := backendReconciler.ReconcileNormal(ctx, cluster, devCluster, machine, devMachine)
-	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
-	// the current cluster because of concurrent access.
-	if errors.Is(err, clustercache.ErrClusterNotConnected) {
-		log.V(5).Info("Requeuing because connection to the workload cluster is down")
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
-	}
-	return res, err
+	return backendReconciler.ReconcileNormal(ctx, cluster, devCluster, machine, devMachine)
 }
 
 func (r *DevMachineReconciler) backendReconcilerFactory(_ context.Context, devMachine *infrav1.DevMachine) backends.DevMachineBackendReconciler {

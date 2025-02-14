@@ -36,7 +36,7 @@ type DevCluster struct{}
 func (webhook *DevCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.DevCluster{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
@@ -85,6 +85,12 @@ func defaultDevClusterSpec(s *infrav1.DevClusterSpec) {
 	if s.Backend.InMemory == nil &&
 		s.Backend.Docker == nil {
 		s.Backend.Docker = &infrav1.DockerClusterBackendSpec{}
+	}
+
+	if s.Backend.Docker != nil {
+		if s.ControlPlaneEndpoint.Port == 0 {
+			s.ControlPlaneEndpoint.Port = 6443
+		}
 	}
 }
 

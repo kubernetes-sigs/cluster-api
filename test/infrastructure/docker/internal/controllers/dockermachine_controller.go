@@ -47,8 +47,9 @@ import (
 // DockerMachineReconciler reconciles a DockerMachine object.
 type DockerMachineReconciler struct {
 	client.Client
-	ContainerRuntime container.Runtime
-	ClusterCache     clustercache.ClusterCache
+	ContainerRuntime  container.Runtime
+	ClusterCache      clustercache.ClusterCache
+	backendReconciler *dockerbackend.MachineBackendReconciler
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -135,26 +136,6 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	var backendReconciler = &dockerbackend.MachineBackendReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		ClusterCache:     r.ClusterCache,
-		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
-			devMachine, ok := obj.(*infrav1.DevMachine)
-			if !ok {
-				panic(fmt.Sprintf("Expected obj to be *infrav1.DevMachine, got %T", obj))
-			}
-			dockerMachine := &infrav1.DockerMachine{}
-			devMachineToDockerMachine(devMachine, dockerMachine)
-			return patch.NewHelper(dockerMachine, crClient)
-		},
-		PatchDevMachineFunc: func(ctx context.Context, patchHelper *patch.Helper, devMachine *infrav1.DevMachine, _ bool) error {
-			dockerMachine := &infrav1.DockerMachine{}
-			devMachineToDockerMachine(devMachine, dockerMachine)
-			return patchDockerMachine(ctx, patchHelper, dockerMachine)
-		},
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerMachine, r)
 	if err != nil {
@@ -174,11 +155,11 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted machines
 	if !devMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return backendReconciler.ReconcileDelete(ctx, cluster, devCluster, machine, devMachine)
+		return r.backendReconciler.ReconcileDelete(ctx, cluster, devCluster, machine, devMachine)
 	}
 
 	// Handle non-deleted machines
-	return backendReconciler.ReconcileNormal(ctx, cluster, devCluster, machine, devMachine)
+	return r.backendReconciler.ReconcileNormal(ctx, cluster, devCluster, machine, devMachine)
 }
 
 // SetupWithManager will add watches for this controller.
@@ -220,6 +201,27 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.backendReconciler = &dockerbackend.MachineBackendReconciler{
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		ClusterCache:     r.ClusterCache,
+		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
+			devMachine, ok := obj.(*infrav1.DevMachine)
+			if !ok {
+				panic(fmt.Sprintf("Expected obj to be *infrav1.DevMachine, got %T", obj))
+			}
+			dockerMachine := &infrav1.DockerMachine{}
+			devMachineToDockerMachine(devMachine, dockerMachine)
+			return patch.NewHelper(dockerMachine, crClient)
+		},
+		PatchDevMachineFunc: func(ctx context.Context, patchHelper *patch.Helper, devMachine *infrav1.DevMachine, _ bool) error {
+			dockerMachine := &infrav1.DockerMachine{}
+			devMachineToDockerMachine(devMachine, dockerMachine)
+			return patchDockerMachine(ctx, patchHelper, dockerMachine)
+		},
+	}
+
 	return nil
 }
 

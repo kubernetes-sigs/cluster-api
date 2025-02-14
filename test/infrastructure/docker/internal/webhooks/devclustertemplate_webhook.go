@@ -38,7 +38,7 @@ type DevClusterTemplate struct{}
 func (webhook *DevClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.DevClusterTemplate{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
@@ -63,7 +63,7 @@ var _ webhook.CustomValidator = &DevClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	// NOTE: DockerClusterTemplate is behind ClusterTopology feature gate flag; the web hook
+	// NOTE: DevClusterTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
 		return nil, field.Forbidden(

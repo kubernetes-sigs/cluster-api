@@ -54,7 +54,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}).SetupWithManager(ctx, mgr, options)
 }
 
-// DockerClusterReconciler reconciles a DockerMachine object.
+// DockerClusterReconciler reconciles a DevCluster object.
 type DockerClusterReconciler struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime

@@ -406,7 +406,7 @@ generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepco
 		paths=./$(EXP_DIR)/api/...
 
 .PHONY: generate-go-deepcopy-in-memory-infrastructure
-generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory backend
+generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory cloud resources
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPIM_DIR)/pkg/cloud/api"
 	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \

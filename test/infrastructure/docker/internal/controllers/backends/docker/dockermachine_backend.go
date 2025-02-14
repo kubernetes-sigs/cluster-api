@@ -58,7 +58,10 @@ type MachineBackendReconciler struct {
 // ReconcileNormal handle docker backend for DevMachines not yet deleted.
 func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DevMachine) (res ctrl.Result, retErr error) {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without a Docker backend")
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
+	}
+	if dockerCluster.Spec.Backend.Docker == nil {
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 	log := ctrl.LoggerFrom(ctx)
 
@@ -344,7 +347,10 @@ func (r *MachineBackendReconciler) getExternalObjects(ctx context.Context, clust
 // ReconcileDelete handle docker backend for deleted DevMachines.
 func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DevCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without a Docker backend")
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
+	}
+	if dockerCluster.Spec.Backend.Docker == nil {
+		return ctrl.Result{}, errors.New("DockerBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 
 	externalMachine, externalLoadBalancer, err := r.getExternalObjects(ctx, cluster, dockerCluster, machine, dockerMachine)
@@ -394,7 +400,7 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 // PatchDevMachine patch a DevMachine.
 func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHelper *patch.Helper, dockerMachine *infrav1.DevMachine, _ bool) error {
 	if dockerMachine.Spec.Backend.Docker == nil {
-		panic("MachineBackendReconciler can't be called for DevMachines without a Docker backend")
+		return errors.New("DockerBackendReconciler can't be called for DevMachines without a Docker backend")
 	}
 
 	// Always update the readyCondition by summarizing the state of other conditions.

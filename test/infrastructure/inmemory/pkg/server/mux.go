@@ -286,7 +286,7 @@ func (m *WorkloadClustersMux) HotRestart(listeners []HotRestartListener) error {
 		}
 
 		if l.Name == "" {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", l.Name, infrav1.ListenerAnnotationName)
+			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", l.Cluster, infrav1.ListenerAnnotationName)
 		}
 
 		m.initWorkloadClusterListenerWithPortLocked(l.Name, l.Port)

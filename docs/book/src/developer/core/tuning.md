@@ -13,7 +13,7 @@ With tilt, you can easily deploy a full observability stack with Grafana, Loki, 
 
 All tools are preconfigured, and most notably kube-state-metrics already collects CAPI metrics and Grafana is configured with a set of dashboards that we used in previous rounds of CAPI tuning. Overall, the CAPI dev environment offers a considerable amount of expertise, free to use and to improve for the entire community. We highly recommend to invest time in looking into those tools, learn and provide feedback.
 
-Additionally, Cluster API includes both CAPD (Cluster API provider for Docker) and CAPIM (Cluster API provider in-memory). Both allow you to quickly create development clusters with the limited resources available on a developer workstation, however:
+Additionally, Cluster API includes CAPD with support for both Docker and in-memory backend. Both allow you to quickly create development clusters with the limited resources available on a developer workstation, however:
 
 - CAPD with docker backend gives you a fully functional cluster running in containers; scalability and performance are limited by the size of your machine.
 - CAPD with the inmemory backend gives you a fake cluster running in memory; you can scale more easily but the clusters do not support any Kubernetes feature other than what is strictly required for CAPI, CABPK and KCP to work.

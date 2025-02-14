@@ -68,7 +68,7 @@ func (r *ClusterBackendReconciler) HotRestart(ctx context.Context) error {
 // ReconcileNormal handle in memory backend for DevCluster not yet deleted.
 func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		panic("ClusterBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	// Compute the name for resource group and listener.
@@ -134,7 +134,7 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 // ReconcileDelete handle in memory backend for deleted DevCluster.
 func (r *ClusterBackendReconciler) ReconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster) (ctrl.Result, error) {
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		panic("ClusterBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	// Compute the name for resource group and listener.
@@ -157,7 +157,7 @@ func (r *ClusterBackendReconciler) ReconcileDelete(_ context.Context, cluster *c
 // PatchDevCluster patch a DevCluster.
 func (r *ClusterBackendReconciler) PatchDevCluster(ctx context.Context, patchHelper *patch.Helper, inMemoryCluster *infrav1.DevCluster) error {
 	if inMemoryCluster.Spec.Backend.InMemory == nil {
-		panic("ClusterBackendReconciler can't be called for DevClusters without an InMemory backend")
+		return errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
 	return patchHelper.Patch(ctx, inMemoryCluster)

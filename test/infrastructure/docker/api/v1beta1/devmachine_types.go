@@ -179,7 +179,7 @@ type DevMachineStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
-	// addresses contains the associated addresses for the docker machine.
+	// addresses contains the associated addresses for the dev machine.
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
@@ -205,7 +205,7 @@ type DevMachineBackendStatus struct {
 
 // DockerMachineBackendStatus define backend status for a DevMachine for a machine using docker containers.
 type DockerMachineBackendStatus struct {
-	// lßoadBalancerConfigured denotes that the machine has been
+	// loadBalancerConfigured denotes that the machine has been
 	// added to the load balancer
 	// +optional
 	LoadBalancerConfigured bool `json:"loadBalancerConfigured"`

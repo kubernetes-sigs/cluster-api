@@ -41,7 +41,9 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -84,7 +86,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.TypedResourceIsChanged[*metav1.PartialObjectMetadata](mgr.GetScheme(), predicateLog),
 		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -128,6 +130,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return r.reconcileDelete(ctx, extensionConfig)
 		}
 		// Error reading the object - requeue the request.
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, extensionConfig); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
 
@@ -179,9 +185,14 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 		return err
 	}
 
-	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-		runtimev1.RuntimeExtensionDiscoveredCondition,
-	}})
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			runtimev1.RuntimeExtensionDiscoveredCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+		}},
+	)
 	return patchHelper.Patch(ctx, modified, options...)
 }
 
@@ -227,10 +238,21 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "error in discovery: %v", err)
+		v1beta2conditions.Set(modifiedExtensionConfig, metav1.Condition{
+			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
+			Message: fmt.Sprintf("error in discovery: %v", err),
+		})
 		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
 	}
 
 	conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
+	v1beta2conditions.Set(discoveredExtension, metav1.Condition{
+		Type:   runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: runtimev1.ExtensionConfigDiscoveredV1Beta2Reason,
+	})
 	return discoveredExtension, nil
 }
 

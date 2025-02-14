@@ -112,6 +112,23 @@ type ExtensionConfigStatus struct {
 	// conditions define the current service state of the ExtensionConfig.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in ExtensionConfig's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *ExtensionConfigV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// ExtensionConfigV1Beta2Status groups all the fields that will be added or modified in ExtensionConfig with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ExtensionConfigV1Beta2Status struct {
+	// conditions represents the observations of a ExtensionConfig's current state.
+	// Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
+	// NodeHealthy, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ExtensionHandler specifies the details of a handler for a particular runtime hook registered by an Extension server.
@@ -187,6 +204,22 @@ func (e *ExtensionConfig) SetConditions(conditions clusterv1.Conditions) {
 	e.Status.Conditions = conditions
 }
 
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (e *ExtensionConfig) GetV1Beta2Conditions() []metav1.Condition {
+	if e.Status.V1Beta2 == nil {
+		return nil
+	}
+	return e.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if e.Status.V1Beta2 == nil {
+		e.Status.V1Beta2 = &ExtensionConfigV1Beta2Status{}
+	}
+	e.Status.V1Beta2.Conditions = conditions
+}
+
 // +kubebuilder:object:root=true
 
 // ExtensionConfigList contains a list of ExtensionConfig.
@@ -199,6 +232,18 @@ type ExtensionConfigList struct {
 func init() {
 	objectTypes = append(objectTypes, &ExtensionConfig{}, &ExtensionConfigList{})
 }
+
+// ExtensionConfig's Discovered conditions and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
+
+	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
+
+	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.
+	ExtensionConfigNotDiscoveredV1Beta2Reason = "NotDiscovered"
+)
 
 const (
 	// RuntimeExtensionDiscoveredCondition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.

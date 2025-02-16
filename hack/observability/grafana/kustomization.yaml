@@ -10,10 +10,21 @@ resources:
 namespace: observability
 
 configMapGenerator:
-- name: grafana-dashboards
+- name: grafana-dashboard-cluster-api-mgmt-apiserver-requests
   files:
   - dashboards/cluster-api-mgmt-apiserver-requests.json
+- name: grafana-dashboard-cluster-api-performance
+  files:
   - dashboards/cluster-api-performance.json
+- name: grafana-dashboard-cluster-api-state
+  files:
   - dashboards/cluster-api-state.json
+- name: grafana-dashboard-cluster-api-wl-apiserver-requests
+  files:
   - dashboards/cluster-api-wl-apiserver-requests.json
+- name: grafana-dashboard-controller-runtime
+  files:
   - dashboards/controller-runtime.json
+- name: grafana-dashboard-runtime-extensions
+  files:
+  - dashboards/runtime-extensions.json

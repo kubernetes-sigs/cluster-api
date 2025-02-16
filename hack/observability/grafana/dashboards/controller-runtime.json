@@ -352,7 +352,7 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 8,
             "w": 12,
             "x": 0,
             "y": 6
@@ -360,8 +360,12 @@
           "id": 13,
           "options": {
             "legend": {
-              "calcs": [],
-              "displayMode": "list",
+              "calcs": [
+                "min",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
               "placement": "bottom",
               "showLegend": true
             },
@@ -459,16 +463,20 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 9,
             "w": 12,
             "x": 0,
-            "y": 7
+            "y": 15
           },
           "id": 6,
           "options": {
             "legend": {
-              "calcs": [],
-              "displayMode": "list",
+              "calcs": [
+                "min",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
               "placement": "bottom",
               "showLegend": true
             },
@@ -552,16 +560,20 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 9,
             "w": 12,
             "x": 12,
-            "y": 7
+            "y": 15
           },
           "id": 7,
           "options": {
             "legend": {
-              "calcs": [],
-              "displayMode": "list",
+              "calcs": [
+                "min",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
               "placement": "bottom",
               "showLegend": true
             },
@@ -4980,7 +4992,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(kubernetes_io_hostname)",
+        "definition": "kubernetes_io_hostname",
         "hide": 0,
         "includeAll": true,
         "label": "Node",
@@ -4988,11 +5000,11 @@
         "name": "Node",
         "options": [],
         "query": {
-          "query": "label_values(kubernetes_io_hostname)",
+          "query": "kubernetes_io_hostname",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/.*node=\"([^\"]*).*/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -5008,21 +5020,22 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(kube_pod_info{node=~\"^$Node$\"},pod)",
+        "definition": "kube_pod_info{node=~\"^$Node$\"}",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": "Pod",
         "multi": true,
         "name": "Pod",
         "options": [],
         "query": {
-          "query": "label_values(kube_pod_info{node=~\"^$Node$\"},pod)",
+          "qryType": 4,
+          "query": "kube_pod_info{node=~\"^$Node$\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/.*pod=\"([^\"]*).*/",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "type": "query"
       },
       {
@@ -5036,7 +5049,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(kube_pod_container_info{node=~\"^$Node$\",pod=~\"^$Pod$\"},container)",
+        "definition": "kube_pod_container_info{node=~\"^$Node$\",pod=~\"^$Pod$\"}",
         "hide": 0,
         "includeAll": true,
         "label": "Container",
@@ -5044,11 +5057,12 @@
         "name": "Container",
         "options": [],
         "query": {
-          "query": "label_values(kube_pod_container_info{node=~\"^$Node$\",pod=~\"^$Pod$\"},container)",
+          "qryType": 4,
+          "query": "kube_pod_container_info{node=~\"^$Node$\",pod=~\"^$Pod$\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/.*container=\"([^\"]*).*/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -5068,7 +5082,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(controller_runtime_active_workers,controller)",
+        "definition": "controller_runtime_active_workers",
         "hide": 0,
         "includeAll": true,
         "label": "Controller",
@@ -5076,13 +5090,13 @@
         "name": "Controller",
         "options": [],
         "query": {
-          "query": "label_values(controller_runtime_active_workers,controller)",
+          "query": "controller_runtime_active_workers",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/.*controller=\"([^\"]*).*/",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "type": "query"
       },
       {

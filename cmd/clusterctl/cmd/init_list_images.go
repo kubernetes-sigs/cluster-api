@@ -23,17 +23,18 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 var initListImagesCmd = &cobra.Command{
 	Use:   "list-images",
 	Short: "Lists the container images required for initializing the management cluster",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Lists the container images required for initializing the management cluster.
 
 		See https://cluster-api.sigs.k8s.io for more details.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Lists the container images required for initializing the management cluster.
 		#
 		# Note: This command is a dry-run; it won't perform any action other than printing to screen.

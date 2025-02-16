@@ -25,22 +25,26 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 var (
-	env     *envtest.Environment
-	tracker *remote.ClusterCacheTracker
-	ctx     = ctrl.SetupSignalHandler()
+	env          *envtest.Environment
+	clusterCache clustercache.ClusterCache
+	ctx          = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
@@ -77,14 +81,33 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start cache for metadata only Secret watches: %v", err))
 		}
 
-		tracker, err = remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
+		clusterCache, err = clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+			SecretClient: mgr.GetClient(),
+			Cache: clustercache.CacheOptions{
+				Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
+			},
+			Client: clustercache.ClientOptions{
+				UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+				Cache: clustercache.ClientCacheOptions{
+					DisableFor: []client.Object{
+						// Don't cache ConfigMaps & Secrets.
+						&corev1.ConfigMap{},
+						&corev1.Secret{},
+					},
+				},
+			},
+		}, controller.Options{MaxConcurrentReconciles: 10})
 		if err != nil {
-			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
+			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
 		}
+		go func() {
+			<-ctx.Done()
+			clusterCache.(interface{ Shutdown() }).Shutdown()
+		}()
 
 		reconciler := ClusterResourceSetReconciler{
-			Client:  mgr.GetClient(),
-			Tracker: tracker,
+			Client:       mgr.GetClient(),
+			ClusterCache: clusterCache,
 		}
 		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 10}, partialSecretCache); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
@@ -97,9 +120,20 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M:        m,
 		SetupEnv: func(e *envtest.Environment) { env = e },
+		ManagerCacheOptions: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				// Only cache Secrets with the cluster name label.
+				// This is similar to the real world.
+				&corev1.Secret{}: {
+					Label: clusterSecretCacheSelector,
+				},
+			},
+		},
 		ManagerUncachedObjs: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},

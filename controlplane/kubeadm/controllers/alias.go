@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/controllers"
 )
 
@@ -32,7 +32,7 @@ import (
 type KubeadmControlPlaneReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
-	Tracker             *remote.ClusterCacheTracker
+	ClusterCache        clustercache.ClusterCache
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -40,19 +40,18 @@ type KubeadmControlPlaneReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
-	DeprecatedInfraMachineNaming bool
+	RemoteConditionsGracePeriod time.Duration
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:                       r.Client,
-		SecretCachingClient:          r.SecretCachingClient,
-		Tracker:                      r.Tracker,
-		EtcdDialTimeout:              r.EtcdDialTimeout,
-		EtcdCallTimeout:              r.EtcdCallTimeout,
-		WatchFilterValue:             r.WatchFilterValue,
-		DeprecatedInfraMachineNaming: r.DeprecatedInfraMachineNaming,
+		Client:                      r.Client,
+		SecretCachingClient:         r.SecretCachingClient,
+		ClusterCache:                r.ClusterCache,
+		EtcdDialTimeout:             r.EtcdDialTimeout,
+		EtcdCallTimeout:             r.EtcdCallTimeout,
+		WatchFilterValue:            r.WatchFilterValue,
+		RemoteConditionsGracePeriod: r.RemoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, options)
 }

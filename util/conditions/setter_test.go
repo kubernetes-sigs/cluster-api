@@ -33,35 +33,45 @@ import (
 func TestHasSameState(t *testing.T) {
 	g := NewWithT(t)
 
+	// two nils
+	var nil2 *clusterv1.Condition
+	g.Expect(HasSameState(nil1, nil2)).To(BeTrue())
+
+	// nil condition 1
+	g.Expect(HasSameState(nil1, true1)).To(BeFalse())
+
+	// nil condition 2
+	g.Expect(HasSameState(true1, nil2)).To(BeFalse())
+
 	// same condition
 	falseInfo2 := falseInfo1.DeepCopy()
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeTrue())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
 
 	// different LastTransitionTime does not impact state
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.LastTransitionTime = metav1.NewTime(time.Date(1900, time.November, 10, 23, 0, 0, 0, time.UTC))
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeTrue())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
 
 	// different Type, Status, Reason, Severity and Message determine different state
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Type = "another type"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Status = corev1.ConditionTrue
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Severity = clusterv1.ConditionSeverityWarning
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Reason = "another severity"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Message = "another message"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 }
 
 func TestLexicographicLess(t *testing.T) {
@@ -84,6 +94,12 @@ func TestLexicographicLess(t *testing.T) {
 	a = TrueCondition("A")
 	b = TrueCondition(clusterv1.ReadyCondition)
 	g.Expect(lexicographicLess(a, b)).To(BeFalse())
+
+	a = TrueCondition("A")
+	g.Expect(lexicographicLess(a, nil1)).To(BeFalse())
+
+	b = TrueCondition("A")
+	g.Expect(lexicographicLess(nil1, b)).To(BeTrue())
 }
 
 func TestSet(t *testing.T) {
@@ -187,6 +203,96 @@ func TestSetLastTransitionTime(t *testing.T) {
 			g := NewWithT(t)
 
 			Set(tt.to, tt.new)
+
+			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
+		})
+	}
+}
+
+func TestSetWithCustomLastTransitionTime(t *testing.T) {
+	x := metav1.Date(2012, time.January, 1, 12, 15, 30, 5e8, time.UTC)
+	y := metav1.Date(2012, time.January, 2, 12, 15, 30, 5e8, time.UTC)
+
+	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
+	fooWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
+	fooWithLastTransitionTime := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
+	fooWithLastTransitionTime.LastTransitionTime = x
+	fooWithLastTransitionTimeWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
+	fooWithLastTransitionTimeWithBarMessage.LastTransitionTime = y
+
+	fooWithAnotherState := TrueCondition("foo")
+	fooWithAnotherStateWithLastTransitionTime := TrueCondition("foo")
+	fooWithAnotherStateWithLastTransitionTime.LastTransitionTime = y
+
+	tests := []struct {
+		name                    string
+		to                      Setter
+		new                     *clusterv1.Condition
+		LastTransitionTimeCheck func(*WithT, metav1.Time)
+	}{
+		{
+			name: "Set a condition that does not exists should set the last transition time if not defined",
+			to:   setterWithConditions(),
+			new:  foo,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).ToNot(BeZero())
+			},
+		},
+		{
+			name: "Set a condition that does not exists should preserve the last transition time if defined",
+			to:   setterWithConditions(),
+			new:  fooWithLastTransitionTime,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists with the same state should preserves the last transition time",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  foo,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists but with different state should changes the last transition time",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithAnotherState,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).ToNot(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists but with different state should preserve the last transition time if defined",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithAnotherStateWithLastTransitionTime,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(y))
+			},
+		},
+		{
+			name: "Set a condition that already exists but with different Message should preserve the last transition time",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithBarMessage,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists, with different state but same Status should ignore the last transition even if defined",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithLastTransitionTimeWithBarMessage,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			SetWithCustomLastTransitionTime(tt.to, tt.new)
 
 			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
 		})
@@ -304,7 +410,7 @@ func (matcher *ConditionsMatcher) Match(actual interface{}) (success bool, err e
 	}
 
 	for i := range actualConditions {
-		if !hasSameState(&actualConditions[i], &matcher.Expected[i]) {
+		if !HasSameState(&actualConditions[i], &matcher.Expected[i]) {
 			return false, nil
 		}
 	}

@@ -19,11 +19,12 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/rollout"
 )
 
 var (
-	rolloutLong = LongDesc(`
+	rolloutLong = templates.LongDesc(`
 		Manage the rollout of a cluster-api resource.
 		Valid resource types include:
 
@@ -31,7 +32,7 @@ var (
 		   * kubeadmcontrolplane
 		`)
 
-	rolloutExample = Examples(`
+	rolloutExample = templates.Examples(`
 		# Force an immediate rollout of machinedeployment or kubeadmcontrolplane
 		clusterctl alpha rollout restart machinedeployment/my-md-0
 		clusterctl alpha rollout restart kubeadmcontrolplane/my-kcp

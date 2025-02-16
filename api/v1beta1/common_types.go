@@ -128,7 +128,7 @@ const (
 	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
-	// RemediateMachineAnnotation is the annotation used to mark machines that should be remediated by MachineHealthCheck reconciler.
+	// RemediateMachineAnnotation request the MachineHealthCheck reconciler to mark a Machine as unhealthy. CAPI builtin remediation will prioritize Machines with the annotation to be remediated.
 	RemediateMachineAnnotation = "cluster.x-k8s.io/remediate-machine"
 
 	// MachineSetSkipPreflightChecksAnnotation is the annotation used to provide a comma-separated list of
@@ -273,10 +273,10 @@ const (
 
 // MachineAddress contains information for the node's address.
 type MachineAddress struct {
-	// Machine address type, one of Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+	// type is the machine address type, one of Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.
 	Type MachineAddressType `json:"type"`
 
-	// The machine address.
+	// address is the machine address.
 	Address string `json:"address"`
 }
 
@@ -305,14 +305,14 @@ type MachineAddresses []MachineAddress
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
 type ObjectMeta struct {
-	// Map of string keys and values that can be used to organize and categorize
+	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations is an unstructured key value map stored with a resource that may be
+	// annotations is an unstructured key value map stored with a resource that may be
 	// set by external tools to store and retrieve arbitrary metadata. They are not
 	// queryable and should be preserved when modifying objects.
 	// More info: http://kubernetes.io/docs/user-guide/annotations

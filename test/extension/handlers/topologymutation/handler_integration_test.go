@@ -50,10 +50,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -247,6 +249,13 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, groupVersionKindName{
 		Kind: "ClusterClass",
 	}))
+	// Set paused condition for ClusterClass
+	v1beta2conditions.Set(s.Blueprint.ClusterClass, metav1.Condition{
+		Type:               clusterv1.PausedV1Beta2Condition,
+		Status:             metav1.ConditionFalse,
+		Reason:             clusterv1.NotPausedV1Beta2Reason,
+		ObservedGeneration: s.Blueprint.ClusterClass.GetGeneration(),
+	})
 	// InfrastructureClusterTemplate
 	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(s.Blueprint.ClusterClass.Spec.Infrastructure.Ref)))
 
@@ -397,13 +406,15 @@ type TopologyMutationHook interface {
 	ValidateTopology(ctx context.Context, req *runtimehooksv1.ValidateTopologyRequest, resp *runtimehooksv1.ValidateTopologyResponse)
 }
 
+var _ runtimeclient.Client = &injectRuntimeClient{}
+
 // injectRuntimeClient implements a runtimeclient.Client.
 // It allows us to plug a TopologyMutationHook into Cluster and ClusterClass controllers.
 type injectRuntimeClient struct {
 	runtimeExtension TopologyMutationHook
 }
 
-func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ string, req runtimehooksv1.RequestObject, resp runtimehooksv1.ResponseObject) error {
+func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ string, req runtimehooksv1.RequestObject, resp runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	// Note: We have to copy the requests. Otherwise we could get side effect by Runtime Extensions
 	// modifying the request instead of properly returning a response. Also after Unmarshal,
 	// only the Raw fields in runtime.RawExtension fields should be filled out and Object should be nil.

@@ -95,6 +95,22 @@ type DockerClusterStatus struct {
 	// Conditions defines current service state of the DockerCluster.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in DockerCluster's's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *DockerClusterV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// DockerClusterV1Beta2Status groups all the fields that will be added or modified in DockerCluster with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type DockerClusterV1Beta2Status struct {
+	// conditions represents the observations of a DockerCluster's current state.
+	// Known condition types are Ready, LoadBalancerAvailable, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -131,6 +147,22 @@ func (c *DockerCluster) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on this object.
 func (c *DockerCluster) SetConditions(conditions clusterv1.Conditions) {
 	c.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (c *DockerCluster) GetV1Beta2Conditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
+	}
+	return c.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (c *DockerCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if c.Status.V1Beta2 == nil {
+		c.Status.V1Beta2 = &DockerClusterV1Beta2Status{}
+	}
+	c.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

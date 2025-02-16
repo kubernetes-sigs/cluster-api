@@ -34,9 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -46,7 +46,7 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/finalizers,verbs=get;list;watch;update;patch
 
 // Reconciler deletes referenced templates during deletion of topology-owned MachineSets.
 // The templates are only deleted, if they are not used in other MachineDeployments or MachineSets which are not in deleting state,
@@ -61,6 +61,11 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.APIReader == nil {
+		return errors.New("Client and APIReader must not be nil")
+	}
+
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/machineset")
 	clusterToMachineSets, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -69,21 +74,22 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineSet{},
 			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))),
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
+					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
 			),
 		).
 		Named("topology/machineset").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
+					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 				),
 			),
 		).
@@ -121,15 +127,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.NamespacedName.Name)
 	}
 
+	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Return early if the MachineSet is not topology owned.
+	if !labels.IsTopologyOwned(ms) {
+		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineSet does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, ms, clusterv1.MachineSetTopologyFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, ms)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	log = log.WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, ms.Namespace, ms.Spec.ClusterName)
 	if err != nil {
@@ -139,12 +156,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, ms) {
 		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
-	// Return early if the MachineSet is not topology owned.
-	if !labels.IsTopologyOwned(ms) {
-		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineSet does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
 		return ctrl.Result{}, nil
 	}
 
@@ -162,13 +173,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Handle deletion reconciliation loop.
 	if !ms.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, ms)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer) {
-		controllerutil.AddFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -210,11 +214,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	// Delete unused templates.
 	ref := ms.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: ms})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
 	}
 	ref = &ms.Spec.Template.Spec.InfrastructureRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: ms})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
 	}
 
 	// Remove the finalizer so the MachineSet can be garbage collected by Kubernetes.
@@ -231,8 +235,8 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.Errorf("could not calculate MachineDeployment name for %s: invalid apiVersion %q: %v",
-				tlog.KObj{Obj: ms}, ref.APIVersion, err)
+			return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
+				klog.KObj(ms), ref.APIVersion, err)
 		}
 		if gv.Group == clusterv1.GroupVersion.Group {
 			return &client.ObjectKey{Namespace: ms.Namespace, Name: ref.Name}, nil
@@ -242,5 +246,5 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 	// Note: Once we set an owner reference to a MachineDeployment in a MachineSet it stays there
 	// and is not deleted when the MachineDeployment is deleted. So we assume there's something wrong,
 	// if we couldn't find a MachineDeployment owner reference.
-	return nil, errors.Errorf("could not calculate MachineDeployment name for %s", tlog.KObj{Obj: ms})
+	return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
 }

@@ -538,6 +538,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 func TestComputeDesiredMachineSet(t *testing.T) {
 	duration5s := &metav1.Duration{Duration: 5 * time.Second}
 	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+	namingTemplateKey := "test"
 
 	infraRef := corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachineTemplate",
@@ -568,6 +569,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					MaxUnavailable: intOrStrPtr(0),
 				},
 			},
+			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
+			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"k1": "v1"},
 			},
@@ -582,6 +586,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &bootstrapRef,
 					},
+					ReadinessGates:          []clusterv1.MachineReadinessGate{{ConditionType: "foo"}},
 					NodeDrainTimeout:        duration10s,
 					NodeVolumeDetachTimeout: duration10s,
 					NodeDeletionTimeout:     duration10s,
@@ -603,6 +608,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			DeletePolicy:    string(clusterv1.RandomMachineSetDeletePolicy),
 			Selector:        metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
 			Template:        *deployment.Spec.Template.DeepCopy(),
+			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
+			},
 		},
 	}
 
@@ -649,6 +657,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			"ms-label-2":                           "ms-value-2",
 		}
 		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
 		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
@@ -688,6 +697,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			"ms-label-2":                           "ms-value-2",
 		}
 		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
 		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
@@ -741,6 +751,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			"ms-label-2":                           "ms-value-2",
 		}
 		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
 		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
@@ -812,6 +823,9 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 
 	// Check MachineTemplateSpec
 	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))
+
+	// Check MachineNamingStrategy
+	g.Expect(actualMS.Spec.MachineNamingStrategy.Template).Should(BeComparableTo(expectedMS.Spec.MachineNamingStrategy.Template))
 }
 
 // asserts the conditions set on the Getter object.

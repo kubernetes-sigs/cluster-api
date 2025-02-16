@@ -7,11 +7,32 @@ reviewers:
   - "@ncdc"
 creation-date: 2020-05-06
 last-updated: 2024-05-03
-status: implementable
-see-also:
-replaces:
-superseded-by:
+status: replaced
+superseded-by: 20240916-improve-status-in-CAPI-resources.md
 ---
+
+# IMPORTANT! Superseded by [Improve Status in CAPI resources](20240916-improve-status-in-CAPI-resources.md)
+
+This proposal is now superseded by [Improve Status in CAPI resources](20240916-improve-status-in-CAPI-resources.md), 
+which describes how Cluster API is going to transition to Kubernetes aligned conditions (among other improvements).
+
+The [Improve Status in CAPI resources](20240916-improve-status-in-CAPI-resources.md) proposal is part of the work for 
+implementing Cluster API v1beta2 APIs, while "legacy" conditions described in this document are used in v1beta1 API version.
+
+The v1beta1 API types, including the "legacy" condition types described in this document are going to be deprecated
+when v1beta2 will be released (tentative Apr 2025).
+
+Providers implementing conditions won't be required to do the transition from "legacy" Cluster API Condition type
+to Kubernetes `metav1.Conditions` type, but this transition is recommended because it improves the consistency of each provider
+with Kubernetes, Cluster API and the ecosystem.
+
+However, providers choosing to keep using Cluster API "legacy" conditions should be aware that starting from the
+CAPI release when v1beta1 removal will happen (tentative Apr 2026), the Cluster API project will remove the
+Cluster API "legacy" condition types, the "legacy" `util/conditions` package, the code handling "legacy" conditions in
+`util/patch.Helper` and everything related to the "legacy" Cluster API `v1beta.Condition` type.
+
+In other words, providers choosing to keep using Cluster API "legacy" conditions should be aware that down the line
+they will be required to start managing their own conditions fork/custom implementation.
 
 # Conditions - Cluster status at glance
 
@@ -557,3 +578,4 @@ NA
 - [x] 2020-04-27: Compile a Google Doc following the CAEP template
 - [x] 2020-05-06: Create CAEP PR 
 - [x] 2024-05-03: Edited allowing conditions with negative polarity 
+- [x] 2024-09-17: Superseded by [Improve Status in CAPI resources](20240916-improve-status-in-CAPI-resources.md)

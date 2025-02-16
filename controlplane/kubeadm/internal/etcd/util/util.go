@@ -18,6 +18,8 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
@@ -34,9 +36,15 @@ func MemberForName(members []*etcd.Member, name string) *etcd.Member {
 }
 
 // MemberNames returns a list of all the etcd member names.
+// Note: this function is specificially designed for MemberEqual and setting condition messages.
 func MemberNames(members []*etcd.Member) []string {
 	names := make([]string, 0, len(members))
 	for _, m := range members {
+		// When adding a member the name may not yet be set.
+		if m.Name == "" {
+			names = append(names, fmt.Sprintf("name not set yet for member with id %d", m.ID))
+			continue
+		}
 		names = append(names, m.Name)
 	}
 	return names

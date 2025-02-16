@@ -1,67 +1,63 @@
 run:
   timeout: 10m
-  go: "1.22"
+  go: "1.23"
   build-tags:
     - tools
     - e2e
-  skip-files:
-    - "zz_generated.*\\.go$"
-    - "vendored_openapi\\.go$"
-    # We don't want to invest time to fix new linter findings in old API types.
-    - "internal/apis/.*"
   allow-parallel-runners: true
 
 linters:
   disable-all: true
   enable:
-  - asasalint
-  - asciicheck
-  - bidichk
-  - bodyclose
-  - containedctx
-  - copyloopvar
-  - dogsled
-  - dupword
-  - durationcheck
-  - errcheck
-  - errchkjson
-  - gci
-  - ginkgolinter
-  - goconst
-  - gocritic
-  - godot
-  - gofmt
-  - goimports
-  - goprintffuncname
-  - gosec
-  - gosimple
-  - govet
-  - importas
-  - ineffassign
-  - intrange
-  - loggercheck
-  - misspell
-  - nakedret
-  - nilerr
-  - noctx
-  - nolintlint
-  - nosprintfhostport
-  - prealloc
-  - predeclared
-  - revive
-  - rowserrcheck
-  - staticcheck
-  - stylecheck
-  - tenv
-  - thelper
-  - typecheck
-  - unconvert
-  - unparam
-  - unused
-  - usestdlibvars
-  - whitespace
+    - asasalint # warns about passing []any to func(...any) without expanding it
+    - asciicheck # non ascii symbols
+    - bidichk # dangerous unicode sequences
+    - bodyclose # unclosed http bodies
+    - containedctx # context.Context nested in a struct
+    - copyloopvar # copying loop variables
+    - dogsled # too many blank identifiers in assignments
+    - dupword # duplicate words
+    - durationcheck # multiplying two durations
+    - errcheck # unchecked errors
+    - errchkjson # invalid types passed to json encoder
+    - gci # ensures imports are organized
+    - ginkgolinter # ginkgo and gomega
+    - gocritic # bugs, performance, style (we could add custom ones to this one)
+    - godot # checks that comments end in a period
+    - gofmt # warns about incorrect use of fmt functions
+    - goimports # import formatting
+    - goprintffuncname # printft-like functions should be named with f at the end
+    - gosec # potential security problems
+    - gosimple # simplify code
+    - govet # basically 'go vet'
+    - importas # consistent import aliases
+    - ineffassign # ineffectual assignments
+    - intrange # suggest using integer range in for loops
+    - loggercheck # check for even key/value pairs in logger calls
+    - misspell # spelling
+    - nakedret # naked returns (named return parameters and an empty return)
+    - nilerr # returning nil after checking err is not nil
+    - noctx # http requests without context.Context
+    - nolintlint # badly formatted nolint directives
+    - nosprintfhostport # using sprintf to construct host:port in a URL
+    - prealloc # suggest preallocating slices
+    - predeclared # shadowing predeclared identifiers
+    - revive # better version of golint
+    - staticcheck # some of staticcheck's rules
+    - stylecheck # another replacement for golint
+    - tenv # using os.Setenv instead of t.Setenv in tests
+    - thelper # test helpers not starting with t.Helper()
+    - unconvert # unnecessary type conversions
+    - unparam # unused function parameters
+    - unused # unused constants, variables,functions, types
+    - usestdlibvars # using variables/constants from the standard library
+    - whitespace # unnecessary newlines
 
 linters-settings:
+  gosec:
+    excludes:
+    # integer overflow conversion int -> int32
+      - G115
   gci:
     sections:
       - standard # Standard section: captures all standard packages.
@@ -78,6 +74,7 @@ linters-settings:
     exclude:
       - '^ \+.*'
       - '^ ANCHOR.*'
+      - '^ (alpha|beta|GA): v.*'
   gocritic:
     enabled-tags:
       - diagnostic
@@ -166,11 +163,18 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/exp/runtime/catalog
         alias: runtimecatalog
       - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
+        alias: internalruntimeclient
+      - pkg: sigs.k8s.io/cluster-api/exp/runtime/client
         alias: runtimeclient
       - pkg: sigs.k8s.io/cluster-api/internal/runtime/registry
         alias: runtimeregistry
       - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
         alias: runtimewebhooks
+      # CAPI utils
+      - pkg: sigs.k8s.io/cluster-api/util/conditions/v1beta2
+        alias: v1beta2conditions
+      - pkg: sigs.k8s.io/cluster-api/internal/topology/names
+        alias: topologynames
       # CAPD
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
         alias: infrav1alpha3
@@ -187,7 +191,6 @@ linters-settings:
         alias: infraexpv1
   nolintlint:
     allow-unused: false
-    allow-leading-space: false
     require-specific: true
   revive:
     rules:
@@ -223,7 +226,14 @@ linters-settings:
       - name: constant-logical-expr
   goconst:
     ignore-tests: true
+
 issues:
+  exclude-files:
+    - "zz_generated.*\\.go$"
+    - "vendored_openapi\\.go$"
+    # We don't want to invest time to fix new linter findings in old API types.
+    - "internal/apis/.*"
+
   max-same-issues: 0
   max-issues-per-linter: 0
   # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
@@ -239,10 +249,21 @@ issues:
   - linters:
       - staticcheck
     text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
+    # Deprecations for MD revision management
+  - linters:
+      - staticcheck
+    text: "SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details."
     # Deprecations for MHC MaxUnhealthy, UnhealthyRange
   - linters:
       - staticcheck
     text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
+  # Deprecations for FailureMessage, FailureReason, UnavailableReplicas and FullyLabeledReplicas
+  - linters:
+      - staticcheck
+    text: "SA1019: .*\\.Status\\.(FailureMessage|FailureReason|UnavailableReplicas|FullyLabeledReplicas) is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
+  - linters:
+      - staticcheck
+    text: "SA1019: newStatus.FullyLabeledReplicas is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
   # Specific exclude rules for deprecated packages that are still part of the codebase. These
   # should be removed as the referenced deprecated packages are removed from the project.
   - linters:
@@ -253,6 +274,10 @@ issues:
   - linters:
     - staticcheck
     text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
+  # Specific exclude rules for deprecated feature flags
+  - linters:
+      - staticcheck
+    text: "SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release."
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
@@ -292,11 +317,6 @@ issues:
     - revive
     - stylecheck
     path: (framework|e2e)/.*.go
-    text: should not use dot imports
-  - linters:
-    - revive
-    - stylecheck
-    path: util/defaulting/defaulting.go
     text: should not use dot imports
   # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
   # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
@@ -350,3 +370,7 @@ issues:
     - gocritic
     text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
     path: _test\.go
+    # Ignore non-constant format string in call to condition utils
+  - linters:
+      - govet
+    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."

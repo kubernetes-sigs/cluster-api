@@ -102,6 +102,47 @@ func (i *Int64) Set(obj *unstructured.Unstructured, value int64) error {
 	return nil
 }
 
+// Int32 represents an accessor to an int32 path value.
+type Int32 struct {
+	paths []Path
+}
+
+// Path returns the path to the int32 value.
+func (i *Int32) Path() []Path {
+	return i.paths
+}
+
+// Get gets the int32 value.
+// If more than one path is defined, path are checked in order and the first value reported is used
+// (e.g. in case when we are reading from a preferred location first, and then from one or more fallback locations).
+func (i *Int32) Get(obj *unstructured.Unstructured) (*int32, error) {
+	paths := []string{}
+	for _, path := range i.paths {
+		value, ok, err := unstructured.NestedInt64(obj.UnstructuredContent(), path...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(path, "."))
+		}
+		if !ok {
+			paths = append(paths, "."+strings.Join(path, "."))
+			continue
+		}
+		int32Value := int32(value)
+		return &int32Value, nil
+	}
+	return nil, errors.Wrapf(ErrFieldNotFound, "path %s", strings.Join(paths, ", "))
+}
+
+// Set sets the int32 value in the path.
+// If more than one path is defined, only the first path will be set.
+// (the first path is considered the preferred location).
+// Note: Cluster API should never Set values on external objects owner by providers; however this method is useful for writing tests.
+func (i *Int32) Set(obj *unstructured.Unstructured, value int64) error {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, i.paths[0]...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.paths[0], "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
 // Bool represents an accessor to an bool path value.
 type Bool struct {
 	path Path

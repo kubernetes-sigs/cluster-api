@@ -40,10 +40,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	fakev1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 func TestClient_httpCall(t *testing.T) {
@@ -543,6 +545,9 @@ func TestClient_CallExtension(t *testing.T) {
 	fpIgnore := runtimev1.FailurePolicyIgnore
 
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			ResourceVersion: "15",
+		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
@@ -566,6 +571,9 @@ func TestClient_CallExtension(t *testing.T) {
 		},
 	}
 	validExtensionHandlerWithIgnorePolicy := runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			ResourceVersion: "15",
+		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
@@ -599,6 +607,7 @@ func TestClient_CallExtension(t *testing.T) {
 		args                       args
 		testServer                 testServerConfig
 		wantErr                    bool
+		wantResponseCached         bool
 	}{
 		{
 			name:                       "should fail when hook and request/response are not compatible",
@@ -612,7 +621,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.SecondFakeRequest{},
 				response: &fakev1alpha1.SecondFakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 		{
 			name:                       "should fail when hook GVH does not match the registered ExtensionHandler",
@@ -626,7 +636,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.SecondFakeRequest{},
 				response: &fakev1alpha1.SecondFakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 		{
 			name:                       "should fail if ExtensionHandler is not registered",
@@ -643,7 +654,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 		{
 			name:                       "should succeed when calling ExtensionHandler with success response and FailurePolicyFail",
@@ -660,7 +672,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: false,
+			wantErr:            false,
+			wantResponseCached: true,
 		},
 		{
 			name:                       "should succeed when calling ExtensionHandler with success response and FailurePolicyIgnore",
@@ -677,7 +690,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: false,
+			wantErr:            false,
+			wantResponseCached: true,
 		},
 		{
 			name:                       "should fail when calling ExtensionHandler with failure response and FailurePolicyFail",
@@ -694,7 +708,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 		{
 			name:                       "should fail when calling ExtensionHandler with failure response and FailurePolicyIgnore",
@@ -711,7 +726,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 
 		{
@@ -726,7 +742,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: false,
+			wantErr:            false,
+			wantResponseCached: false, // Note: We only want to cache entirely successful responses.
 		},
 		{
 			name:                       "should fail with unreachable extension and FailurePolicyFail",
@@ -740,7 +757,8 @@ func TestClient_CallExtension(t *testing.T) {
 				request:  &fakev1alpha1.FakeRequest{},
 				response: &fakev1alpha1.FakeResponse{},
 			},
-			wantErr: true,
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 	}
 
@@ -748,8 +766,11 @@ func TestClient_CallExtension(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			var serverCallCount int
 			if tt.testServer.start {
-				srv := createSecureTestServer(tt.testServer)
+				srv := createSecureTestServer(tt.testServer, func() {
+					serverCallCount++
+				})
 				srv.StartTLS()
 				defer srv.Close()
 
@@ -778,15 +799,56 @@ func TestClient_CallExtension(t *testing.T) {
 					Namespace: "foo",
 				},
 			}
+			// Call once without caching.
 			err := c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
-
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+
+			// Call again with caching.
+			serverCallCount = 0
+			cache := cache.New[runtimeclient.CallExtensionCacheEntry]()
+			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
+				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			if tt.wantResponseCached {
+				// When we expect the response to be cached we expect 1 call to the server.
+				g.Expect(serverCallCount).To(Equal(1))
+				cacheEntry, isCached := cache.Has("valid-extension-15")
+				g.Expect(isCached).To(BeTrue())
+				g.Expect(cacheEntry).ToNot(BeNil())
+
+				err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
+					runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+				// When we expect the response to be cached we always expect no errors.
+				g.Expect(err).ToNot(HaveOccurred())
+				// As the response is cached we expect no further calls to the server.
+				g.Expect(serverCallCount).To(Equal(1))
+				cacheEntry, isCached = cache.Has("valid-extension-15")
+				g.Expect(isCached).To(BeTrue())
+				g.Expect(cacheEntry).ToNot(BeNil())
+			} else {
+				_, isCached := cache.Has("valid-extension-15")
+				g.Expect(isCached).To(BeFalse())
+			}
 		})
 	}
+}
+
+func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
+	// Note: extensionName is identical to the value of the name parameter passed into CallExtension.
+	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)
+	for k, v := range request.GetSettings() {
+		s += fmt.Sprintf(",%s=%s", k, v)
+	}
+	return s
 }
 
 func TestPrepareRequest(t *testing.T) {
@@ -1255,9 +1317,13 @@ func response(status runtimehooksv1.ResponseStatus) testServerResponse {
 	}
 }
 
-func createSecureTestServer(server testServerConfig) *httptest.Server {
+func createSecureTestServer(server testServerConfig, callbacks ...func()) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		for _, callback := range callbacks {
+			callback()
+		}
+
 		// Write the response for the first match in tt.testServer.responses.
 		for pathRegex, resp := range server.responses {
 			if !regexp.MustCompile(pathRegex).MatchString(r.URL.Path) {

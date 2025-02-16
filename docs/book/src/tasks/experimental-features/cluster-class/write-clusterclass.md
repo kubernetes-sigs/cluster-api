@@ -15,7 +15,7 @@ flexible enough to be used in as many Clusters as possible by supporting variant
     * [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
     * [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
 * [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
-    * [MachineDeployment variable overrides](#machinedeployment-variable-overrides)
+    * [MachineDeployment variable overrides](#machinedeployment-and-machinepool-variable-overrides)
     * [Builtin variables](#builtin-variables)
     * [Complex variable types](#complex-variable-types)
     * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
@@ -438,11 +438,87 @@ spec:
         template: "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
 ```
 
+### Defining a custom namespace for ClusterClass object
+
+As a user, I may need to create a `Cluster` from a `ClusterClass` object that exists only in a different namespace. To uniquely identify the `ClusterClass`, a `NamespacedName` ref is constructed from combination of:
+* `cluster.spec.topology.classNamespace` - namespace of the `ClusterClass` object.
+* `cluster.spec.topology.class` - name of the `ClusterClass` object.
+
+Example of the `Cluster` object with the `name/namespace` reference:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-docker-cluster
+  namespace: default
+spec:
+  topology:
+    class: docker-clusterclass-v0.1.0
+    classNamespace: default
+    version: v1.22.4
+    controlPlane:
+      replicas: 3
+    workers:
+      machineDeployments:
+      - class: default-worker
+        name: md-0
+        replicas: 4
+        failureDomain: region
+```
+
+
+#### Securing cross-namespace reference to the ClusterClass
+
+It is often desirable to restrict free cross-namespace `ClusterClass` access for the `Cluster` object. This can be implemented by defining a [`ValidatingAdmissionPolicy`](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/#what-is-validating-admission-policy) on the `Cluster` object.
+
+An example of such policy may be:
+
+```yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "cluster-class-ref.cluster.x-k8s.io"
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: v1
+    kind: Secret
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["cluster.x-k8s.io"]
+      apiVersions: ["v1beta1"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["clusters"]
+  validations:
+    - expression: "!has(object.spec.topology.classNamespace) || object.spec.topology.classNamespace in params.data"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "cluster-class-ref-binding.cluster.x-k8s.io"
+spec:
+  policyName: "cluster-class-ref.cluster.x-k8s.io"
+  validationActions: [Deny]
+  paramRef:
+    name: "allowed-namespaces.cluster-class-ref.cluster.x-k8s.io"
+    namespace: "default"
+    parameterNotFoundAction: Deny
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "allowed-namespaces.cluster-class-ref.cluster.x-k8s.io"
+  namespace: "default"
+data:
+  default: ""
+```
+
 ## Advanced features of ClusterClass with patches
 
 This section will explain more advanced features of ClusterClass patches.
 
-### MachineDeployment & MachinePool variable overrides
+### MachineDeployment and MachinePool variable overrides
 
 If you want to use many variations of MachineDeployments in Clusters, you can either define
 a MachineDeployment class for every variation or you can define patches and variables to

@@ -39,7 +39,7 @@ to support use cases where other controllers are co-authoring the same objects, 
 in a dry-run scenario.
 
 As a consequence Dry-Run can give some false positives/false negatives when trying to have a preview of
-changes to a set of existing topology owned objects. In other worlds this limitation impacts all the use cases described
+changes to a set of existing topology owned objects. In other words this limitation impacts all the use cases described
 below except for "Designing a new ClusterClass".
 
 More specifically:

@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 type initOptions struct {
@@ -47,7 +48,7 @@ var initCmd = &cobra.Command{
 	Use:     "init",
 	GroupID: groupManagement,
 	Short:   "Initialize a management cluster",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Initialize a management cluster.
 
 		Installs Cluster API core components, the kubeadm bootstrap provider,
@@ -65,7 +66,7 @@ var initCmd = &cobra.Command{
 
 		See https://cluster-api.sigs.k8s.io for more details.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Initialize a management cluster, by installing the given infrastructure provider.
 		#
 		# Note: when this command is executed on an empty management cluster,

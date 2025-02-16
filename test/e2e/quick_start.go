@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -43,6 +44,9 @@ type QuickStartSpecInput struct {
 	// Cluster name allows to specify a deterministic clusterName.
 	// If not set, a random one will be generated.
 	ClusterName *string
+
+	// DeployClusterClassInSeparateNamespace defines if the ClusterClass should be deployed in a separate namespace.
+	DeployClusterClassInSeparateNamespace bool
 
 	// InfrastructureProvider allows to specify the infrastructure provider to be used when looking for
 	// cluster templates.
@@ -73,6 +77,10 @@ type QuickStartSpecInput struct {
 	// Allows to inject a function to be run after machines are provisioned.
 	// If not specified, this is a no-op.
 	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+
+	// ClusterctlVariables allows injecting variables to the cluster template.
+	// If not specified, this is a no-op.
+	ClusterctlVariables map[string]string
 }
 
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
@@ -81,11 +89,12 @@ type QuickStartSpecInput struct {
 // NOTE: This test works with Clusters with and without ClusterClass.
 func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
 	var (
-		specName         = "quick-start"
-		input            QuickStartSpecInput
-		namespace        *corev1.Namespace
-		cancelWatches    context.CancelFunc
-		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		specName              = "quick-start"
+		input                 QuickStartSpecInput
+		namespace             *corev1.Namespace
+		clusterClassNamespace *corev1.Namespace
+		cancelWatches         context.CancelFunc
+		clusterResources      *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -100,6 +109,12 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+
+		if input.DeployClusterClassInSeparateNamespace {
+			clusterClassNamespace = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{Creator: input.BootstrapClusterProxy.GetClient(), Name: fmt.Sprintf("%s-clusterclass", namespace.Name)}, "40s", "10s")
+			Expect(clusterClassNamespace).ToNot(BeNil(), "Failed to create namespace")
+		}
+
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
@@ -130,17 +145,27 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		if input.ClusterName != nil {
 			clusterName = *input.ClusterName
 		}
+
+		variables := map[string]string{}
+		maps.Copy(variables, input.ClusterctlVariables)
+
+		if input.DeployClusterClassInSeparateNamespace {
+			variables["CLUSTER_CLASS_NAMESPACE"] = clusterClassNamespace.Name
+			By("Creating a cluster referencing a ClusterClass from another namespace")
+		}
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				ClusterctlVariables:      variables,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   infrastructureProvider,
 				Flavor:                   flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: controlPlaneMachineCount,
 				WorkerMachineCount:       workerMachineCount,
 			},
@@ -154,11 +179,18 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				}
 			},
 		}, clusterResources)
+
 		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		if input.DeployClusterClassInSeparateNamespace && !input.SkipCleanup {
+			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+				Deleter: input.BootstrapClusterProxy.GetClient(),
+				Name:    clusterClassNamespace.Name,
+			})
+		}
 	})
 }

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.17.0
   name: clusterresourcesets.addons.cluster.x-k8s.io
 spec:
   group: addons.cluster.x-k8s.io
@@ -47,7 +47,7 @@ spec:
             properties:
               clusterSelector:
                 description: |-
-                  Label selector for Clusters. The Clusters that are
+                  clusterSelector is the label selector for Clusters. The Clusters that are
                   selected by this will be the ones affected by this ClusterResourceSet.
                   It must match the Cluster labels. This field is immutable.
                 properties:
@@ -95,20 +95,20 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               resources:
-                description: Resources is a list of Secrets/ConfigMaps where each
+                description: resources is a list of Secrets/ConfigMaps where each
                   contains 1 or more resources to be applied to remote clusters.
                 items:
                   description: ResourceRef specifies a resource.
                   properties:
                     kind:
-                      description: 'Kind of the resource. Supported kinds are: Secrets
+                      description: 'kind of the resource. Supported kinds are: Secrets
                         and ConfigMaps.'
                       enum:
                       - Secret
                       - ConfigMap
                       type: string
                     name:
-                      description: Name of the resource that is in the same namespace
+                      description: name of the resource that is in the same namespace
                         with ClusterResourceSet object.
                       minLength: 1
                       type: string
@@ -118,7 +118,7 @@ spec:
                   type: object
                 type: array
               strategy:
-                description: Strategy is the strategy to be used during applying resources.
+                description: strategy is the strategy to be used during applying resources.
                   Defaults to ApplyOnce. This field is immutable.
                 enum:
                 - ApplyOnce
@@ -130,41 +130,41 @@ spec:
             description: ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
             properties:
               conditions:
-                description: Conditions defines current state of the ClusterResourceSet.
+                description: conditions defines current state of the ClusterResourceSet.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may not be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -174,7 +174,7 @@ spec:
                   type: object
                 type: array
               observedGeneration:
-                description: ObservedGeneration reflects the generation of the most
+                description: observedGeneration reflects the generation of the most
                   recently observed ClusterResourceSet.
                 format: int64
                 type: integer
@@ -220,7 +220,7 @@ spec:
             properties:
               clusterSelector:
                 description: |-
-                  Label selector for Clusters. The Clusters that are
+                  clusterSelector is the label selector for Clusters. The Clusters that are
                   selected by this will be the ones affected by this ClusterResourceSet.
                   It must match the Cluster labels. This field is immutable.
                   Label selector cannot be empty.
@@ -269,20 +269,20 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               resources:
-                description: Resources is a list of Secrets/ConfigMaps where each
+                description: resources is a list of Secrets/ConfigMaps where each
                   contains 1 or more resources to be applied to remote clusters.
                 items:
                   description: ResourceRef specifies a resource.
                   properties:
                     kind:
-                      description: 'Kind of the resource. Supported kinds are: Secrets
+                      description: 'kind of the resource. Supported kinds are: Secrets
                         and ConfigMaps.'
                       enum:
                       - Secret
                       - ConfigMap
                       type: string
                     name:
-                      description: Name of the resource that is in the same namespace
+                      description: name of the resource that is in the same namespace
                         with ClusterResourceSet object.
                       minLength: 1
                       type: string
@@ -292,7 +292,7 @@ spec:
                   type: object
                 type: array
               strategy:
-                description: Strategy is the strategy to be used during applying resources.
+                description: strategy is the strategy to be used during applying resources.
                   Defaults to ApplyOnce. This field is immutable.
                 enum:
                 - ApplyOnce
@@ -304,41 +304,41 @@ spec:
             description: ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
             properties:
               conditions:
-                description: Conditions defines current state of the ClusterResourceSet.
+                description: conditions defines current state of the ClusterResourceSet.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may not be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -348,7 +348,7 @@ spec:
                   type: object
                 type: array
               observedGeneration:
-                description: ObservedGeneration reflects the generation of the most
+                description: observedGeneration reflects the generation of the most
                   recently observed ClusterResourceSet.
                 format: int64
                 type: integer
@@ -366,8 +366,9 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: ClusterResourceSet is the Schema for the clusterresourcesets
-          API.
+        description: |-
+          ClusterResourceSet is the Schema for the clusterresourcesets API.
+          For advanced use cases an add-on provider should be used instead.
         properties:
           apiVersion:
             description: |-
@@ -391,7 +392,7 @@ spec:
             properties:
               clusterSelector:
                 description: |-
-                  Label selector for Clusters. The Clusters that are
+                  clusterSelector is the label selector for Clusters. The Clusters that are
                   selected by this will be the ones affected by this ClusterResourceSet.
                   It must match the Cluster labels. This field is immutable.
                   Label selector cannot be empty.
@@ -440,20 +441,20 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               resources:
-                description: Resources is a list of Secrets/ConfigMaps where each
+                description: resources is a list of Secrets/ConfigMaps where each
                   contains 1 or more resources to be applied to remote clusters.
                 items:
                   description: ResourceRef specifies a resource.
                   properties:
                     kind:
-                      description: 'Kind of the resource. Supported kinds are: Secrets
+                      description: 'kind of the resource. Supported kinds are: Secrets
                         and ConfigMaps.'
                       enum:
                       - Secret
                       - ConfigMap
                       type: string
                     name:
-                      description: Name of the resource that is in the same namespace
+                      description: name of the resource that is in the same namespace
                         with ClusterResourceSet object.
                       minLength: 1
                       type: string
@@ -463,7 +464,7 @@ spec:
                   type: object
                 type: array
               strategy:
-                description: Strategy is the strategy to be used during applying resources.
+                description: strategy is the strategy to be used during applying resources.
                   Defaults to ApplyOnce. This field is immutable.
                 enum:
                 - ApplyOnce
@@ -476,41 +477,41 @@ spec:
             description: ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
             properties:
               conditions:
-                description: Conditions defines current state of the ClusterResourceSet.
+                description: conditions defines current state of the ClusterResourceSet.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -521,10 +522,79 @@ spec:
                   type: object
                 type: array
               observedGeneration:
-                description: ObservedGeneration reflects the generation of the most
+                description: observedGeneration reflects the generation of the most
                   recently observed ClusterResourceSet.
                 format: int64
                 type: integer
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in ClusterResourceSet's status with the V1Beta2 version.
+                properties:
+                  conditions:
+                    description: |-
+                      conditions represents the observations of a ClusterResourceSet's current state.
+                      Known condition types are ResourceSetApplied, Deleting.
+                    items:
+                      description: Condition contains details for one aspect of the
+                        current state of this API Resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            lastTransitionTime is the last time the condition transitioned from one status to another.
+                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            message is a human readable message indicating details about the transition.
+                            This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: |-
+                            observedGeneration represents the .metadata.generation that the condition was set based upon.
+                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                            with respect to the current state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: |-
+                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                            Producers of specific condition types may define expected values and meanings for this field,
+                            and whether the values are considered a guaranteed API.
+                            The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
             type: object
         type: object
     served: true

@@ -16,12 +16,57 @@ loki:
   limits_config:
     ingestion_rate_mb: 1024
     ingestion_burst_size_mb: 1024
+    # disable limits per user as we only have one
+    max_streams_per_user: 0
+    max_global_streams_per_user: 0
+  useTestSchema: true
+
+deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
 
 gateway:
   enabled: false
+
+lokiCanary:
+  enabled: false
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
+
+minio:
+  enabled: false
+
+# Zero out replica counts of other deployment modes
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+distributor:
+  replicas: 0
+compactor:
+  replicas: 0
+indexGateway:
+  replicas: 0
+bloomCompactor:
+  replicas: 0
+bloomGateway:
+  replicas: 0
 
 # We are disabling basically everything because we just want
 # Loki and no additional monitoring.

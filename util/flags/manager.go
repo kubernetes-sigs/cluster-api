@@ -47,11 +47,6 @@ type ManagerOptions struct {
 	// Metrics Options
 	// These are used to configure the metrics server
 
-	// MetricsBindAddr is the field that stores the value of the --metrics-bind-addr flag.
-	// For further details, please see the description of the flag.
-	//
-	// Deprecated: This field will be removed in an upcoming release.
-	MetricsBindAddr string
 	// DiagnosticsAddress is the field that stores the value of the --diagnostics-address flag.
 	// For further details, please see the description of the flag.
 	DiagnosticsAddress string
@@ -74,11 +69,6 @@ func AddManagerOptions(fs *pflag.FlagSet, options *ManagerOptions) {
 			"If omitted, the default Go cipher suites will be used. \n"+
 			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
 			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
-
-	fs.StringVar(&options.MetricsBindAddr, "metrics-bind-addr", "",
-		"The address the metrics endpoint binds to.")
-	_ = fs.MarkDeprecated("metrics-bind-addr", "Please use --diagnostics-address instead. To continue to serve "+
-		"metrics via http and without authentication/authorization set --insecure-diagnostics as well.")
 
 	fs.StringVar(&options.DiagnosticsAddress, "diagnostics-address", ":8443",
 		"The address the diagnostics endpoint binds to. Per default metrics are served via https and with"+
@@ -113,40 +103,32 @@ func GetManagerOptions(options ManagerOptions) ([]func(config *tls.Config), *met
 		})
 	}
 
-	// If the deprecated "--metrics-bind-addr" flag is set, continue to serve metrics via http
+	// If "--insecure-diagnostics" is set, serve metrics via http
 	// and without authentication/authorization.
-	if options.MetricsBindAddr != "" {
+	if options.InsecureDiagnostics {
 		metricsOptions = &metricsserver.Options{
-			BindAddress: options.MetricsBindAddr,
+			BindAddress:   options.DiagnosticsAddress,
+			SecureServing: false,
 		}
 	} else {
-		// If "--insecure-diagnostics" is set, serve metrics via http
-		// and without authentication/authorization.
-		if options.InsecureDiagnostics {
-			metricsOptions = &metricsserver.Options{
-				BindAddress:   options.DiagnosticsAddress,
-				SecureServing: false,
-			}
-		} else {
-			// If "--insecure-diagnostics" is not set, serve metrics via https
-			// and with authentication/authorization. As the endpoint is protected,
-			// we also serve pprof endpoints and an endpoint to change the log level.
-			metricsOptions = &metricsserver.Options{
-				BindAddress:    options.DiagnosticsAddress,
-				SecureServing:  true,
-				FilterProvider: filters.WithAuthenticationAndAuthorization,
-				ExtraHandlers: map[string]http.Handler{
-					// Add handler to dynamically change log level.
-					"/debug/flags/v": routes.StringFlagPutHandler(logs.GlogSetter),
-					// Add pprof handler.
-					"/debug/pprof/":        http.HandlerFunc(pprof.Index),
-					"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
-					"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
-					"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
-					"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
-				},
-				TLSOpts: tlsOptions,
-			}
+		// If "--insecure-diagnostics" is not set, serve metrics via https
+		// and with authentication/authorization. As the endpoint is protected,
+		// we also serve pprof endpoints and an endpoint to change the log level.
+		metricsOptions = &metricsserver.Options{
+			BindAddress:    options.DiagnosticsAddress,
+			SecureServing:  true,
+			FilterProvider: filters.WithAuthenticationAndAuthorization,
+			ExtraHandlers: map[string]http.Handler{
+				// Add handler to dynamically change log level.
+				"/debug/flags/v": routes.StringFlagPutHandler(logs.GlogSetter),
+				// Add pprof handler.
+				"/debug/pprof/":        http.HandlerFunc(pprof.Index),
+				"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
+				"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
+				"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
+				"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
+			},
+			TLSOpts: tlsOptions,
 		}
 	}
 

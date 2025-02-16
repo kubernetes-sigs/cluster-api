@@ -66,12 +66,12 @@ func NewGitLabRepository(providerConfig config.Provider, configVariablesClient c
 		return nil, errors.Wrap(err, "invalid url")
 	}
 
-	urlSplit := strings.Split(strings.TrimPrefix(rURL.RawPath, "/"), "/")
+	urlSplit := strings.Split(strings.TrimPrefix(rURL.EscapedPath(), "/"), "/")
 
 	// Check if the url is a Gitlab repository
 	if rURL.Scheme != httpsScheme ||
 		len(urlSplit) != 9 ||
-		!strings.HasPrefix(rURL.RawPath, gitlabPackagesAPIPrefix) ||
+		!strings.HasPrefix(rURL.EscapedPath(), gitlabPackagesAPIPrefix) ||
 		urlSplit[4] != gitlabPackagesAPIPackages ||
 		urlSplit[5] != gitlabPackagesAPIGeneric {
 		return nil, errors.New("invalid url: a GitLab repository url should be in the form https://{host}/api/v4/projects/{projectSlug}/packages/generic/{packageName}/{defaultVersion}/{componentsPath}")
@@ -118,7 +118,7 @@ func (g *gitLabRepository) DefaultVersion() string {
 
 // GetVersions returns the list of versions that are available in a provider repository.
 func (g *gitLabRepository) GetVersions(_ context.Context) ([]string, error) {
-	// FIXME Get versions from GitLab API
+	// TODO Get versions from GitLab API
 	return []string{g.defaultVersion}, nil
 }
 
@@ -147,7 +147,7 @@ func (g *gitLabRepository) GetFile(ctx context.Context, version, path string) ([
 		return content, nil
 	}
 
-	timeoutctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeoutctx, cancel := context.WithTimeoutCause(ctx, 30*time.Second, errors.New("http request timeout expired"))
 	defer cancel()
 	request, err := http.NewRequestWithContext(timeoutctx, http.MethodGet, url, http.NoBody)
 	if err != nil {

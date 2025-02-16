@@ -80,18 +80,15 @@ clusterctl upgrade apply \
 <h1>Clusterctl upgrade test coverage</h1>
 
 Cluster API only tests a subset of possible clusterctl upgrade paths as otherwise the test matrix would be overwhelming.
-Untested upgrade paths are not blocked by clusterctl and should work in general, they are just not tested. Users
-intending to use an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
+Untested upgrade paths are not blocked by clusterctl and should work in general, but users
+intending to perform an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
 
 The following is an example of the tested upgrade paths for v1.7:
 
-| From | To   | Note                                                 |
-|------|------|------------------------------------------------------|
-| v1.0 | v1.7 | v1.0 is the first release with the v1beta1 contract. |
-| v1.5 | v1.7 | v1.5 is v1.7 - 2.                                    |
-| v1.6 | v1.7 | v1.6 is v1.7 - 1.                                    |
-
-The idea is to always test upgrade from v1.0 and the previous two minor releases.
+| From | To   | Note                         |
+|------|------|------------------------------|
+| v1.5 | v1.7 | n-2 --> n (v1.5 is v1.7 - 2) |
+| v1.6 | v1.7 | n-1 --> n (v1.6 is v1.7 - 1) |
 
 </aside>
 
@@ -131,7 +128,7 @@ In this case, all the provider's versions must be explicitly stated.
 
 Use `clusterctl` CLI options to target the [desired version](https://github.com/kubernetes-sigs/cluster-api/releases).  
 
-The following shows an example of upgrading `bootrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
+The following shows an example of upgrading `bootstrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
 
 ```bash
 TARGET_VERSION=v1.6.0-rc.1
@@ -148,7 +145,7 @@ clusterctl upgrade apply \
 
 <h1> Deploying nightly release images </h1>
 
-Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
+Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPONENT_NAME>-components.yaml`.
 
 Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 

@@ -273,7 +273,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				RequiresDockerSock: input.E2EConfig.HasDockerProvider(),
 				// Note: most of this images won't be used while starting the controllers, because it is used to spin up older versions of CAPI. Those images will be eventually used when upgrading to current.
 				Images:    input.E2EConfig.Images,
-				IPFamily:  input.E2EConfig.GetVariable(IPFamily),
+				IPFamily:  input.E2EConfig.MustGetVariable(IPFamily),
 				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
 			})
 			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
@@ -416,7 +416,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workloadClusterNamespace := testNamespace.Name
 		kubernetesVersion := input.WorkloadKubernetesVersion
 		if kubernetesVersion == "" {
-			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
+			kubernetesVersion = input.E2EConfig.MustGetVariable(KubernetesVersion)
 		}
 		controlPlaneMachineCount := ptr.To[int64](1)
 		if input.ControlPlaneMachineCount != nil {
@@ -446,6 +446,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", managementClusterProxy.GetName()),
 		})
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+
+		// Applying the cluster template in dry-run to ensure mgmt cluster webhooks are up and available
+		log.Logf("Applying the cluster template yaml to the cluster in dry-run")
+		Eventually(func() error {
+			return managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithCreateOpts([]client.CreateOption{client.DryRunAll}...), framework.WithUpdateOpts([]client.UpdateOption{client.DryRunAll}...))
+		}, "1m", "10s").ShouldNot(HaveOccurred())
 
 		log.Logf("Applying the cluster template yaml to the cluster")
 		Expect(managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)).To(Succeed())
@@ -897,7 +903,7 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 	); err == nil {
 		for _, mp := range machinePoolList.Items {
-			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, workloadClusterNamespace)
+			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef)
 			if err != nil {
 				return 0, err
 			}

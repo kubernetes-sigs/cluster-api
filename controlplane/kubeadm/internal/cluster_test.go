@@ -34,10 +34,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -108,6 +111,23 @@ func TestGetWorkloadCluster(t *testing.T) {
 	delete(emptyKeyEtcdSecret.Data, secret.TLSKeyDataName)
 	badCrtEtcdSecret := etcdSecret.DeepCopy()
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
+
+	// Create Cluster
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster",
+			Namespace: ns.Name,
+		},
+	}
+	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
+	defer func(do client.Object) {
+		g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
+	}(cluster)
+
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+	patch := client.MergeFrom(cluster.DeepCopy())
+	cluster.Status.InfrastructureReady = true
+	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Create kubeconfig secret
 	// Store the envtest config as the contents of the kubeconfig secret.
@@ -191,21 +211,33 @@ func TestGetWorkloadCluster(t *testing.T) {
 				}(o)
 			}
 
-			// We have to create a new ClusterCacheTracker for every test case otherwise
-			// it could still have a rest config from a previous run cached.
-			tracker, err := remote.NewClusterCacheTracker(
-				env.Manager,
-				remote.ClusterCacheTrackerOptions{
-					Log: &log.Log,
+			clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
+				SecretClient: env.Manager.GetClient(),
+				Client: clustercache.ClientOptions{
+					UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+					Cache: clustercache.ClientCacheOptions{
+						DisableFor: []client.Object{
+							// Don't cache ConfigMaps & Secrets.
+							&corev1.ConfigMap{},
+							&corev1.Secret{},
+						},
+					},
 				},
-			)
+			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
 			g.Expect(err).ToNot(HaveOccurred())
+			defer clusterCache.(interface{ Shutdown() }).Shutdown()
 
 			m := Management{
 				Client:              env.GetClient(),
 				SecretCachingClient: secretCachingClient,
-				Tracker:             tracker,
+				ClusterCache:        clusterCache,
 			}
+
+			// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).
+			_, err = clusterCache.(reconcile.Reconciler).Reconcile(ctx, reconcile.Request{
+				NamespacedName: client.ObjectKeyFromObject(cluster),
+			})
+			g.Expect(err).ToNot(HaveOccurred())
 
 			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)
 			if tt.expectErr {

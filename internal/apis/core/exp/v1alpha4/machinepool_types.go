@@ -33,30 +33,30 @@ const (
 
 // MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Number of desired machines. Defaults to 1.
+	// replicas is the number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Template describes the machines that will be created.
+	// template describes the machines that will be created.
 	Template clusterv1alpha4.MachineTemplateSpec `json:"template"`
 
-	// Minimum number of seconds for which a newly created machine instances should
+	// minReadySeconds is the minimum number of seconds for which a newly created machine instances should
 	// be ready.
 	// Defaults to 0 (machine instance will be considered available as soon as it
 	// is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// ProviderIDList are the identification IDs of machine instances provided by the provider.
+	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
-	// FailureDomains is the list of failure domains this MachinePool should be attached to.
+	// failureDomains is the list of failure domains this MachinePool should be attached to.
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
 
@@ -66,23 +66,23 @@ type MachinePoolSpec struct {
 
 // MachinePoolStatus defines the observed state of MachinePool.
 type MachinePoolStatus struct {
-	// NodeRefs will point to the corresponding Nodes if it they exist.
+	// nodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
 	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`
 
-	// Replicas is the most recently observed number of replicas.
+	// replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`
 
-	// The number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
+	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
-	// The number of available replicas (ready for at least minReadySeconds) for this MachinePool.
+	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
-	// Total number of unavailable machine instances targeted by this machine pool.
+	// unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.
 	// This is the total number of machine instances that are still required for
 	// the machine pool to have 100% available capacity. They may either
 	// be machine instances that are running but not yet available or machine instances
@@ -90,34 +90,34 @@ type MachinePoolStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
-	// FailureReason indicates that there is a problem reconciling the state, and
+	// failureReason indicates that there is a problem reconciling the state, and
 	// will be set to a token value suitable for programmatic interpretation.
 	// +optional
 	FailureReason *capierrors.MachinePoolStatusFailure `json:"failureReason,omitempty"`
 
-	// FailureMessage indicates that there is a problem reconciling the state,
+	// failureMessage indicates that there is a problem reconciling the state,
 	// and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// Phase represents the current phase of cluster actuation.
+	// phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// BootstrapReady is the state of the bootstrap provider.
+	// bootstrapReady is the state of the bootstrap provider.
 	// +optional
 	BootstrapReady bool `json:"bootstrapReady"`
 
-	// InfrastructureReady is the state of the infrastructure provider.
+	// infrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions define the current service state of the MachinePool.
+	// conditions define the current service state of the MachinePool.
 	// +optional
 	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }

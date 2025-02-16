@@ -57,7 +57,7 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
@@ -65,15 +65,15 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-cluster-x-k8s-io-v1beta1-cluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusters,versions=v1beta1,name=validation.cluster.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-cluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusters,versions=v1beta1,name=default.cluster.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// ClusterCacheTrackerReader is a scoped-down interface from ClusterCacheTracker that only allows to get a reader client.
-type ClusterCacheTrackerReader interface {
+// ClusterCacheReader is a scoped-down interface from ClusterCacheTracker that only allows to get a reader client.
+type ClusterCacheReader interface {
 	GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error)
 }
 
 // Cluster implements a validating and defaulting webhook for Cluster.
 type Cluster struct {
-	Client  client.Reader
-	Tracker ClusterCacheTrackerReader
+	Client             client.Reader
+	ClusterCacheReader ClusterCacheReader
 
 	decoder admission.Decoder
 }
@@ -493,7 +493,7 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 	}
 
 	// minor version cannot be increased if MachinePools are upgrading or not yet on the current version
-	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.Tracker, oldCluster, oldVersion); err != nil {
+	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, oldCluster, oldVersion); err != nil {
 		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachinePool version check: %v", err))
 	}
 
@@ -509,7 +509,7 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 }
 
 func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
-	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef, oldCluster.Namespace)
+	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef)
 	if err != nil {
 		return errors.Wrap(err, "failed to get ControlPlane object")
 	}
@@ -600,7 +600,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 	return nil
 }
 
-func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, tracker ClusterCacheTrackerReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
+func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, clusterCacheReader ClusterCacheReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
 	// List all the machine pools in the current cluster and in a managed topology.
 	// FROM: current_state.go getCurrentMachinePoolState
 	mps := &expv1.MachinePoolList{}
@@ -620,7 +620,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		return nil
 	}
 
-	wlClient, err := tracker.GetReader(ctx, client.ObjectKeyFromObject(oldCluster))
+	wlClient, err := clusterCacheReader.GetReader(ctx, client.ObjectKeyFromObject(oldCluster))
 	if err != nil {
 		return errors.Wrap(err, "unable to get client for workload cluster")
 	}
@@ -772,17 +772,19 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 			oldCPOverrides = oldCluster.Spec.Topology.ControlPlane.Variables.Overrides
 		}
 
-		oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
-		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
-			if md.Variables != nil {
-				oldMDVariables[md.Name] = md.Variables.Overrides
+		if oldCluster.Spec.Topology.Workers != nil {
+			oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
+			for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+				if md.Variables != nil {
+					oldMDVariables[md.Name] = md.Variables.Overrides
+				}
 			}
-		}
 
-		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
-		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
-			if mp.Variables != nil {
-				oldMPVariables[mp.Name] = mp.Variables.Overrides
+			oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
+			for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+				if mp.Variables != nil {
+					oldMPVariables[mp.Name] = mp.Variables.Overrides
+				}
 			}
 		}
 	}

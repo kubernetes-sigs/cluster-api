@@ -138,19 +138,21 @@ Cluster API maintains the most recent release/releases for all supported API and
 - We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
   For example, if v1.6 and v1.7 are currently supported, we will also maintain test coverage for v1.5 for one additional release cycle. When v1.8 is released, tests for v1.5 will be removed.
 
-| Minor Release | API Version  | Supported Until                                |
-|---------------|--------------|------------------------------------------------|
-| v1.8.x        | **v1beta1**  | when v1.10.0 will be released                  |
-| v1.7.x        | **v1beta1**  | when v1.9.0 will be released                   |
-| v1.6.x        | **v1beta1**  | EOL since 2024-08-12 - v1.8.0 release date     |
-| v1.5.x        | **v1beta1**  | EOL since 2024-04-16 - v1.7.0 release date     |
-| v1.4.x        | **v1beta1**  | EOL since 2023-12-05 - v1.6.0 release date     |
-| v1.3.x        | **v1beta1**  | EOL since 2023-07-25 - v1.5.0 release date     |
-| v1.2.x        | **v1beta1**  | EOL since 2023-03-28 - v1.4.0 release date     |
-| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*) |
-| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*) |
-| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL         |
-| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL         |
+| Minor Release | API Version  | Supported Until                                  |
+|---------------|--------------|--------------------------------------------------|
+| v1.10.x       | **v1beta1**  | when v1.12.0 will be released                    |
+| v1.9.x        | **v1beta1**  | when v1.11.0 will be released                    |
+| v1.8.x        | **v1beta1**  | when v1.10.0 will be released                    |
+| v1.7.x        | **v1beta1**  | EOL since 2024-12-10 - v1.9.0 release date       |
+| v1.6.x        | **v1beta1**  | EOL since 2024-08-12 - v1.8.0 release date       |
+| v1.5.x        | **v1beta1**  | EOL since 2024-04-16 - v1.7.0 release date       |
+| v1.4.x        | **v1beta1**  | EOL since 2023-12-05 - v1.6.0 release date       |
+| v1.3.x        | **v1beta1**  | EOL since 2023-07-25 - v1.5.0 release date       |
+| v1.2.x        | **v1beta1**  | EOL since 2023-03-28 - v1.4.0 release date       |
+| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*)   |
+| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*)   |
+| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL           |
+| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL           |
 
 (*) Previous support policy applies, older minor releases were immediately unsupported when a new major/minor release was available
 
@@ -232,8 +234,8 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/pro
   - Issues can be placed on the roadmap during planning if there is one or more folks
     that can dedicate time to writing a CAEP and/or implementing it after approval.
 - A proposal SHOULD be introduced and discussed during the weekly community meetings or on the
- [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
-  - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
+ [SIG Cluster Lifecycle mailing list](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle).
+  - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [SIG Cluster Lifecycle mailing list](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle).
 - A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
 - Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.
 
@@ -312,7 +314,7 @@ The artifact folder contains:
     - Dump of the Cluster API resources (only if the cluster is a management cluster).
     - Machine logs (only if the cluster is a workload cluster)
 
-In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/testing.html#running-unit-and-integration-tests) guide. An overview over our e2e test jobs (and also all our other jobs) can be found in [Jobs](https://cluster-api.sigs.k8s.io/reference/jobs.html).
+In case you want to run E2E test locally, please refer to the [Testing](https://cluster-api.sigs.k8s.io/developer/core/testing#running-unit-and-integration-tests) guide. All our e2e test jobs (and also all our other jobs) can be found in [k8s.io/test-infra](https://github.com/kubernetes/test-infra/tree/master/config/jobs/kubernetes-sigs/cluster-api).
 
 ## Reviewing a Patch
 
@@ -508,8 +510,7 @@ quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1           
 
 To gain viewing permissions to google docs in this project, please join either the
 [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or
-[kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google
-group.
+[sig-cluster-lifecycle](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle) google group.
 
 ## Issue and Pull Request Management
 

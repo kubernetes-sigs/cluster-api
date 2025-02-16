@@ -520,6 +520,11 @@ func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class c
 		Client: reconcilerClient,
 	}
 
+	// The first only reconciles the paused condition.
+	if _, err := clusterClassReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: targetClusterClass}); err != nil {
+		return nil, errors.Wrap(err, "failed to dry run the ClusterClass controller to reconcile the paused condition")
+	}
+
 	if _, err := clusterClassReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: targetClusterClass}); err != nil {
 		return nil, errors.Wrap(err, "failed to dry run the ClusterClass controller")
 	}

@@ -49,7 +49,14 @@ func (m *InfrastructureMachineContract) Ready() *Bool {
 	}
 }
 
+// ReadyConditionType returns the type of the ready condition.
+func (m *InfrastructureMachineContract) ReadyConditionType() string {
+	return "Ready"
+}
+
 // FailureReason provides access to the status.failureReason field in an InfrastructureMachine object. Note that this field is optional.
+//
+// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 func (m *InfrastructureMachineContract) FailureReason() *String {
 	return &String{
 		path: []string{"status", "failureReason"},
@@ -57,6 +64,8 @@ func (m *InfrastructureMachineContract) FailureReason() *String {
 }
 
 // FailureMessage provides access to the status.failureMessage field in an InfrastructureMachine object. Note that this field is optional.
+//
+// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 func (m *InfrastructureMachineContract) FailureMessage() *String {
 	return &String{
 		path: []string{"status", "failureMessage"},

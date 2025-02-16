@@ -32,8 +32,8 @@ import (
 )
 
 // rolloutOnDelete implements the logic for the OnDelete MachineDeploymentStrategyType.
-func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true)
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true, templateExists)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		}
 		selectorMap, err := metav1.LabelSelectorAsMap(&oldMS.Spec.Selector)
 		if err != nil {
-			log.V(4).Error(err, "failed to convert MachineSet label selector to a map")
+			log.V(4).Info("Failed to convert MachineSet label selector to a map", "err", err)
 			continue
 		}
 		log.V(4).Info("Fetching Machines associated with MachineSet")
@@ -127,7 +127,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		}
 		machineSetScaleDownAmountDueToMachineDeletion := *oldMS.Spec.Replicas - updatedReplicaCount
 		if machineSetScaleDownAmountDueToMachineDeletion < 0 {
-			log.V(4).Error(errors.Errorf("Unexpected negative scale down amount: %d", machineSetScaleDownAmountDueToMachineDeletion), fmt.Sprintf("Error reconciling MachineSet %s", oldMS.Name))
+			log.V(4).Info(fmt.Sprintf("Error reconciling MachineSet %s", oldMS.Name), "err", errors.Errorf("Unexpected negative scale down amount: %d", machineSetScaleDownAmountDueToMachineDeletion))
 		}
 		scaleDownAmount -= machineSetScaleDownAmountDueToMachineDeletion
 		log.V(4).Info("Adjusting replica count for deleted machines", "oldReplicas", oldMS.Spec.Replicas, "newReplicas", updatedReplicaCount)
@@ -165,22 +165,9 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
 func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
-	// logic same as reconcile logic for RollingUpdate
-	log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(newMS))
-
-	if newMS.Annotations != nil {
-		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
-			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation")
-			patchHelper, err := patch.NewHelper(newMS, r.Client)
-			if err != nil {
-				return err
-			}
-			delete(newMS.Annotations, clusterv1.DisableMachineCreateAnnotation)
-			err = patchHelper.Patch(ctx, newMS)
-			if err != nil {
-				return err
-			}
-		}
+	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
+		return err
 	}
+
 	return r.reconcileNewMachineSet(ctx, allMSs, newMS, deployment)
 }

@@ -25,13 +25,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // Get uses the client and reference to get an external, unstructured object.
-func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
@@ -39,9 +40,9 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, name
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)
 	obj.SetName(ref.Name)
-	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
-	if err := c.Get(ctx, key, obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
+	obj.SetNamespace(ref.Namespace)
+	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
 	}
 	return obj, nil
 }
@@ -54,7 +55,7 @@ func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) e
 	obj.SetName(ref.Name)
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Delete(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to delete %s external object %q/%q", obj.GetKind(), obj.GetNamespace(), obj.GetName())
+		return errors.Wrapf(err, "failed to delete %s %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
 	}
 	return nil
 }
@@ -92,7 +93,7 @@ type CreateFromTemplateInput struct {
 
 // CreateFromTemplate uses the client and the reference to create a new object from the template.
 func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*corev1.ObjectReference, error) {
-	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)
+	from, err := Get(ctx, in.Client, in.TemplateRef)
 	if err != nil {
 		return nil, err
 	}

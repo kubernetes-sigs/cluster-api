@@ -30,8 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
-	utilversion "k8s.io/apiserver/pkg/util/version"
+	"k8s.io/component-base/featuregate"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	utilversion "k8s.io/component-base/version"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -40,11 +42,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestClusterClassReconciler_reconcile(t *testing.T) {
@@ -211,6 +214,7 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 	}
 	return nil
 }
+
 func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass *clusterv1.ClusterClass, ns *corev1.Namespace) error {
 	// Assert the infrastructure cluster template has the correct owner reference.
 	actualInfraClusterTemplate := builder.InfrastructureClusterTemplate("", "").Build()
@@ -384,7 +388,9 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
+		// Note: Kind might be empty here as it's usually only set on Unstructured objects.
+		// But as this is just test code we don't care too much about it.
+		return fmt.Errorf("%s %s does not have OwnerReference %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), &ownerRef)
 	}
 	return nil
 }
@@ -458,12 +464,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			}...,
 		)
 	tests := []struct {
-		name           string
-		clusterClass   *clusterv1.ClusterClass
-		want           []clusterv1.ClusterClassStatusVariable
-		patchResponse  *runtimehooksv1.DiscoverVariablesResponse
-		wantConditions clusterv1.Conditions
-		wantErrMessage string
+		name                              string
+		clusterClass                      *clusterv1.ClusterClass
+		want                              []clusterv1.ClusterClassStatusVariable
+		patchResponse                     *runtimehooksv1.DiscoverVariablesResponse
+		wantVariableDiscoveryErrorMessage string
+		wantErrMessage                    string
 	}{
 		{
 			name:         "Reconcile inline variables to ClusterClass status",
@@ -521,12 +527,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
 		},
 		{
 			name: "Reconcile inline and external variables to ClusterClass status",
@@ -536,7 +536,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -737,12 +739,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
 		},
 		{
 			name: "Error if reconciling inline and external variables to ClusterClass status with conflicts",
@@ -752,7 +748,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -772,15 +770,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			},
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"the following variables have conflicting schemas: cpu",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message:  "VariableDiscovery failed: the following variables have conflicting schemas: cpu",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: the following variables have conflicting schemas: cpu",
 		},
 		{
 			name: "Reconcile external variables to ClusterClass status",
@@ -790,7 +780,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -948,12 +940,6 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.ClusterClassVariablesReconciledCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
 		},
 		{
 			name: "Error if external patch defines a variable with same name multiple times",
@@ -963,7 +949,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -991,15 +979,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. " +
 				"Variable with name \"cpu\" is defined more than once",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message:  "VariableDiscovery failed: patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. Variable with name \"cpu\" is defined more than once",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. Variable with name \"cpu\" is defined more than once",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (OpenAPI schema)",
@@ -1009,7 +989,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -1041,16 +1023,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
 				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
-						"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
+				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (CEL)",
@@ -1060,7 +1034,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -1108,21 +1084,13 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
 				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
 				"| ......................................................^]",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
-						"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
-						"apiextensions.ValidationRule{Rule:\"self >= 1\", Message:\"\", MessageExpression:\"'Expected integer greater or equal to 1, got ' + this does not compile\", " +
-						"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
-						"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
-						"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
-						"| ......................................................^]",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
+				"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"self >= 1\", Message:\"\", MessageExpression:\"'Expected integer greater or equal to 1, got ' + this does not compile\", " +
+				"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
+				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
+				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
+				"| ......................................................^]",
 		},
 		{
 			name: "Error if external patch returns an invalid variable (CEL: using opts that are not available with the current compatibility version)",
@@ -1135,7 +1103,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: ptr.To("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -1165,22 +1135,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
 				" | ip(self).family() == 6\n" +
 				" | ...............^",
-			wantConditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.ClusterClassVariablesReconciledCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
-					Reason:   clusterv1.VariableDiscoveryFailedReason,
-					Message: "VariableDiscovery failed: patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
-						"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
-						"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
-						" | ip(self).family() == 6\n" +
-						" | ..^\n" +
-						"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
-						" | ip(self).family() == 6\n" +
-						" | ...............^",
-				},
-			},
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
+				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ..^\n" +
+				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ...............^",
 		},
 	}
 	for _, tt := range tests {
@@ -1195,27 +1157,33 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				RuntimeClient: fakeRuntimeClient,
+				RuntimeClient:          fakeRuntimeClient,
+				discoverVariablesCache: cache.New[runtimeclient.CallExtensionCacheEntry](),
 			}
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
 			// the unit tests that verify that compatibility is handled correctly.
-			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			effectiveVer := featuregate.DefaultComponentGlobalsRegistry.EffectiveVersionFor(featuregate.DefaultKubeComponent)
 			if effectiveVer != nil {
 				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
 			} else {
 				v := utilversion.DefaultKubeEffectiveVersion()
 				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
-				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+				g.Expect(featuregate.DefaultComponentGlobalsRegistry.Register(featuregate.DefaultKubeComponent, v, nil)).To(Succeed())
 			}
 
-			err := r.reconcileVariables(ctx, tt.clusterClass)
-
-			// Cleanup condition timestamps for easier comparison.
-			for i := range tt.clusterClass.Status.Conditions {
-				tt.clusterClass.Status.Conditions[i].LastTransitionTime = metav1.Time{}
+			s := &scope{
+				clusterClass: tt.clusterClass,
 			}
-			g.Expect(tt.wantConditions).To(Equal(tt.clusterClass.Status.Conditions))
+			_, err := r.reconcileVariables(ctx, s)
+
+			if tt.wantVariableDiscoveryErrorMessage != "" {
+				g.Expect(s.variableDiscoveryError).To(HaveOccurred())
+				g.Expect(s.variableDiscoveryError.Error()).To(Equal(tt.wantVariableDiscoveryErrorMessage))
+			} else {
+				g.Expect(s.variableDiscoveryError).ToNot(HaveOccurred())
+			}
+
 			if tt.wantErrMessage != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
@@ -1256,18 +1224,21 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 	// These ClusterClasses will be reconciled as they both reference the passed ExtensionConfig `runtime1`.
 	onePatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc1").
 		WithPatches([]clusterv1.ClusterClassPatch{
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}}}).
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}},
+		}).
 		Build()
 	twoPatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc2").
 		WithPatches([]clusterv1.ClusterClassPatch{
 			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}},
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime2")}}}).
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime2")}},
+		}).
 		Build()
 
 	// This ClusterClasses will not be reconciled as it does not reference the passed ExtensionConfig `runtime1`.
 	notReconciledClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc3").
 		WithPatches([]clusterv1.ClusterClassPatch{
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.other-runtime-class")}}}).
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.other-runtime-class")}},
+		}).
 		Build()
 
 	t.Run("test", func(t *testing.T) {

@@ -57,6 +57,9 @@ type DescribeClusterOptions struct {
 	// Grouping groups machines objects in case the ready conditions
 	// have the same Status, Severity and Reason.
 	Grouping bool
+
+	// V1Beta2 instructs tree to use V1Beta2 conditions.
+	V1Beta2 bool
 }
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
@@ -96,5 +99,6 @@ func (c *clusterctlClient) DescribeCluster(ctx context.Context, options Describe
 		AddTemplateVirtualNode:  options.AddTemplateVirtualNode,
 		Echo:                    options.Echo,
 		Grouping:                options.Grouping,
+		V1Beta2:                 options.V1Beta2,
 	})
 }

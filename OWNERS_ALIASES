@@ -23,7 +23,6 @@ aliases:
   - chrischdi
   - enxebre
   - fabriziopandini
-  - killianmuldoon
   - sbueringer
   - vincepri
 
@@ -111,29 +110,28 @@ aliases:
   - elmiko
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for v1.6 release-team
+  # OWNER_ALIASES for v1.9 release-team
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - adilGhaffarDev
+  - mboersma
 
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  - adilGhaffarDev # release lead
-  # - chandankumar4 # release comms lead
-  - chiukapoor
-  # - dhij
+  # - AttyXY
+  # - blind3dd
+  - cahillsf
+  - chandankumar4
+  - cprivitere
   - hackeramitkumar
-  - jayesh-srivastava
-  # - kperath
-  # - meatballhat
-  # - Nivedita-coder
-  - pravarag
-  # - rajankumary2k
-  # - shipra101
-  # - smoshiur1237
-  # - Sunnatillo # release ci lead
-  - troy0820
-  - vishalanarase
-  - willie-yao
+  - mboersma
+  # - mbrow137
+  # - pratik-mahalle
+  # - ramessesii2
+  # - RansherSingh
+  - serngawy
+  - shecodesmagic
+  - sreeram-venkitesh
+  - Sunnatillo
+  - wendy-ha18

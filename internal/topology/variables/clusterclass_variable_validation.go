@@ -312,12 +312,8 @@ var supportedValidationReason = sets.NewString(
 func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, fldPath *field.Path, opts *validationOptions, celContext *apiextensionsvalidation.CELSchemaContext, uncorrelatablePath *field.Path) *OpenAPISchemaErrorList {
 	allErrs := &OpenAPISchemaErrorList{SchemaErrors: field.ErrorList{}, CELErrors: field.ErrorList{}}
 
-	// Validate that type is one of the validVariableTypes.
-	switch {
-	case schema.Type == "":
-		allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Required(fldPath.Child("type"), "type cannot be empty"))
-		return allErrs
-	case !validVariableTypes.Has(schema.Type):
+	// Validate in case type is not empty, that it is one of the validVariableTypes.
+	if len(schema.Type) > 0 && !validVariableTypes.Has(schema.Type) {
 		allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.NotSupported(fldPath.Child("type"), schema.Type, sets.List(validVariableTypes)))
 		return allErrs
 	}
@@ -361,6 +357,28 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 			uncorrelatablePath = fldPath.Child("items")
 		}
 		allErrs.AppendErrors(validateSchema(ctx, schema.Items.Schema, fldPath.Child("items"), opts, celContext.ChildItemsContext(schema.Items.Schema), uncorrelatablePath))
+	}
+
+	if schema.Not != nil {
+		allErrs.AppendErrors(validateSchema(ctx, schema.Not, fldPath.Child("not"), opts, nil, uncorrelatablePath))
+	}
+
+	if len(schema.AllOf) != 0 {
+		for i, jsonSchema := range schema.AllOf {
+			allErrs.AppendErrors(validateSchema(ctx, &jsonSchema, fldPath.Child("allOf").Index(i), opts, nil, uncorrelatablePath))
+		}
+	}
+
+	if len(schema.OneOf) != 0 {
+		for i, jsonSchema := range schema.OneOf {
+			allErrs.AppendErrors(validateSchema(ctx, &jsonSchema, fldPath.Child("oneOf").Index(i), opts, nil, uncorrelatablePath))
+		}
+	}
+
+	if len(schema.AnyOf) != 0 {
+		for i, jsonSchema := range schema.AnyOf {
+			allErrs.AppendErrors(validateSchema(ctx, &jsonSchema, fldPath.Child("anyOf").Index(i), opts, nil, uncorrelatablePath))
+		}
 	}
 
 	// This validation is duplicated from upstream CRD validation at

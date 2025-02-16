@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -26,17 +27,209 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
+
+func TestReconcileNode(t *testing.T) {
+	defaultMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "test-cluster",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+		},
+	}
+
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		machine            *clusterv1.Machine
+		node               *corev1.Node
+		nodeGetErr         bool
+		expectResult       ctrl.Result
+		expectError        bool
+		expected           func(g *WithT, m *clusterv1.Machine)
+		expectNodeGetError bool
+	}{
+		{
+			name:         "No op if provider ID is not set",
+			machine:      &clusterv1.Machine{},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
+		{
+			name:               "err reading node (something different than not found), it should return error",
+			machine:            defaultMachine.DeepCopy(),
+			node:               nil,
+			nodeGetErr:         true,
+			expectResult:       ctrl.Result{},
+			expectError:        true,
+			expectNodeGetError: true,
+		},
+		{
+			name:         "waiting for the node to exist, no op",
+			machine:      defaultMachine.DeepCopy(),
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
+		{
+			name:    "node found, should surface info",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/test-node-1",
+				},
+				Status: corev1.NodeStatus{
+					NodeInfo: corev1.NodeSystemInfo{
+						MachineID: "foo",
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "1.1.1.1",
+						},
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "2.2.2.2",
+						},
+					},
+				},
+			},
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.NodeRef).ToNot(BeNil())
+				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
+				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
+				g.Expect(m.Status.NodeInfo.MachineID).To(Equal("foo"))
+			},
+		},
+		{
+			name: "node not found when already seen, should error",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Kind:       "Node",
+						Name:       "test-node-1",
+						APIVersion: "v1",
+					},
+				},
+			},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  true,
+		},
+		{
+			name: "node not found is tolerated when machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+					DeletionTimestamp: ptr.To(metav1.Now()),
+					Finalizers:        []string{"foo"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Kind:       "Node",
+						Name:       "test-node-1",
+						APIVersion: "v1",
+					},
+				},
+			},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := fake.NewClientBuilder().WithObjects(tc.machine).WithIndex(&corev1.Node{}, "spec.providerID", index.NodeByProviderID).Build()
+			if tc.nodeGetErr {
+				c = fake.NewClientBuilder().WithObjects(tc.machine).Build() // No Index
+			}
+
+			if tc.node != nil {
+				g.Expect(c.Create(ctx, tc.node)).To(Succeed())
+				defer func() { _ = c.Delete(ctx, tc.node) }()
+			}
+
+			r := &Reconciler{
+				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(defaultCluster)),
+				Client:       c,
+				recorder:     record.NewFakeRecorder(10),
+			}
+			s := &scope{cluster: defaultCluster, machine: tc.machine}
+			result, err := r.reconcileNode(ctx, s)
+			g.Expect(result).To(BeComparableTo(tc.expectResult))
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			if tc.expected != nil {
+				tc.expected(g, tc.machine)
+			}
+
+			g.Expect(s.nodeGetError != nil).To(Equal(tc.expectNodeGetError))
+		})
+	}
+}
 
 func TestGetNode(t *testing.T) {
 	g := NewWithT(t)
@@ -53,6 +246,11 @@ func TestGetNode(t *testing.T) {
 	}
 
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+	patch := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.InfrastructureReady = true
+	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -124,35 +322,51 @@ func TestGetNode(t *testing.T) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(nodesToCleanup...)
 
-	tracker, err := remote.NewClusterCacheTracker(
-		env.Manager, remote.ClusterCacheTrackerOptions{
-			Indexes: []remote.Index{remote.NodeProviderIDIndex},
+	clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
+		SecretClient: env.Manager.GetClient(),
+		Cache: clustercache.CacheOptions{
+			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 		},
-	)
-	g.Expect(err).ToNot(HaveOccurred())
+		Client: clustercache.ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					// Don't cache ConfigMaps & Secrets.
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
+	}
+	defer clusterCache.(interface{ Shutdown() }).Shutdown()
 
 	r := &Reconciler{
-		Tracker: tracker,
-		Client:  env,
+		ClusterCache: clusterCache,
+		Client:       env,
 	}
 
 	w, err := ctrl.NewControllerManagedBy(env.Manager).For(&corev1.Node{}).Build(r)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(tracker.Watch(ctx, remote.WatchInput{
-		Name:    "TestGetNode",
-		Cluster: util.ObjectKey(testCluster),
-		Watcher: w,
-		Kind:    &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
-			return nil
-		}),
-	})).To(Succeed())
+	// Retry because the ClusterCache might not have immediately created the clusterAccessor.
+	g.Eventually(func(g Gomega) {
+		g.Expect(clusterCache.Watch(ctx, util.ObjectKey(testCluster), clustercache.NewWatcher(clustercache.WatcherOptions{
+			Name:    "TestGetNode",
+			Watcher: w,
+			Kind:    &corev1.Node{},
+			EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
+				return nil
+			}),
+		}))).To(Succeed())
+	}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(testCluster))
+			remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(testCluster))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			node, err := r.getNode(ctx, remoteClient, tc.providerIDInput)
@@ -200,12 +414,14 @@ func TestNodeLabelSync(t *testing.T) {
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
+					Namespace:  metav1.NamespaceDefault,
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
+				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 	}
@@ -238,6 +454,8 @@ func TestNodeLabelSync(t *testing.T) {
 
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
 		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
 		// Set Machine labels.
@@ -328,7 +546,11 @@ func TestNodeLabelSync(t *testing.T) {
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret := kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
-		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, defaultKubeconfigSecret)).To(Succeed())
+		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+		patch := client.MergeFrom(cluster.DeepCopy())
+		cluster.Status.InfrastructureReady = true
+		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// Set InfrastructureMachine .status.interruptible and .status.ready to true.
@@ -480,8 +702,7 @@ func TestSummarizeNodeConditions(t *testing.T) {
 }
 
 func TestGetManagedLabels(t *testing.T) {
-	// Create managedLabels map from known managed prefixes.
-	managedLabels := map[string]string{
+	defaultLabels := map[string]string{
 		clusterv1.NodeRoleLabelPrefix + "/anyRole": "",
 
 		clusterv1.ManagedNodeLabelDomain:                                  "",
@@ -495,22 +716,72 @@ func TestGetManagedLabels(t *testing.T) {
 		"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "",
 	}
 
-	// Append arbitrary labels.
-	allLabels := map[string]string{
-		"foo":                               "",
-		"bar":                               "",
+	additionalLabels := map[string]string{
+		"foo":                               "bar",
+		"bar":                               "baz",
 		"company.xyz/node.cluster.x-k8s.io": "not-managed",
 		"gpu-node.cluster.x-k8s.io":         "not-managed",
 		"company.xyz/node-restriction.kubernetes.io": "not-managed",
 		"gpu-node-restriction.kubernetes.io":         "not-managed",
+		"wrong.test.foo.com":                         "",
 	}
-	for k, v := range managedLabels {
+
+	exampleRegex := regexp.MustCompile(`foo`)
+	defaultAndRegexLabels := map[string]string{}
+	for k, v := range defaultLabels {
+		defaultAndRegexLabels[k] = v
+	}
+	defaultAndRegexLabels["foo"] = "bar"
+	defaultAndRegexLabels["wrong.test.foo.com"] = ""
+
+	allLabels := map[string]string{}
+	for k, v := range defaultLabels {
+		allLabels[k] = v
+	}
+	for k, v := range additionalLabels {
 		allLabels[k] = v
 	}
 
-	g := NewWithT(t)
-	got := getManagedLabels(allLabels)
-	g.Expect(got).To(BeEquivalentTo(managedLabels))
+	tests := []struct {
+		name                        string
+		additionalSyncMachineLabels []*regexp.Regexp
+		allLabels                   map[string]string
+		managedLabels               map[string]string
+	}{
+		{
+			name:                        "always sync default labels",
+			additionalSyncMachineLabels: nil,
+			allLabels:                   allLabels,
+			managedLabels:               defaultLabels,
+		},
+		{
+			name: "sync additional defined labels",
+			additionalSyncMachineLabels: []*regexp.Regexp{
+				exampleRegex,
+			},
+			allLabels:     allLabels,
+			managedLabels: defaultAndRegexLabels,
+		},
+		{
+			name: "sync all labels",
+			additionalSyncMachineLabels: []*regexp.Regexp{
+				regexp.MustCompile(`.*`),
+			},
+			allLabels:     allLabels,
+			managedLabels: allLabels,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			r := &Reconciler{
+				AdditionalSyncMachineLabels: tt.additionalSyncMachineLabels,
+			}
+			got := r.getManagedLabels(tt.allLabels)
+			g.Expect(got).To(BeEquivalentTo(tt.managedLabels))
+		})
+	}
 }
 
 func TestPatchNode(t *testing.T) {
@@ -771,6 +1042,49 @@ func TestPatchNode(t *testing.T) {
 			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
+			name: "Ensure Labels and Annotations still get patched if MachineSet and Machinedeployment cannot be found",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+			},
+			newLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			newAnnotations: map[string]string{
+				"annotation-from-machine": "foo",
+			},
+			expectedLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			expectedAnnotations: map[string]string{
+				"annotation-from-machine":             "foo",
+				clusterv1.LabelsFromMachineAnnotation: "label-from-machine",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel:        "test-ms-missing",
+						clusterv1.MachineDeploymentNameLabel: "test-md",
+					},
+					OwnerReferences: []metav1.OwnerReference{{
+						Kind:       "MachineSet",
+						Name:       "test-ms-missing",
+						APIVersion: clusterv1.GroupVersion.String(),
+						UID:        "uid",
+					}},
+				},
+				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+			},
+			ms: nil,
+			md: nil,
+		},
+		{
 			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -913,8 +1227,12 @@ func TestPatchNode(t *testing.T) {
 
 			g.Expect(env.CreateAndWait(ctx, oldNode)).To(Succeed())
 			g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
-			g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
-			g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			if ms != nil {
+				g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+			}
+			if md != nil {
+				g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			}
 			t.Cleanup(func() {
 				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)
 			})
@@ -992,5 +1310,106 @@ func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineD
 				Spec: newFakeMachineSpec(namespace, clusterName),
 			},
 		},
+	}
+}
+
+func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
+	namespaceName := "test"
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
+
+	testMachineDeployment := builder.MachineDeployment(namespaceName, "my-md").
+		WithAnnotations(map[string]string{clusterv1.RevisionAnnotation: "1"}).
+		Build()
+	testMachineDeploymentNew := testMachineDeployment.DeepCopy()
+	testMachineDeploymentNew.Annotations = map[string]string{clusterv1.RevisionAnnotation: "2"}
+
+	testMachineSet := builder.MachineSet(namespaceName, "my-ms").
+		WithOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineDeployment, testMachineDeployment.GroupVersionKind())}).
+		Build()
+	testMachineSet.Annotations = map[string]string{clusterv1.RevisionAnnotation: "1"}
+
+	labels := map[string]string{
+		clusterv1.MachineDeploymentNameLabel: "my-md",
+	}
+	testMachine := builder.Machine(namespaceName, "my-machine").WithLabels(labels).Build()
+	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, testMachineSet.GroupVersionKind())})
+
+	tests := []struct {
+		name         string
+		machine      *clusterv1.Machine
+		objects      []client.Object
+		wantOutdated bool
+		wantNotFound bool
+		wantErr      bool
+	}{
+		{
+			name:         "Machineset not outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeployment},
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machineset outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeploymentNew},
+			wantOutdated: true,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without MachineDeployment label",
+			machine:      builder.Machine(namespaceName, "no-deploy").Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without OwnerReference",
+			machine:      builder.Machine(namespaceName, "no-ownerref").WithLabels(labels).Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without existing MachineSet",
+			machine:      testMachine,
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without existing MachineDeployment",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet},
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			objects := []client.Object{namespace}
+			objects = append(objects, tt.machine)
+			objects = append(objects, tt.objects...)
+			c := fake.NewClientBuilder().
+				WithObjects(objects...).Build()
+
+			gotOutdated, gotNotFound, err := shouldNodeHaveOutdatedTaint(ctx, c, tt.machine)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("shouldNodeHaveOutdatedTaint() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotOutdated != tt.wantOutdated {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotOutdated, tt.wantOutdated)
+			}
+			if gotNotFound != tt.wantNotFound {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotNotFound, tt.wantNotFound)
+			}
+		})
 	}
 }

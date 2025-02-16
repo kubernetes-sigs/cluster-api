@@ -47,6 +47,19 @@ const (
 	// GroupItemsAnnotation contains the list of names for the objects included in a group object.
 	GroupItemsAnnotation = "tree.cluster.x-k8s.io.io/group-items"
 
+	// GroupItemsAvailableCounter contains the number of available objects in the group, e.g. available Machines.
+	GroupItemsAvailableCounter = "tree.cluster.x-k8s.io.io/group-items-available-count"
+
+	// GroupItemsReadyCounter contains the number of ready objects in the group, e.g. ready Machines.
+	GroupItemsReadyCounter = "tree.cluster.x-k8s.io.io/group-items-ready-count"
+
+	// GroupItemsUpToDateCounter contains the number of up-to-date objects in the group, e.g. up-to-date Machines.
+	GroupItemsUpToDateCounter = "tree.cluster.x-k8s.io.io/group-items-up-to-date-count"
+
+	// ObjectContractAnnotation is added to unstructured objects to track which Cluster API contract those objects abide to.
+	// Note: Currently this annotation is applied only to control plane objects.
+	ObjectContractAnnotation = "tree.cluster.x-k8s.io.io/object-contract"
+
 	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation.
 	GroupItemsSeparator = ", "
 
@@ -86,6 +99,51 @@ func IsGroupObject(obj client.Object) bool {
 // GetGroupItems returns the list of names for the objects included in a group object.
 func GetGroupItems(obj client.Object) string {
 	if val, ok := getAnnotation(obj, GroupItemsAnnotation); ok {
+		return val
+	}
+	return ""
+}
+
+// GetGroupItemsAvailableCounter returns the number of available objects in the group, e.g. available Machines.
+func GetGroupItemsAvailableCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsAvailableCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
+}
+
+// GetGroupItemsReadyCounter returns the number of ready objects in the group, e.g. ready Machines.
+func GetGroupItemsReadyCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsReadyCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
+}
+
+// GetGroupItemsUpToDateCounter returns the number of up-to-date objects in the group, e.g. up-to-date Machines.
+func GetGroupItemsUpToDateCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsUpToDateCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
+}
+
+// GetObjectContract returns which Cluster API contract an unstructured object abides to.
+// Note: Currently this annotation is applied only to control plane objects.
+func GetObjectContract(obj client.Object) string {
+	if val, ok := getAnnotation(obj, ObjectContractAnnotation); ok {
 		return val
 	}
 	return ""

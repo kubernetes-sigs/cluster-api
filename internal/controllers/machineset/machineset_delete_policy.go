@@ -82,7 +82,7 @@ func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
 		return mustDelete
 	}
 	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
-		return betterDelete
+		return shouldDelete
 	}
 	if !isMachineHealthy(machine) {
 		return betterDelete

@@ -22,25 +22,32 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestMachinePoolFinalizer(t *testing.T) {
@@ -156,6 +163,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
 		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 
 	machinePoolValidCluster := &expv1.MachinePool{
@@ -173,6 +187,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				},
 			},
 			ClusterName: "test-cluster",
+		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -194,6 +215,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				},
 			},
 			ClusterName: "test-cluster",
+		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -331,6 +359,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1",
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
@@ -343,6 +372,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						{Name: "test"},
 					},
 					ObservedGeneration: 1,
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			expected: expected{
@@ -373,6 +407,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
@@ -388,6 +423,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -430,6 +470,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
@@ -445,6 +486,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -487,6 +533,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Second}, // timeout passed
@@ -502,6 +549,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -551,9 +603,15 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			}).WithObjects(trackerObjects...).Build()
 
 			r := &MachinePoolReconciler{
-				Client:    clientFake,
-				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, trackerClientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Client:       clientFake,
+				APIReader:    clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(trackerClientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				externalTracker: external.ObjectTracker{
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          clientFake.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				},
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
@@ -710,12 +768,14 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "delete-infra",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "delete-bootstrap",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 				},
@@ -813,17 +873,25 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 			},
 		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build()
 	mr := &MachinePoolReconciler{
-		Client:  clientFake,
-		Tracker: remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+		Client:       clientFake,
+		ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -834,6 +902,13 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 }
 
 func TestMachinePoolConditions(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clientgoscheme.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
@@ -892,16 +967,25 @@ func TestMachinePoolConditions(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap1",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 				},
 			},
+		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -942,14 +1026,12 @@ func TestMachinePoolConditions(t *testing.T) {
 			infrastructureReady: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
-				mp.Status = expv1.MachinePoolStatus{
-					NodeRefs: []corev1.ObjectReference{
-						{Name: "node-1"},
-						{Name: "azure-node-4"},
-					},
-					Replicas:      2,
-					ReadyReplicas: 2,
+				mp.Status.NodeRefs = []corev1.ObjectReference{
+					{Name: "node-1"},
+					{Name: "azure-node-4"},
 				}
+				mp.Status.Replicas = 2
+				mp.Status.ReadyReplicas = 2
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
 				t.Helper()
@@ -1079,9 +1161,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, mp, nodes)
 			}
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-			clientFake := fake.NewClientBuilder().WithObjects(
+			clientFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				testCluster,
 				mp,
 				infra,
@@ -1093,9 +1173,15 @@ func TestMachinePoolConditions(t *testing.T) {
 			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
-				Client:    clientFake,
-				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Client:       clientFake,
+				APIReader:    clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				externalTracker: external.ObjectTracker{
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          clientFake.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				},
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})

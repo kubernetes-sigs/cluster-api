@@ -133,7 +133,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			// define template variables
 			Namespace:                namespace.Name,
 			ClusterName:              clusterName,
-			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+			KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 			InfrastructureProvider:   infrastructureProvider,
 			ControlPlaneMachineCount: replicas,
 			WorkerMachineCount:       ptr.To[int64](0),

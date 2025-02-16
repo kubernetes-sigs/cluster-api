@@ -473,7 +473,7 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 		// define template variables
 		Namespace:                input.Namespace,
 		ClusterName:              clusterName,
-		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+		KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 		ControlPlaneMachineCount: ptr.To[int64](3),
 		WorkerMachineCount:       ptr.To[int64](0),
 		InfrastructureProvider:   infrastructureProvider,

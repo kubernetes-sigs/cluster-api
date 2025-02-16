@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"crypto/tls"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -69,7 +70,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
 	// This is an additional safeguard for avoiding this func to return nil, nil.
 	if len(nodeNames) == 0 {
-		return nil, errors.New("invalid argument: forLeader can't be called with an empty list of nodes")
+		return nil, errors.New("invalid argument: forFirstAvailableNode can't be called with an empty list of nodes")
 	}
 
 	// Loop through the existing control plane nodes.
@@ -83,7 +84,7 @@ func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 		}
 		return client, nil
 	}
-	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to any etcd node")
+	return nil, errors.Wrapf(kerrors.NewAggregate(errs), "could not establish a connection to etcd members hosted on %s", strings.Join(nodeNames, ","))
 }
 
 // forLeader takes a list of nodes and returns a client to the leader node.

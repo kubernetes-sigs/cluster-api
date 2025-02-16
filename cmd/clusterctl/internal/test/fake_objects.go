@@ -39,21 +39,22 @@ import (
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 type FakeCluster struct {
-	namespace             string
-	name                  string
-	controlPlane          *FakeControlPlane
-	machinePools          []*FakeMachinePool
-	machineDeployments    []*FakeMachineDeployment
-	machineSets           []*FakeMachineSet
-	machines              []*FakeMachine
-	withCloudConfigSecret bool
-	withCredentialSecret  bool
-	topologyClass         *string
+	namespace              string
+	name                   string
+	controlPlane           *FakeControlPlane
+	machinePools           []*FakeMachinePool
+	machineDeployments     []*FakeMachineDeployment
+	machineSets            []*FakeMachineSet
+	machines               []*FakeMachine
+	withCloudConfigSecret  bool
+	withCredentialSecret   bool
+	topologyClass          *string
+	topologyClassNamespace *string
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -109,6 +110,11 @@ func (f *FakeCluster) WithTopologyClass(class string) *FakeCluster {
 	return f
 }
 
+func (f *FakeCluster) WithTopologyClassNamespace(namespace string) *FakeCluster {
+	f.topologyClassNamespace = &namespace
+	return f
+}
+
 func (f *FakeCluster) Objs() []client.Object {
 	clusterInfrastructure := &fakeinfrastructure.GenericInfrastructureCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -145,6 +151,9 @@ func (f *FakeCluster) Objs() []client.Object {
 
 	if f.topologyClass != nil {
 		cluster.Spec.Topology = &clusterv1.Topology{Class: *f.topologyClass}
+		if f.topologyClassNamespace != nil {
+			cluster.Spec.Topology.ClassNamespace = *f.topologyClassNamespace
+		}
 	}
 
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.

@@ -56,7 +56,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
    [kind] is not designed for production use.
 
-   **Minimum [kind] supported version**: v0.23.0
+   **Minimum [kind] supported version**: v0.25.0
 
    **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
 
@@ -150,11 +150,11 @@ a target [management cluster] on the selected [infrastructure provider].
    #### Install the Calico CNI
    Now we'll need to install a CNI. In this example, we're using calico, but other CNIs should work as well. Please see
    [calico installation guide](https://projectcalico.docs.tigera.io/getting-started/kubernetes/self-managed-onprem/onpremises#install-calico)
-   for more details (use the "Manifest" tab). Below is an example of how to install calico version v3.24.4.
+   for more details (use the "Manifest" tab). Below is an example of how to install calico version v3.29.1.
 
    Use the Calico manifest to create the required resources; e.g.:
    ```bash
-   kubectl create -f  https://raw.githubusercontent.com/projectcalico/calico/v3.24.4/manifests/calico.yaml
+   kubectl create -f  https://raw.githubusercontent.com/projectcalico/calico/v3.29.1/manifests/calico.yaml
    ```
 
    {{#/tab }}
@@ -171,17 +171,17 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.8.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.9.x"}} -o clusterctl
 ```
 
 Download for ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.8.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.9.x"}} -o clusterctl
 ```
 
 Download for PPC64LE:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.8.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.9.x"}} -o clusterctl
 ```
 
 Install clusterctl:
@@ -201,12 +201,12 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.8.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.9.x"}} -o clusterctl
 ```
 
 Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.8.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.9.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -245,7 +245,7 @@ Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
 ```powershell
-curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.8.x"}} -o clusterctl.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.9.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -575,6 +575,14 @@ clusterctl init --infrastructure gcp
 ```
 
 {{#/tab }}
+{{#tab Harvester}}
+
+```bash
+clusterctl init --infrastructure harvester-harvester
+```
+
+For more information, please visit the [Harvester project][Harvester provider].
+{{#/tab }}
 {{#tab Hetzner}}
 
 Please visit the [Hetzner project][Hetzner provider].
@@ -644,12 +652,13 @@ kubectl wait pods -n metallb-system -l app=metallb,component=controller --for=co
 kubectl wait pods -n metallb-system -l app=metallb,component=speaker --for=condition=Ready --timeout=2m
 ```
 
-Now, we'll create the `IPAddressPool` and the `L2Advertisement` custom resources. The script below creates the CRs with
-the right addresses, that match to the kind cluster addresses:
+Now, we'll create the `IPAddressPool` and the `L2Advertisement` custom resources. For that, we'll need to set the IP
+range. First, we'll read the `kind` network in order to find its subnet:
 ```bash
-GW_IP=$(docker network inspect -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' kind)
-NET_IP=$(echo ${GW_IP} | sed -E 's|^([0-9]+\.[0-9]+)\..*$|\1|g')
-cat <<EOF | sed -E "s|172.19|${NET_IP}|g" | kubectl apply -f -
+SUBNET=$(docker network inspect -f '{{range .IPAM.Config}}{{if .Gateway}}{{.Subnet}}{{end}}{{end}}' kind)
+PREFIX=$(echo $SUBNET | sed -E 's|^([0-9]+\.[0-9]+)\..*$|\1|g')
+
+cat <<EOF | kubectl apply -f -
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -657,7 +666,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 172.19.255.200-172.19.255.250
+  - ${PREFIX}.255.200-${PREFIX}.255.250
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
@@ -666,6 +675,16 @@ metadata:
   namespace: metallb-system
 EOF
 ```
+
+<aside class="note warning">
+
+<h1>Notice</h1>
+
+The example above is based on the Docker container runtime. The output of `docker network inspect` may be different when
+using another runtime. In such a case, the IPAddressPool's `spec.addresses` field should be populated manually,
+according to the specific network.
+
+</aside>
 
 #### Install KubeVirt on the kind cluster
 ```bash
@@ -701,7 +720,11 @@ Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Ge
 {{#/tab }}
 {{#tab OpenStack}}
 
+Cluster API Provider OpenStack depends on [openstack-resource-controller] since v0.12.
+
 ```bash
+# Install ORC (needed for CAPO >=v0.12)
+kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml
 # Initialize the management cluster
 clusterctl init --infrastructure openstack
 ```
@@ -794,6 +817,15 @@ For more information about prerequisites, credentials management, or permissions
 project][vSphere getting started guide].
 
 {{#/tab }}
+{{#tab Vultr}}
+
+```bash
+export VULTR_API_KEY=<your_api_key>
+
+# initialize the management cluster
+clusterctl init --infrastructure vultr
+```
+{{#/tab }}
 {{#/tabs }}
 
 The output of `clusterctl init` is similar to this:
@@ -862,7 +894,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1042,6 +1074,46 @@ export CLUSTER_NAME="<CLUSTER_NAME>"
 See the [GCP provider] for more information.
 
 {{#/tab }}
+{{#tab Harvester}}
+
+
+```bash
+# Cloud Provider credentials, which are a Kubeconfig generated using this process: https://docs.harvesterhci.io/v1.3/rancher/cloud-provider/#deploying-to-the-rke2-custom-cluster-experimental
+# Since v0.1.5, this can be left "", because the controller can update it automatically
+export CLOUD_CONFIG_KUBECONFIG_B64=""
+# Name of the CAPI Cluster
+export CLUSTER_NAME="<CLUSTER_NAME>"
+# Number of Control Plane machines
+export CONTROL_PLANE_MACHINE_COUNT=3
+# URL to access the Harvester Cluster, this will be overriden by the controller
+export HARVESTER_ENDPOINT=""
+# Base64-Encoded Kubeconfig to access Harvester, which can be downloaded from Harvester's UI or from a Harvester Manager Node.
+export HARVESTER_KUBECONFIG_B64="<HARVESTER_KUBECONFIG_ENCODED_IN_BASE64>"
+# Namespace for all resources in the Management Cluster
+export NAMESPACE="test"
+# Pod CIDR for the Workload Cluster, it should have the format: 192.168.0.0/16
+export POD_CIDR="10.42.0.0/16"
+# Service CIDR for the Workload Cluster, it should have the format : 192.168.0.0/16 and be different from POD_CIDR
+export SERVICE_CIDR="10.43.0.0/16"
+# Reference to SSH Keypair in Harvester. It should follow the format <NAMESPACE>/<NAME>
+export SSH_KEYPAIR="default/ssk-key-pair"
+# Namespace in Harvester where the VMs will be created.
+export TARGET_HARVESTER_NAMESPACE="default"
+# Disk Size to be used by the VMs
+export VM_DISK_SIZE="50Gi"
+# Reference to OS Image in Harvester which will be used for creating VMs, It must follow the format <NAMESPACE>/<NAME>
+export VM_IMAGE_NAME="default/jammy-server"
+# Reference to VM Network in Harvester. It must follow the format <NAMESPACE>/<NAME>
+export VM_NETWORK="default/untagged"
+# Linux Username for the VMs
+export VM_SSH_USER="ubuntu"
+# Number of Worker nodes in the target Workload cluster
+export WORKER_MACHINE_COUNT=2
+```
+
+See the [Harvester provider] for more information.
+
+{{#/tab }}
 {{#tab IBM Cloud}}
 
 ```bash
@@ -1087,7 +1159,7 @@ export IONOSCLOUD_DATACENTER_ID="<your-datacenter-id>"
 # The IP of the control plane endpoint
 export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
 # The location of the data center where the cluster will be deployed
-export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
+export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl
 # The image ID of the custom image that will be used for the VMs
 export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
 # The SSH key that will be used to access the VMs
@@ -1123,12 +1195,25 @@ Please visit the [KubeKey provider] for more information.
 {{#/tab }}
 {{#tab KubeVirt}}
 
+In this example, we'll use the image for Kubernetes v1.32.1: 
 ```bash
-export CAPK_GUEST_K8S_VERSION="v1.23.10"
-export CRI_PATH="/var/run/containerd/containerd.sock"
-export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2004-container-disk:${CAPK_GUEST_K8S_VERSION}"
+export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2404-container-disk:v1.32.1"
+export CAPK_GUEST_K8S_VERSION="${NODE_VM_IMAGE_TEMPLATE/:*/}"
+export CRI_PATH="unix:///var/run/containerd/containerd.sock"
 ```
 Please visit the [KubeVirt project][KubeVirt provider] for more information.
+
+<aside class="note">
+
+<h1>Note</h1>
+
+Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk), 
+[quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk), 
+or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
+
+Alternatively, create your own image; see [here](https://github.com/kubernetes-sigs/image-builder).
+
+</aside>
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -1176,21 +1261,25 @@ clusterctl generate cluster --infrastructure nutanix --list-variables capi-quick
 A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image
 see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
 Depending on your OpenStack and underlying hypervisor the following options might be of interest:
+
 * [image-builder (OpenStack)](https://image-builder.sigs.k8s.io/capi/providers/openstack.html)
 * [image-builder (vSphere)](https://image-builder.sigs.k8s.io/capi/providers/vsphere.html)
 
 To see all required OpenStack environment variables execute:
+
 ```bash
 clusterctl generate cluster --infrastructure openstack --list-variables capi-quickstart
 ```
 
 The following script can be used to export some of them:
+
 ```bash
 wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-openstack/master/templates/env.rc -O /tmp/env.rc
 source /tmp/env.rc <path/to/clouds.yaml> <cloud>
 ```
 
 Apart from the script, the following OpenStack environment variables are required.
+
 ```bash
 # The list of nameservers for OpenStack Subnet being created.
 # Set this value when you need create a new network/subnet while the access through DNS is required.
@@ -1340,6 +1429,25 @@ export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].
 
 {{#/tab }}
+{{#tab Vultr}}
+
+A Cluster API compatible image must be available in your Vultr account. For instructions on how to build a compatible image see image-builder for [Vultr](https://github.com/vultr/cluster-api-provider-vultr/blob/main/docs/getting-started.md)
+
+```bash
+export CLUSTER_NAME=<clustername>
+export KUBERNETES_VERSION=v1.28.9
+export CONTROL_PLANE_MACHINE_COUNT=1
+export CONTROL_PLANE_PLANID=<plan_id>
+export WORKER_MACHINE_COUNT=1
+export WORKER_PLANID=<plan_id>
+export MACHINE_IMAGE=<snapshot_id>
+export REGION=<region>
+export PLANID=<plan_id>
+export VPCID=<vpc_id>
+export SSHKEY_ID=<sshKey_id>
+```
+
+{{#/tab }}
 {{#/tabs }}
 
 #### Generating the cluster configuration
@@ -1359,7 +1467,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.30.0 \
+  --kubernetes-version v1.32.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1371,7 +1479,7 @@ clusterctl generate cluster capi-quickstart --flavor development \
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
-export KUBERNETES_VERSION=1.28.0
+export KUBERNETES_VERSION=1.31.2
 export HELM_VALUES="service:\n  type: NodePort"
 
 kubectl create namespace ${CLUSTER_NAMESPACE}
@@ -1403,7 +1511,7 @@ clusterctl generate cluster capi-quickstart \
 ```bash
 clusterctl generate cluster capi-quickstart \
   --infrastructure azure \
-  --kubernetes-version v1.30.0 \
+  --kubernetes-version v1.32.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1418,7 +1526,7 @@ yq -i "with(. | select(.kind == \"AzureClusterIdentity\"); .spec.type |= \"Servi
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.30.0 \
+  --kubernetes-version v1.32.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1472,7 +1580,7 @@ and see an output similar to this:
 
 ```bash
 NAME              PHASE         AGE   VERSION
-capi-quickstart   Provisioned   8s    v1.30.0
+capi-quickstart   Provisioned   8s    v1.32.0
 ```
 
 To verify the first control plane is up:
@@ -1485,7 +1593,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
-capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.30.0
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.32.0
 ```
 
 <aside class="note warning">
@@ -1538,7 +1646,7 @@ Install the official cloud-provider-azure Helm chart on the workload cluster:
 helm install --kubeconfig=./capi-quickstart.kubeconfig --repo https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo cloud-provider-azure --generate-name --set infra.clusterName=capi-quickstart --set cloudControllerManager.clusterCIDR="192.168.0.0/16"
 ```
 
-For more information, see the [CAPZ book](https://capz.sigs.k8s.io/topics/addons.html).
+For more information, see the [CAPZ book](https://capz.sigs.k8s.io/self-managed/addons.html).
 
 {{#/tab }}
 {{#tab OpenStack}}
@@ -1598,6 +1706,15 @@ let's check the status using `kubectl get nodes`:
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
+```bash
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.32.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.32.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.32.0
+```
 
 {{#/tab }}
 {{#tab vcluster}}
@@ -1643,7 +1760,7 @@ are enough for these two CNI to work on (actually) the same environment.
 
 The following script downloads the Calico manifest and modifies the required field. The CIDR and the port values are examples.
 ```bash
-curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.4/manifests/calico.yaml -o calico-workload.yaml
+curl https://raw.githubusercontent.com/projectcalico/calico/v3.29.1/manifests/calico.yaml -o calico-workload.yaml
 
 sed -i -E 's|^( +)# (- name: CALICO_IPV4POOL_CIDR)$|\1\2|g;'\
 's|^( +)# (  value: )"192.168.0.0/16"|\1\2"10.243.0.0/16"|g;'\
@@ -1663,6 +1780,33 @@ After a short while, our nodes should be running and in `Ready` state, let’s c
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
+
+{{#/tab }}
+{{#tab Other providers...}}
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+```
+
+After a short while, our nodes should be running and in `Ready` state,
+let's check the status using `kubectl get nodes`:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
+```
+```bash
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.32.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.32.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.32.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.32.0
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 <aside class="note">
 
@@ -1721,35 +1865,7 @@ kube-proxy-b9g5m                                              1/1     Running   
 kube-proxy-p6xx8                                              1/1     Running   0          3m49s
 kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   0          3m57s
 ```
-
 </aside>
-
-{{#/tab }}
-{{#tab Other providers...}}
-
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
-```
-
-After a short while, our nodes should be running and in `Ready` state,
-let's check the status using `kubectl get nodes`:
-
-```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
-```
-```bash
-NAME                                          STATUS   ROLES           AGE    VERSION
-capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.30.0
-capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.30.0
-capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.30.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.30.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.30.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.30.0
-```
-
-{{#/tab }}
-{{#/tabs }}
 
 ### Clean Up
 
@@ -1778,7 +1894,7 @@ kind delete cluster
 [Akamai (Linode) provider]: https://linode.github.io/cluster-api-provider-linode/introduction.html
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
-[Azure Provider Prerequisites]: https://capz.sigs.k8s.io/topics/getting-started.html#prerequisites
+[Azure Provider Prerequisites]: https://capz.sigs.k8s.io/getting-started.html#prerequisites
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
 [capa]: https://cluster-api-aws.sigs.k8s.io
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images
@@ -1789,13 +1905,14 @@ kind delete cluster
 [Docker]: https://www.docker.com/
 [GCP provider]: https://cluster-api-gcp.sigs.k8s.io/
 [Helm]: https://helm.sh/docs/intro/install/
+[Harvester provider]: https://github.com/rancher-sandbox/cluster-api-provider-harvester
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud
 [kind]: https://kind.sigs.k8s.io/
-[KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
+[KubeadmControlPlane]: ../developer/core/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
@@ -1805,6 +1922,7 @@ kind delete cluster
 [KubeVirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [KubeVirt]: https://kubevirt.io/
 [oci-provider]: https://oracle.github.io/cluster-api-provider-oci/#getting-started
+[openstack-resource-controller]: https://k-orc.cloud/
 [Equinix Metal getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider]:../reference/providers.md
 [provider components]: ../reference/glossary.md#provider-components

@@ -789,8 +789,8 @@ func (c *E2EConfig) HasVariable(varName string) bool {
 	return ok
 }
 
-// GetVariable returns a variable from environment variables or from the e2e config file.
-func (c *E2EConfig) GetVariable(varName string) string {
+// MustGetVariable returns a variable from environment variables or from the e2e config file.
+func (c *E2EConfig) MustGetVariable(varName string) string {
 	if value, ok := os.LookupEnv(varName); ok {
 		return value
 	}
@@ -800,9 +800,24 @@ func (c *E2EConfig) GetVariable(varName string) string {
 	return value
 }
 
-// GetInt64PtrVariable returns an Int64Ptr variable from the e2e config file.
-func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
-	wCountStr := c.GetVariable(varName)
+// GetVariableOrEmpty returns a variable from environment variables or from the e2e config file.
+// If the variable cannot be found it returns an empty string and does not fail.
+func (c *E2EConfig) GetVariableOrEmpty(varName string) string {
+	if value, ok := os.LookupEnv(varName); ok {
+		return value
+	}
+
+	value, ok := c.Variables[varName]
+	if ok {
+		return value
+	}
+
+	return ""
+}
+
+// MustGetInt64PtrVariable returns an Int64Ptr variable from the e2e config file.
+func (c *E2EConfig) MustGetInt64PtrVariable(varName string) *int64 {
+	wCountStr := c.MustGetVariable(varName)
 	if wCountStr == "" {
 		return nil
 	}
@@ -812,9 +827,9 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	return ptr.To[int64](wCount)
 }
 
-// GetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
-func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
-	wCountStr := c.GetVariable(varName)
+// MustGetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
+func (c *E2EConfig) MustGetInt32PtrVariable(varName string) *int32 {
+	wCountStr := c.MustGetVariable(varName)
 	if wCountStr == "" {
 		return nil
 	}

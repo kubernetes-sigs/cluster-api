@@ -79,30 +79,34 @@ func TestOr(t *testing.T) {
 	})
 }
 
-func TestHasUnhealthyCondition(t *testing.T) {
+func TestUnhealthyFilters(t *testing.T) {
 	t.Run("healthy machine (without HealthCheckSucceeded condition) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.HasUnhealthyCondition(m)).To(BeFalse())
+		g.Expect(collections.IsUnhealthy(m)).To(BeFalse())
+		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("healthy machine (with HealthCheckSucceeded condition == True) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
-		g.Expect(collections.HasUnhealthyCondition(m)).To(BeFalse())
+		g.Expect(collections.IsUnhealthy(m)).To(BeFalse())
+		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine NOT eligible for KCP remediation (with withHealthCheckSucceeded condition == False but without OwnerRemediated) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
-		g.Expect(collections.HasUnhealthyCondition(m)).To(BeFalse())
+		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
+		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine eligible for KCP (with HealthCheckSucceeded condition == False and with OwnerRemediated) should return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
-		g.Expect(collections.HasUnhealthyCondition(m)).To(BeTrue())
+		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
+		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeTrue())
 	})
 }
 
@@ -375,26 +379,6 @@ func TestWithVersion(t *testing.T) {
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeTrue())
-	})
-}
-
-func TestHealthyAPIServer(t *testing.T) {
-	t.Run("nil machine returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		g.Expect(collections.HealthyAPIServer()(nil)).To(BeFalse())
-	})
-
-	t.Run("unhealthy machine returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{}
-		g.Expect(collections.HealthyAPIServer()(machine)).To(BeFalse())
-	})
-
-	t.Run("healthy machine returns true", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{}
-		conditions.Set(machine, conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition))
-		g.Expect(collections.HealthyAPIServer()(machine)).To(BeTrue())
 	})
 }
 

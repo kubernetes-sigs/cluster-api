@@ -27,13 +27,29 @@ import (
 func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSet)
 
-	return Convert_v1alpha3_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil)
+	if err := Convert_v1alpha3_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &addonsv1.ClusterResourceSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
+	return nil
 }
 
 func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSet)
 
-	return Convert_v1beta1_ClusterResourceSet_To_v1alpha3_ClusterResourceSet(src, dst, nil)
+	if err := Convert_v1beta1_ClusterResourceSet_To_v1alpha3_ClusterResourceSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *ClusterResourceSetList) ConvertTo(dstRaw conversion.Hub) error {
@@ -94,4 +110,9 @@ func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) err
 func Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in *addonsv1.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s apiconversion.Scope) error {
 	// Spec.ClusterName does not exist in ClusterResourceSetBinding v1alpha3 API.
 	return autoConvert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in, out, s)
+}
+
+func Convert_v1beta1_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1
+	return autoConvert_v1beta1_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in, out, s)
 }

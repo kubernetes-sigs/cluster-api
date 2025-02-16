@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,13 +43,14 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestMachineHealthCheck_Reconcile(t *testing.T) {
@@ -241,6 +241,15 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 	})
 
@@ -294,7 +303,18 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
 	})
 
 	t.Run("it doesn't mark anything unhealthy when all Machines are healthy", func(t *testing.T) {
@@ -342,10 +362,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
 	})
 
-	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine", func(t *testing.T) {
+	t.Run("it marks unhealthy machines for remediation when there is one unhealthy Machine and skips deleting machines", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -373,7 +404,28 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			machineLabels(mhc.Spec.Selector.MatchLabels),
 		)
 		defer cleanup2()
-		machines = append(machines, unhealthyMachines...)
+		// Unhealthy nodes and machines but already in deletion.
+		// Note: deletionTimestamp gets set by deletion below which also removes the skip remediation annotation.
+		_, unhealthyMachinesDeleting, cleanup3 := createMachinesWithNodes(g, cluster,
+			count(1),
+			createNodeRefForMachine(true),
+			nodeStatus(corev1.ConditionUnknown),
+			machineLabels(mhc.Spec.Selector.MatchLabels),
+			machineFinalizers("test.cluster.io/delete-protection"),
+			machineAnnotations(map[string]string{clusterv1.MachineSkipRemediationAnnotation: ""}),
+		)
+		defer cleanup3()
+		// Mark machines for deletion and drop skip remediation annotation
+		// Note: without the skip remediation annotation the MHC controller might already reconcile the condition leading to a flaky test.
+		for _, m := range unhealthyMachinesDeleting {
+			g.Expect(env.Delete(ctx, m)).To(Succeed())
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(m), m)).To(Succeed())
+			deletingMachinePatchHelper, err := patch.NewHelper(m, env.GetClient())
+			g.Expect(err).ToNot(HaveOccurred())
+			m.Annotations = map[string]string{}
+			g.Expect(deletingMachinePatchHelper.Patch(ctx, m)).To(Succeed())
+		}
+		machines = append(append(machines, unhealthyMachines...), unhealthyMachinesDeleting...)
 		targetMachines := make([]string, len(machines))
 		for i, m := range machines {
 			targetMachines[i] = m.Name
@@ -388,7 +440,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
+			ExpectedMachines:    4,
 			CurrentHealthy:      2,
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
@@ -399,7 +451,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 2)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
 	t.Run("it marks unhealthy machines for remediation when there a Machine has a failure reason", func(t *testing.T) {
@@ -457,7 +521,57 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		g.Eventually(func() (unhealthy int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+					continue
+				}
+
+				unhealthy++
+			}
+			return
+		}).Should(Equal(1))
+
+		g.Eventually(func() (ownerRemediated int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+					continue
+				}
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+					continue
+				}
+
+				ownerRemediated++
+			}
+			return
+		}).Should(Equal(1))
 	})
 
 	t.Run("it marks unhealthy machines for remediation when there a Machine has a failure message", func(t *testing.T) {
@@ -515,10 +629,60 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		g.Eventually(func() (unhealthy int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+					continue
+				}
+
+				unhealthy++
+			}
+			return
+		}).Should(Equal(1))
+
+		g.Eventually(func() (ownerRemediated int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+					continue
+				}
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+					continue
+				}
+
+				ownerRemediated++
+			}
+			return
+		}).Should(Equal(1))
 	})
 
-	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -577,43 +741,20 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Message:  "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
+						Message: "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(2))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsTrue(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 2)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
 	t.Run("it marks unhealthy machines for remediation when number of unhealthy machines is within unhealthyRange", func(t *testing.T) {
@@ -672,10 +813,22 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
-	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines is not within UnhealthyRange", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines is not within UnhealthyRange", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -734,43 +887,20 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Message:  "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
+						Message: "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(2))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 2)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
 	t.Run("when a Machine has no Node ref for less than the NodeStartupTimeout", func(t *testing.T) {
@@ -836,43 +966,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(0))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsTrue(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
 	t.Run("when a Machine has no Node ref for longer than the NodeStartupTimeout", func(t *testing.T) {
@@ -933,44 +1039,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				fmt.Printf("error retrieving list: %v", err)
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}, timeout, 100*time.Millisecond).Should(Equal(1))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
-					remediated++
-				}
-			}
-			return
-		}, timeout, 100*time.Millisecond).Should(Equal(1))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
 	t.Run("when a Machine's Node has gone away", func(t *testing.T) {
@@ -1028,43 +1109,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(1))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
-					remediated++
-				}
-			}
-			return
-		}, timeout, 100*time.Millisecond).Should(Equal(1))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
 	t.Run("Machine's Node without conditions", func(t *testing.T) {
@@ -1114,43 +1171,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(0))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsTrue(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
 	t.Run("should react when a Node transitions to unhealthy", func(t *testing.T) {
@@ -1198,7 +1231,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -1230,43 +1275,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(1))
-
-		// Calculate how many Machines have been marked for remediation
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(1))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
 	t.Run("when in a MachineSet, unhealthy machines should be deleted", func(t *testing.T) {
@@ -1328,6 +1349,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       infraTmpl.GetName(),
+							Namespace:  mhc.Namespace,
 						},
 					},
 				},
@@ -1368,43 +1390,20 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 		g.Expect(env.Patch(ctx, machineSet, machineSetPatch)).To(Succeed())
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
 
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}, timeout, 100*time.Millisecond).Should(Equal(1))
-
-		// Calculate how many Machines should be remediated.
 		var unhealthyMachine *clusterv1.Machine
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
+		machines := &clusterv1.MachineList{}
+		g.Expect(env.List(ctx, machines, client.MatchingLabels{
+			"selector": mhc.Spec.Selector.MatchLabels["selector"],
+		})).To(Succeed())
 
-			for i := range machines.Items {
-				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
-					unhealthyMachine = machines.Items[i].DeepCopy()
-					remediated++
-				}
+		for i := range machines.Items {
+			if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
+				unhealthyMachine = machines.Items[i].DeepCopy()
 			}
-			return
-		}, timeout, 100*time.Millisecond).Should(Equal(1))
+		}
 
 		// Unpause the MachineSet reconciler.
 		machineSetPatch = client.MergeFrom(machineSet.DeepCopy())
@@ -1420,7 +1419,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	})
 
 	t.Run("when a machine is paused", func(t *testing.T) {
-		// FIXME: Resolve flaky/failing test
+		// TODO: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
@@ -1465,6 +1464,15 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
 		// Pause the machine
@@ -1505,43 +1513,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(1))
-
-		// Calculate how many Machines have been remediated.
-		g.Eventually(func() (remediated int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
-					remediated++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
 	t.Run("When remediationTemplate is set and node transitions to unhealthy, new Remediation Request should be created", func(t *testing.T) {
@@ -1574,6 +1558,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
+			Namespace:  cluster.Namespace,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -1617,7 +1602,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -1650,25 +1647,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(1))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		ref := corev1.ObjectReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
@@ -1722,6 +1713,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
+			Namespace:  ns.Name,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -1765,7 +1757,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		// Transition the node to unhealthy.
 		node := nodes[0]
@@ -1798,25 +1802,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(1))
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		// Transition the node back to healthy.
 		node = nodes[0]
@@ -1849,25 +1847,19 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Status: corev1.ConditionTrue,
 				},
 			},
+			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+					},
+				},
+			},
 		}))
 
-		// Calculate how many Machines have health check succeeded = false.
-		g.Eventually(func() (unhealthy int) {
-			machines := &clusterv1.MachineList{}
-			err := env.List(ctx, machines, client.MatchingLabels{
-				"selector": mhc.Spec.Selector.MatchLabels["selector"],
-			})
-			if err != nil {
-				return -1
-			}
-
-			for i := range machines.Items {
-				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
-					unhealthy++
-				}
-			}
-			return
-		}).Should(Equal(0))
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
 
 		ref := corev1.ObjectReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
@@ -1888,6 +1880,62 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			return obj
 		}, timeout, 100*time.Millisecond).Should(BeNil())
 	})
+}
+
+func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expectNotHealthy int) {
+	g.Eventually(func() (unhealthy int) {
+		machines := &clusterv1.MachineList{}
+		err := env.List(ctx, machines, client.MatchingLabels{
+			"selector": mhc.Spec.Selector.MatchLabels["selector"],
+		})
+		if err != nil {
+			return -1
+		}
+
+		for i := range machines.Items {
+			if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				continue
+			}
+			if c := v1beta2conditions.Get(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta2Condition); c == nil || c.Status != metav1.ConditionFalse {
+				continue
+			}
+
+			unhealthy++
+		}
+		return
+	}).Should(Equal(expectNotHealthy))
+}
+
+func assertMachinesOwnerRemediated(g *WithT, mhc *clusterv1.MachineHealthCheck, expectOwnerRemediated int) {
+	// Calculate how many Machines have health check succeeded = false.
+	g.Eventually(func() (ownerRemediated int) {
+		machines := &clusterv1.MachineList{}
+		err := env.List(ctx, machines, client.MatchingLabels{
+			"selector": mhc.Spec.Selector.MatchLabels["selector"],
+		})
+		if err != nil {
+			return -1
+		}
+
+		for i := range machines.Items {
+			if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				continue
+			}
+			if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+				continue
+			}
+
+			if !v1beta2conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta2Condition) {
+				continue
+			}
+			if !v1beta2conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta2Condition) {
+				continue
+			}
+
+			ownerRemediated++
+		}
+		return
+	}).Should(Equal(expectOwnerRemediated))
 }
 
 func TestClusterToMachineHealthCheck(t *testing.T) {
@@ -2352,13 +2400,9 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 		},
 	}
 
-	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
-	// Make sure the cluster is in the cache before proceeding
-	g.Eventually(func() error {
-		var cl clusterv1.Cluster
-		return env.Get(ctx, util.ObjectKey(cluster), &cl)
-	}, timeout, 100*time.Millisecond).Should(Succeed())
+	g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 	// This is required for MHC to perform checks
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
@@ -2366,17 +2410,11 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
-	// Wait for cluster in cache to be updated post-patch
-	g.Eventually(func() bool {
-		err := env.Get(ctx, util.ObjectKey(cluster), cluster)
-		if err != nil {
-			return false
-		}
-
-		return conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
-	}, timeout, 100*time.Millisecond).Should(BeTrue())
-
-	g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
+	// Wait for cluster in the cached client to be updated post-patch
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.Get(ctx, util.ObjectKey(cluster), cluster)).To(Succeed())
+		g.Expect(conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+	}, timeout, 100*time.Millisecond).Should(Succeed())
 
 	return cluster
 }
@@ -2430,9 +2468,11 @@ type machinesWithNodes struct {
 	nodeStatus                 corev1.ConditionStatus
 	createNodeRefForMachine    bool
 	firstMachineAsControlPlane bool
+	annotations                map[string]string
 	labels                     map[string]string
 	failureReason              string
 	failureMessage             string
+	finalizers                 []string
 }
 
 type machineWithNodesOption func(m *machinesWithNodes)
@@ -2479,6 +2519,18 @@ func machineFailureMessage(s string) machineWithNodesOption {
 	}
 }
 
+func machineAnnotations(a map[string]string) machineWithNodesOption {
+	return func(m *machinesWithNodes) {
+		m.annotations = a
+	}
+}
+
+func machineFinalizers(f ...string) machineWithNodesOption {
+	return func(m *machinesWithNodes) {
+		m.finalizers = append(m.finalizers, f...)
+	}
+}
+
 func createMachinesWithNodes(
 	g *WithT,
 	c *clusterv1.Cluster,
@@ -2516,6 +2568,13 @@ func createMachinesWithNodes(
 			APIVersion: infraMachine.GetAPIVersion(),
 			Kind:       infraMachine.GetKind(),
 			Name:       infraMachine.GetName(),
+			Namespace:  infraMachine.GetNamespace(),
+		}
+		if len(o.finalizers) > 0 {
+			machine.Finalizers = o.finalizers
+		}
+		if o.annotations != nil {
+			machine.ObjectMeta.Annotations = o.annotations
 		}
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		fmt.Printf("machine created: %s\n", machine.GetName())
@@ -2600,7 +2659,16 @@ func createMachinesWithNodes(
 			}
 		}
 		for _, m := range machines {
-			g.Expect(env.Delete(ctx, m)).To(Succeed())
+			if m.DeletionTimestamp.IsZero() {
+				g.Expect(env.Delete(ctx, m)).To(Succeed())
+			}
+			if len(m.Finalizers) > 1 {
+				g.Expect(env.Get(ctx, util.ObjectKey(m), m)).To(Succeed())
+				machinePatchHelper, err := patch.NewHelper(m, env.Client)
+				g.Expect(err).ToNot(HaveOccurred())
+				m.Finalizers = nil
+				g.Expect(machinePatchHelper.Patch(ctx, m)).To(Succeed())
+			}
 		}
 		for _, im := range infraMachines {
 			if err := env.Delete(ctx, im); !apierrors.IsNotFound(err) {
@@ -2670,7 +2738,14 @@ func TestPatchTargets(t *testing.T) {
 	mhc := newMachineHealthCheckWithLabels("mhc", namespace, clusterName, labels)
 	machine1 := newTestMachine("machine1", namespace, clusterName, "nodeName", labels)
 	machine1.ResourceVersion = "999"
+
 	conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSucceededCondition)
+	v1beta2conditions.Set(machine1, metav1.Condition{
+		Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
+	})
+
 	machine2 := machine1.DeepCopy()
 	machine2.Name = "machine2"
 
@@ -2680,9 +2755,9 @@ func TestPatchTargets(t *testing.T) {
 		mhc,
 	).WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).Build()
 	r := &Reconciler{
-		Client:   cl,
-		recorder: record.NewFakeRecorder(32),
-		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
+		Client:       cl,
+		recorder:     record.NewFakeRecorder(32),
+		ClusterCache: clustercache.NewFakeClusterCache(cl, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
 	}
 
 	// To make the patch fail, create patchHelper with a different client.
@@ -2712,6 +2787,7 @@ func TestPatchTargets(t *testing.T) {
 	g.Expect(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc)).ToNot(BeEmpty())
 	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).ToNot(HaveOccurred())
 	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(corev1.ConditionFalse))
+	g.Expect(v1beta2conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta2Condition).Status).To(Equal(metav1.ConditionFalse))
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, mhc)).ToNot(BeEmpty())

@@ -30,9 +30,9 @@ After the .0 the .1 release will be created to ensure faster Kubernetes support 
 
 ## Release team
 
-| **Role**                                  | **Lead** (**GitHub / Slack ID**) | **Team member(s) (GitHub / Slack ID)** |
-|-------------------------------------------|----------------------------------|----------------------------------------|
-| Release Lead                              | TBD                              | TBD                                    |
-| Communications/Docs/Release Notes Manager | TBD                              | TBD                                    |
-| CI Signal/Bug Triage/Automation Manager   | TBD                              | TBD                                    |
-| Maintainer                                | TBD                              | TBD                                    |
+
+| **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                      | **Team member(s) (GitHub / Slack ID)** |
+|-------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------|
+| Release Lead                              | Sunnat Samadov ([@Sunnatillo](https://github.com/Sunnatillo) / `@Sunnat`) | Sujay ([@SD-13](https://github.com/SD-13) / `@Sujay`) <br> Tasdik Rahman ([@tasdikrahman](https://github.com/tasdikrahman) / `@tasdikrahman`)|
+| Communications/Docs/Release Notes Manager | Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@Chandan Kumar`) |  Rajan Kumar Jha ([@rajankumary2k](https://github.com/rajankumary2k) / `@Rajan Jha`) <br> Vishal Anarase ([@vishalanarase](https://github.com/vishalanarase) / `@Vishal Anarase`)  <br>  Varsha Suryawanshi ([@varshasuryawanshi](https://github.com/varshasuryawanshi) / `@Varsha Suryawanshi`)|
+| CI Signal/Bug Triage/Automation Manager   | Stephan Cahill ([@cahillsf](https://github.com/cahillsf) / `@Stephen Cahill`) | Jayesh Srivastava ([@jayesh-srivastava](https://github.com/jayesh-srivastava) / `@Jayesh`)  <br> Mathieu Tortuyaux ([@tormath1](https://github.com/tormath1) / `@tormath1`) <br> Mohamed ElSerngawy ([@serngawy](https://github.com/serngawy) / `@melserngawy`) <br> Muhammad Adil Ghaffar ([@adilGhaffarDev](https://github.com/adilGhaffarDev/) / `@adil`) <br> Pravar Agrawal ([@pravarag](https://github.com/pravarag) / `@pravarag`) <br> Takuma Shibuya ([@sivchari](https://github.com/sivchari) / `@sivchari`) |

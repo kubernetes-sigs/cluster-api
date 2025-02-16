@@ -24,6 +24,8 @@ import (
 )
 
 // NewTestClusterCacheTracker creates a new fake ClusterCacheTracker that can be used by unit tests with fake client.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.NewTestClusterCacheTracker instead.
 func NewTestClusterCacheTracker(log logr.Logger, cl client.Client, remoteClient client.Client, scheme *runtime.Scheme, objKey client.ObjectKey, watchObjects ...string) *ClusterCacheTracker {
 	testCacheTracker := &ClusterCacheTracker{
 		log:              log,

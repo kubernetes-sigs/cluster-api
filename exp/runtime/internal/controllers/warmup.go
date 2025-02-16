@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 )
 
 const (
@@ -69,7 +69,7 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 	if r.warmupTimeout == 0 {
 		r.warmupTimeout = defaultWarmupTimeout
 	}
-	ctx, cancel := context.WithTimeout(ctx, r.warmupTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, r.warmupTimeout, errors.New("warmup timeout expired"))
 	defer cancel()
 
 	err := wait.PollUntilContextTimeout(ctx, r.warmupInterval, r.warmupTimeout, true, func(ctx context.Context) (done bool, err error) {

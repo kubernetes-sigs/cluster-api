@@ -75,7 +75,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, nil
 	}
 
-	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -86,7 +86,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	// Return early if nodeRefMap is nil.
 	if s.nodeRefMap == nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
+		return ctrl.Result{}, errors.New("failed to get Node references")
 	}
 
 	// Get the Node references.
@@ -116,7 +116,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 	}
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
-		log.Info("NodeRefs != ReadyReplicas", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas)
+		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", mp.Status.Replicas)
 		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
@@ -135,7 +135,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Error(err, "Failed to get Node, skipping", "Node", klog.KRef("", nodeRef.Name))
+			log.Error(err, "Failed to get Node, skipping", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 
@@ -200,7 +200,7 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 	for _, nodeRef := range references {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Error(err, "Failed to get Node, skipping setting annotations", "Node", klog.KRef("", nodeRef.Name))
+			log.Error(err, "Failed to get Node, skipping setting annotations", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 		patchHelper, err := patch.NewHelper(node, c)
@@ -219,7 +219,7 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 		// Patch the node if needed.
 		if hasAnnotationChanges || hasTaintChanges {
 			if err := patchHelper.Patch(ctx, node); err != nil {
-				log.V(2).Error(err, "Failed patch Node to set annotations and drop taints", "Node", klog.KObj(node))
+				log.Error(err, "Failed patch Node to set annotations and drop taints", "Node", klog.KObj(node))
 				return err
 			}
 		}

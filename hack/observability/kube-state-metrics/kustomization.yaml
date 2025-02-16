@@ -15,7 +15,7 @@ helmCharts:
     namespace: observability
     releaseName: kube-state-metrics
     valuesFile: values.yaml
-    version: 5.12.1
+    version: 5.27.0
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

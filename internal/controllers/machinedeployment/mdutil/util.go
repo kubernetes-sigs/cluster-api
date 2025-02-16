@@ -20,6 +20,7 @@ package mdutil
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,10 +35,10 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -120,16 +121,16 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
 	log := ctrl.LoggerFrom(ctx)
 
-	max := int64(0)
+	maxVal := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
 			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name))
-		} else if v > max {
-			max = v
+		} else if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 // Revision returns the revision number of the input object.
@@ -370,13 +371,51 @@ func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployme
 	return integer.RoundToInt32(newMSsize) - *(ms.Spec.Replicas)
 }
 
-// EqualMachineTemplate returns true if two given machineTemplateSpec are equal,
-// ignoring all the in-place propagated fields, and the version from external references.
-func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) (equal bool, diff string, err error) {
-	t1Copy := MachineTemplateDeepCopyRolloutFields(template1)
-	t2Copy := MachineTemplateDeepCopyRolloutFields(template2)
+// MachineTemplateUpToDate returns true if the current MachineTemplateSpec is up-to-date with a corresponding desired MachineTemplateSpec.
+// Note: The comparison does not consider any in-place propagated fields, as well as the version from external references.
+func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (upToDate bool, logMessages, conditionMessages []string) {
+	currentCopy := MachineTemplateDeepCopyRolloutFields(current)
+	desiredCopy := MachineTemplateDeepCopyRolloutFields(desired)
 
-	return compare.Diff(t1Copy, t2Copy)
+	if !reflect.DeepEqual(currentCopy.Spec.Version, desiredCopy.Spec.Version) {
+		logMessages = append(logMessages, fmt.Sprintf("spec.version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
+		// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
+	}
+
+	// Note: we return a message based on desired.bootstrap.ConfigRef != nil, but we always compare the entire bootstrap
+	// struct to catch cases when either configRef or dataSecretName is set in current vs desired (usually MachineTemplates
+	// have ConfigRef != nil, might be in some edge case dataSecret are used, but switching from one to another is not a
+	// common operation so it is acceptable to handle it in this way).
+	if currentCopy.Spec.Bootstrap.ConfigRef != nil {
+		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
+			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, corev1.ObjectReference{}).Kind, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, corev1.ObjectReference{}).Name))
+			// Note: dropping "Template" suffix because conditions message will surface on machine.
+			conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.Bootstrap.ConfigRef.Kind, clusterv1.TemplateSuffix)))
+		}
+	} else {
+		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
+			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
+			conditionMessages = append(conditionMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
+		}
+	}
+
+	if !reflect.DeepEqual(currentCopy.Spec.InfrastructureRef, desiredCopy.Spec.InfrastructureRef) {
+		logMessages = append(logMessages, fmt.Sprintf("spec.infrastructureRef %s %s, %s %s required", currentCopy.Spec.InfrastructureRef.Kind, currentCopy.Spec.InfrastructureRef.Name, desiredCopy.Spec.InfrastructureRef.Kind, desiredCopy.Spec.InfrastructureRef.Name))
+		// Note: dropping "Template" suffix because conditions message will surface on machine.
+		conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.InfrastructureRef.Kind, clusterv1.TemplateSuffix)))
+	}
+
+	if !reflect.DeepEqual(currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain) {
+		logMessages = append(logMessages, fmt.Sprintf("spec.failureDomain %s, %s required", ptr.Deref(currentCopy.Spec.FailureDomain, "nil"), ptr.Deref(desiredCopy.Spec.FailureDomain, "nil")))
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Failure domain %s, %s required", ptr.Deref(currentCopy.Spec.FailureDomain, "nil"), ptr.Deref(desiredCopy.Spec.FailureDomain, "nil")))
+	}
+
+	if len(logMessages) > 0 || len(conditionMessages) > 0 {
+		return false, logMessages, conditionMessages
+	}
+
+	return true, nil, nil
 }
 
 // MachineTemplateDeepCopyRolloutFields copies a MachineTemplateSpec
@@ -385,20 +424,27 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) (
 func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpec) *clusterv1.MachineTemplateSpec {
 	templateCopy := template.DeepCopy()
 
+	// Moving MD from one cluster to another is not supported.
+	templateCopy.Spec.ClusterName = ""
+
 	// Drop labels and annotations
 	templateCopy.Labels = nil
 	templateCopy.Annotations = nil
 
 	// Drop node timeout values
+	templateCopy.Spec.ReadinessGates = nil
 	templateCopy.Spec.NodeDrainTimeout = nil
 	templateCopy.Spec.NodeDeletionTimeout = nil
 	templateCopy.Spec.NodeVolumeDetachTimeout = nil
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.
+	// Remove namespace part of the ref, as it always correllates with current MD namespace
 	templateCopy.Spec.InfrastructureRef.APIVersion = templateCopy.Spec.InfrastructureRef.GroupVersionKind().Group
+	templateCopy.Spec.InfrastructureRef.Namespace = ""
 	if templateCopy.Spec.Bootstrap.ConfigRef != nil {
 		templateCopy.Spec.Bootstrap.ConfigRef.APIVersion = templateCopy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
+		templateCopy.Spec.Bootstrap.ConfigRef.Namespace = ""
 	}
 
 	return templateCopy
@@ -411,7 +457,7 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
-// NOTE: Even after we changed EqualMachineTemplate to ignore fields that are propagated in-place we can guarantee that if there exists a "new machineset"
+// NOTE: Even after we changed MachineTemplateUpToDate to ignore fields that are propagated in-place we can guarantee that if there exists a "new machineset"
 // using the old logic then a new machineset will definitely exist using the new logic. The new logic is looser. Therefore, we will
 // not face a case where there exists a machine set matching the old logic but there does not exist a machineset matching the new logic.
 // In fact previously not matching MS can now start matching the target. Since there could be multiple matches, lets choose the
@@ -430,19 +476,16 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	var matchingMachineSets []*clusterv1.MachineSet
 	var diffs []string
 	for _, ms := range msList {
-		equal, diff, err := EqualMachineTemplate(&ms.Spec.Template, &deployment.Spec.Template)
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to compare MachineDeployment spec template with MachineSet %s", ms.Name)
-		}
-		if equal {
+		upToDate, logMessages, _ := MachineTemplateUpToDate(&ms.Spec.Template, &deployment.Spec.Template)
+		if upToDate {
 			matchingMachineSets = append(matchingMachineSets, ms)
 		} else {
-			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, diff))
+			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(logMessages, ", ")))
 		}
 	}
 
 	if len(matchingMachineSets) == 0 {
-		return nil, fmt.Sprintf("couldn't find MachineSet matching MachineDeployment spec template: %s", strings.Join(diffs, ",")), nil
+		return nil, fmt.Sprintf("couldn't find MachineSet matching MachineDeployment spec template: %s", strings.Join(diffs, "; ")), nil
 	}
 
 	// If RolloutAfter is not set, pick the first matching MachineSet.
@@ -488,7 +531,7 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 func GetReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
-		if ms != nil {
+		if ms != nil && ms.Spec.Replicas != nil {
 			totalReplicas += *(ms.Spec.Replicas)
 		}
 	}
@@ -542,6 +585,42 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 		}
 	}
 	return totalAvailableReplicas
+}
+
+// GetV1Beta2ReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.ReadyReplicas are set, the func returns nil.
+func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalReadyReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.ReadyReplicas != nil {
+			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.V1Beta2.ReadyReplicas)
+		}
+	}
+	return totalReadyReplicas
+}
+
+// GetV1Beta2AvailableReplicaCountForMachineSets returns the number of available machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.AvailableReplicas are set, the func returns nil.
+func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalAvailableReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.AvailableReplicas != nil {
+			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.V1Beta2.AvailableReplicas)
+		}
+	}
+	return totalAvailableReplicas
+}
+
+// GetV1Beta2UptoDateReplicaCountForMachineSets returns the number of up to date machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.UpToDateReplicas are set, the func returns nil.
+func GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalUpToDateReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.UpToDateReplicas != nil {
+			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.V1Beta2.UpToDateReplicas)
+		}
+	}
+	return totalUpToDateReplicas
 }
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.

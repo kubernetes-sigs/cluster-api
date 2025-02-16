@@ -3,8 +3,6 @@
 The ClusterClass feature introduces a new way to create clusters which reduces boilerplate and enables flexible and powerful customization of clusters.
 ClusterClass is a powerful abstraction implemented on top of existing interfaces and offers a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
-</aside>
-
 <aside class="note warning">
 
 In order to use the ClusterClass (alpha) experimental feature the Kubernetes Version for the management cluster must be >= 1.22.0.
@@ -29,5 +27,5 @@ Additional documentation:
 
 <!-- links -->
 [Quick Start guide]: ../../../user/quick-start.md
-[clusterctl Provider contract]: ../../../clusterctl/provider-contract.md
+[clusterctl Provider contract]: ../../../developer/providers/contracts/clusterctl.md
 [clusterctl alpha topology plan]: ../../../clusterctl/commands/alpha-topology-plan.md

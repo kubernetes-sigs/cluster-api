@@ -3,7 +3,6 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Overview](#overview)
   - [Goals](#goals)
   - [Non-Goals/Future work](#non-goalsfuture-work)
@@ -99,7 +98,7 @@ When assembling a release team, the release team lead should look for volunteers
 - Have some prior experience with contributing to CAPI releases (such having been in the release team for a prior release)
 - Have diverse company affiliations (i.e. not all from the same company)
 - Are members of the Kubernetes slack community (register if you are not!)
-- Are members of the Cluster Lifecycle SIG mailing list (subscribe to the [SIG Cluster Lifecycle Google Group](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) if you are not!)
+- Are members of the Cluster Lifecycle SIG mailing list (subscribe to the [SIG Cluster Lifecycle Google Group](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle) if you are not!)
 
 ## Time Commitment
 

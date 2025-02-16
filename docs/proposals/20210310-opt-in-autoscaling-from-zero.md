@@ -13,7 +13,7 @@ reviewers:
   - "@randomvariable"
   - "@joelspeed"
 creation-date: 2021-03-10
-last-updated: 2023-01-31
+last-updated: 2024-09-12
 status: implementable
 ---
 
@@ -43,6 +43,7 @@ status: implementable
 - [Upgrade Strategy](#upgrade-strategy)
 - [Additional Details](#additional-details)
   - [Test Plan](#test-plan)
+  - [Implementation Status](#implementation-status)
 - [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -305,8 +306,19 @@ The end goal for testing is to contribute the scale from zero tests that current
 to the wider Kubernetes community. This will not be possible until the testing infrastructure around
 the cluster autoscaler and Cluster API have resolved more.
 
+### Implementation Status
+
+During August and September of 2024 an analysis of Cluster API providers in the kubernetes-sigs organization
+on GitHub was conducted. It produced the following results which were discussed at the 11 September 2024
+office hours meeting:
+
+* [Cluster API Scale From Zero Provider Status as of September 2024](https://hackmd.io/U_jqkq9XTWaPqklTNcFBZQ)
+* [11 September 2024 office hours recording](https://www.youtube.com/watch?v=2hCOlUw4z1w)
+    * [Meeting agenda](https://docs.google.com/document/d/1GgFbaYs-H6J5HSQ6a7n4aKpk0nDLE2hgG2NSOM9YIRw/edit#bookmark=id.i21skyep0xcq)
+
 ## Implementation History
 
+- [X] 09/12/2024: Added section on Implementation Status
 - [X] 01/31/2023: Updated proposal to include annotation changes
 - [X] 06/10/2021: Proposed idea in an issue or [community meeting]
 - [X] 03/04/2020: Previous pull request for [Add cluster autoscaler scale from zero ux proposal](https://github.com/kubernetes-sigs/cluster-api/pull/2530)

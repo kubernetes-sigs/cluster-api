@@ -26,8 +26,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
-	utilversion "k8s.io/apiserver/pkg/util/version"
+	"k8s.io/component-base/featuregate"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	utilversion "k8s.io/component-base/version"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,8 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 var (
@@ -91,7 +92,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(fakeScheme).
-		WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+		WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 		Build()
 
 	// Create the webhook and add the fakeClient as its client.
@@ -264,7 +265,6 @@ func TestClusterClassValidation(t *testing.T) {
 		old       *clusterv1.ClusterClass
 		expectErr bool
 	}{
-
 		/*
 			CREATE Tests
 		*/
@@ -901,7 +901,9 @@ func TestClusterClassValidation(t *testing.T) {
 						},
 					},
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 		},
 		{
@@ -915,7 +917,9 @@ func TestClusterClassValidation(t *testing.T) {
 				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 			expectErr: true,
 		},
@@ -932,7 +936,9 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 			expectErr: false,
 		},
@@ -959,7 +965,9 @@ func TestClusterClassValidation(t *testing.T) {
 								},
 							},
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000)}}).
+								Duration: time.Duration(6000000000000),
+							},
+						}).
 						Build()).
 				Build(),
 		},
@@ -987,7 +995,9 @@ func TestClusterClassValidation(t *testing.T) {
 							},
 							NodeStartupTimeout: &metav1.Duration{
 								// nodeStartupTimeout is too short here - 600ns.
-								Duration: time.Duration(600)}}).
+								Duration: time.Duration(600),
+							},
+						}).
 						Build()).
 				Build(),
 			expectErr: true,
@@ -1008,7 +1018,9 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000)}}).
+								Duration: time.Duration(6000000000000),
+							},
+						}).
 						Build()).
 				Build(),
 			expectErr: false,
@@ -1854,18 +1866,18 @@ func TestClusterClassValidation(t *testing.T) {
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
-				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 				Build()
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
 			// the unit tests that verify that compatibility is handled correctly.
-			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			effectiveVer := featuregate.DefaultComponentGlobalsRegistry.EffectiveVersionFor(featuregate.DefaultKubeComponent)
 			if effectiveVer != nil {
 				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
 			} else {
 				v := utilversion.DefaultKubeEffectiveVersion()
 				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
-				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+				g.Expect(featuregate.DefaultComponentGlobalsRegistry.Register(featuregate.DefaultKubeComponent, v, nil)).To(Succeed())
 			}
 
 			// Create the webhook and add the fakeClient as its client.
@@ -2501,7 +2513,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
 				WithObjects(tt.clusters...).
-				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 				Build()
 
 			// Create the webhook and add the fakeClient as its client.
@@ -2512,6 +2524,69 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestGetClustersUsingClusterClass(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// Enabling the feature flag temporarily for this test.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	topology := builder.ClusterTopology().WithClass("class1")
+
+	tests := []struct {
+		name           string
+		clusterClass   *clusterv1.ClusterClass
+		clusters       []client.Object
+		expectErr      bool
+		expectClusters []client.Object
+	}{
+		{
+			name:         "ClusterClass should return clusters referencing it",
+			clusterClass: builder.ClusterClass("default", "class1").Build(),
+			clusters: []client.Object{
+				builder.Cluster("default", "cluster1").WithTopology(topology.Build()).Build(),
+				builder.Cluster("default", "cluster2").Build(),
+				builder.Cluster("other", "cluster2").WithTopology(topology.DeepCopy().WithClassNamespace("default").Build()).Build(),
+				builder.Cluster("other", "cluster3").WithTopology(topology.Build()).Build(),
+			},
+			expectClusters: []client.Object{
+				builder.Cluster("default", "cluster1").Build(),
+				builder.Cluster("other", "cluster2").Build(),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tt.clusters...).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+			clusters, err := webhook.getClustersUsingClusterClass(ctx, tt.clusterClass)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			clusterKeys := []client.ObjectKey{}
+			for _, c := range clusters {
+				clusterKeys = append(clusterKeys, client.ObjectKeyFromObject(&c))
+			}
+			expectedKeys := []client.ObjectKey{}
+			for _, c := range tt.expectClusters {
+				expectedKeys = append(expectedKeys, client.ObjectKeyFromObject(c))
+			}
+			g.Expect(clusterKeys).To(Equal(expectedKeys))
 		})
 	}
 }

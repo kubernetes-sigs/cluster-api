@@ -42,9 +42,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestClusterDefaultNamespaces(t *testing.T) {
@@ -162,6 +162,18 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		{
+			name: "should pass with empty oldTopology",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				Build(),
+			topology:    &clusterv1.Topology{},
+			oldTopology: &clusterv1.Topology{},
+			expect: &clusterv1.Topology{
+				Class:     "class1",
+				Version:   "v1.22.2",
+				Variables: []clusterv1.ClusterVariable{},
 			},
 		},
 		{
@@ -723,7 +735,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}},
+					},
+				},
 				).Build(),
 			topology: builder.ClusterTopology().
 				WithVariables(clusterv1.ClusterVariable{
@@ -749,7 +762,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithVariables(clusterv1.ClusterVariable{
 					Name:  "cpu",
@@ -785,7 +799,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithVariables(clusterv1.ClusterVariable{
 					Name:  "cpu",
@@ -821,7 +836,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithVariables(clusterv1.ClusterVariable{
 					Name:  "cpu",
@@ -857,7 +873,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -894,7 +911,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -967,7 +985,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -1034,7 +1053,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -1107,7 +1127,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -1206,7 +1227,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 								},
 							},
 						},
-					}}).Build(),
+					},
+				}).Build(),
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
@@ -1387,195 +1409,211 @@ func TestClusterFailOnMissingClassField(t *testing.T) {
 func TestClusterValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 
-	var (
-		tests = []struct {
-			name      string
-			in        *clusterv1.Cluster
-			old       *clusterv1.Cluster
-			expectErr bool
-		}{
-			{
-				name:      "should return error when cluster namespace and infrastructure ref namespace mismatch",
-				expectErr: true,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithInfrastructureCluster(
-						builder.InfrastructureClusterTemplate("barNamespace", "infra1").Build()).
-					WithControlPlane(
-						builder.ControlPlane("fooNamespace", "cp1").Build()).
-					Build(),
-			},
-			{
-				name:      "should return error when cluster namespace and controlPlane ref namespace mismatch",
-				expectErr: true,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithInfrastructureCluster(
-						builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
-					WithControlPlane(
-						builder.ControlPlane("barNamespace", "cp1").Build()).
-					Build(),
-			},
-			{
-				name:      "should succeed when namespaces match",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithInfrastructureCluster(
-						builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
-					WithControlPlane(
-						builder.ControlPlane("fooNamespace", "cp1").Build()).
-					Build(),
-			},
-			{
-				name:      "fails if topology is set but feature flag is disabled",
-				expectErr: true,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithInfrastructureCluster(
-						builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
-					WithControlPlane(
-						builder.ControlPlane("fooNamespace", "cp1").Build()).
-					WithTopology(&clusterv1.Topology{}).
-					Build(),
-			},
-			{
-				name:      "pass with undefined CIDR ranges",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{}},
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass with nil CIDR ranges",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: nil},
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: nil},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass with valid IPv4 CIDR ranges",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"10.10.10.10/24"}},
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"10.10.10.10/24"}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass with valid IPv6 CIDR ranges",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"}},
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass with valid dualstack CIDR ranges",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"}},
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass if multiple CIDR ranges of IPv4 are passed",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24"}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass if multiple CIDR ranges of IPv6 are passed",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"2002::1234:abcd:ffff:c0a8:101/64", "2004::1234:abcd:ffff:c0a8:101/64"}},
-					}).
-					Build(),
-			},
-			{
-				name:      "pass if too many cidr ranges are specified in the clusterNetwork pods field",
-				expectErr: false,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Pods: &clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24", "12.12.12.12/24"}}}).
-					Build(),
-			},
-			{
-				name:      "fails if service cidr ranges are not valid",
-				expectErr: true,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
-							// Invalid ranges: missing network suffix
-							CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"}}}).
-					Build(),
-			},
-			{
-				name:      "fails if pod cidr ranges are not valid",
-				expectErr: true,
-				in: builder.Cluster("fooNamespace", "cluster1").
-					WithClusterNetwork(&clusterv1.ClusterNetwork{
-						Pods: &clusterv1.NetworkRanges{
-							// Invalid ranges: missing network suffix
-							CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"}}}).
-					Build(),
-			},
-			{
-				name:      "pass with name of under 63 characters",
-				expectErr: false,
-				in:        builder.Cluster("fooNamespace", "short-name").Build(),
-			},
-			{
-				name:      "pass with _, -, . characters in name",
-				in:        builder.Cluster("fooNamespace", "thisNameContains.A_Non-Alphanumeric").Build(),
-				expectErr: false,
-			},
-			{
-				name:      "fails if cluster name is longer than 63 characters",
-				in:        builder.Cluster("fooNamespace", "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").Build(),
-				expectErr: true,
-			},
-			{
-				name:      "error when name starts with NonAlphanumeric character",
-				in:        builder.Cluster("fooNamespace", "-thisNameStartsWithANonAlphanumeric").Build(),
-				expectErr: true,
-			},
-			{
-				name:      "error when name ends with NonAlphanumeric character",
-				in:        builder.Cluster("fooNamespace", "thisNameEndsWithANonAlphanumeric.").Build(),
-				expectErr: true,
-			},
-			{
-				name:      "error when name contains invalid NonAlphanumeric character",
-				in:        builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").Build(),
-				expectErr: true,
-			},
-		}
-	)
+	tests := []struct {
+		name      string
+		in        *clusterv1.Cluster
+		old       *clusterv1.Cluster
+		expectErr bool
+	}{
+		{
+			name:      "should return error when cluster namespace and infrastructure ref namespace mismatch",
+			expectErr: true,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithInfrastructureCluster(
+					builder.InfrastructureClusterTemplate("barNamespace", "infra1").Build()).
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when cluster namespace and controlPlane ref namespace mismatch",
+			expectErr: true,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithInfrastructureCluster(
+					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
+				WithControlPlane(
+					builder.ControlPlane("barNamespace", "cp1").Build()).
+				Build(),
+		},
+		{
+			name:      "should succeed when namespaces match",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithInfrastructureCluster(
+					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+		},
+		{
+			name:      "fails if topology is set but feature flag is disabled",
+			expectErr: true,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithInfrastructureCluster(
+					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				WithTopology(&clusterv1.Topology{}).
+				Build(),
+		},
+		{
+			name:      "pass with undefined CIDR ranges",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{},
+					},
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass with nil CIDR ranges",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: nil,
+					},
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: nil,
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass with valid IPv4 CIDR ranges",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"10.10.10.10/24"},
+					},
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"10.10.10.10/24"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass with valid IPv6 CIDR ranges",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"},
+					},
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass with valid dualstack CIDR ranges",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"},
+					},
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass if multiple CIDR ranges of IPv4 are passed",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass if multiple CIDR ranges of IPv6 are passed",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"2002::1234:abcd:ffff:c0a8:101/64", "2004::1234:abcd:ffff:c0a8:101/64"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass if too many cidr ranges are specified in the clusterNetwork pods field",
+			expectErr: false,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Pods: &clusterv1.NetworkRanges{
+						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24", "12.12.12.12/24"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "fails if service cidr ranges are not valid",
+			expectErr: true,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Services: &clusterv1.NetworkRanges{
+						// Invalid ranges: missing network suffix
+						CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "fails if pod cidr ranges are not valid",
+			expectErr: true,
+			in: builder.Cluster("fooNamespace", "cluster1").
+				WithClusterNetwork(&clusterv1.ClusterNetwork{
+					Pods: &clusterv1.NetworkRanges{
+						// Invalid ranges: missing network suffix
+						CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"},
+					},
+				}).
+				Build(),
+		},
+		{
+			name:      "pass with name of under 63 characters",
+			expectErr: false,
+			in:        builder.Cluster("fooNamespace", "short-name").Build(),
+		},
+		{
+			name:      "pass with _, -, . characters in name",
+			in:        builder.Cluster("fooNamespace", "thisNameContains.A_Non-Alphanumeric").Build(),
+			expectErr: false,
+		},
+		{
+			name:      "fails if cluster name is longer than 63 characters",
+			in:        builder.Cluster("fooNamespace", "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").Build(),
+			expectErr: true,
+		},
+		{
+			name:      "error when name starts with NonAlphanumeric character",
+			in:        builder.Cluster("fooNamespace", "-thisNameStartsWithANonAlphanumeric").Build(),
+			expectErr: true,
+		},
+		{
+			name:      "error when name ends with NonAlphanumeric character",
+			in:        builder.Cluster("fooNamespace", "thisNameEndsWithANonAlphanumeric.").Build(),
+			expectErr: true,
+		},
+		{
+			name:      "error when name contains invalid NonAlphanumeric character",
+			in:        builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").Build(),
+			expectErr: true,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -2119,11 +2157,11 @@ func TestClusterTopologyValidation(t *testing.T) {
 				WithScheme(fakeScheme).
 				Build()
 
-			// Use an empty fakeClusterCacheTracker here because the real cases are tested in Test_validateTopologyMachinePoolVersions.
-			fakeClusterCacheTrackerReader := &fakeClusterCacheTracker{client: fake.NewFakeClient()}
+			// Use an empty fakeClusterCache here because the real cases are tested in Test_validateTopologyMachinePoolVersions.
+			fakeClusterCacheReader := &fakeClusterCache{client: fake.NewFakeClient()}
 
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-			webhook := &Cluster{Client: fakeClient, Tracker: fakeClusterCacheTrackerReader}
+			webhook := &Cluster{Client: fakeClient, ClusterCacheReader: fakeClusterCacheReader}
 
 			warnings, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
@@ -3265,11 +3303,12 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			for _, cc := range tt.clusterClasses {
 				objs = append(objs, cc)
 			}
-			c := &Cluster{Client: fake.NewClientBuilder().
-				WithInterceptorFuncs(tt.injectedErr).
-				WithScheme(fakeScheme).
-				WithObjects(objs...).
-				Build(),
+			c := &Cluster{
+				Client: fake.NewClientBuilder().
+					WithInterceptorFuncs(tt.injectedErr).
+					WithScheme(fakeScheme).
+					WithObjects(objs...).
+					Build(),
 			}
 
 			// Checks the return error.
@@ -3616,7 +3655,7 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 			oldVersion, err := semver.ParseTolerant(tt.old.Spec.Topology.Version)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			fakeClusterCacheTracker := &fakeClusterCacheTracker{
+			fakeClusterCacheTracker := &fakeClusterCache{
 				client: fake.NewClientBuilder().
 					WithObjects(tt.workloadObjects...).
 					Build(),
@@ -3783,10 +3822,10 @@ func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	return output
 }
 
-type fakeClusterCacheTracker struct {
+type fakeClusterCache struct {
 	client client.Reader
 }
 
-func (f *fakeClusterCacheTracker) GetReader(_ context.Context, _ types.NamespacedName) (client.Reader, error) {
+func (f *fakeClusterCache) GetReader(_ context.Context, _ types.NamespacedName) (client.Reader, error) {
 	return f.client, nil
 }

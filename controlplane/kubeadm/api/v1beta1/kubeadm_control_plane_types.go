@@ -65,6 +65,12 @@ const (
 	// failures in updating remediation retry (the counter restarts from zero).
 	RemediationForAnnotation = "controlplane.cluster.x-k8s.io/remediation-for"
 
+	// PreTerminateHookCleanupAnnotation is the annotation KCP sets on Machines to ensure it can later remove the
+	// etcd member right before Machine termination (i.e. before InfraMachine deletion).
+	// Note: Starting with Kubernetes v1.31 this hook will wait for all other pre-terminate hooks to finish to
+	// ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run).
+	PreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
+
 	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
 	DefaultMinHealthyPeriod = 1 * time.Hour
@@ -72,13 +78,13 @@ const (
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
 type KubeadmControlPlaneSpec struct {
-	// Number of desired machines. Defaults to 1. When stacked etcd is used only
+	// replicas is the number of desired machines. Defaults to 1. When stacked etcd is used only
 	// odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Version defines the desired Kubernetes version.
+	// version defines the desired Kubernetes version.
 	// Please note that if kubeadmConfigSpec.ClusterConfiguration.imageRepository is not set
 	// we don't allow upgrades to versions >= v1.22.0 for which kubeadm uses the old registry (k8s.gcr.io).
 	// Please use a newer patch version with the new registry instead. The default registries of kubeadm are:
@@ -86,20 +92,20 @@ type KubeadmControlPlaneSpec struct {
 	//   * k8s.gcr.io (old registry): all older versions
 	Version string `json:"version"`
 
-	// MachineTemplate contains information about how machines
+	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
 	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate"`
 
-	// KubeadmConfigSpec is a KubeadmConfigSpec
+	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
-	// RolloutBefore is a field to indicate a rollout should be performed
+	// rolloutBefore is a field to indicate a rollout should be performed
 	// if the specified criteria is met.
 	// +optional
 	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
 
-	// RolloutAfter is a field to indicate a rollout should be performed
+	// rolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// KubeadmControlPlane.
 	// Example: In the YAML the time can be specified in the RFC3339 format.
@@ -108,41 +114,46 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
-	// The RolloutStrategy to use to replace control plane machines with
+	// rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
 	// new ones.
 	// +optional
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 
-	// The RemediationStrategy that controls how control plane machine remediation happens.
+	// remediationStrategy is the RemediationStrategy that controls how control plane machine remediation happens.
 	// +optional
 	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+
+	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
 // in a KubeadmControlPlane object.
 type KubeadmControlPlaneMachineTemplate struct {
-	// Standard object's metadata.
+	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
-	// InfrastructureRef is a required reference to a custom resource
+	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
-	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
-	// NodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// If no value is provided, the default value for this property of the Machine resource will be used.
 	// +optional
@@ -151,7 +162,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 
 // RolloutBefore describes when a rollout should be performed on the KCP machines.
 type RolloutBefore struct {
-	// CertificatesExpiryDays indicates a rollout needs to be performed if the
+	// certificatesExpiryDays indicates a rollout needs to be performed if the
 	// certificates of the machine will expire within the specified days.
 	// +optional
 	CertificatesExpiryDays *int32 `json:"certificatesExpiryDays,omitempty"`
@@ -160,13 +171,13 @@ type RolloutBefore struct {
 // RolloutStrategy describes how to replace existing machines
 // with new ones.
 type RolloutStrategy struct {
-	// Type of rollout. Currently the only supported strategy is
+	// type of rollout. Currently the only supported strategy is
 	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +optional
 	Type RolloutStrategyType `json:"type,omitempty"`
 
-	// Rolling update config params. Present only if
+	// rollingUpdate is the rolling update config params. Present only if
 	// RolloutStrategyType = RollingUpdate.
 	// +optional
 	RollingUpdate *RollingUpdate `json:"rollingUpdate,omitempty"`
@@ -174,7 +185,7 @@ type RolloutStrategy struct {
 
 // RollingUpdate is used to control the desired behavior of rolling update.
 type RollingUpdate struct {
-	// The maximum number of control planes that can be scheduled above or under the
+	// maxSurge is the maximum number of control planes that can be scheduled above or under the
 	// desired number of control planes.
 	// Value can be an absolute number 1 or 0.
 	// Defaults to 1.
@@ -186,7 +197,7 @@ type RollingUpdate struct {
 
 // RemediationStrategy allows to define how control plane machine remediation happens.
 type RemediationStrategy struct {
-	// MaxRetry is the Max number of retries while attempting to remediate an unhealthy machine.
+	// maxRetry is the Max number of retries while attempting to remediate an unhealthy machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
 	// For example, given a control plane with three machines M1, M2, M3:
 	//
@@ -203,14 +214,14 @@ type RemediationStrategy struct {
 	// +optional
 	MaxRetry *int32 `json:"maxRetry,omitempty"`
 
-	// RetryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
+	// retryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
 	// for an unhealthy machine (a retry).
 	//
 	// If not set, a retry will happen immediately.
 	// +optional
 	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
 
-	// MinHealthyPeriod defines the duration after which KCP will consider any failure to a machine unrelated
+	// minHealthyPeriod defines the duration after which KCP will consider any failure to a machine unrelated
 	// from the previous one. In this case the remediation is not considered a retry anymore, and thus the retry
 	// counter restarts from 0. For example, assuming MinHealthyPeriod is set to 1h (default)
 	//
@@ -228,9 +239,27 @@ type RemediationStrategy struct {
 	MinHealthyPeriod *metav1.Duration `json:"minHealthyPeriod,omitempty"`
 }
 
+// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+type MachineNamingStrategy struct {
+	// template defines the template to use for generating the names of the Machine objects.
+	// If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
+	// If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// Length of the template string must not exceed 256 characters.
+	// The template allows the following variables `.cluster.name`, `.kubeadmControlPlane.name` and `.random`.
+	// The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created.
+	// The variable `.kubeadmControlPlane.name` retrieves the name of the KubeadmControlPlane object that owns the Machines being created.
+	// The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required
+	// part of the template. If not provided, validation will fail.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
+	Template string `json:"template,omitempty"`
+}
+
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
 type KubeadmControlPlaneStatus struct {
-	// Selector is the label selector in string format to avoid introspection
+	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
 	// scale subresource and additional integrations for things like kubectl
 	// describe.. The string will be in the same format as the query-param syntax.
@@ -238,39 +267,45 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Selector string `json:"selector,omitempty"`
 
-	// Total number of non-terminated machines targeted by this control plane
+	// replicas is the total number of non-terminated machines targeted by this control plane
 	// (their labels match the selector).
 	// +optional
 	Replicas int32 `json:"replicas"`
 
-	// Version represents the minimum Kubernetes version for the control plane machines
+	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
 	Version *string `json:"version,omitempty"`
 
-	// Total number of non-terminated machines targeted by this control plane
+	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.
 	// +optional
 	UpdatedReplicas int32 `json:"updatedReplicas"`
 
-	// Total number of fully running and ready control plane machines.
+	// readyReplicas is the total number of fully running and ready control plane machines.
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
 
-	// Total number of unavailable machines targeted by this control plane.
+	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
 	// This is the total number of machines that are still required for
 	// the deployment to have 100% available capacity. They may either
 	// be machines that are running but not yet ready or machines
 	// that still have not been created.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
-	// Initialized denotes whether or not the control plane has the
-	// uploaded kubeadm-config configmap.
+	// initialized denotes that the KubeadmControlPlane API Server is initialized and thus
+	// it can accept requests.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the control plane.
 	// +optional
 	Initialized bool `json:"initialized"`
 
-	// Ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
+	// ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
 	// to receive requests.
 	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed. Please use conditions
@@ -278,41 +313,76 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
-	// FailureReason indicates that there is a terminal problem reconciling the
+	// failureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
 
-	// ErrorMessage indicates that there is a terminal problem reconciling the
+	// failureMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current service state of the KubeadmControlPlane.
+	// conditions defines current service state of the KubeadmControlPlane.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
-	// LastRemediation stores info about last remediation performed.
+	// lastRemediation stores info about last remediation performed.
 	// +optional
 	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *KubeadmControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// KubeadmControlPlaneV1Beta2Status Groups all the fields that will be added or modified in KubeadmControlPlane with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmControlPlaneV1Beta2Status struct {
+	// conditions represents the observations of a KubeadmControlPlane's current state.
+	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
+	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
 
 // LastRemediationStatus  stores info about last remediation performed.
 // NOTE: if for any reason information about last remediation are lost, RetryCount is going to restart from 0 and thus
 // more remediations than expected might happen.
 type LastRemediationStatus struct {
-	// Machine is the machine name of the latest machine being remediated.
+	// machine is the machine name of the latest machine being remediated.
 	Machine string `json:"machine"`
 
-	// Timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
 	Timestamp metav1.Time `json:"timestamp"`
 
-	// RetryCount used to keep track of remediation retry for the last remediated machine.
+	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
 	RetryCount int32 `json:"retryCount"`
 }
@@ -350,6 +420,22 @@ func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on this object.
 func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	in.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (in *KubeadmControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+	if in.Status.V1Beta2 == nil {
+		return nil
+	}
+	return in.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (in *KubeadmControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if in.Status.V1Beta2 == nil {
+		in.Status.V1Beta2 = &KubeadmControlPlaneV1Beta2Status{}
+	}
+	in.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

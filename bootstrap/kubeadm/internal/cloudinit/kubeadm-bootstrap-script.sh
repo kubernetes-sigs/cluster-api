@@ -106,7 +106,6 @@ function retry-command() {
   fi
 }
 
-# {{ if .ControlPlane }}
 function try-or-die-command() {
   local kubeadm_return
   log::info "running '$*'"
@@ -118,7 +117,6 @@ function try-or-die-command() {
     log::error_exit "fatal error, exiting" "${kubeadm_return}"
   fi
 }
-# {{ end }}
 
 retry-command kubeadm join phase preflight --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
 # {{ if .ControlPlane }}

@@ -24,6 +24,8 @@ import (
 )
 
 // Index is a helper to model the info passed to cache.IndexField.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.CacheOptionsIndex instead.
 type Index struct {
 	Object       client.Object
 	Field        string
@@ -31,6 +33,8 @@ type Index struct {
 }
 
 // NodeProviderIDIndex is used to index Nodes by ProviderID.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.NodeProviderIDIndex instead.
 var NodeProviderIDIndex = Index{
 	Object:       &corev1.Node{},
 	Field:        index.NodeProviderIDField,

@@ -16,4 +16,4 @@ patches:
     kind: KubeadmConfigTemplate
     name: .*-md-0
     version: v1beta1
-- patch: platform-kustomization.yaml
+- path: platform-kustomization.yaml

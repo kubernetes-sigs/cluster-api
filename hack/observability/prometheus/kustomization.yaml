@@ -7,7 +7,7 @@ helmCharts:
     releaseName: prometheus
     namespace: observability
     valuesFile: values.yaml
-    version: 24.1.0
+    version: 26.0.1
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

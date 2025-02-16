@@ -18,6 +18,13 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
   - authentication.k8s.io
   resources:
   - tokenreviews
@@ -33,6 +40,7 @@ rules:
   - bootstrap.cluster.x-k8s.io
   resources:
   - kubeadmconfigs
+  - kubeadmconfigs/finalizers
   - kubeadmconfigs/status
   verbs:
   - create
@@ -56,10 +64,3 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch

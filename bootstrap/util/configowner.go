@@ -176,7 +176,7 @@ func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, get
 
 // GetOwnerByRef finds and returns the owner by looking at the object reference.
 func GetOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
-	obj, err := external.Get(ctx, c, ref, ref.Namespace)
+	obj, err := external.Get(ctx, c, ref)
 	if err != nil {
 		return nil, err
 	}

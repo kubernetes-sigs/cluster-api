@@ -24,7 +24,9 @@ import (
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -42,7 +44,6 @@ type etcd interface {
 	Endpoints() []string
 	MemberList(ctx context.Context) (*clientv3.MemberListResponse, error)
 	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
-	MemberUpdate(ctx context.Context, id uint64, peerURLs []string) (*clientv3.MemberUpdateResponse, error)
 	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
 	Status(ctx context.Context, endpoint string) (*clientv3.StatusResponse, error)
 }
@@ -112,9 +113,6 @@ type Member struct {
 
 	// IsLearner indicates if the member is raft learner.
 	IsLearner bool
-
-	// Alarms is the list of alarms for a member.
-	Alarms []AlarmType
 }
 
 // pbMemberToMember converts the protobuf representation of a cluster member to a Member struct.
@@ -125,7 +123,6 @@ func pbMemberToMember(m *etcdserverpb.Member) *Member {
 		PeerURLs:   m.GetPeerURLs(),
 		ClientURLs: m.GetClientURLs(),
 		IsLearner:  m.GetIsLearner(),
-		Alarms:     []AlarmType{},
 	}
 }
 
@@ -138,11 +135,17 @@ type ClientConfiguration struct {
 	CallTimeout time.Duration
 }
 
+var (
+	// Create the etcdClientLogger only once. Otherwise every call of clientv3.New
+	// would create its own logger which leads to a lot of memory allocations.
+	etcdClientLogger, _ = logutil.CreateDefaultZapLogger(zapcore.InfoLevel)
+)
+
 // NewClient creates a new etcd client with the given configuration.
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
 	dialer, err := proxy.NewDialer(config.Proxy)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create a dialer for etcd client")
+		return nil, errors.Wrapf(err, "unable to create a dialer for the etcd client connecting to %s", config.Endpoint)
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
@@ -151,7 +154,8 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		DialOptions: []grpc.DialOption{
 			grpc.WithContextDialer(dialer.DialContextWithAddr),
 		},
-		TLS: config.TLSConfig,
+		TLS:    config.TLSConfig,
+		Logger: etcdClientLogger,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")
@@ -165,7 +169,7 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 	client, err := newEtcdClient(ctx, etcdClient, callTimeout)
 	if err != nil {
 		closeErr := etcdClient.Close()
-		return nil, errors.Wrap(kerrors.NewAggregate([]error{err, closeErr}), "unable to create etcd client")
+		return nil, kerrors.NewAggregate([]error{err, closeErr})
 	}
 	return client, nil
 }
@@ -173,10 +177,10 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Duration) (*Client, error) {
 	endpoints := etcdClient.Endpoints()
 	if len(endpoints) == 0 {
-		return nil, errors.New("etcd client was not configured with any endpoints")
+		return nil, errors.New("invalid argument: newEtcdClient cannot be called without any endpoint")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, callTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, callTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	status, err := etcdClient.Status(ctx, endpoints[0])
@@ -200,17 +204,12 @@ func (c *Client) Close() error {
 
 // Members retrieves a list of etcd members.
 func (c *Client) Members(ctx context.Context) ([]*Member, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	response, err := c.EtcdClient.MemberList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get list of members for etcd cluster")
-	}
-
-	alarms, err := c.Alarms(ctx)
-	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get etcd members")
 	}
 
 	clusterID := response.Header.GetClusterId()
@@ -218,11 +217,6 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 	for _, m := range response.Members {
 		newMember := pbMemberToMember(m)
 		newMember.ClusterID = clusterID
-		for _, c := range alarms {
-			if c.MemberID == newMember.ID {
-				newMember.Alarms = append(newMember.Alarms, c.Type)
-			}
-		}
 		members = append(members, newMember)
 	}
 
@@ -231,48 +225,30 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 
 // MoveLeader moves the leader to the provided member ID.
 func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
-	return errors.Wrapf(err, "failed to move etcd leader: %v", newLeaderID)
+	return errors.Wrapf(err, "failed to move etcd leader to: %v", newLeaderID)
 }
 
 // RemoveMember removes a given member.
 func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	_, err := c.EtcdClient.MemberRemove(ctx, id)
-	return errors.Wrapf(err, "failed to remove member: %v", id)
-}
-
-// UpdateMemberPeerURLs updates the list of peer URLs.
-func (c *Client) UpdateMemberPeerURLs(ctx context.Context, id uint64, peerURLs []string) ([]*Member, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
-	defer cancel()
-
-	response, err := c.EtcdClient.MemberUpdate(ctx, id, peerURLs)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update etcd member %v's peer list to %+v", id, peerURLs)
-	}
-
-	members := make([]*Member, 0, len(response.Members))
-	for _, m := range response.Members {
-		members = append(members, pbMemberToMember(m))
-	}
-
-	return members, nil
+	return errors.Wrapf(err, "failed to remove etcd member: %v", id)
 }
 
 // Alarms retrieves all alarms on a cluster.
 func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.CallTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.CallTimeout, errors.New("call timeout expired"))
 	defer cancel()
 
 	alarmResponse, err := c.EtcdClient.AlarmList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get alarms for etcd cluster")
+		return nil, errors.Wrap(err, "failed to get etcd alarms")
 	}
 
 	memberAlarms := make([]MemberAlarm, 0, len(alarmResponse.Alarms))

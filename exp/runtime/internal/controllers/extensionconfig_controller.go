@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,8 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -63,6 +63,11 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+	if r.Client == nil || r.APIReader == nil || r.RuntimeClient == nil {
+		return errors.New("Client, APIReader and RuntimeClient must not be nil")
+	}
+
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "extensionconfig")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).
 		WatchesRawSource(source.Kind(
@@ -76,9 +81,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.TypedEnqueueRequestsFromMapFunc(
 				r.secretToExtensionConfig,
 			),
+			predicates.TypedResourceIsChanged[*metav1.PartialObjectMetadata](mgr.GetScheme(), predicateLog),
 		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -160,7 +166,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Register the ExtensionConfig if it was found and patched without error.
-	log.Info("Registering ExtensionConfig information into registry")
+	log.V(4).Info("Registering ExtensionConfig information into registry")
 	if err = r.RuntimeClient.Register(discoveredExtensionConfig); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
 	}
@@ -185,7 +191,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runti
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Unregistering ExtensionConfig information from registry")
 	if err := r.RuntimeClient.Unregister(extensionConfig); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister %s", tlog.KObj{Obj: extensionConfig})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister ExtensionConfig %s", klog.KObj(extensionConfig))
 	}
 	return ctrl.Result{}, nil
 }
@@ -221,7 +227,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "error in discovery: %v", err)
-		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover %s", tlog.KObj{Obj: extensionConfig})
+		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
 	}
 
 	conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
@@ -240,7 +246,7 @@ func reconcileCABundle(ctx context.Context, client client.Client, config *runtim
 	}
 	secretName := splitNamespacedName(secretNameRaw)
 
-	log.Info(fmt.Sprintf("Injecting CA Bundle into ExtensionConfig from secret %q", secretNameRaw))
+	log.V(4).Info(fmt.Sprintf("Injecting CA Bundle into ExtensionConfig from secret %q", secretNameRaw))
 
 	if secretName.Namespace == "" || secretName.Name == "" {
 		return errors.Errorf("failed to reconcile caBundle: secret name %q must be in the form <namespace>/<name>", secretNameRaw)

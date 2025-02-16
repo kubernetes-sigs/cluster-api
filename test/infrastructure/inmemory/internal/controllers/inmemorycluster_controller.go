@@ -22,7 +22,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,7 +39,9 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -55,7 +59,7 @@ type InMemoryClusterReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemoryclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemoryclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemoryclusters/status;inmemoryclusters/finalizers,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 
 // Reconcile reads that state of the cluster for a InMemoryCluster object and makes changes based on the state read
@@ -72,6 +76,11 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, inMemoryCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, inMemoryCluster.ObjectMeta)
 	if err != nil {
@@ -84,6 +93,10 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, inMemoryCluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(inMemoryCluster, r.Client)
@@ -107,13 +120,6 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Handle deleted clusters
 	if !inMemoryCluster.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, inMemoryCluster)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(inMemoryCluster, infrav1.ClusterFinalizer) {
-		controllerutil.AddFinalizer(inMemoryCluster, infrav1.ClusterFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted clusters
@@ -151,7 +157,7 @@ func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) err
 	return nil
 }
 
-func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
+func (r *InMemoryClusterReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
 	// Compute the name for resource group and listener.
 	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
@@ -165,6 +171,30 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	// NOTE: We are storing in this resource group both the in memory resources (e.g. VM) as
 	// well as Kubernetes resources that are expected to exist on the workload cluster (e.g Nodes).
 	r.InMemoryManager.AddResourceGroup(resourceGroup)
+
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Create default Namespaces.
+	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nsName,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": nsName,
+				},
+			},
+		}
+
+		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get %s Namespace", nsName)
+			}
+
+			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+				return errors.Wrapf(err, "failed to create %s Namespace", nsName)
+			}
+		}
+	}
 
 	// Initialize a listener for the workload cluster; if the listener has been already initialized
 	// the operation is a no-op.
@@ -208,16 +238,22 @@ func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *
 
 // SetupWithManager will add watches for this controller.
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil {
+		return errors.New("Client, InMemoryManager and APIServerMux must not be nil")
+	}
+
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "inmemorycluster")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),
-			builder.WithPredicates(
-				predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-			),
+			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
+			)),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

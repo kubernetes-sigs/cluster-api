@@ -29,7 +29,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestIsMachineDeploymentUpgrading(t *testing.T) {
@@ -138,7 +138,8 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "node1"},
 						{Name: "node2"},
-					}}).
+					},
+				}).
 				Build(),
 			nodes: []*corev1.Node{
 				{
@@ -166,7 +167,8 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "node1"},
 						{Name: "node2"},
-					}}).
+					},
+				}).
 				Build(),
 			nodes: []*corev1.Node{
 				{
@@ -191,7 +193,8 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
 				WithStatus(expv1.MachinePoolStatus{
-					NodeRefs: []corev1.ObjectReference{}}).
+					NodeRefs: []corev1.ObjectReference{},
+				}).
 				Build(),
 			nodes:   []*corev1.Node{},
 			want:    false,

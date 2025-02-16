@@ -34,20 +34,20 @@ type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// ProviderName indicates the name of the provider.
+	// providerName indicates the name of the provider.
 	// +optional
 	ProviderName string `json:"providerName,omitempty"`
 
-	// Type indicates the type of the provider.
+	// type indicates the type of the provider.
 	// See ProviderType for a list of supported values
 	// +optional
 	Type string `json:"type,omitempty"`
 
-	// Version indicates the component version.
+	// version indicates the component version.
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// WatchedNamespace indicates the namespace where the provider controller is watching.
+	// watchedNamespace indicates the namespace where the provider controller is watching.
 	// If empty the provider controller is watching for objects in all namespaces.
 	//
 	// Deprecated: providers complying with the Cluster API v1alpha4 contract or above must watch all namespaces; this field will be removed in a future version of this API

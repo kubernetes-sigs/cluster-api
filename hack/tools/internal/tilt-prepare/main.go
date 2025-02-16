@@ -34,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,17 +62,16 @@ import (
 
 /*
 Example call for tilt up:
-	--tools kustomize,envsubst
+	--tools kustomize,clusterctl
 */
 
 const (
 	kustomizePath = "./hack/tools/bin/kustomize"
-	envsubstPath  = "./hack/tools/bin/envsubst"
 )
 
 var (
 	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
-	defaultProviderVersion = "v1.9.99"
+	defaultProviderVersion = "v1.10.99"
 
 	// This data struct mirrors a subset of info from the providers struct in the tilt file
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
@@ -388,6 +388,7 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 		ret[p.Name] = tiltProviderConfig{
 			Context:           &contextPath,
 			Version:           p.Config.Version,
+			LiveReloadDeps:    p.Config.LiveReloadDeps,
 			ApplyProviderYaml: p.Config.ApplyProviderYaml,
 			KustomizeFolder:   p.Config.KustomizeFolder,
 			KustomizeOptions:  p.Config.KustomizeOptions,
@@ -457,8 +458,8 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	}(time.Now())
 
 	// Create a context to be used for canceling all the tasks when another fails.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(errors.New("run task group context cancelled"))
 
 	// Make channels to pass fatal errors in WaitGroup
 	errors := make(chan error)
@@ -482,7 +483,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 		break
 	case err := <-errors:
 		// cancel all the running tasks
-		cancel()
+		cancel(err)
 		// consumes all the errors from the channel
 		errList := []error{err}
 	Loop:
@@ -717,18 +718,13 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 			return
 		}
 
-		envsubstCmd := exec.CommandContext(ctx, envsubstPath)
-		var stdout2, stderr2 bytes.Buffer
-		envsubstCmd.Dir = rootPath
-		envsubstCmd.Stdin = bytes.NewReader(stdout1.Bytes())
-		envsubstCmd.Stdout = &stdout2
-		envsubstCmd.Stderr = &stderr2
-		if err := envsubstCmd.Run(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to run %s: %s", prefix, envsubstCmd.Args, stderr2.String())
+		out2, err := envsubst.Eval(stdout1.String(), os.Getenv)
+		if err != nil {
+			errCh <- errors.Wrapf(err, "[%s] failed to do envsubst on kustomized output", prefix)
 			return
 		}
 
-		objs, err := utilyaml.ToUnstructured(stdout2.Bytes())
+		objs, err := utilyaml.ToUnstructured([]byte(out2))
 		if err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed parse components yaml", prefix)
 			return

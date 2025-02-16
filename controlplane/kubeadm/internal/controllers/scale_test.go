@@ -70,7 +70,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload:   fakeWorkloadCluster{},
+			Workload:   &fakeWorkloadCluster{},
 		},
 	}
 	controlPlane := &internal.ControlPlane{
@@ -139,7 +139,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.New(),
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 
 		for i := range 2 {
@@ -214,7 +214,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: beforeMachines.DeepCopy(),
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -265,7 +265,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 
@@ -308,7 +308,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 
@@ -350,7 +350,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 
@@ -517,15 +517,21 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 
 func TestPreflightChecks(t *testing.T) {
 	testCases := []struct {
-		name         string
-		kcp          *controlplanev1.KubeadmControlPlane
-		machines     []*clusterv1.Machine
-		expectResult ctrl.Result
+		name            string
+		kcp             *controlplanev1.KubeadmControlPlane
+		machines        []*clusterv1.Machine
+		expectResult    ctrl.Result
+		expectPreflight internal.PreflightCheckResults
 	}{
 		{
 			name:         "control plane without machines (not initialized) should pass",
 			kcp:          &controlplanev1.KubeadmControlPlane{},
 			expectResult: ctrl.Result{},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+			},
 		},
 		{
 			name: "control plane with a deleting machine should requeue",
@@ -538,6 +544,11 @@ func TestPreflightChecks(t *testing.T) {
 				},
 			},
 			expectResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               true,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+			},
 		},
 		{
 			name: "control plane without a nodeRef should requeue",
@@ -546,10 +557,16 @@ func TestPreflightChecks(t *testing.T) {
 				{
 					Status: clusterv1.MachineStatus{
 						NodeRef: nil,
+						// Note: with v1beta1 no conditions are applied to machine when NodeRef is not set, this will change with v1beta2.
 					},
 				},
 			},
 			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: true,
+				EtcdClusterNotHealthy:            true,
+			},
 		},
 		{
 			name: "control plane with an unhealthy machine condition should requeue",
@@ -572,6 +589,38 @@ func TestPreflightChecks(t *testing.T) {
 				},
 			},
 			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: true,
+				EtcdClusterNotHealthy:            false,
+			},
+		},
+		{
+			name: "control plane with an unhealthy machine condition should requeue",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{
+					Status: clusterv1.MachineStatus{
+						NodeRef: &corev1.ObjectReference{
+							Kind: "Node",
+							Name: "node-1",
+						},
+						Conditions: clusterv1.Conditions{
+							*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+							*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+							*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+							*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
+						},
+					},
+				},
+			},
+			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            true,
+			},
 		},
 		{
 			name: "control plane with an healthy machine and an healthy kcp condition should pass",
@@ -601,6 +650,11 @@ func TestPreflightChecks(t *testing.T) {
 				},
 			},
 			expectResult: ctrl.Result{},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+			},
 		},
 	}
 
@@ -619,6 +673,7 @@ func TestPreflightChecks(t *testing.T) {
 			result, err := r.preflightChecks(context.TODO(), controlPlane)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result).To(BeComparableTo(tt.expectResult))
+			g.Expect(controlPlane.PreflightCheckResults).To(Equal(tt.expectPreflight))
 		})
 	}
 }
@@ -700,6 +755,12 @@ func withFailureDomain(fd string) machineOpt {
 func withAnnotation(annotation string) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.ObjectMeta.Annotations = map[string]string{annotation: ""}
+	}
+}
+
+func withLabels(labels map[string]string) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.ObjectMeta.Labels = labels
 	}
 }
 

@@ -45,11 +45,11 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
-	"sigs.k8s.io/cluster-api/internal/topology/names"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 var (
@@ -235,6 +235,33 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		g.Expect(obj.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
 		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 	})
+
+	t.Run("Always generates the infrastructureMachineTemplate from the template in the cluster namespace", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := cluster.DeepCopy()
+		cluster.Namespace = "differs"
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertTemplateToTemplate(g, assertTemplateInput{
+			cluster:     scope.Current.Cluster,
+			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentRef:  nil,
+			obj:         obj,
+		})
+
+		// Ensure Cluster ownership is added to generated InfrastructureCluster.
+		g.Expect(obj.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(obj.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
+	})
+
 	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -1178,7 +1205,13 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 
 				_, err := r.computeControlPlaneVersion(ctx, tt.s)
-				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
+
+				if tt.wantHookToBeCalled {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(1), "Expected hook to be called once")
+				} else {
+					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(0), "Did not expect hook to be called")
+				}
+
 				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
 				g.Expect(err != nil).To(Equal(tt.wantErr))
 				if tt.wantHookToBeCalled && !tt.wantErr {
@@ -1381,7 +1414,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
 					UnhealthyConditions: unhealthyConditions,
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)},
+						Duration: time.Duration(1),
+					},
 				},
 			},
 		},
@@ -2661,7 +2695,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2681,7 +2715,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2722,7 +2756,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2741,7 +2775,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2906,7 +2940,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			},
 		},
 		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1)},
+			Duration: time.Duration(1),
+		},
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
@@ -2950,7 +2985,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				},
 			},
 			NodeStartupTimeout: &metav1.Duration{
-				Duration: time.Duration(1)},
+				Duration: time.Duration(1),
+			},
 		},
 	}
 

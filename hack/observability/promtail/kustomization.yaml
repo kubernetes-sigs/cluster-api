@@ -7,7 +7,7 @@ helmCharts:
     releaseName: promtail
     namespace: observability
     valuesFile: values.yaml
-    version: 6.11.2
+    version: 6.16.6
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

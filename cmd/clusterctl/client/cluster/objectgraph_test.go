@@ -32,7 +32,7 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
@@ -240,6 +240,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 type wantGraphItem struct {
 	virtual            bool
 	isGlobal           bool
+	shouldNotDelete    bool
 	forceMove          bool
 	forceMoveHierarchy bool
 	owners             []string
@@ -255,16 +256,22 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 
 	g := NewWithT(t)
 
+	for uid := range got.uidToNode {
+		_, ok := want.nodes[string(uid)]
+		g.Expect(ok).To(BeTrue(), "node %q is unexpected", uid)
+	}
+
 	g.Expect(got.uidToNode).To(HaveLen(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes - got: %d expected: %d", len(got.uidToNode), len(want.nodes))
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
 		g.Expect(ok).To(BeTrue(), "node %q not found", uid)
+
 		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual), "node %q.virtual does not have the expected value", uid)
 		g.Expect(gotNode.isGlobal).To(Equal(wantNode.isGlobal), "node %q.isGlobal does not have the expected value", uid)
 		g.Expect(gotNode.forceMove).To(Equal(wantNode.forceMove), "node %q.forceMove does not have the expected value", uid)
 		g.Expect(gotNode.forceMoveHierarchy).To(Equal(wantNode.forceMoveHierarchy), "node %q.forceMoveHierarchy does not have the expected value", uid)
-		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)), "node %q.owner does not have the expected length", uid)
+		g.Expect(gotNode.shouldNotDelete).To(Equal(wantNode.shouldNotDelete), "node %q.shouldNotDelete does not have the expected value", uid)
 
 		for _, wantOwner := range wantNode.owners {
 			found := false
@@ -289,6 +296,8 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 			}
 			g.Expect(found).To(BeTrue(), "node %q.softOwners does not contain %q", uid, wantOwner)
 		}
+
+		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)), "node %q.owner does not have the expected length", uid)
 	}
 }
 
@@ -1043,7 +1052,6 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-
 				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/shared": {
 					owners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
@@ -1397,9 +1405,9 @@ var objectGraphsTests = []struct {
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
 				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
-					isGlobal:           true,
 					forceMove:          true,
 					forceMoveHierarchy: true,
+					isGlobal:           true,
 				},
 				"/v1, Kind=Secret, infra1-system/infra1-identity-credentials": {
 					owners: []string{
@@ -1638,7 +1646,6 @@ var objectGraphsTests = []struct {
 				// We need to deduplicate objects here as the clusterclasses share objects and
 				// setting up the test server panics if we try to create it with duplicate objects.
 				return deduplicateObjects(objs)
-
 			}(),
 		},
 		want: wantGraph{
@@ -1807,7 +1814,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 		namespace string
 		objs      []client.Object
 	}
-	var tests = []struct {
+	tests := []struct {
 		name    string
 		args    args
 		want    wantGraph
@@ -1898,6 +1905,244 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 						owners: []string{
 							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
 						},
+					},
+				},
+			},
+		},
+		{
+			name: "two independent clusters, in different namespaces referencing the same clusterclass in moved namespace",
+			args: args{
+				namespace: "ns1", // read only from ns1
+				objs: func() []client.Object {
+					objs := []client.Object{}
+					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
+					objs = append(objs, test.NewFakeClusterClass("ns1", "class2").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class2").WithTopologyClassNamespace("ns1").Objs()...)
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2": {
+						// Expected to be moved but not deleted after
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						shouldNotDelete:    true,
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class2": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2",
+						},
+						shouldNotDelete: true,
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class2": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2",
+						},
+						shouldNotDelete: true,
+					},
+				},
+			},
+		},
+		{
+			name: "two independent clusters, in different namespaces referencing own classes in separate namespaces should not overlap",
+			args: args{
+				namespace: "ns1", // read only from ns1
+				objs: func() []client.Object {
+					objs := []client.Object{}
+					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
+					objs = append(objs, test.NewFakeClusterClass("ns2", "class2").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class2").WithTopologyClassNamespace("ns2").Objs()...)
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "two clusters, in different namespaces referencing same class, read only 1",
+			args: args{
+				namespace: "ns1", // read only from ns1
+				objs: func() []client.Object {
+					objs := []client.Object{}
+					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+						shouldNotDelete: true,
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						shouldNotDelete:    true,
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+						shouldNotDelete: true,
+					},
+				},
+			},
+		},
+		{
+			name: "two clusters, in different namespaces referencing class from other namespace, read only 1",
+			args: args{
+				namespace: "ns2", // read only from ns2
+				objs: func() []client.Object {
+					objs := []client.Object{}
+					objs = append(objs, test.NewFakeClusterClass("ns1", "class1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").WithTopologyClassNamespace("ns1").Objs()...)
+					return deduplicateObjects(objs)
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns2/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns2/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						},
+					},
+					"/v1, Kind=Secret, ns2/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+						shouldNotDelete: true,
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						shouldNotDelete:    true,
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+						shouldNotDelete: true,
 					},
 				},
 			},

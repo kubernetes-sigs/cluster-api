@@ -53,7 +53,12 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.LastRemediation = restored.Status.LastRemediation
 	}
 
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+	}
+
 	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -112,6 +117,10 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	if restored.Spec.Template.Spec.RemediationStrategy != nil {
 		dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
+	}
+
+	if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
+		dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
 	}
 
 	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec, &restored.Spec.Template.Spec.KubeadmConfigSpec)
@@ -211,6 +220,7 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec
 
 func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, scope apiconversion.Scope) error {
 	// .LastRemediation was added in v1beta1.
+	// .V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in, out, scope)
 }
 

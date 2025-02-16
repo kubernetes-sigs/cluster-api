@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
@@ -109,7 +110,10 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
 func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference) error {
-	server := fmt.Sprintf("https://%s", endpoint)
+	server, err := url.JoinPath("https://", endpoint)
+	if err != nil {
+		return err
+	}
 	out, err := generateKubeconfig(ctx, c, clusterName, server)
 	if err != nil {
 		return err

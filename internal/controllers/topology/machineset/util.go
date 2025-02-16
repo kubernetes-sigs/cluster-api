@@ -25,11 +25,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 )
 
 // GetMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
@@ -62,7 +63,7 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 		bootstrapRef := ms.Spec.Template.Spec.Bootstrap.ConfigRef
 		infrastructureRef := &ms.Spec.Template.Spec.InfrastructureRef
 		if err := addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef); err != nil {
-			return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", tlog.KObj{Obj: ms})
+			return nil, errors.Wrapf(err, "failed to add templates of MachineSet %s to templatesInUse", klog.KObj(ms))
 		}
 	}
 
@@ -76,7 +77,7 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 	bootstrapRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
 	infrastructureRef := &md.Spec.Template.Spec.InfrastructureRef
 	if err := addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef); err != nil {
-		return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", tlog.KObj{Obj: md})
+		return nil, errors.Wrapf(err, "failed to add templates of MachineDeployment %s to templatesInUse", klog.KObj(md))
 	}
 	return templatesInUse, nil
 }
@@ -88,7 +89,7 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 		return nil
 	}
 
-	log := tlog.LoggerFrom(ctx).WithRef(ref)
+	log := ctrl.LoggerFrom(ctx).WithValues(ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 
 	refID, err := templateRefID(ref)
 	if err != nil {
@@ -97,13 +98,13 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 
 	// If the template is still in use, do nothing.
 	if templatesInUse[refID] {
-		log.V(3).Infof("Not deleting %s, because it's still in use", tlog.KRef{Ref: ref})
+		log.V(3).Info(fmt.Sprintf("Not deleting %s, because it's still in use", ref.Kind))
 		return nil
 	}
 
-	log.Infof("Deleting %s", tlog.KRef{Ref: ref})
+	log.Info(fmt.Sprintf("Deleting %s", ref.Kind))
 	if err := external.Delete(ctx, c, ref); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to delete %s", tlog.KRef{Ref: ref})
+		return errors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 	}
 	return nil
 }

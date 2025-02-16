@@ -49,6 +49,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 				ExclusiveMaximum: true,
 				Minimum:          ptr.To[int64](1),
 				ExclusiveMinimum: false,
+				OneOf: []clusterv1.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				AnyOf: []clusterv1.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				AllOf: []clusterv1.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				Not: &clusterv1.JSONSchemaProps{
+					Required: []string{"property1", "property2"},
+				},
 			},
 			want: &apiextensions.JSONSchemaProps{
 				Type:             "integer",
@@ -60,6 +78,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 				ExclusiveMaximum: true,
 				Minimum:          ptr.To[float64](1),
 				ExclusiveMinimum: false,
+				OneOf: []apiextensions.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				AnyOf: []apiextensions.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				AllOf: []apiextensions.JSONSchemaProps{{
+					Required: []string{"property1", "property2"},
+				}, {
+					Required: []string{"property3", "property4"},
+				}},
+				Not: &apiextensions.JSONSchemaProps{
+					Required: []string{"property1", "property2"},
+				},
 			},
 		},
 		{
@@ -107,6 +143,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Format:        "uri",
 						MinProperties: ptr.To[int64](2),
 						MaxProperties: ptr.To[int64](4),
+						OneOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AnyOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AllOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						Not: &clusterv1.JSONSchemaProps{
+							Required: []string{"property1", "property2"},
+						},
 					},
 				},
 			},
@@ -121,6 +175,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Format:        "uri",
 						MinProperties: ptr.To[int64](2),
 						MaxProperties: ptr.To[int64](4),
+						OneOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AnyOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AllOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						Not: &apiextensions.JSONSchemaProps{
+							Required: []string{"property1", "property2"},
+						},
 					},
 				},
 			},
@@ -139,6 +211,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 							Format:        "uri",
 							MinProperties: ptr.To[int64](2),
 							MaxProperties: ptr.To[int64](4),
+							OneOf: []clusterv1.JSONSchemaProps{{
+								Required: []string{"property1", "property2"},
+							}, {
+								Required: []string{"property3", "property4"},
+							}},
+							AnyOf: []clusterv1.JSONSchemaProps{{
+								Required: []string{"property1", "property2"},
+							}, {
+								Required: []string{"property3", "property4"},
+							}},
+							AllOf: []clusterv1.JSONSchemaProps{{
+								Required: []string{"property1", "property2"},
+							}, {
+								Required: []string{"property3", "property4"},
+							}},
+							Not: &clusterv1.JSONSchemaProps{
+								Required: []string{"property1", "property2"},
+							},
 						},
 					},
 				},
@@ -157,6 +247,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 								Format:        "uri",
 								MinProperties: ptr.To[int64](2),
 								MaxProperties: ptr.To[int64](4),
+								OneOf: []apiextensions.JSONSchemaProps{{
+									Required: []string{"property1", "property2"},
+								}, {
+									Required: []string{"property3", "property4"},
+								}},
+								AnyOf: []apiextensions.JSONSchemaProps{{
+									Required: []string{"property1", "property2"},
+								}, {
+									Required: []string{"property3", "property4"},
+								}},
+								AllOf: []apiextensions.JSONSchemaProps{{
+									Required: []string{"property1", "property2"},
+								}, {
+									Required: []string{"property3", "property4"},
+								}},
+								Not: &apiextensions.JSONSchemaProps{
+									Required: []string{"property1", "property2"},
+								},
 							},
 						},
 					},
@@ -172,6 +280,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 					Format:    "uri",
 					MinLength: ptr.To[int64](2),
 					MaxLength: ptr.To[int64](4),
+					OneOf: []clusterv1.JSONSchemaProps{{
+						Required: []string{"property1", "property2"},
+					}, {
+						Required: []string{"property3", "property4"},
+					}},
+					AnyOf: []clusterv1.JSONSchemaProps{{
+						Required: []string{"property1", "property2"},
+					}, {
+						Required: []string{"property3", "property4"},
+					}},
+					AllOf: []clusterv1.JSONSchemaProps{{
+						Required: []string{"property1", "property2"},
+					}, {
+						Required: []string{"property3", "property4"},
+					}},
+					Not: &clusterv1.JSONSchemaProps{
+						Required: []string{"property1", "property2"},
+					},
 				},
 			},
 			want: &apiextensions.JSONSchemaProps{
@@ -182,6 +308,24 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Format:    "uri",
 						MinLength: ptr.To[int64](2),
 						MaxLength: ptr.To[int64](4),
+						OneOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AnyOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						AllOf: []apiextensions.JSONSchemaProps{{
+							Required: []string{"property1", "property2"},
+						}, {
+							Required: []string{"property3", "property4"},
+						}},
+						Not: &apiextensions.JSONSchemaProps{
+							Required: []string{"property1", "property2"},
+						},
 					},
 				},
 			},
@@ -228,6 +372,30 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 							MessageExpression: "value must be greater than 0",
 							FieldPath:         "a.field.path",
 							Reason:            ptr.To(apiextensions.FieldValueErrorReason("a reason")),
+						}},
+					},
+				},
+			},
+		}, {
+			name: "pass for schema validation with XIntOrString",
+			schema: &clusterv1.JSONSchemaProps{
+				Items: &clusterv1.JSONSchemaProps{
+					XIntOrString: true,
+					AnyOf: []clusterv1.JSONSchemaProps{{
+						Type: "integer",
+					}, {
+						Type: "string",
+					}},
+				},
+			},
+			want: &apiextensions.JSONSchemaProps{
+				Items: &apiextensions.JSONSchemaPropsOrArray{
+					Schema: &apiextensions.JSONSchemaProps{
+						XIntOrString: true,
+						AnyOf: []apiextensions.JSONSchemaProps{{
+							Type: "integer",
+						}, {
+							Type: "string",
 						}},
 					},
 				},

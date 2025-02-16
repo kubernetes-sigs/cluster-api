@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8sversion "k8s.io/apimachinery/pkg/version"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -219,7 +220,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 		key := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.InfrastructureRef.Name}
 
 		if err := c.Get(ctx, key, providerCluster); err != nil {
-			log.V(4).Error(err, fmt.Sprintf("Failed to get %T", providerCluster))
+			log.V(4).Info(fmt.Sprintf("Failed to get %T", providerCluster), "err", err)
 			return nil
 		}
 
@@ -332,6 +333,21 @@ func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.Own
 		return append(ownerReferences[:index], ownerReferences[index+1:]...)
 	}
 	return ownerReferences
+}
+
+// HasExactOwnerRef returns true if the exact OwnerReference is already in the slice.
+// It matches based on APIVersion, Kind, Name and Controller.
+func HasExactOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
+	for _, r := range ownerReferences {
+		if r.APIVersion == ref.APIVersion &&
+			r.Kind == ref.Kind &&
+			r.Name == ref.Name &&
+			r.UID == ref.UID &&
+			ptr.Deref(r.Controller, false) == ptr.Deref(ref.Controller, false) {
+			return true
+		}
+	}
+	return false
 }
 
 // indexOwnerRef returns the index of the owner reference in the slice if found, or -1.
@@ -510,7 +526,10 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 			listOpts = append(listOpts, client.InNamespace(cluster.Namespace))
 		}
 
-		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		// Note: We have to DeepCopy objectList into a new variable. Otherwise
+		// we have a race condition between DeepCopyObject and client.List if this
+		// mapper func is called concurrently.
+		objectList := objectList.DeepCopyObject().(client.ObjectList)
 		if err := c.List(ctx, objectList, listOpts...); err != nil {
 			return nil
 		}

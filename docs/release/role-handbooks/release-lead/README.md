@@ -94,7 +94,7 @@ This comes down to changing occurrences of the old version to the new version, e
 
 Prior art:
 
-* 1.9 - https://github.com/kubernetes-sigs/cluster-api/pull/11059
+* 1.10 - https://github.com/kubernetes-sigs/cluster-api/pull/11647
 
 ### Create a new GitHub milestone for the next release
 
@@ -132,6 +132,8 @@ We should take a look at the following dependencies:
 
 There is currently no formalized process to assemble the release team.
 As of now we ask for volunteers in Slack and office hours.
+
+Overweighing the CI team with members is preferred as maintaining a clean CI signal is crucial to the health of the project.
 
 ### Update milestone applier and GitHub Actions
 
@@ -171,7 +173,7 @@ to a newer Go minor version according to our [backport policy](./../../../../CON
 
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
    Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
-2. Ask the [Communications/Docs/Release Notes Manager](#communicationsdocsrelease-notes-manager) to [create a PR with the release notes](#create-pr-for-release-notes) for the new desired tag and review the PR. Once the PR merges, it will trigger a [GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) to create a release branch, push release tags, and create a draft release. This will also trigger a [ProwJob](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images) to publish images to the staging repository.
+2. Ask the [Communications/Docs/Release Notes Manager](../communications/README.md) to [create a PR with the release notes](../communications/README.md#create-pr-for-release-notes) for the new desired tag and review the PR. Once the PR merges, it will trigger a [GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) to create a release branch, push release tags, and create a draft release. This will also trigger a [ProwJob](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images) to publish images to the staging repository.
 3. Promote images from the staging repository to the production registry (`registry.k8s.io/cluster-api`):
     1. Wait until images for the tag have been built and pushed to the [staging repository](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api) by the [post push images job](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images).
     2. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
@@ -265,3 +267,4 @@ Additional information:
      The following steps can be taken:
       - Edit improvement tasks board name for current cycle (e.g. `CAPI vX.Y release improvement tasks`)
       - Add/move all individual missing issues to the board
+   * Tasks that improve release automation, tooling & related developer docs are ideal candidates and should be prioritized.

@@ -119,6 +119,41 @@ func (c *ControlPlaneContract) UnavailableReplicas() *Int64 {
 	}
 }
 
+// V1Beta2ReadyReplicas provide access to readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2ReadyReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "readyReplicas"},
+			[]string{"status", "readyReplicas"},
+		},
+	}
+}
+
+// V1Beta2AvailableReplicas provide access to the availableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2AvailableReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "availableReplicas"},
+			[]string{"status", "availableReplicas"},
+		},
+	}
+}
+
+// V1Beta2UpToDateReplicas provide access to the upToDateReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) V1Beta2UpToDateReplicas() *Int32 {
+	return &Int32{
+		paths: []Path{
+			[]string{"status", "v1beta2", "upToDateReplicas"},
+			[]string{"status", "upToDateReplicas"},
+		},
+	}
+}
+
+// AvailableConditionType returns the type of the available condition.
+func (c *ControlPlaneContract) AvailableConditionType() string {
+	return "Available"
+}
+
 // Selector provide access to the status.selector field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) Selector() *String {
 	return &String{
@@ -127,6 +162,8 @@ func (c *ControlPlaneContract) Selector() *String {
 }
 
 // FailureReason provides access to the status.failureReason field in an ControlPlane object. Note that this field is optional.
+//
+// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 func (c *ControlPlaneContract) FailureReason() *String {
 	return &String{
 		path: []string{"status", "failureReason"},
@@ -134,6 +171,8 @@ func (c *ControlPlaneContract) FailureReason() *String {
 }
 
 // FailureMessage provides access to the status.failureMessage field in an ControlPlane object. Note that this field is optional.
+//
+// Deprecated: This function is deprecated and is going to be removed. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 func (c *ControlPlaneContract) FailureMessage() *String {
 	return &String{
 		path: []string{"status", "failureMessage"},

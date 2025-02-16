@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
@@ -64,7 +66,7 @@ type Options struct {
 }
 
 // New returns a new Client.
-func New(options Options) Client {
+func New(options Options) runtimeclient.Client {
 	return &client{
 		catalog:  options.Catalog,
 		registry: options.Registry,
@@ -72,34 +74,7 @@ func New(options Options) Client {
 	}
 }
 
-// Client is the runtime client to interact with extensions.
-type Client interface {
-	// WarmUp can be used to initialize a "cold" RuntimeClient with all
-	// known runtimev1.ExtensionConfigs at a given time.
-	// After WarmUp completes the RuntimeClient is considered ready.
-	WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error
-
-	// IsReady return true after the RuntimeClient finishes warmup.
-	IsReady() bool
-
-	// Discover makes the discovery call on the extension and returns an updated ExtensionConfig
-	// with extension handlers information in the ExtensionConfig status.
-	Discover(context.Context, *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error)
-
-	// Register registers the ExtensionConfig.
-	Register(extensionConfig *runtimev1.ExtensionConfig) error
-
-	// Unregister unregisters the ExtensionConfig.
-	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
-
-	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
-
-	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
-}
-
-var _ Client = &client{}
+var _ runtimeclient.Client = &client{}
 
 type client struct {
 	catalog  *runtimecatalog.Catalog
@@ -117,7 +92,7 @@ func (c *client) IsReady() bool {
 
 func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Performing discovery for ExtensionConfig")
+	log.V(4).Info("Performing discovery for ExtensionConfig")
 
 	hookGVH, err := c.catalog.GroupVersionHook(runtimehooksv1.Discovery)
 	if err != nil {
@@ -139,7 +114,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 
 	// Check to see if the response is a failure and handle the failure accordingly.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		log.Info(fmt.Sprintf("failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
+		log.Info(fmt.Sprintf("Failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
 		return nil, errors.Errorf("failed to discover extension %q: got failure response", extensionConfig.Name)
 	}
@@ -216,7 +191,7 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
 	}
 
-	log.Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
+	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
 	responses := []runtimehooksv1.ResponseObject{}
 	for _, registration := range registrations {
 		// Creates a new instance of the response parameter.
@@ -288,7 +263,13 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
+	// Calculate the options.
+	options := &runtimeclient.CallExtensionOptions{}
+	for _, opt := range opts {
+		opt.ApplyToOptions(options)
+	}
+
 	log := ctrl.LoggerFrom(ctx).WithValues("extensionHandler", name, "hook", runtimecatalog.HookName(hook))
 	ctx = ctrl.LoggerInto(ctx, log)
 	hookGVH, err := c.catalog.GroupVersionHook(hook)
@@ -322,7 +303,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		return errors.Errorf("failed to call extension handler %q: namespaceSelector did not match object %s", name, util.ObjectKey(forObject))
 	}
 
-	log.Info(fmt.Sprintf("Calling extension handler %q", name))
+	log.V(4).Info(fmt.Sprintf("Calling extension handler %q", name))
 	timeoutDuration := runtimehooksv1.DefaultHandlersTimeoutSeconds * time.Second
 	if registration.TimeoutSeconds != nil {
 		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
@@ -331,7 +312,23 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	// Prepare the request by merging the settings in the registration with the settings in the request.
 	request = cloneAndAddSettings(request, registration.Settings)
 
-	opts := &httpCallOptions{
+	var cacheKey string
+	if options.WithCaching {
+		// Return a cached response if response is cached.
+		cacheKey = options.CacheKeyFunc(registration.Name, registration.ExtensionConfigResourceVersion, request)
+		if cacheEntry, ok := options.Cache.Has(cacheKey); ok {
+			// Set response to cacheEntry.Response.
+			outVal := reflect.ValueOf(response)
+			cacheVal := reflect.ValueOf(cacheEntry.Response)
+			if !cacheVal.Type().AssignableTo(outVal.Type()) {
+				return fmt.Errorf("failed to call extension handler %q: cached response of type %s instead of type %s", name, cacheVal.Type(), outVal.Type())
+			}
+			reflect.Indirect(outVal).Set(reflect.Indirect(cacheVal))
+			return nil
+		}
+	}
+
+	httpOpts := &httpCallOptions{
 		catalog:         c.catalog,
 		config:          registration.ClientConfig,
 		registrationGVH: registration.GroupVersionHook,
@@ -339,33 +336,41 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		name:            strings.TrimSuffix(registration.Name, "."+registration.ExtensionConfigName),
 		timeout:         timeoutDuration,
 	}
-	err = httpCall(ctx, request, response, opts)
+	err = httpCall(ctx, request, response, httpOpts)
 	if err != nil {
 		// If the error is errCallingExtensionHandler then apply failure policy to calculate
 		// the effective result of the operation.
 		ignore := *registration.FailurePolicy == runtimev1.FailurePolicyIgnore
 		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
 			// Update the response to a default success response and return.
-			log.Error(err, fmt.Sprintf("ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
+			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
 			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
 			response.SetMessage("")
 			return nil
 		}
-		log.Error(err, "failed to call extension handler")
+		log.Error(err, "Failed to call extension handler")
 		return errors.Wrapf(err, "failed to call extension handler %q", name)
 	}
 
 	// If the received response is a failure then return an error.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		log.Info(fmt.Sprintf("failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
+		log.Info(fmt.Sprintf("Failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
 		return errors.Errorf("failed to call extension handler %q: got failure response", name)
 	}
 
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
-		log.Info(fmt.Sprintf("extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
+		log.Info(fmt.Sprintf("Extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
 	} else {
-		log.Info("extension handler returned success response")
+		log.V(4).Info("Extension handler returned success response")
+	}
+
+	if options.WithCaching {
+		// Add response to the cache.
+		options.Cache.Add(runtimeclient.CallExtensionCacheEntry{
+			CacheKey: cacheKey,
+			Response: response,
+		})
 	}
 
 	// Received a successful response from the extension handler. The `response` object
@@ -466,7 +471,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		extensionURL.RawQuery = values.Encode()
 
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+		ctx, cancel = context.WithTimeoutCause(ctx, opts.timeout, errors.New("http request timeout expired"))
 		defer cancel()
 	}
 

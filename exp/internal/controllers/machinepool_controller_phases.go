@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
@@ -106,31 +107,25 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
-func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %v %q for MachinePool %q in namespace %q, requeuing",
-				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+				ref.GroupVersionKind(), ref.Name, m.Name, ref.Namespace)
 		}
 		return external.ReconcileOutput{}, err
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{}), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
 		return external.ReconcileOutput{}, err
-	}
-
-	// if external ref is paused, return error.
-	if annotations.IsPaused(cluster, obj) {
-		log.V(3).Info("External object referenced is paused")
-		return external.ReconcileOutput{Paused: true}, nil
 	}
 
 	// Initialize the patch helper.
@@ -179,18 +174,13 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a MachinePool.
 func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	cluster := s.cluster
 	m := s.machinePool
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		bootstrapReconcileResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
+		bootstrapReconcileResult, err := r.reconcileExternal(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
 			return ctrl.Result{}, err
-		}
-		// if the external object is paused, return without any further processing
-		if bootstrapReconcileResult.Paused {
-			return ctrl.Result{}, nil
 		}
 		bootstrapConfig = bootstrapReconcileResult.Result
 
@@ -247,7 +237,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	cluster := s.cluster
 	mp := s.machinePool
 	// Call generic external reconciler.
-	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, mp, &mp.Spec.Template.Spec.InfrastructureRef)
+	infraReconcileResult, err := r.reconcileExternal(ctx, mp, &mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Error(err, "infrastructure reference could not be found")
@@ -261,10 +251,6 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 			conditions.MarkFalse(mp, clusterv1.InfrastructureReadyCondition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
 		return ctrl.Result{}, err
-	}
-	// if the external object is paused, return without any further processing
-	if infraReconcileResult.Paused {
-		return ctrl.Result{}, nil
 	}
 	infraConfig := infraReconcileResult.Result
 
@@ -285,7 +271,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
-	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -379,7 +365,7 @@ func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, s *scope,
 	sampleInfraMachine.SetKind(infraMachineKind)
 
 	// Add watcher for infraMachine, if there isn't one already.
-	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
+	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper), predicates.ResourceIsChanged(r.Client.Scheme(), *r.externalTracker.PredicateLogger)); err != nil {
 		return err
 	}
 
@@ -547,7 +533,7 @@ func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, mach
 	// The polling is against a local memory cache.
 	const waitForCacheUpdateInterval = 100 * time.Millisecond
 
-	for i := range len(machineList) {
+	for i := range machineList {
 		machine := machineList[i]
 		pollErr := wait.PollUntilContextTimeout(ctx, waitForCacheUpdateInterval, waitForCacheUpdateTimeout, true, func(ctx context.Context) (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}

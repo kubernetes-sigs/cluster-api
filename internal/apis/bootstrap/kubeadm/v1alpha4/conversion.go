@@ -37,6 +37,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	MergeRestoredKubeadmConfigSpec(&dst.Spec, &restored.Spec)
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -221,4 +222,9 @@ func Convert_v1beta1_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in 
 func Convert_v1beta1_LocalEtcd_To_v1alpha4_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apiconversion.Scope) error {
 	// LocalEtcd.ExtraEnvs does not exist in v1alpha4 APIs.
 	return autoConvert_v1beta1_LocalEtcd_To_v1alpha4_LocalEtcd(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in, out, s)
 }

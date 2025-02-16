@@ -37,6 +37,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -54,7 +55,7 @@ var tp = &topologyPlanOptions{}
 var topologyPlanCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "List the changes to clusters that use managed topologies for a given input",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Provide the list of objects that would be created, modified and deleted when an input file is applied.
 		The input can be a file with a new/modified cluster, new/modified ClusterClass, new/modified templates.
 		Details about the objects that will be created and modified will be stored in a path passed using --output-directory.
@@ -64,7 +65,7 @@ var topologyPlanCmd = &cobra.Command{
 		Note: Among all the objects in the input defaulting and validation will be performed only for Cluster
 		and ClusterClasses. All other objects in the input are expected to be valid and have default values.
 	`),
-	Example: Examples(`
+	Example: templates.Examples(`
 		# List all the objects that will be created and modified when creating a new cluster.
 		clusterctl alpha topology plan -f new-cluster.yaml -o output/
 	    

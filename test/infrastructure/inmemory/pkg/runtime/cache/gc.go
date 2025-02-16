@@ -41,20 +41,20 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	log.Info("Starting garbage collector queue")
-	c.garbageCollectorQueue = workqueue.NewTypedRateLimitingQueue[any](workqueue.DefaultTypedControllerRateLimiter[any]())
+	c.garbageCollectorQueue = workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[any]())
 	go func() {
 		<-ctx.Done()
 		c.garbageCollectorQueue.ShutDown()
 	}()
 
-	var workers int64
+	var workers atomic.Int64
 	go func() {
 		log.Info("Starting garbage collector workers", "count", c.garbageCollectorConcurrency)
 		wg := &sync.WaitGroup{}
 		wg.Add(c.garbageCollectorConcurrency)
 		for range c.garbageCollectorConcurrency {
 			go func() {
-				atomic.AddInt64(&workers, 1)
+				workers.Add(1)
 				defer wg.Done()
 				for c.processGarbageCollectorWorkItem(ctx) {
 				}
@@ -65,7 +65,7 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 	}()
 
 	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
-		if atomic.LoadInt64(&workers) < int64(c.garbageCollectorConcurrency) {
+		if workers.Load() < int64(c.garbageCollectorConcurrency) {
 			return false, nil
 		}
 		return true, nil

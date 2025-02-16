@@ -41,7 +41,7 @@ type DiscoveryResponse struct {
 	// CommonResponse contains Status and Message fields common to all response types.
 	CommonResponse `json:",inline"`
 
-	// Handlers defines the current ExtensionHandlers supported by an Extension.
+	// handlers defines the current ExtensionHandlers supported by an Extension.
 	// +listType=map
 	// +listMapKey=name
 	Handlers []ExtensionHandler `json:"handlers"`
@@ -50,27 +50,27 @@ type DiscoveryResponse struct {
 // ExtensionHandler represents the discovery information for an extension handler which includes
 // the hook it supports.
 type ExtensionHandler struct {
-	// Name is the name of the ExtensionHandler.
+	// name is the name of the ExtensionHandler.
 	Name string `json:"name"`
 
-	// RequestHook defines the versioned runtime hook which this ExtensionHandler serves.
+	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
 	RequestHook GroupVersionHook `json:"requestHook"`
 
-	// TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
+	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
 	// This is defaulted to 10 if left undefined.
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
-	// FailurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
+	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// This is defaulted to FailurePolicyFail if not defined.
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
 }
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
-	// APIVersion is the group and version of the Hook
+	// apiVersion is the group and version of the Hook
 	APIVersion string `json:"apiVersion"`
 
-	// Hook is the name of the hook
+	// hook is the name of the hook
 	Hook string `json:"hook"`
 }
 

@@ -51,12 +51,60 @@ func Set(to Setter, condition *clusterv1.Condition) {
 		existingCondition := conditions[i]
 		if existingCondition.Type == condition.Type {
 			exists = true
-			if !hasSameState(&existingCondition, condition) {
+			if !HasSameState(&existingCondition, condition) {
 				condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
 				conditions[i] = *condition
 				break
 			}
 			condition.LastTransitionTime = existingCondition.LastTransitionTime
+			break
+		}
+	}
+
+	// If the condition does not exist, add it, setting the transition time only if not already set
+	if !exists {
+		if condition.LastTransitionTime.IsZero() {
+			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+		}
+		conditions = append(conditions, *condition)
+	}
+
+	// Sorts conditions for convenience of the consumer, i.e. kubectl.
+	sort.Slice(conditions, func(i, j int) bool {
+		return lexicographicLess(&conditions[i], &conditions[j])
+	})
+
+	to.SetConditions(conditions)
+}
+
+// SetWithCustomLastTransitionTime is similar to Set function which sets the given condition but following changes for LastTransitionTime.
+//
+//  1. if the condition of the specified type already exists (all fields of the existing condition are updated to
+//     new condition, LastTransitionTime is set to current time if unset and new status differs from the old status)
+//  2. if a condition of the specified type does not exist (LastTransitionTime is set to current time if unset, and newCondition is appended)
+func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) {
+	if to == nil || condition == nil {
+		return
+	}
+
+	// Check if the new conditions already exists, and change it only if there is a status
+	// transition (otherwise we should preserve the current last transition time)-
+	conditions := to.GetConditions()
+	exists := false
+	for i := range conditions {
+		existingCondition := conditions[i]
+		if existingCondition.Type == condition.Type {
+			exists = true
+			if !HasSameState(&existingCondition, condition) {
+				if existingCondition.Status != condition.Status {
+					if condition.LastTransitionTime.IsZero() {
+						condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+					}
+				} else {
+					condition.LastTransitionTime = existingCondition.LastTransitionTime
+				}
+				conditions[i] = *condition
+			}
 			break
 		}
 	}
@@ -157,13 +205,13 @@ func SetSummary(to Setter, options ...MergeOption) {
 }
 
 // SetMirror creates a new condition by mirroring the Ready condition from a dependent object;
-// if the Ready condition does not exists in the source object, no target conditions is generated.
+// if the Ready condition does not exist in the source object, no target conditions is generated.
 func SetMirror(to Setter, targetCondition clusterv1.ConditionType, from Getter, options ...MirrorOptions) {
 	Set(to, mirror(from, targetCondition, options...))
 }
 
 // SetAggregate creates a new condition with the aggregation of all the Ready condition
-// from a list of dependent objects; if the Ready condition does not exists in one of the source object,
+// from a list of dependent objects; if the Ready condition does not exist in one of the source object,
 // the object is excluded from the aggregation; if none of the source object have ready condition,
 // no target conditions is generated.
 func SetAggregate(to Setter, targetCondition clusterv1.ConditionType, from []Getter, options ...MergeOption) {
@@ -186,17 +234,26 @@ func Delete(to Setter, t clusterv1.ConditionType) {
 	to.SetConditions(newConditions)
 }
 
-// lexicographicLess returns true if a condition is less than another with regards to the
-// to order of conditions designed for convenience of the consumer, i.e. kubectl.
+// lexicographicLess returns true if a condition is less than another in regard to
+// the order of conditions designed for convenience of the consumer, i.e. kubectl.
 // According to this order the Ready condition always goes first, followed by all the other
 // conditions sorted by Type.
 func lexicographicLess(i, j *clusterv1.Condition) bool {
+	if i == nil {
+		return true
+	}
+	if j == nil {
+		return false
+	}
 	return (i.Type == clusterv1.ReadyCondition || i.Type < j.Type) && j.Type != clusterv1.ReadyCondition
 }
 
-// hasSameState returns true if a condition has the same state of another; state is defined
+// HasSameState returns true if a condition has the same state of another; state is defined
 // by the union of following fields: Type, Status, Reason, Severity and Message (it excludes LastTransitionTime).
-func hasSameState(i, j *clusterv1.Condition) bool {
+func HasSameState(i, j *clusterv1.Condition) bool {
+	if i == nil || j == nil {
+		return i == j
+	}
 	return i.Type == j.Type &&
 		i.Status == j.Status &&
 		i.Reason == j.Reason &&

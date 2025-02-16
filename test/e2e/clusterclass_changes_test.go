@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
+var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterClassChangesSpec(ctx, func() ClusterClassChangesSpecInput {
 		return ClusterClassChangesSpecInput{
 			E2EConfig:              e2eConfig,

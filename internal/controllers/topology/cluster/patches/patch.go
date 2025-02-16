@@ -20,15 +20,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 )
 
 // PatchOption represents an option for the patchObject and patchTemplate funcs.
@@ -77,7 +79,7 @@ func patchTemplate(ctx context.Context, template, modifiedTemplate *unstructured
 // patchUnstructured overwrites original.destSpecPath with modified.srcSpecPath.
 // NOTE: Original won't be changed at all, if there is no diff.
 func patchUnstructured(ctx context.Context, original, modified *unstructured.Unstructured, srcSpecPath, destSpecPath string, opts ...PatchOption) error {
-	log := tlog.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
 
 	patchOptions := &PatchOptions{}
 	patchOptions.ApplyOptions(opts)
@@ -93,13 +95,13 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 		destSpecPath:     destSpecPath,
 		fieldsToPreserve: patchOptions.preserveFields,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s", tlog.KObj{Obj: original})
+		return errors.Wrapf(err, "failed to apply patch to %s %s", original.GetKind(), klog.KObj(original))
 	}
 
 	// Calculate diff.
 	diff, err := calculateDiff(original, patched)
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s: failed to calculate diff", tlog.KObj{Obj: original})
+		return errors.Wrapf(err, "failed to apply patch to %s %s: failed to calculate diff", original.GetKind(), klog.KObj(original))
 	}
 
 	// Return if there is no diff.
@@ -108,7 +110,7 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 	}
 
 	// Log the delta between the object before and after applying the accumulated patches.
-	log.V(4).WithObject(original).Infof("Applying accumulated patches to desired state: %s", string(diff))
+	log.V(4).Info(fmt.Sprintf("Applying accumulated patches to desired state of %s", original.GetKind()), original.GetKind(), klog.KObj(original), "patch", string(diff))
 
 	// Overwrite original.
 	*original = *patched
@@ -185,7 +187,7 @@ func copySpec(in copySpecInput) error {
 			// Continue if the field does not exist in src. fieldsToPreserve don't have to exist.
 			continue
 		} else if err != nil {
-			return errors.Wrapf(err, "failed to get field %q from %s", strings.Join(field, "."), tlog.KObj{Obj: in.dest})
+			return errors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field, "."), in.dest.GetKind(), klog.KObj(in.dest))
 		}
 		preservedFields[strings.Join(field, ".")] = value
 	}
@@ -193,20 +195,20 @@ func copySpec(in copySpecInput) error {
 	// Get spec from src.
 	srcSpec, found, err := unstructured.NestedFieldNoCopy(in.src.Object, strings.Split(in.srcSpecPath, ".")...)
 	if !found {
-		return errors.Errorf("missing field %q in %s", in.srcSpecPath, tlog.KObj{Obj: in.src})
+		return errors.Errorf("missing field %q in %s %s", in.srcSpecPath, in.src.GetKind(), klog.KObj(in.src))
 	} else if err != nil {
-		return errors.Wrapf(err, "failed to get field %q from %s", in.srcSpecPath, tlog.KObj{Obj: in.src})
+		return errors.Wrapf(err, "failed to get field %q from %s %s", in.srcSpecPath, in.src.GetKind(), klog.KObj(in.src))
 	}
 
 	// Set spec in dest.
 	if err := unstructured.SetNestedField(in.dest.Object, srcSpec, strings.Split(in.destSpecPath, ".")...); err != nil {
-		return errors.Wrapf(err, "failed to set field %q on %s", in.destSpecPath, tlog.KObj{Obj: in.dest})
+		return errors.Wrapf(err, "failed to set field %q on %s %s", in.destSpecPath, in.dest.GetKind(), klog.KObj(in.dest))
 	}
 
 	// Restore preserved fields.
 	for path, value := range preservedFields {
 		if err := unstructured.SetNestedField(in.dest.Object, value, strings.Split(path, ".")...); err != nil {
-			return errors.Wrapf(err, "failed to set field %q on %s", path, tlog.KObj{Obj: in.dest})
+			return errors.Wrapf(err, "failed to set field %q on %s %s", path, in.dest.GetKind(), klog.KObj(in.dest))
 		}
 	}
 	return nil

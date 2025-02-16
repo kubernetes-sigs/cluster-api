@@ -9,7 +9,7 @@ helmCharts:
     # Setting namespace via this field currently does not work with this Helm chart.
     namespace: default
     valuesFile: values.yaml
-    version: 4.10.0
+    version: 4.19.0
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

@@ -3,6 +3,18 @@
 Cluster API now ships with a new experimental package that lives under the `exp/` directory. This is a
 temporary location for features which will be moved to their permanent locations after graduation. Users can experiment with these features by enabling them using feature gates.
 
+Currently Cluster API has the following experimental features:
+* `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
+* `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
+* `PriorityQueue` (env var: `EXP_PRIORITY_QUEUE`): Enables the usage of the controller-runtime PriorityQueue: https://github.com/kubernetes-sigs/controller-runtime/issues/2374
+* `MachineWaitForVolumeDetachConsiderVolumeAttachments` (env var: `EXP_MACHINE_WAITFORVOLUMEDETACH_CONSIDER_VOLUMEATTACHMENTS`):
+  * During Machine drain the Machine controller waits for volumes to be detached. Per default, the controller considers
+    `Nodes.status.volumesAttached` and `VolumesAttachments`. This feature flag allows to opt-out from considering `VolumeAttachments`.
+    The feature gate was added to allow to opt-out in case unforeseen issues occur with `VolumeAttachments`.
+* `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
+* `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
+* `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
+
 ## Enabling Experimental Features for Management Clusters Started with clusterctl
 
 Users can enable/disable features by setting OS environment variables before running `clusterctl init`, e.g.:
@@ -48,7 +60,7 @@ kustomize_substitutions:
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'
 ```
 
-For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/tilt.md)
+For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/core/tilt.md)
 
 ## Enabling Experimental Features on Existing Management Clusters
 
@@ -80,7 +92,7 @@ Following controller manager deployments have to be edited in order to enable/di
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-* [ClusterResourceSet](./cluster-resource-set.md):
+
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 * [ClusterClass](./cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
@@ -97,7 +109,6 @@ Following controller manager deployments have to be edited in order to enable/di
 ## Active Experimental Features
 
 * [MachinePools](./machine-pools.md)
-* [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
 * [Runtime SDK](runtime-sdk/index.md)

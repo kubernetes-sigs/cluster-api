@@ -24,7 +24,7 @@ clusterctl move --to-kubeconfig="path-to-target-kubeconfig.yaml"
 To move the Cluster API objects existing in the current namespace of the source management cluster; in case if you want
 to move the Cluster API objects defined in another namespace, you can use the `--namespace` flag.
 
-The discovery mechanism for determining the objects to be moved is in the [provider contract](../provider-contract.md#move)
+The discovery mechanism for determining the objects to be moved is in the [provider contract](../../developer/providers/contracts/clusterctl.md#move)
 
 <aside class="note">
 

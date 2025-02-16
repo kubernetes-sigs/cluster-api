@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -182,14 +184,21 @@ func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput
 	})
 }
 
-func dumpArtifactsOnDeletionTimeout(ctx context.Context, client client.Client, cluster *clusterv1.Cluster, artifactFolder string) string {
+func dumpArtifactsOnDeletionTimeout(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, artifactFolder string) string {
 	if artifactFolder != "" {
 		// Dump all Cluster API related resources to artifacts.
 		DumpAllResources(ctx, DumpAllResourcesInput{
-			Lister:    client,
+			Lister:    c,
 			Namespace: cluster.Namespace,
 			LogPath:   filepath.Join(artifactFolder, "clusters-afterDeletionTimedOut", cluster.Name, "resources"),
 		})
+	}
+
+	// Try to get more details about why Cluster deletion timed out.
+	if err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster); err == nil {
+		if c := v1beta2conditions.Get(cluster, clusterv1.MachineDeletingV1Beta2Condition); c != nil {
+			return fmt.Sprintf("waiting for cluster deletion timed out:\ncondition: %s\nmessage: %s", c.Type, c.Message)
+		}
 	}
 
 	return "waiting for cluster deletion timed out"

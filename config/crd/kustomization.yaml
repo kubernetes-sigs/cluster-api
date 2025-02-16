@@ -7,6 +7,7 @@ resources:
 - bases/cluster.x-k8s.io_machines.yaml
 - bases/cluster.x-k8s.io_machinesets.yaml
 - bases/cluster.x-k8s.io_machinedeployments.yaml
+- bases/cluster.x-k8s.io_machinedrainrules.yaml
 - bases/cluster.x-k8s.io_machinepools.yaml
 - bases/addons.cluster.x-k8s.io_clusterresourcesets.yaml
 - bases/addons.cluster.x-k8s.io_clusterresourcesetbindings.yaml
@@ -25,6 +26,7 @@ patches:
 - path: patches/webhook_in_machines.yaml
 - path: patches/webhook_in_machinesets.yaml
 - path: patches/webhook_in_machinedeployments.yaml
+- path: patches/webhook_in_machinedrainrules.yaml
 - path: patches/webhook_in_machinehealthchecks.yaml
 - path: patches/webhook_in_clusterresourcesets.yaml
 - path: patches/webhook_in_clusterresourcesetbindings.yaml

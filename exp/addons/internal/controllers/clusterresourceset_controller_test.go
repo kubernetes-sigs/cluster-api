@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 const (
@@ -110,8 +111,15 @@ metadata:
 		g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 		t.Log("Creating the remote Cluster kubeconfig")
 		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-		_, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
-		g.Expect(err).ToNot(HaveOccurred())
+		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+		patch := client.MergeFrom(testCluster.DeepCopy())
+		testCluster.Status.InfrastructureReady = true
+		g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
+		g.Eventually(func(g Gomega) {
+			_, err = clusterCache.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
+			g.Expect(err).ToNot(HaveOccurred())
+		}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 		createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
 		return ns
@@ -890,6 +898,12 @@ metadata:
 			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))
 			g.Expect(appliedCondition.Message).To(ContainSubstring("creating object /v1, Kind=ConfigMap %s/cm-missing-namespace", missingNamespace))
+
+			appliedConditionV1Beta2 := v1beta2conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta2Condition)
+			g.Expect(appliedConditionV1Beta2).NotTo(BeNil())
+			g.Expect(appliedConditionV1Beta2.Status).To(BeEquivalentTo(corev1.ConditionFalse))
+			g.Expect(appliedConditionV1Beta2.Reason).To(Equal(addonsv1.ResourcesNotAppliedV1Beta2Reason))
+			g.Expect(appliedConditionV1Beta2.Message).To(Equal("Failed to apply ClusterResourceSet resources to Cluster"))
 		}, timeout).Should(Succeed())
 
 		t.Log("Creating missing namespace")
@@ -989,7 +1003,7 @@ metadata:
 		}, timeout).Should(BeTrue())
 
 		t.Log("Create Kubernetes API Server Service")
-		g.Expect(env.Delete(ctx, fakeService)).Should(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, fakeService)).Should(Succeed())
 		kubernetesAPIServerService.ResourceVersion = ""
 		g.Expect(env.Create(ctx, kubernetesAPIServerService)).Should(Succeed())
 

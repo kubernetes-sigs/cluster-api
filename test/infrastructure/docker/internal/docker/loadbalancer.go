@@ -65,7 +65,10 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 		return nil, err
 	}
 
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck // We tolerate this until removal; after removal IPFamily will become an internal CAPD concept. See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+	// We tolerate this until removal;
+	// after removal IPFamily will become an internal CAPD concept.
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
 	if err != nil {
 		return nil, fmt.Errorf("create load balancer: %s", err)
 	}
@@ -139,11 +142,18 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 }
 
 // UpdateConfiguration updates the external load balancer configuration with new control plane nodes.
-func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, unsafeLoadBalancerConfig string) error {
+func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[string]int, unsafeLoadBalancerConfig string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if s.container == nil {
 		return errors.New("unable to configure load balancer: load balancer container does not exists")
+	}
+
+	configData := &loadbalancer.ConfigData{
+		FrontendControlPlanePort: s.frontendControlPlanePort,
+		BackendControlPlanePort:  s.backendControlPlanePort,
+		BackendServers:           map[string]loadbalancer.BackendServer{},
+		IPv6:                     s.ipFamily == clusterv1.IPv6IPFamily,
 	}
 
 	// collect info about the existing controlplane nodes
@@ -156,17 +166,23 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, unsafeLoadBalanc
 		return errors.WithStack(err)
 	}
 
-	var backendServers = map[string]string{}
 	for _, n := range controlPlaneNodes {
+		backendServer := loadbalancer.BackendServer{}
 		controlPlaneIPv4, controlPlaneIPv6, err := n.IP(ctx)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
 		if s.ipFamily == clusterv1.IPv6IPFamily {
-			backendServers[n.String()] = controlPlaneIPv6
+			backendServer.Address = controlPlaneIPv6
 		} else {
-			backendServers[n.String()] = controlPlaneIPv4
+			backendServer.Address = controlPlaneIPv4
 		}
+
+		backendServer.Weight = 100
+		if w, ok := weights[n.String()]; ok {
+			backendServer.Weight = w
+		}
+		configData.BackendServers[n.String()] = backendServer
 	}
 
 	loadBalancerConfigTemplate := loadbalancer.DefaultTemplate
@@ -174,14 +190,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, unsafeLoadBalanc
 		loadBalancerConfigTemplate = unsafeLoadBalancerConfig
 	}
 
-	loadBalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
-		FrontendControlPlanePort: s.frontendControlPlanePort,
-		BackendControlPlanePort:  s.backendControlPlanePort,
-		BackendServers:           backendServers,
-		IPv6:                     s.ipFamily == clusterv1.IPv6IPFamily,
-	},
-		loadBalancerConfigTemplate,
-	)
+	loadBalancerConfig, err := loadbalancer.Config(configData, loadBalancerConfigTemplate)
 	if err != nil {
 		return errors.WithStack(err)
 	}

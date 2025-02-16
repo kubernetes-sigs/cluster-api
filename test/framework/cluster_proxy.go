@@ -109,6 +109,8 @@ type ClusterProxy interface {
 // createOrUpdateConfig contains options for use with CreateOrUpdate.
 type createOrUpdateConfig struct {
 	labelSelector labels.Selector
+	createOpts    []client.CreateOption
+	updateOpts    []client.UpdateOption
 }
 
 // CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
@@ -118,6 +120,20 @@ type CreateOrUpdateOption func(*createOrUpdateConfig)
 func WithLabelSelector(labelSelector labels.Selector) CreateOrUpdateOption {
 	return func(c *createOrUpdateConfig) {
 		c.labelSelector = labelSelector
+	}
+}
+
+// WithCreateOpts allows definition of the Create options to be used in resource Create.
+func WithCreateOpts(createOpts ...client.CreateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.createOpts = createOpts
+	}
+}
+
+// WithUpdateOpts allows definition of the Update options to be used in resource Update.
+func WithUpdateOpts(updateOpts ...client.UpdateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.updateOpts = updateOpts
 	}
 }
 
@@ -150,6 +166,13 @@ func WithRESTConfigModifier(f func(*rest.Config)) Option {
 	}
 }
 
+// WithCacheOptionsModifier allows to modify the options passed to cache.New the first time it's created.
+func WithCacheOptionsModifier(f func(*cache.Options)) Option {
+	return func(c *clusterProxy) {
+		c.cacheOptionsModifier = f
+	}
+}
+
 // clusterProxy provides a base implementation of the ClusterProxy interface.
 type clusterProxy struct {
 	name                    string
@@ -160,7 +183,8 @@ type clusterProxy struct {
 	cache                   cache.Cache
 	onceCache               sync.Once
 
-	restConfigModifier func(*rest.Config)
+	restConfigModifier   func(*rest.Config)
+	cacheOptionsModifier func(*cache.Options)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -255,11 +279,16 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 
 func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 	p.onceCache.Do(func() {
-		var err error
-		p.cache, err = cache.New(p.GetRESTConfig(), cache.Options{
+		opts := &cache.Options{
 			Scheme: p.scheme,
 			Mapper: p.GetClient().RESTMapper(),
-		})
+		}
+		if p.cacheOptionsModifier != nil {
+			p.cacheOptionsModifier(opts)
+		}
+
+		var err error
+		p.cache, err = cache.New(p.GetRESTConfig(), *opts)
 		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
 
 		go func() {
@@ -307,7 +336,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
 				// Expected error -- if the object does not exist, create it
 				if apierrors.IsNotFound(err) {
-					if err := p.GetClient().Create(ctx, &o); err != nil {
+					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
 						retErrs = append(retErrs, err)
 					}
 				} else {
@@ -315,7 +344,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 				}
 			} else {
 				o.SetResourceVersion(existingObject.GetResourceVersion())
-				if err := p.GetClient().Update(ctx, &o); err != nil {
+				if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
 					retErrs = append(retErrs, err)
 				}
 			}

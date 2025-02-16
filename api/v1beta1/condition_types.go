@@ -53,32 +53,32 @@ type ConditionType string
 
 // Condition defines an observation of a Cluster API resource operational state.
 type Condition struct {
-	// Type of condition in CamelCase or in foo.example.com/CamelCase.
+	// type of condition in CamelCase or in foo.example.com/CamelCase.
 	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
 	// can be useful (see .node.status.conditions), the ability to deconflict is important.
 	Type ConditionType `json:"type"`
 
-	// Status of the condition, one of True, False, Unknown.
+	// status of the condition, one of True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status"`
 
-	// Severity provides an explicit classification of Reason code, so the users or machines can immediately
+	// severity provides an explicit classification of Reason code, so the users or machines can immediately
 	// understand the current situation and act accordingly.
 	// The Severity field MUST be set only when Status=False.
 	// +optional
 	Severity ConditionSeverity `json:"severity,omitempty"`
 
-	// Last time the condition transitioned from one status to another.
+	// lastTransitionTime is the last time the condition transitioned from one status to another.
 	// This should be when the underlying condition changed. If that is not known, then using the time when
 	// the API field changed is acceptable.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
-	// The reason for the condition's last transition in CamelCase.
+	// reason is the reason for the condition's last transition in CamelCase.
 	// The specific API may choose whether or not this field is considered a guaranteed API.
-	// This field may not be empty.
+	// This field may be empty.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
-	// A human readable message indicating details about the transition.
+	// message is a human readable message indicating details about the transition.
 	// This field may be empty.
 	// +optional
 	Message string `json:"message,omitempty"`

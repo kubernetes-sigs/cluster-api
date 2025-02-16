@@ -13,19 +13,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, release-1.8, release-1.7 ]
+        branch: [ main, release-1.9, release-1.8 ]
     name: Trivy
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # tag=v4.2.2
       with:
         ref: ${{ matrix.branch }}
     - name: Calculate go version
       id: vars
       run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
     - name: Set up Go
-      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # tag=v5.0.2
+      uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # tag=v5.3.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
     - name: Run verify security target

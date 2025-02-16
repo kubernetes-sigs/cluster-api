@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
@@ -32,9 +33,9 @@ func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReferen
 		return nil, errors.New("reference is not set")
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, ref.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", ref.Kind, ref.Name, ref.Namespace)
+		return nil, errors.Wrapf(err, "failed to retrieve %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 	}
 	return obj, nil
 }

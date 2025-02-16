@@ -37,9 +37,11 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -47,11 +49,13 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/webhooks"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -62,31 +66,31 @@ var (
 	controllerName = "cluster-api-kubeadm-bootstrap-manager"
 
 	// flags.
-	enableLeaderElection           bool
-	leaderElectionLeaseDuration    time.Duration
-	leaderElectionRenewDeadline    time.Duration
-	leaderElectionRetryPeriod      time.Duration
-	watchFilterValue               string
-	watchNamespace                 string
-	profilerAddress                string
-	enableContentionProfiling      bool
-	syncPeriod                     time.Duration
-	restConfigQPS                  float32
-	restConfigBurst                int
-	clusterCacheTrackerClientQPS   float32
-	clusterCacheTrackerClientBurst int
-	webhookPort                    int
-	webhookCertDir                 string
-	webhookCertName                string
-	webhookKeyName                 string
-	healthAddr                     string
-	managerOptions                 = flags.ManagerOptions{}
-	logOptions                     = logs.NewOptions()
+	enableLeaderElection        bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	watchFilterValue            string
+	watchNamespace              string
+	profilerAddress             string
+	enableContentionProfiling   bool
+	syncPeriod                  time.Duration
+	restConfigQPS               float32
+	restConfigBurst             int
+	clusterCacheClientQPS       float32
+	clusterCacheClientBurst     int
+	webhookPort                 int
+	webhookCertDir              string
+	webhookCertName             string
+	webhookKeyName              string
+	healthAddr                  string
+	managerOptions              = flags.ManagerOptions{}
+	logOptions                  = logs.NewOptions()
 	// CABPK specific flags.
-	clusterConcurrency             int
-	clusterCacheTrackerConcurrency int
-	kubeadmConfigConcurrency       int
-	tokenTTL                       time.Duration
+	clusterConcurrency       int
+	clusterCacheConcurrency  int
+	kubeadmConfigConcurrency int
+	tokenTTL                 time.Duration
 )
 
 func init() {
@@ -130,7 +134,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Number of clusters to process simultaneously")
 	_ = fs.MarkDeprecated("cluster-concurrency", "This flag has no function anymore and is going to be removed in a next release. Use \"--clustercachetracker-concurrency\" instead.")
 
-	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
+	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
@@ -145,11 +149,11 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
-	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
-		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.Float32Var(&clusterCacheClientQPS, "clustercache-client-qps", 20,
+		"Maximum queries per second from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
-	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
 	fs.DurationVar(&tokenTTL, "bootstrap-token-ttl", kubeadmbootstrapcontrollers.DefaultTokenTTL,
 		"The amount of time the bootstrap token will be valid")
@@ -201,6 +205,7 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+	restConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
 
 	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
@@ -223,6 +228,9 @@ func main() {
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
 	ctrlOptions := ctrl.Options{
+		Controller: config.Controller{
+			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "kubeadm-bootstrap-manager-leader-election-capi",
@@ -310,35 +318,32 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
-	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(
-		mgr,
-		remote.ClusterCacheTrackerOptions{
-			SecretCachingClient: secretCachingClient,
-			ControllerName:      controllerName,
-			Log:                 &ctrl.Log,
-			ClientQPS:           clusterCacheTrackerClientQPS,
-			ClientBurst:         clusterCacheTrackerClientBurst,
+	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+		SecretClient: secretCachingClient,
+		Cache:        clustercache.CacheOptions{},
+		Client: clustercache.ClientOptions{
+			QPS:       clusterCacheClientQPS,
+			Burst:     clusterCacheClientBurst,
+			UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					// Don't cache ConfigMaps & Secrets.
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
 		},
-	)
-	if err != nil {
-		setupLog.Error(err, "unable to create cluster cache tracker")
-		os.Exit(1)
-	}
-	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+	}, concurrency(clusterCacheConcurrency))
+	if err != nil {
+		setupLog.Error(err, "Unable to create ClusterCache")
 		os.Exit(1)
 	}
 
 	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client:              mgr.GetClient(),
 		SecretCachingClient: secretCachingClient,
-		Tracker:             tracker,
+		ClusterCache:        clusterCache,
 		WatchFilterValue:    watchFilterValue,
 		TokenTTL:            tokenTTL,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmConfigConcurrency)); err != nil {

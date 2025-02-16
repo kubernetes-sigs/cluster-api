@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestApply(t *testing.T) {
@@ -421,7 +421,8 @@ func TestApply(t *testing.T) {
 							Patch: bytesPatch([]jsonPatchRFC6902{{
 								Op:    "add",
 								Path:  "/spec/template/spec/resource",
-								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)}}}),
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)},
+							}}),
 						},
 					},
 				},
@@ -457,7 +458,8 @@ func TestApply(t *testing.T) {
 							Patch: bytesPatch([]jsonPatchRFC6902{{
 								Op:    "add",
 								Path:  "/spec/template/spec/resource",
-								Value: &apiextensionsv1.JSON{Raw: []byte(`"invalid-infraCluster"`)}}}),
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"invalid-infraCluster"`)},
+							}}),
 						},
 					},
 				},
@@ -496,7 +498,8 @@ func TestApply(t *testing.T) {
 							Patch: bytesPatch([]jsonPatchRFC6902{{
 								Op:    "add",
 								Path:  "/spec/template/spec/resource",
-								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)}}}),
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)},
+							}}),
 						},
 						{
 							UID:       "1",
@@ -504,7 +507,8 @@ func TestApply(t *testing.T) {
 							Patch: bytesPatch([]jsonPatchRFC6902{{
 								Op:    "add",
 								Path:  "/spec/template/spec/another",
-								Value: &apiextensionsv1.JSON{Raw: []byte(`"resource"`)}}}),
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"resource"`)},
+							}}),
 						},
 					},
 				},
@@ -513,7 +517,8 @@ func TestApply(t *testing.T) {
 						{
 							UID:       "2",
 							PatchType: runtimehooksv1.JSONMergePatchType,
-							Patch:     []byte(`{"spec":{"template":{"spec":{"resource": "controlPlane"}}}}`)},
+							Patch:     []byte(`{"spec":{"template":{"spec":{"resource": "controlPlane"}}}}`),
+						},
 					},
 				},
 			},

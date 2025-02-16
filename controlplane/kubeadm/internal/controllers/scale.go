@@ -20,7 +20,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,11 +53,18 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 		return ctrl.Result{}, err
 	}
 
-	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
+	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd)
+	if err != nil {
 		logger.Error(err, "Failed to create initial control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedInitialization", "Failed to create initial control plane Machine for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
 		return ctrl.Result{}, err
 	}
+
+	logger.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
+		Info("Machine created (scale up)",
+			"Machine", klog.KObj(newMachine),
+			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Spec.InfrastructureRef.Namespace, newMachine.Spec.InfrastructureRef.Name),
+			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are additional operations to perform
 	return ctrl.Result{Requeue: true}, nil
@@ -88,11 +94,18 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 		return ctrl.Result{}, err
 	}
 
-	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
+	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd)
+	if err != nil {
 		logger.Error(err, "Failed to create additional control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleUp", "Failed to create additional control plane Machine for cluster % control plane: %v", klog.KObj(controlPlane.Cluster), err)
 		return ctrl.Result{}, err
 	}
+
+	logger.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
+		Info("Machine created (scale up)",
+			"Machine", klog.KObj(newMachine),
+			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Spec.InfrastructureRef.Namespace, newMachine.Spec.InfrastructureRef.Name),
+			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are other operations to perform
 	return ctrl.Result{Requeue: true}, nil
@@ -135,29 +148,20 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			logger.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
 			return ctrl.Result{}, err
 		}
-		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
-			logger.Error(err, "Failed to remove etcd member for machine")
-			return ctrl.Result{}, err
-		}
+
+		// NOTE: etcd member removal will be performed by the kcp-cleanup hook after machine completes drain & all volumes are detached.
 	}
 
-	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-	}
-
-	if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete, parsedVersion); err != nil {
-		logger.Error(err, "Failed to remove machine from kubeadm ConfigMap")
-		return ctrl.Result{}, err
-	}
-
-	logger = logger.WithValues("Machine", klog.KObj(machineToDelete))
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "Failed to delete control plane machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleDown",
 			"Failed to delete control plane Machine %s for cluster %s control plane: %v", machineToDelete.Name, klog.KObj(controlPlane.Cluster), err)
 		return ctrl.Result{}, err
 	}
+	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+	logger.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
+		Info("Deleting Machine (scale down)", "Machine", klog.KObj(machineToDelete))
 
 	// Requeue the control plane, in case there are additional operations to perform
 	return ctrl.Result{Requeue: true}, nil
@@ -170,7 +174,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // - All the health conditions on the control plane machines are true.
 // If the control plane is not passing preflight checks, it requeue.
 //
-// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
+// NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
 func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
 	logger := ctrl.LoggerFrom(ctx)
 
@@ -182,6 +186,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
+		controlPlane.PreflightCheckResults.HasDeletingMachine = true
 		logger.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -216,9 +221,19 @@ loopmachines:
 			// Instead of confusing users with errors about that the conditions are not set, let's point them
 			// towards the unset nodeRef (which is the root cause of the conditions not being there).
 			machineErrors = append(machineErrors, errors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
+
+			controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+			if controlPlane.IsEtcdManaged() {
+				controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+			}
 		} else {
 			for _, condition := range allMachineHealthConditions {
 				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
+					if condition == controlplanev1.MachineEtcdMemberHealthyCondition {
+						controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+					} else {
+						controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+					}
 					machineErrors = append(machineErrors, err)
 				}
 			}
@@ -250,17 +265,31 @@ func preflightCheckCondition(kind string, obj conditions.Getter, condition clust
 	return nil
 }
 
+// selectMachineForScaleDown select a machine candidate for scaling down. The selection is a two phase process:
+//
+// In the first phase it selects a subset of machines eligible for deletion:
+// - if there are outdated machines with the delete machine annotation, use them as eligible subset (priority to user requests, part 1)
+// - if there are machines (also not outdated) with the delete machine annotation, use them (priority to user requests, part 2)
+// - if there are outdated machines with unhealthy control plane components, use them (priority to restore control plane health)
+// - if there are outdated machines  consider all the outdated machines as eligible subset (rollout)
+// - otherwise consider all the machines
+//
+// Once the subset of machines eligible for deletion is identified, one machine is picked out of this subset by
+// selecting the machine in the failure domain with most machines (including both eligible and not eligible machines).
 func selectMachineForScaleDown(ctx context.Context, controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
-	machines := controlPlane.Machines
+	// Select the subset of machines eligible for scale down.
+	eligibleMachines := controlPlane.Machines
 	switch {
 	case controlPlane.MachineWithDeleteAnnotation(outdatedMachines).Len() > 0:
-		machines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
-	case controlPlane.MachineWithDeleteAnnotation(machines).Len() > 0:
-		machines = controlPlane.MachineWithDeleteAnnotation(machines)
+		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
+	case controlPlane.MachineWithDeleteAnnotation(eligibleMachines).Len() > 0:
+		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(eligibleMachines)
 	case controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines).Len() > 0:
-		machines = controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines)
+		eligibleMachines = controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines)
 	case outdatedMachines.Len() > 0:
-		machines = outdatedMachines
+		eligibleMachines = outdatedMachines
 	}
-	return controlPlane.MachineInFailureDomainWithMostMachines(ctx, machines)
+
+	// Pick an eligible machine from the failure domain with most machines in (including both eligible and not eligible machines)
+	return controlPlane.MachineInFailureDomainWithMostMachines(ctx, eligibleMachines)
 }

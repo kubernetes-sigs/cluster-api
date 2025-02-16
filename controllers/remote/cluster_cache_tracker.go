@@ -63,13 +63,18 @@ const (
 
 // ErrClusterLocked is returned in methods that require cluster-level locking
 // if the cluster is already locked by another concurrent call.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ErrClusterNotConnected instead.
 var ErrClusterLocked = errors.New("cluster is locked already")
 
 // ClusterCacheTracker manages client caches for workload clusters.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ClusterCache instead.
 type ClusterCacheTracker struct {
 	log logr.Logger
 
-	cacheByObject map[client.Object]cache.ByObject
+	cacheByObject   map[client.Object]cache.ByObject
+	cacheSyncPeriod *time.Duration
 
 	clientUncachedObjects []client.Object
 	clientQPS             float32
@@ -107,6 +112,8 @@ type ClusterCacheTracker struct {
 
 // ClusterCacheTrackerOptions defines options to configure
 // a ClusterCacheTracker.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ClusterCache instead.
 type ClusterCacheTrackerOptions struct {
 	// SecretCachingClient is a client which caches secrets.
 	// If set it will be used to read the kubeconfig secret.
@@ -119,6 +126,9 @@ type ClusterCacheTrackerOptions struct {
 
 	// CacheByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
 	CacheByObject map[client.Object]cache.ByObject
+
+	// CacheSyncPeriod is the syncPeriod used by the remote cluster cache.
+	CacheSyncPeriod *time.Duration
 
 	// ClientUncachedObjects instructs the Client to never cache the following objects,
 	// it'll instead query the API server directly.
@@ -168,6 +178,8 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 }
 
 // NewClusterCacheTracker creates a new ClusterCacheTracker.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.SetupWithManager instead.
 func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOptions) (*ClusterCacheTracker, error) {
 	setDefaultOptions(&options)
 
@@ -197,6 +209,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
 		cacheByObject:         options.CacheByObject,
+		cacheSyncPeriod:       options.CacheSyncPeriod,
 		clientQPS:             options.ClientQPS,
 		clientBurst:           options.ClientBurst,
 		client:                manager.GetClient(),
@@ -492,13 +505,16 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 		Scheme:     t.scheme,
 		Mapper:     mapper,
 		ByObject:   t.cacheByObject,
+		SyncPeriod: t.cacheSyncPeriod,
 	}
 	remoteCache, err := cache.New(config, cacheOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating cached client for remote cluster %q: error creating cache", cluster.String())
 	}
 
-	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)
+	// Use a context that is independent of the passed in context, so the cache doesn't get stopped
+	// when the passed in context is canceled.
+	cacheCtx, cacheCtxCancel := context.WithCancelCause(context.Background())
 
 	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
 	cache := &stoppableCache{
@@ -531,11 +547,11 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 	go cache.Start(cacheCtx) //nolint:errcheck
 
 	// Wait until the cache is initially synced
-	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeoutCause(ctx, initialCacheSyncTimeout, errors.New("initial sync timeout expired"))
 	defer cacheSyncCtxCancel()
 	if !cache.WaitForCacheSync(cacheSyncCtx) {
 		cache.Stop()
-		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
+		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheSyncCtx.Err())
 	}
 
 	// Wrap the cached client with a client that sets timeouts on all Get and List calls
@@ -758,13 +774,13 @@ type clientWithTimeout struct {
 var _ client.Client = &clientWithTimeout{}
 
 func (c clientWithTimeout) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.Get(ctx, key, obj, opts...)
 }
 
 func (c clientWithTimeout) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.timeout, errors.New("call timeout expired"))
 	defer cancel()
 	return c.Client.List(ctx, list, opts...)
 }

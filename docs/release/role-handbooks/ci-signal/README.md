@@ -1,4 +1,4 @@
-# CI Signal/Bug Triage/Automation Manager
+# CI Signal
 
 ## Overview
 
@@ -12,7 +12,6 @@
   - [Setup jobs and dashboards for a new release branch](#setup-jobs-and-dashboards-for-a-new-release-branch)
   - [[Continuously] Monitor CI signal](#continuously-monitor-ci-signal)
   - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
-  - [[Continuously] Bug triage](#continuously-bug-triage)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -22,38 +21,34 @@
   * Responsibility for the quality of the release
   * Continuously monitor CI signal, so a release can be cut at any time
   * Add CI signal for new release branches
-* Bug Triage:
-  * Make sure blocking issues and bugs are triaged and dealt with in a timely fashion
-* Automation:
-  * Maintain and improve release automation, tooling & related developer docs
 
 ## Tasks
 
 ### Setup jobs and dashboards for a new release branch
 
 The goal of this task is to have test coverage for the new release branch and results in testgrid.
-While we add test coverage for the new release branch we will also drop the tests for old release branches if necessary.
+
+This task is performed after the new release branch is cut [by the release workflow](https://github.com/kubernetes-sigs/cluster-api/blob/defa62d5340f4b49f1acab80cc8cc10727b85291/.github/workflows/release.yaml#L61-L63) during the final weeks of the release cycle.
+
+While we add test coverage for the new release branch we will also drop the tests for old release branches if necessary.  Examples to follow assume the new release branch is `release-1.8`
 
 1. Create new jobs based on the jobs running against our `main` branch:
-    1. Copy the `main` branch entry as `release-1.6` in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/).
-    2. Modify the following at the `release-1.6` branch entry:
-            * Change intervals (let's use the same as for `release-1.5`).
+    1. Copy the `main` branch entry as `release-1.8` in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/).
+    2. Modify the following at the `release-1.8` branch entry:
+            * Change intervals (let's use the same as for `release-1.7`).
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
-3. Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../../../CONTRIBUTING.md#support-and-guarantees). For example, let's assume we just added `release-1.6`, then we can now drop test coverage for the `release-1.3` branch.
+3. Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../../../CONTRIBUTING.md#support-and-guarantees). As we just added `release-1.8`, then we can now drop test coverage for the `release-1.5` branch.
 4. Regenerate the prowjob configuration running `make generate-test-infra-prowjobs` command from cluster-api repository. Before running this command, ensure to export the `TEST_INFRA_DIR` variable, specifying the location of the [test-infra](https://github.com/kubernetes/test-infra/) repository in your environment. For further information, refer to this [link](https://github.com/kubernetes-sigs/cluster-api/pull/9937).
 
  ```sh
   TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
   ```
-5. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.6`
-6. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
-7. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.6`).
-   <br>Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api/pull/9206)
-
+5. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.8`
+6. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.8`).
 
 Prior art:
 
-* [Add jobs for CAPI release 1.6](https://github.com/kubernetes/test-infra/pull/31208)
+* [Add jobs for CAPI release 1.8](https://github.com/kubernetes/test-infra/pull/33156)
 
 ### [Continuously] Monitor CI signal
 
@@ -76,6 +71,8 @@ The goal of this task is to keep our tests running in CI stable.
    Eventually open issues as described above.
 7. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
+  **Note**: Maintaining the health of the project is a community effort.  CI team should use all of the tools available to them to attempt to keep the CI signal clean, however the [#cluster-api](https://kubernetes.slack.com/archives/C8TSNPY4T) Slack channel should be used to increase visibility of release blocking interruptions to the CI signal and seek help from community.  This should be *additive* to the steps described above. When in doubt, err on the side of overcommunication to promote awareness and drive disruptions to resolution.  
+
 ### [Continuously] Reduce the amount of flaky tests
 
 The Cluster API tests are pretty stable, but there are still some flaky tests from time to time.
@@ -85,13 +82,5 @@ To reduce the amount of flakes please periodically:
 1. Take a look at recent CI failures via `k8s-triage`:
     * [main: e2e, e2e-mink8s, test, test-mink8s](https://storage.googleapis.com/k8s-triage/index.html?job=.*cluster-api.*(test%7Ce2e)-(mink8s-)*main&xjob=.*-provider-.*)
 2. Open issues using an appropriate template (flaking-test) for occurring flakes and ideally fix them or find someone who can.
-   **Note**: Given resource limitations in the Prow cluster it might not be possible to fix all flakes.
-   Let's just try to pragmatically keep the amount of flakes pretty low.
 
-### [Continuously] Bug triage
-
-The goal of bug triage is to triage incoming issues and if necessary flag them with `release-blocking`
-and add them to the milestone of the current release.
-
-We probably have to figure out some details about the overlap between the bug triage task here, release leads
-and Cluster API maintainers.
+   **Note**: Given resource limitations in the Prow cluster it might not be possible to fix all flakes. Let's just try to pragmatically keep the amount of flakes pretty low.

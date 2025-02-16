@@ -26,31 +26,32 @@ import (
 
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck.
 type MachineHealthCheckSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Label selector to match machines whose health will be exercised
+	// selector is the label selector to match machines whose health will be exercised
 	Selector metav1.LabelSelector `json:"selector"`
 
-	// UnhealthyConditions contains a list of the conditions that determine
+	// unhealthyConditions contains a list of the conditions that determine
 	// whether a node is considered unhealthy.  The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
 	// +kubebuilder:validation:MinItems=1
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions"`
 
-	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
-	// Machines older than this duration without a node will be considered to have
-	// failed and will be remediated.
+	// nodeStartupTimeout is the duration after which machines without a node will be considered to
+	// have failed and will be remediated.
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 
-	// RemediationTemplate is a reference to a remediation template
+	// remediationTemplate is a reference to a remediation template
 	// provided by an infrastructure provider.
 	//
 	// This field is completely optional, when filled, the MachineHealthCheck controller
@@ -68,14 +69,20 @@ type MachineHealthCheckSpec struct {
 // specified as a duration.  When the named condition has been in the given
 // status for at least the timeout value, a node is considered unhealthy.
 type UnhealthyCondition struct {
+	// type of Node condition
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Type corev1.NodeConditionType `json:"type"`
 
+	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	Status corev1.ConditionStatus `json:"status"`
 
+	// timeout is the duration that a node must be in a given status for,
+	// after which the node is considered unhealthy.
+	// For example, with a value of "1h", the node must match the status
+	// for at least 1 hour before being considered unhealthy.
 	Timeout metav1.Duration `json:"timeout"`
 }
 
@@ -85,28 +92,28 @@ type UnhealthyCondition struct {
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
 type MachineHealthCheckStatus struct {
-	// total number of machines counted by this machine health check
+	// expectedMachines is the total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	ExpectedMachines int32 `json:"expectedMachines,omitempty"`
 
-	// total number of healthy machines counted by this machine health check
+	// currentHealthy is the total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	CurrentHealthy int32 `json:"currentHealthy,omitempty"`
 
-	// RemediationsAllowed is the number of further remediations allowed by this machine health check before
+	// remediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
 	// +kubebuilder:validation:Minimum=0
 	RemediationsAllowed int32 `json:"remediationsAllowed,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Targets shows the current list of machines the machine health check is watching
+	// targets shows the current list of machines the machine health check is watching
 	// +optional
 	Targets []string `json:"targets,omitempty"`
 
-	// Conditions defines current service state of the MachineHealthCheck.
+	// conditions defines current service state of the MachineHealthCheck.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 }
@@ -129,10 +136,10 @@ type MachineHealthCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Specification of machine health check policy
+	// spec is the specification of machine health check policy
 	Spec MachineHealthCheckSpec `json:"spec,omitempty"`
 
-	// Most recently observed status of MachineHealthCheck resource
+	// status is the most recently observed status of MachineHealthCheck resource
 	Status MachineHealthCheckStatus `json:"status,omitempty"`
 }
 

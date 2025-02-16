@@ -41,7 +41,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
@@ -59,7 +59,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 
 	registry := runtimeregistry.New()
-	runtimeClient := runtimeclient.New(runtimeclient.Options{
+	runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
 		Catalog:  cat,
 		Registry: registry,
 	})
@@ -157,7 +157,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 				return errors.Errorf("URL not set on updated object: got: %s, want: %s", *conf.Spec.ClientConfig.URL, updatedServer.URL)
 			}
 			return nil
-		}, 30*time.Second, 100*time.Millisecond).Should(BeNil())
+		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())
 
 		// Reconcile the extension and assert discovery has succeeded.
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
@@ -214,7 +214,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		defer srv1.Close()
 
-		runtimeClient := runtimeclient.New(runtimeclient.Options{
+		runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -248,7 +248,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		// srv1 := fakeSecureExtensionServer(discoveryHandler("first"))
 		// defer srv1.Close()
 
-		runtimeClient := runtimeclient.New(runtimeclient.Options{
+		runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})

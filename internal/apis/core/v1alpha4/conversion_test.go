@@ -1,3 +1,5 @@
+//go:build !race
+
 /*
 Copyright 2021 The Kubernetes Authors.
 
@@ -30,6 +32,8 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
+// Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
+
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Cluster{},
@@ -49,13 +53,15 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineSet{},
-		Spoke: &MachineSet{},
+		Hub:         &clusterv1.MachineSet{},
+		Spoke:       &MachineSet{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineDeployment{},
-		Spoke: &MachineDeployment{},
+		Hub:         &clusterv1.MachineDeployment{},
+		Spoke:       &MachineDeployment{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

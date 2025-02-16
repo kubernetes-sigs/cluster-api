@@ -38,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -48,7 +49,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
@@ -156,6 +157,15 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
 		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
 		m.Spec.Template.Spec.Version = &normalizedVersion
+	}
+
+	// Make sure the namespace of the referent is populated
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
+		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
+	}
+
+	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
+		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 
 	return nil
@@ -291,6 +301,10 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
+	if newMD.Spec.MachineNamingStrategy != nil {
+		allErrs = append(allErrs, validateMDMachineNamingStrategy(newMD.Spec.MachineNamingStrategy, specPath.Child("machineNamingStrategy"))...)
+	}
+
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, newMD.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
 
@@ -299,6 +313,41 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	}
 
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind(), newMD.Name, allErrs)
+}
+
+func validateMDMachineNamingStrategy(machineNamingStrategy *clusterv1.MachineNamingStrategy, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if machineNamingStrategy.Template != "" {
+		if !strings.Contains(machineNamingStrategy.Template, "{{ .random }}") {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					machineNamingStrategy.Template,
+					"invalid template, {{ .random }} is missing",
+				))
+		}
+		name, err := topologynames.MachineSetMachineNameGenerator(machineNamingStrategy.Template, "cluster", "machineset").GenerateName()
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					machineNamingStrategy.Template,
+					fmt.Sprintf("invalid template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						pathPrefix.Child("template"),
+						machineNamingStrategy.Template,
+						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
+					))
+			}
+		}
+	}
+
+	return allErrs
 }
 
 // calculateMachineDeploymentReplicas calculates the default value of the replicas field.

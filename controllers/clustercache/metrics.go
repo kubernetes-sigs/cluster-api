@@ -34,7 +34,7 @@ var (
 			Name: "capi_cluster_cache_healthcheck",
 			Help: "Result of the last clustercache healthcheck for a cluster.",
 		}, []string{
-			"cluster", "cluster_namespace",
+			"cluster_name", "cluster_namespace",
 		},
 	)
 	healthChecksTotal = prometheus.NewCounterVec(
@@ -42,7 +42,7 @@ var (
 			Name: "capi_cluster_cache_healthchecks_total",
 			Help: "Results of all clustercache healthchecks.",
 		}, []string{
-			"cluster", "cluster_namespace", "status",
+			"cluster_name", "cluster_namespace", "status",
 		},
 	)
 	connectionUp = prometheus.NewGaugeVec(
@@ -50,7 +50,7 @@ var (
 			Name: "capi_cluster_cache_connection_up",
 			Help: "Whether the connection to the cluster is up.",
 		}, []string{
-			"cluster", "cluster_namespace",
+			"cluster_name", "cluster_namespace",
 		},
 	)
 )

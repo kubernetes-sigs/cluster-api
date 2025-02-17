@@ -50,11 +50,11 @@ var _ webhook.CustomDefaulter = &DevMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (webhook *DevMachineTemplate) Default(_ context.Context, obj runtime.Object) error {
-	clusterTemplate, ok := obj.(*infrav1.DevMachineTemplate)
+	machineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", obj))
 	}
-	defaultDevMachineSpec(&clusterTemplate.Spec.Template.Spec)
+	defaultDevMachineSpec(&machineTemplate.Spec.Template.Spec)
 	return nil
 }
 

@@ -63,7 +63,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
 	if inMemoryCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without an InMemory backend")
 	}
 	log := ctrl.LoggerFrom(ctx)
 
@@ -869,7 +869,7 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
 	if inMemoryCluster.Spec.Backend.Docker == nil {
-		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
+		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without an InMemory backend")
 	}
 
 	// Call the inner reconciliation methods.

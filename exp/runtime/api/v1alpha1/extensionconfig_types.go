@@ -122,8 +122,7 @@ type ExtensionConfigStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ExtensionConfigV1Beta2Status struct {
 	// conditions represents the observations of a ExtensionConfig's current state.
-	// Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
-	// NodeHealthy, Deleting, Paused.
+	// Known condition types are Discovered, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -238,7 +237,7 @@ const (
 	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
 	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
 
-	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
+	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
 	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
 
 	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.

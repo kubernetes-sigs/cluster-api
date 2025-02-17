@@ -39,7 +39,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -137,12 +136,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the ExtensionConfig is paused.
-	if annotations.HasPaused(extensionConfig) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	// Handle deletion reconciliation loop.
 	if !extensionConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extensionConfig)
@@ -237,12 +230,12 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	discoveredExtension, err := runtimeClient.Discover(ctx, extensionConfig.DeepCopy())
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
-		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "error in discovery: %v", err)
+		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
 		v1beta2conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
-			Message: fmt.Sprintf("error in discovery: %v", err),
+			Message: fmt.Sprintf("Error in discovery: %v", err),
 		})
 		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
 	}

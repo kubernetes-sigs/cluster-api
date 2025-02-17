@@ -264,8 +264,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a ExtensionConfig's current state.
-                      Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
-                      NodeHealthy, Deleting, Paused.
+                      Known condition types are Discovered, Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

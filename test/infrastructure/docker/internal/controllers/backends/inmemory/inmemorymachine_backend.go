@@ -58,11 +58,11 @@ type MachineBackendReconciler struct {
 }
 
 // ReconcileNormal handle in memory backend for DevMachine not yet deleted.
-func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, InMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
-	if InMemoryCluster.Spec.Backend.Docker == nil {
+	if inMemoryCluster.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 	log := ctrl.LoggerFrom(ctx)
@@ -864,11 +864,11 @@ func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, c
 }
 
 // ReconcileDelete handle in memory backend for deleted DevMachine.
-func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, InMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
+func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.DevCluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error) {
 	if inMemoryMachine.Spec.Backend.InMemory == nil {
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevMachines without an InMemory backend")
 	}
-	if InMemoryCluster.Spec.Backend.Docker == nil {
+	if inMemoryCluster.Spec.Backend.Docker == nil {
 		return ctrl.Result{}, errors.New("InMemoryBackendReconciler can't be called for DevCluster without a Docker backend")
 	}
 

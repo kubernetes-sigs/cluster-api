@@ -185,6 +185,10 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 			"journalctl", "--no-pager", "--output=short-precise", "-u", "containerd.service",
 		),
 		copyDirFn("/var/log/pods", "pods"),
+		execToPathFn(
+			"df-h.txt",
+			"df", "-h",
+		),
 	}
 
 	for _, additionalLogs := range k.AdditionalLogs {

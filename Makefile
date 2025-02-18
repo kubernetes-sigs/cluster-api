@@ -102,7 +102,7 @@ get_go_version = $(shell go list -m $1 | awk '{print $$2}')
 # Binaries.
 #
 # Note: Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE_VER := v5.3.0
+KUSTOMIZE_VER := v5.6.0
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v5

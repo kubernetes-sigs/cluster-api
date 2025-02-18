@@ -339,6 +339,7 @@ type ClusterClassBuilder struct {
 	name                                      string
 	infrastructureClusterTemplate             *unstructured.Unstructured
 	controlPlaneMetadata                      *clusterv1.ObjectMeta
+	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	controlPlaneMHC                           *clusterv1.MachineHealthCheckClass
@@ -380,6 +381,12 @@ func (c *ClusterClassBuilder) WithControlPlaneMetadata(labels, annotations map[s
 		Labels:      labels,
 		Annotations: annotations,
 	}
+	return c
+}
+
+// WithControlPlaneReadinessGates adds the given readinessGates for use with the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneReadinessGates(readinessGates []clusterv1.MachineReadinessGate) *ClusterClassBuilder {
+	c.controlPlaneReadinessGates = readinessGates
 	return c
 }
 
@@ -489,6 +496,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneMetadata != nil {
 		obj.Spec.ControlPlane.Metadata = *c.controlPlaneMetadata
 	}
+	if c.controlPlaneReadinessGates != nil {
+		obj.Spec.ControlPlane.ReadinessGates = c.controlPlaneReadinessGates
+	}
 	if c.controlPlaneTemplate != nil {
 		obj.Spec.ControlPlane.LocalObjectTemplate = clusterv1.LocalObjectTemplate{
 			Ref: objToRef(c.controlPlaneTemplate),
@@ -528,6 +538,7 @@ type MachineDeploymentClassBuilder struct {
 	labels                        map[string]string
 	annotations                   map[string]string
 	machineHealthCheckClass       *clusterv1.MachineHealthCheckClass
+	readinessGates                []clusterv1.MachineReadinessGate
 	failureDomain                 *string
 	nodeDrainTimeout              *metav1.Duration
 	nodeVolumeDetachTimeout       *metav1.Duration
@@ -571,6 +582,12 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 // WithMachineHealthCheckClass sets the MachineHealthCheckClass for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineHealthCheckClass) *MachineDeploymentClassBuilder {
 	m.machineHealthCheckClass = mhc
+	return m
+}
+
+// WithReadinessGates sets the readinessGates for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithReadinessGates(readinessGates []clusterv1.MachineReadinessGate) *MachineDeploymentClassBuilder {
+	m.readinessGates = readinessGates
 	return m
 }
 
@@ -635,6 +652,9 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.machineHealthCheckClass != nil {
 		obj.MachineHealthCheck = m.machineHealthCheckClass
+	}
+	if m.readinessGates != nil {
+		obj.ReadinessGates = m.readinessGates
 	}
 	if m.failureDomain != nil {
 		obj.FailureDomain = m.failureDomain

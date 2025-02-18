@@ -166,6 +166,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	s := &scope{
 		cluster: cluster,
 	}
+	if cluster.Spec.Topology != nil {
+		s.clusterClass = &clusterv1.ClusterClass{}
+		if err := r.Client.Get(ctx, cluster.GetClassKey(), s.clusterClass); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to get cluster class")
+		}
+	}
 
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
@@ -315,6 +321,10 @@ type scope struct {
 	// cluster is the Cluster object being reconciled.
 	// It is set at the beginning of the reconcile function.
 	cluster *clusterv1.Cluster
+
+	// clusterClass is the ClusterClass referenced by the object being reconciled.
+	// It is set at the beginning of the reconcile function.
+	clusterClass *clusterv1.ClusterClass
 
 	// infraCluster is the Infrastructure Cluster object that is referenced by the
 	// Cluster. It is set after reconcileInfrastructure is called.

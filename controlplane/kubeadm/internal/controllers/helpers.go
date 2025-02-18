@@ -466,18 +466,22 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 		desiredMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef
 		desiredMachine.Spec.ReadinessGates = existingMachine.Spec.ReadinessGates
 	}
-	ensureMandatoryReadinessGates(desiredMachine)
+	ensureMandatoryReadinessGates(kcp.Spec.ReadinessGates, desiredMachine)
 
 	return desiredMachine, nil
 }
 
-func ensureMandatoryReadinessGates(m *clusterv1.Machine) {
+func ensureMandatoryReadinessGates(kcpReadinessGates []clusterv1.MachineReadinessGate, m *clusterv1.Machine) {
+	allReadinessGates := []clusterv1.MachineReadinessGate{}
+	allReadinessGates = append(allReadinessGates, kcpReadinessGates...)
+	allReadinessGates = append(allReadinessGates, mandatoryMachineReadinessGates...)
+
 	if m.Spec.ReadinessGates == nil {
-		m.Spec.ReadinessGates = mandatoryMachineReadinessGates
+		m.Spec.ReadinessGates = allReadinessGates
 		return
 	}
 
-	for _, want := range mandatoryMachineReadinessGates {
+	for _, want := range allReadinessGates {
 		found := false
 		for _, got := range m.Spec.ReadinessGates {
 			if got.ConditionType == want.ConditionType {

@@ -313,6 +313,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlane
 	if err := Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
+	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
 	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
 	out.RolloutStrategy = (*RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))

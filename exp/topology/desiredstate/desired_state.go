@@ -351,6 +351,19 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		}
 	}
 
+	// If it is required to manage the readinessGates for the control plane, set the corresponding field.
+	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
+	if s.Blueprint.Topology.ControlPlane.ReadinessGates != nil {
+		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.Topology.ControlPlane.ReadinessGates); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.readinessGates in the ControlPlane object")
+		}
+	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates != nil {
+		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.readinessGates in the ControlPlane object")
+		}
+	}
+
 	// If it is required to manage the NodeDrainTimeout for the control plane, set the corresponding field.
 	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDrainTimeout
 	if s.Blueprint.Topology.ControlPlane.NodeDrainTimeout != nil {
@@ -732,6 +745,11 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		nodeDeletionTimeout = machineDeploymentTopology.NodeDeletionTimeout
 	}
 
+	readinessGates := machineDeploymentClass.ReadinessGates
+	if machineDeploymentTopology.ReadinessGates != nil {
+		readinessGates = machineDeploymentTopology.ReadinessGates
+	}
+
 	// Compute the MachineDeployment object.
 	desiredBootstrapTemplateRef, err := calculateRefDesiredAPIVersion(currentBootstrapTemplateRef, desiredMachineDeployment.BootstrapTemplate)
 	if err != nil {
@@ -775,6 +793,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 					NodeDrainTimeout:        nodeDrainTimeout,
 					NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
 					NodeDeletionTimeout:     nodeDeletionTimeout,
+					ReadinessGates:          readinessGates,
 				},
 			},
 		},

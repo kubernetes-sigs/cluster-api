@@ -670,6 +670,32 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			},
 		},
 		{
+			name: "should return the correct Machine object when creating a new Machine with additional kcp readinessGates",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kcpName,
+					Namespace: cluster.Namespace,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.16.6",
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						ObjectMeta:              kcpMachineTemplateObjectMeta,
+						NodeDrainTimeout:        duration5s,
+						NodeDeletionTimeout:     duration5s,
+						NodeVolumeDetachTimeout: duration5s,
+					},
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							ClusterName: clusterName,
+						},
+					},
+					ReadinessGates: []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
+				},
+			},
+			isUpdatingExistingMachine: false,
+			wantErr:                   false,
+		},
+		{
 			name: "should return the correct Machine object when updating an existing Machine",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
@@ -792,7 +818,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					NodeDrainTimeout:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeout,
 					NodeDeletionTimeout:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeout,
 					NodeVolumeDetachTimeout: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
-					ReadinessGates:          mandatoryMachineReadinessGates,
+					ReadinessGates:          append(tt.kcp.Spec.ReadinessGates, mandatoryMachineReadinessGates...),
 				}
 				// Verify Name.
 				for _, matcher := range tt.want {

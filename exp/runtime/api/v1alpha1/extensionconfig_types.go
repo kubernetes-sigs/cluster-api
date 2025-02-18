@@ -225,7 +225,8 @@ func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
 type ExtensionConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ExtensionConfig `json:"items"`
+	// items is the list of ExtensionConfig
+	Items []ExtensionConfig `json:"items"`
 }
 
 func init() {

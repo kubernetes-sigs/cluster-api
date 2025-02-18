@@ -46,12 +46,12 @@ import (
 // reconcileDockerContainers manages the Docker containers for a MachinePool such that it
 // - Ensures the number of up-to-date Docker containers is equal to the MachinePool's desired replica count.
 // - Does not delete any containers as that must be triggered in reconcileDockerMachines to ensure node cordon/drain.
+// - Create the DockerMachine CR after creating the container.
 //
 // Providers should similarly create their infrastructure instances and reconcile any additional logic.
 func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
-
-	log.V(2).Info("Reconciling Docker containers", "DockerMachinePool", klog.KObj(dockerMachinePool))
+	log.Info("Reconciling Docker containers", "DockerMachinePool", klog.KObj(dockerMachinePool))
 
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 
@@ -63,8 +63,15 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
 	numToCreate := int(*machinePool.Spec.Replicas) - matchingMachineCount
 	for range numToCreate {
-		log.V(2).Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		name := fmt.Sprintf("worker-%s", util.RandomString(6))
+
+		log.Info("Creating a new DockerMachine for dockerMachinePool", "DockerMachinePool", klog.KObj(dockerMachinePool))
+		dockerMachine := computeDesiredDockerMachine(name, cluster, machinePool, dockerMachinePool, nil)
+		if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, dockerMachine); err != nil {
+			return errors.Wrap(err, "failed to create a new docker machine")
+		}
+
+		log.Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		if err := createDockerContainer(ctx, name, cluster, machinePool, dockerMachinePool); err != nil {
 			return errors.Wrap(err, "failed to create a new docker machine")
 		}
@@ -107,15 +114,15 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 
 // reconcileDockerMachines creates and deletes DockerMachines to match the MachinePool's desired number of replicas and infrastructure spec.
 // It is responsible for
-// - Ensuring each Docker container has an associated DockerMachine by creating one if it doesn't already exist.
-// - Ensuring that deletion for Docker container happens by calling delete on the associated Machine so that the node is cordoned/drained and the infrastructure is cleaned up.
+// - Update DockerMachine owner references
+// - Create Docker containers for its corresponding DockerMachine if not exist.
 // - Deleting DockerMachines referencing a container whose Kubernetes version or custom image no longer matches the spec.
 // - Deleting DockerMachines that correspond to a deleted/non-existent Docker container.
 // - Deleting DockerMachines when scaling down such that DockerMachines whose owner Machine has the clusterv1.DeleteMachineAnnotation is given priority.
 func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	log.V(2).Info("Reconciling DockerMachines", "DockerMachinePool", klog.KObj(dockerMachinePool))
+	log.Info("Reconciling DockerMachines", "DockerMachinePool", klog.KObj(dockerMachinePool))
 
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
@@ -127,58 +134,37 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 		dockerMachineMap[dockerMachine.Name] = dockerMachine
 	}
 
-	// List the Docker containers. This corresponds to a InfraMachinePool instance for providers.
+	// Get the Docker containers. This corresponds to a InfraMachinePool instance for providers.
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
-	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	externalMachineMap, err := getExternalMachinesMap(ctx, cluster, labelFilters)
 	if err != nil {
 		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
-	externalMachineMap := make(map[string]*docker.Machine)
-	for _, externalMachine := range externalMachines {
-		externalMachineMap[externalMachine.Name()] = externalMachine
-	}
-
 	// Step 1:
-	// Create a DockerMachine for each Docker container so we surface the information to the user. Use the same name as the Docker container for the Docker Machine for ease of lookup.
-	// Providers should iterate through their infrastructure instances and ensure that each instance has a corresponding InfraMachine.
-	for _, machine := range externalMachines {
-		if existingMachine, ok := dockerMachineMap[machine.Name()]; ok {
-			log.V(2).Info("Patching existing DockerMachine", "DockerMachine", klog.KObj(&existingMachine))
+	// Update the DockerMachine to set its owner reference
+	// Create Dockercontainer for DockerMachine if not exist.
+	for _, existingMachine := range dockerMachineMap {
+		if machine, ok := externalMachineMap[existingMachine.Name]; ok {
+			log.Info("Patching existing DockerMachine", "DockerMachine", klog.KObj(&existingMachine))
 			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, &existingMachine)
 			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
 				return errors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
 			}
-
-			dockerMachineMap[desiredMachine.Name] = *desiredMachine
 		} else {
-			log.V(2).Info("Creating a new DockerMachine for Docker container", "container", machine.Name())
-			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, nil)
-			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine); err != nil {
-				return errors.Wrap(err, "failed to create a new docker machine")
+			log.Info("Creating a new Docker container for DockerMachine", "DockerMachine", klog.KObj(&existingMachine))
+			if err := createDockerContainer(ctx, existingMachine.Name, cluster, machinePool, dockerMachinePool); err != nil {
+				return errors.Wrap(err, "failed to create a new docker container")
 			}
-
-			dockerMachineMap[desiredMachine.Name] = *desiredMachine
 		}
+	}
+	// Get the Docker containers after creating missing containers.
+	externalMachineMap, err = getExternalMachinesMap(ctx, cluster, labelFilters)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
 	// Step 2:
-	// Delete any DockerMachines that correspond to a deleted Docker container.
-	// Providers should iterate through the InfraMachines to ensure each one still corresponds to an existing infrastructure instance.
-	// This allows the InfraMachine (and owner Machine) to be deleted and avoid hanging resources when a user deletes an instance out-of-band.
-	for _, dockerMachine := range dockerMachineMap {
-		if _, ok := externalMachineMap[dockerMachine.Name]; !ok {
-			dockerMachine := dockerMachine
-			log.V(2).Info("Deleting DockerMachine with no underlying infrastructure", "DockerMachine", klog.KObj(&dockerMachine))
-			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
-				return err
-			}
-
-			delete(dockerMachineMap, dockerMachine.Name)
-		}
-	}
-
-	// Step 3:
 	// This handles the scale down/excess replicas case and the case where a rolling upgrade is needed.
 	// If there are more ready DockerMachines than desired replicas, start to delete the excess DockerMachines such that
 	// - DockerMachines with an outdated Kubernetes version or custom image are deleted first (i.e. the rolling upgrade).
@@ -218,7 +204,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	for _, dockerMachine := range outdatedMachines {
 		if overProvisionCount > 0 {
 			dockerMachine := dockerMachine
-			log.V(2).Info("Deleting DockerMachine because it is outdated", "DockerMachine", klog.KObj(&dockerMachine))
+			log.Info("Deleting DockerMachine because it is outdated", "DockerMachine", klog.KObj(&dockerMachine))
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
 				return err
 			}
@@ -231,7 +217,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	for _, dockerMachine := range readyMachines {
 		if overProvisionCount > 0 {
 			dockerMachine := dockerMachine
-			log.V(2).Info("Deleting DockerMachine because it is an excess replica", "DockerMachine", klog.KObj(&dockerMachine))
+			log.Info("Deleting DockerMachine because it is an excess replica", "DockerMachine", klog.KObj(&dockerMachine))
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
 				return err
 			}
@@ -241,6 +227,21 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	}
 
 	return nil
+}
+
+// getExternalMachinesMap will return a map of docker.Machines (containers) that belong to the give cluster and filter. Docker machine name as key and docker.Machine as value.
+func getExternalMachinesMap(ctx context.Context, cluster *clusterv1.Cluster, labels map[string]string) (map[string]*docker.Machine, error) {
+	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labels)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list all machines in the cluster")
+	}
+
+	externalMachineMap := make(map[string]*docker.Machine)
+	for _, externalMachine := range externalMachines {
+		externalMachineMap[externalMachine.Name()] = externalMachine
+	}
+
+	return externalMachineMap, nil
 }
 
 // computeDesiredDockerMachine creates a DockerMachine to represent a Docker container in a DockerMachinePool.
@@ -272,6 +273,7 @@ func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machin
 		Name:       dockerMachinePool.Name,
 		UID:        dockerMachinePool.UID,
 	}))
+
 	dockerMachine.Labels[clusterv1.ClusterNameLabel] = cluster.Name
 	dockerMachine.Labels[clusterv1.MachinePoolNameLabel] = format.MustFormatValue(machinePool.Name)
 
@@ -288,7 +290,7 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 	}
 	// util.GetOwnerMachine() returns a nil Machine without error if there is no Machine kind in the ownerRefs, so we must verify that machine is not nil.
 	if machine == nil {
-		log.V(2).Info("No owner Machine exists for DockerMachine", "dockerMachine", klog.KObj(&dockerMachine))
+		log.Info("No owner Machine exists for DockerMachine", "dockerMachine", klog.KObj(&dockerMachine))
 
 		// If the DockerMachine does not have an owner Machine, do not attempt to delete the DockerMachine as the MachinePool controller will create the
 		// Machine and we want to let it catch up. If we are too hasty to delete, that introduces a race condition where the DockerMachine could be deleted
@@ -297,7 +299,8 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 		// In the case where the MachinePool is being deleted and the Machine will never come online, the DockerMachine will be deleted via its ownerRef to the
 		// DockerMachinePool, so that is covered as well.
 
-		return nil
+		// Returning error as we need the dockerMachine not to proceed.
+		return errors.New("No owner Machine exists for DockerMachine")
 	}
 
 	log.Info("Deleting Machine for DockerMachine", "Machine", klog.KObj(machine), "DockerMachine", klog.KObj(&dockerMachine))

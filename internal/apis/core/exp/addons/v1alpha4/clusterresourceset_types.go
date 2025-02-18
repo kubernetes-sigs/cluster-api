@@ -125,7 +125,9 @@ type ClusterResourceSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterResourceSetSpec   `json:"spec,omitempty"`
+	// spec is the desired state of ClusterResourceSet.
+	Spec ClusterResourceSetSpec `json:"spec,omitempty"`
+	// status is the observed state of ClusterResourceSet.
 	Status ClusterResourceSetStatus `json:"status,omitempty"`
 }
 
@@ -137,7 +139,8 @@ type ClusterResourceSet struct {
 type ClusterResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterResourceSet `json:"items"`
+	// items is the list of ClusterResourceSets.
+	Items []ClusterResourceSet `json:"items"`
 }
 
 func init() {

@@ -161,7 +161,8 @@ func (m *MachineHealthCheck) SetConditions(conditions Conditions) {
 type MachineHealthCheckList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MachineHealthCheck `json:"items"`
+	// items is the list of MachineHealthChecks.
+	Items []MachineHealthCheck `json:"items"`
 }
 
 func init() {

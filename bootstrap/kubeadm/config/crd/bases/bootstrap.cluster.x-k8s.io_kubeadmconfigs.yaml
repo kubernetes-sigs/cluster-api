@@ -43,9 +43,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              KubeadmConfigSpec defines the desired state of KubeadmConfig.
-              Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+            description: spec is the desired state of KubeadmConfig.
             properties:
               clusterConfiguration:
                 description: clusterConfiguration along with InitConfiguration are
@@ -937,7 +935,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: KubeadmConfigStatus defines the observed state of KubeadmConfig.
+            description: status is the observed state of KubeadmConfig.
             properties:
               bootstrapData:
                 description: |-
@@ -1047,9 +1045,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              KubeadmConfigSpec defines the desired state of KubeadmConfig.
-              Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+            description: spec is the desired state of KubeadmConfig.
             properties:
               clusterConfiguration:
                 description: clusterConfiguration along with InitConfiguration are
@@ -1938,7 +1934,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: KubeadmConfigStatus defines the observed state of KubeadmConfig.
+            description: status is the observed state of KubeadmConfig.
             properties:
               conditions:
                 description: conditions defines current service state of the KubeadmConfig.
@@ -2041,9 +2037,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              KubeadmConfigSpec defines the desired state of KubeadmConfig.
-              Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+            description: spec is the desired state of KubeadmConfig.
             properties:
               clusterConfiguration:
                 description: clusterConfiguration along with InitConfiguration are
@@ -3703,7 +3697,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: KubeadmConfigStatus defines the observed state of KubeadmConfig.
+            description: status is the observed state of KubeadmConfig.
             properties:
               conditions:
                 description: conditions defines current service state of the KubeadmConfig.

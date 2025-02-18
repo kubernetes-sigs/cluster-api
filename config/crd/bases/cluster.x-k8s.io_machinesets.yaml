@@ -58,7 +58,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSetSpec defines the desired state of MachineSet.
+            description: spec is the desired state of MachineSet.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -426,7 +426,7 @@ spec:
             - selector
             type: object
           status:
-            description: MachineSetStatus defines the observed state of MachineSet.
+            description: status is the observed state of MachineSet.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas
@@ -548,7 +548,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSetSpec defines the desired state of MachineSet.
+            description: spec is the desired state of MachineSet.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -811,7 +811,7 @@ spec:
             - selector
             type: object
           status:
-            description: MachineSetStatus defines the observed state of MachineSet.
+            description: status is the observed state of MachineSet.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas
@@ -982,7 +982,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSetSpec defines the desired state of MachineSet.
+            description: spec is the desired state of MachineSet.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -1332,7 +1332,7 @@ spec:
             - selector
             type: object
           status:
-            description: MachineSetStatus defines the observed state of MachineSet.
+            description: status is the observed state of MachineSet.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas

@@ -186,7 +186,7 @@ type ExtensionConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec is the desired state of the ExtensionConfig
+	// spec is the desired state of the ExtensionConfig.
 	Spec ExtensionConfigSpec `json:"spec,omitempty"`
 
 	// status is the current state of the ExtensionConfig
@@ -225,7 +225,8 @@ func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
 type ExtensionConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ExtensionConfig `json:"items"`
+	// items is the list of ExtensionConfigs.
+	Items []ExtensionConfig `json:"items"`
 }
 
 func init() {

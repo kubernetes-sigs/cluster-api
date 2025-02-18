@@ -67,7 +67,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDeploymentSpec defines the desired state of MachineDeployment.
+            description: spec is the desired state of MachineDeployment.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -498,7 +498,7 @@ spec:
             - template
             type: object
           status:
-            description: MachineDeploymentStatus defines the observed state of MachineDeployment.
+            description: status is the observed state of MachineDeployment.
             properties:
               availableReplicas:
                 description: |-
@@ -614,7 +614,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDeploymentSpec defines the desired state of MachineDeployment.
+            description: spec is the desired state of MachineDeployment.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -952,7 +952,7 @@ spec:
             - template
             type: object
           status:
-            description: MachineDeploymentStatus defines the observed state of MachineDeployment.
+            description: status is the observed state of MachineDeployment.
             properties:
               availableReplicas:
                 description: |-
@@ -1117,7 +1117,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineDeploymentSpec defines the desired state of MachineDeployment.
+            description: spec is the desired state of MachineDeployment.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -1581,7 +1581,7 @@ spec:
             - template
             type: object
           status:
-            description: MachineDeploymentStatus defines the observed state of MachineDeployment.
+            description: status is the observed state of MachineDeployment.
             properties:
               availableReplicas:
                 description: |-

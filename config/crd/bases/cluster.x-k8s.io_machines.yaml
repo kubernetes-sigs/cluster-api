@@ -63,7 +63,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSpec defines the desired state of Machine.
+            description: spec is the desired state of Machine.
             properties:
               bootstrap:
                 description: |-
@@ -215,7 +215,7 @@ spec:
             - infrastructureRef
             type: object
           status:
-            description: MachineStatus defines the observed state of Machine.
+            description: status is the observed state of Machine.
             properties:
               addresses:
                 description: |-
@@ -450,7 +450,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSpec defines the desired state of Machine.
+            description: spec is the desired state of Machine.
             properties:
               bootstrap:
                 description: |-
@@ -595,7 +595,7 @@ spec:
             - infrastructureRef
             type: object
           status:
-            description: MachineStatus defines the observed state of Machine.
+            description: status is the observed state of Machine.
             properties:
               addresses:
                 description: |-
@@ -881,7 +881,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSpec defines the desired state of Machine.
+            description: spec is the desired state of Machine.
             properties:
               bootstrap:
                 description: |-
@@ -1074,7 +1074,7 @@ spec:
             - infrastructureRef
             type: object
           status:
-            description: MachineStatus defines the observed state of Machine.
+            description: status is the observed state of Machine.
             properties:
               addresses:
                 description: |-

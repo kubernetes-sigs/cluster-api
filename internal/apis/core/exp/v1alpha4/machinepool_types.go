@@ -217,7 +217,9 @@ type MachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MachinePoolSpec   `json:"spec,omitempty"`
+	// spec is the desired state of MachinePool.
+	Spec MachinePoolSpec `json:"spec,omitempty"`
+	// status is the observed state of MachinePool.
 	Status MachinePoolStatus `json:"status,omitempty"`
 }
 
@@ -239,7 +241,8 @@ func (m *MachinePool) SetConditions(conditions clusterv1alpha4.Conditions) {
 type MachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MachinePool `json:"items"`
+	// items is the list of MachinePools.
+	Items []MachinePool `json:"items"`
 }
 
 func init() {

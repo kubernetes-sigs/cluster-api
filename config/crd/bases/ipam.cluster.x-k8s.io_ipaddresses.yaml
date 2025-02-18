@@ -56,7 +56,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPAddressSpec is the desired state of an IPAddress.
+            description: spec is the desired state of IPAddress.
             properties:
               address:
                 description: address is the IP address.
@@ -154,7 +154,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPAddressSpec is the desired state of an IPAddress.
+            description: spec is the desired state of IPAddress.
             properties:
               address:
                 description: address is the IP address.

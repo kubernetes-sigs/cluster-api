@@ -209,7 +209,9 @@ type MachineSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MachineSetSpec   `json:"spec,omitempty"`
+	// spec is the desired state of MachineSet.
+	Spec MachineSetSpec `json:"spec,omitempty"`
+	// status is the observed state of MachineSet.
 	Status MachineSetStatus `json:"status,omitempty"`
 }
 
@@ -221,7 +223,8 @@ type MachineSet struct {
 type MachineSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MachineSet `json:"items"`
+	// items is the list of MachineSets.
+	Items []MachineSet `json:"items"`
 }
 
 func init() {

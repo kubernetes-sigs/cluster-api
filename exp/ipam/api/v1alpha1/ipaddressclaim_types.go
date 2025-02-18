@@ -52,7 +52,9 @@ type IPAddressClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IPAddressClaimSpec   `json:"spec,omitempty"`
+	// spec is the desired state of IPAddressClaim.
+	Spec IPAddressClaimSpec `json:"spec,omitempty"`
+	// status is the observed state of IPAddressClaim.
 	Status IPAddressClaimStatus `json:"status,omitempty"`
 }
 
@@ -72,7 +74,8 @@ func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
 type IPAddressClaimList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IPAddressClaim `json:"items"`
+	// items is the list of IPAddressClaims.
+	Items []IPAddressClaim `json:"items"`
 }
 
 func init() {

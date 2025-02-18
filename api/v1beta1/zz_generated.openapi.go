@@ -211,14 +211,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Cluster(ref common.ReferenceCallba
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec"),
+							Description: "spec is the desired state of Cluster.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus"),
+							Description: "status is the observed state of Cluster.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus"),
 						},
 					},
 				},
@@ -280,14 +282,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClass(ref common.ReferenceC
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassSpec"),
+							Description: "spec is the desired state of ClusterClass.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassStatus"),
+							Description: "status is the observed state of ClusterClass.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassStatus"),
 						},
 					},
 				},
@@ -327,7 +331,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref common.Refere
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of ClusterClasses.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -822,7 +827,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref common.ReferenceCa
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of Clusters.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -1863,14 +1869,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Machine(ref common.ReferenceCallba
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec"),
+							Description: "spec is the desired state of Machine.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus"),
+							Description: "status is the observed state of Machine.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus"),
 						},
 					},
 				},
@@ -1967,14 +1975,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeployment(ref common.Refer
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentSpec"),
+							Description: "spec is the desired state of MachineDeployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStatus"),
+							Description: "status is the observed state of MachineDeployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStatus"),
 						},
 					},
 				},
@@ -2152,7 +2162,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref common.R
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of MachineDeployments.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -2953,7 +2964,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref common.
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of MachineHealthChecks.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -3251,7 +3263,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCa
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of Machines.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -3639,14 +3652,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSet(ref common.ReferenceCal
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetSpec"),
+							Description: "spec is the desired state of MachineSet.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus"),
+							Description: "status is the observed state of MachineSet.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus"),
 						},
 					},
 				},
@@ -3686,7 +3701,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref common.Referenc
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "items is the list of MachineSets.",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{

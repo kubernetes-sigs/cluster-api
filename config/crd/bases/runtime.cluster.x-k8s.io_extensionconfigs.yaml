@@ -46,7 +46,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec is the desired state of the ExtensionConfig
+            description: spec is the desired state of the ExtensionConfig.
             properties:
               clientConfig:
                 description: clientConfig defines how to communicate with the Extension

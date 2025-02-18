@@ -154,6 +154,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		)
 	}
 	var allErrs field.ErrorList
+	specPath := field.NewPath("spec")
 
 	// Ensure all references are valid.
 	allErrs = append(allErrs, check.ClusterClassReferencesAreValid(newClusterClass)...)
@@ -169,6 +170,10 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 	// Ensure NamingStrategies are valid.
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
+
+	if newClusterClass.Spec.InfrastructureNamingStrategy != nil {
+		allErrs = append(allErrs, validateInfraClusterNamingStrategy(newClusterClass.Spec.InfrastructureNamingStrategy, specPath.Child("infraCluster"))...)
+	}
 
 	// Validate variables.
 	var oldClusterClassVariables []clusterv1.ClusterClassVariable
@@ -218,6 +223,41 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 	}
 	return nil
+}
+
+func validateInfraClusterNamingStrategy(infraClusterNamingStrategy *clusterv1.InfrastructuresNamingStrategy, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if infraClusterNamingStrategy.Template != nil {
+		if !strings.Contains(*infraClusterNamingStrategy.Template, "{{ .random }}") {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					infraClusterNamingStrategy.Template,
+					"invalid template, {{ .random }} is missing",
+				))
+		}
+		name, err := topologynames.InfraClusterNameGenerator(*infraClusterNamingStrategy.Template, "cluster", "infraCluster").GenerateName()
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					infraClusterNamingStrategy.Template,
+					fmt.Sprintf("invalid template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						pathPrefix.Child("template"),
+						infraClusterNamingStrategy.Template,
+						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
+					))
+			}
+		}
+	}
+
+	return allErrs
 }
 
 // validateUpdatesToMachineHealthCheckClasses checks if the updates made to MachineHealthChecks are valid.

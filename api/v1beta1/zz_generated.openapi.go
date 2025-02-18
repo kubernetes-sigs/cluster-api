@@ -56,6 +56,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneVariables":                    schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition":                  schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec":                        schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.InfrastructuresNamingStrategy":            schema_sigsk8sio_cluster_api_api_v1beta1_InfrastructuresNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch":                                schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatchValue":                           schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatchValue(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps":                          schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref),
@@ -439,6 +440,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 							Description: "infrastructure is a reference to a provider-specific template that holds the details for provisioning infrastructure specific cluster for the underlying provider. The underlying provider is responsible for the implementation of the template to an infrastructure cluster.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate"),
+						},
+					},
+					"infrastructureNamingStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/cluster-api/api/v1beta1.InfrastructuresNamingStrategy"),
 						},
 					},
 					"controlPlane": {
@@ -1522,6 +1528,26 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref common.Refer
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_InfrastructuresNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "InfrastructuresNamingStrategy defines the naming strategy for infrastructure objects.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template defines the template to use for generating the name of the Infrastructure object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},

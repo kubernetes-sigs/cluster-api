@@ -646,6 +646,7 @@ func autoConvert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *v1bet
 	if err := Convert_v1beta1_LocalObjectTemplate_To_v1alpha4_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
+	// WARNING: in.InfrastructureNamingStrategy requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}

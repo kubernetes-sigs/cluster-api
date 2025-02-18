@@ -100,6 +100,10 @@ type ClusterClassSpec struct {
 	// +optional
 	Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
 
+	// infrastructureNamingStrategy allows changing the naming pattern used when creating the infrastructure object.
+	// +optional
+	InfrastructureNamingStrategy *InfrastructuresNamingStrategy `json:"infrastructureNamingStrategy,omitempty"`
+
 	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
 	// +optional
@@ -197,6 +201,19 @@ type ControlPlaneClass struct {
 // ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
 type ControlPlaneClassNamingStrategy struct {
 	// template defines the template to use for generating the name of the ControlPlane object.
+	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// The templating mechanism provides the following arguments:
+	// * `.cluster.name`: The name of the cluster object.
+	// * `.random`: A random alphanumeric string, without vowels, of length 5.
+	// +optional
+	Template *string `json:"template,omitempty"`
+}
+
+// InfrastructuresNamingStrategy defines the naming strategy for infrastructure objects.
+type InfrastructuresNamingStrategy struct {
+	// template defines the template to use for generating the name of the Infrastructure object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
 	// get concatenated with a random suffix of length 5.

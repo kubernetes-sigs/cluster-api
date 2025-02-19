@@ -63,6 +63,9 @@ Cluster API Provider Hetzner
 ### CAPHV
 Cluster API Provider Hivelocity
 
+### CAPHW
+Cluster API Provider Huawei
+
 ### CAPIBM
 Cluster API Provider IBM Cloud
 

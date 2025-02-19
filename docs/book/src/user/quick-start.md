@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -593,6 +593,18 @@ Please visit the [Hetzner project][Hetzner provider].
 Please visit the [Hivelocity project][Hivelocity provider].
 
 {{#/tab }}
+{{#tab Huawei}}
+
+```bash
+# Please ensure that the values for `CLOUD_SDK_AK` and `CLOUD_SDK_SK` are base64 encoded.
+export CLOUD_SDK_AK=$( echo $AccessKey | base64 | tr -d '\n' )
+export CLOUD_SDK_SK=$( echo $SecretKey | base64 | tr -d '\n' )
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure huawei
+```
+
+{{#/tab }}
 {{#tab IBM Cloud}}
 
 In order to initialize the IBM Cloud Provider you have to expose the environment
@@ -894,7 +906,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1112,6 +1124,31 @@ export WORKER_MACHINE_COUNT=2
 ```
 
 See the [Harvester provider] for more information.
+
+{{#/tab }}
+{{#tab Huawei}}
+
+
+```bash
+# huawei cloud region
+export HC_REGION="cn-east-1"
+# ECS SSH key name
+export HC_SSH_KEY_NAME="default"
+# kubernetes version
+export KUBERNETES_VERSION="1.32.0"
+# number of control plane machines
+export CONTROL_PLANE_MACHINE_COUNT="1"
+# number of worker machines
+export WORKER_MACHINE_COUNT="1"
+# control plane machine type
+export HC_CONTROL_PLANE_MACHINE_TYPE="x1e.2u.4g"
+# worker node machine type
+export HC_NODE_MACHINE_TYPE="x1e.2u.4g"
+# ECS image ID
+export ECS_IMAGE_ID="218ca5t7-bxf3-5dg0-852p-y703c9fe1a52"
+```
+
+See the [Huawei Cloud provider] for more information.
 
 {{#/tab }}
 {{#tab IBM Cloud}}
@@ -1908,6 +1945,7 @@ kind delete cluster
 [Harvester provider]: https://github.com/rancher-sandbox/cluster-api-provider-harvester
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
+[Huawei Cloud provider]: https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud

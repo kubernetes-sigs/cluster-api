@@ -326,6 +326,7 @@ providers.
 | CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp          |
 | CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner      |
 | CAPHV         | cluster.x-k8s.io/provider=infrastructure-hivelocity   |
+| CAPHW         | cluster.x-k8s.io/provider=infrastructure-huawei       |
 | CAPIBM        | cluster.x-k8s.io/provider=infrastructure-ibmcloud     |
 | CAPKK         | cluster.x-k8s.io/provider=infrastructure-kubekey      |
 | CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt     |

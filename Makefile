@@ -283,7 +283,6 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 	$(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
-		paths=./internal/apis/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
@@ -319,7 +318,6 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		paths=./bootstrap/kubeadm/internal/webhooks/... \
-		paths=./internal/apis/bootstrap/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -335,7 +333,6 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
-		paths=./internal/apis/controlplane/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
@@ -348,8 +345,8 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases,$(CAPD_DIR)/config/webhook/manifests.yaml"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		paths=./ \
-		paths=./api/... \
-		paths=./$(EXP_DIR)/api/... \
+		paths=./api/v1beta1/... \
+		paths=./$(EXP_DIR)/api/v1beta1/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/internal/webhooks/... \
 		paths=./internal/controllers/... \

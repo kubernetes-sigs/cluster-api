@@ -21,19 +21,17 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterClassChangesSpec(ctx, func() ClusterClassChangesSpecInput {
 		return ClusterClassChangesSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
-			Flavor:                 "topology",
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                "topology",
 			// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
 			// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the ControlPlane.

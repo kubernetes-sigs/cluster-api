@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
@@ -33,12 +32,12 @@ var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", Lab
 	// Note: This installs a cluster based on KUBERNETES_VERSION and runs conformance tests.
 	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
 		return K8SConformanceSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker")}
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
 	})
 })
 
@@ -52,11 +51,11 @@ var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Setenv("KUBERNETES_VERSION", kubernetesVersion)).To(Succeed())
 		return K8SConformanceSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker")}
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
 	})
 })

@@ -26,7 +26,9 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -62,11 +64,15 @@ import (
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
 	infraexpwebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/webhooks"
 	infrawebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/webhooks"
+	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
 
 var (
+	inmemoryScheme = runtime.NewScheme()
 	scheme         = runtime.NewScheme()
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-docker-controller-manager"
@@ -107,6 +113,12 @@ func init() {
 	_ = infraexpv1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
+
+	// scheme used for operating on the cloud resource.
+	_ = cloudv1.AddToScheme(inmemoryScheme)
+	_ = corev1.AddToScheme(inmemoryScheme)
+	_ = appsv1.AddToScheme(inmemoryScheme)
+	_ = rbacv1.AddToScheme(inmemoryScheme)
 }
 
 // InitFlags initializes the flags.
@@ -353,6 +365,21 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	// Start in memory manager
+	inMemoryManager := inmemoryruntime.NewManager(inmemoryScheme)
+	if err := inMemoryManager.Start(ctx); err != nil {
+		setupLog.Error(err, "Unable to start a in memory manager")
+		os.Exit(1)
+	}
+
+	// Start an http server
+	podIP := os.Getenv("POD_IP")
+	apiServerMux, err := inmemoryserver.NewWorkloadClustersMux(inMemoryManager, podIP)
+	if err != nil {
+		setupLog.Error(err, "Unable to create workload clusters mux")
+		os.Exit(1)
+	}
+
 	if err := (&controllers.DockerMachineReconciler{
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
@@ -384,6 +411,31 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 	}
+
+	if err := (&controllers.DevMachineReconciler{
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+		ContainerRuntime: runtimeClient,
+		ClusterCache:     clusterCache,
+		InMemoryManager:  inMemoryManager,
+		APIServerMux:     apiServerMux,
+	}).SetupWithManager(ctx, mgr, controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "DevMachine")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.DevClusterReconciler{
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+		ContainerRuntime: runtimeClient,
+		InMemoryManager:  inMemoryManager,
+		APIServerMux:     apiServerMux,
+	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "DevCluster")
+		os.Exit(1)
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
@@ -407,5 +459,25 @@ func setupWebhooks(mgr ctrl.Manager) {
 			setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachinePool")
 			os.Exit(1)
 		}
+	}
+
+	if err := (&infrawebhooks.DevMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DevMachine")
+		os.Exit(1)
+	}
+
+	if err := (&infrawebhooks.DevMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DevMachineTemplate")
+		os.Exit(1)
+	}
+
+	if err := (&infrawebhooks.DevCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DevCluster")
+		os.Exit(1)
+	}
+
+	if err := (&infrawebhooks.DevClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DevClusterTemplate")
+		os.Exit(1)
 	}
 }

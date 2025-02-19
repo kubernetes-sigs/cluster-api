@@ -35,10 +35,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryapi "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api"
 	inmemoryetcd "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/etcd"
@@ -249,10 +248,18 @@ func (m *WorkloadClustersMux) getCertificate(info *tls.ClientHelloInfo) (*tls.Ce
 	return wcl.apiServerServingCertificate, nil
 }
 
+// HotRestartListener defines listeners for HotRestart.
+type HotRestartListener struct {
+	Cluster string
+	Name    string
+	Host    string
+	Port    int
+}
+
 // HotRestart tries to set up the mux according to an existing set of InMemoryClusters.
 // NOTE: This is done at best effort in order to make iterative development workflows easier.
-func (m *WorkloadClustersMux) HotRestart(clusters *infrav1.InMemoryClusterList) error {
-	if len(clusters.Items) == 0 {
+func (m *WorkloadClustersMux) HotRestart(listeners []HotRestartListener) error {
+	if len(listeners) == 0 {
 		return nil
 	}
 
@@ -265,28 +272,27 @@ func (m *WorkloadClustersMux) HotRestart(clusters *infrav1.InMemoryClusterList) 
 
 	ports := sets.Set[int]{}
 	maxPort := m.minPort - 1
-	for _, c := range clusters.Items {
-		if c.Spec.ControlPlaneEndpoint.Host == "" {
+	for _, l := range listeners {
+		if l.Host == "" {
 			continue
 		}
 
-		if c.Spec.ControlPlaneEndpoint.Host != m.host {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, the host address is changed from %s to %s", c.Spec.ControlPlaneEndpoint.Host, m.host)
+		if l.Host != m.host {
+			return errors.Errorf("unable to restart the WorkloadClustersMux, the host address is changed from %s to %s", l.Host, m.host)
 		}
 
-		if ports.Has(c.Spec.ControlPlaneEndpoint.Port) {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, there are two or more clusters using port %d", c.Spec.ControlPlaneEndpoint.Port)
+		if ports.Has(l.Port) {
+			return errors.Errorf("unable to restart the WorkloadClustersMux, there are two or more clusters using port %d", l.Port)
 		}
 
-		listenerName, ok := c.Annotations[infrav1.ListenerAnnotationName]
-		if !ok {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", klog.KRef(c.Namespace, c.Name), infrav1.ListenerAnnotationName)
+		if l.Name == "" {
+			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", l.Cluster, infrav1.ListenerAnnotationName)
 		}
 
-		m.initWorkloadClusterListenerWithPortLocked(listenerName, c.Spec.ControlPlaneEndpoint.Port)
+		m.initWorkloadClusterListenerWithPortLocked(l.Name, l.Port)
 
-		if maxPort < c.Spec.ControlPlaneEndpoint.Port {
-			maxPort = c.Spec.ControlPlaneEndpoint.Port
+		if maxPort < l.Port {
+			maxPort = l.Port
 		}
 	}
 

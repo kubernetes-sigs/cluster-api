@@ -92,10 +92,6 @@ var (
 			Context:           ptr.To("test/infrastructure/docker"),
 			hardCodedProvider: true,
 		},
-		"in-memory": {
-			Context:           ptr.To("test/infrastructure/inmemory"),
-			hardCodedProvider: true,
-		},
 		"test-extension": {
 			Context:           ptr.To("test/extension"),
 			hardCodedProvider: true,

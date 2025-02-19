@@ -66,9 +66,6 @@ Cluster API Provider Hivelocity
 ### CAPIBM
 Cluster API Provider IBM Cloud
 
-### CAPIM
-Cluster API Provider In Memory
-
 ### CAPIO
 Cluster API Operator
 
@@ -183,7 +180,7 @@ With "core" Cluster API we refer to the common set of API and controllers that a
 any Cluster API provider.
 
 Please note that in the Cluster API code base, side by side of "core" Cluster API components there
-is also a limited number of in-tree providers: [CABPK](#cabpk), [KCP](#kcp), [CAPD](#capd), [CAPIM](#capim)
+is also a limited number of in-tree providers: [CABPK](#cabpk), [KCP](#kcp), [CAPD](#capd).
 
 See [Cluster API](#cluster-api), [CAPI](#capi).
 

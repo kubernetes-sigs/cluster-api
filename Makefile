@@ -226,10 +226,6 @@ KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAG
 CAPD_IMAGE_NAME ?= capd-manager
 CAPD_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPD_IMAGE_NAME)
 
-# capim
-CAPIM_IMAGE_NAME ?= capim-manager
-CAPIM_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPIM_IMAGE_NAME)
-
 # clusterctl
 CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
 CLUSTERCTL_IMAGE_NAME ?= clusterctl
@@ -272,7 +268,7 @@ help:  # Display this help
 
 ##@ generate:
 
-ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension
+ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
@@ -364,21 +360,6 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 		output:webhook:dir=./config/webhook \
 		webhook
 
-
-.PHONY: generate-manifests-in-memory-infrastructure
-generate-manifests-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for in-memory infrastructure provider
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPIM_DIR)/config/crd/bases,$(CAPIM_DIR)/config/webhook/manifests.yaml"
-	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
-		paths=./ \
-		paths=./api/... \
-		paths=./internal/controllers/... \
-		paths=./internal/webhooks/... \
-		crd:crdVersions=v1 \
-		rbac:roleName=manager-role \
-		output:crd:dir=./config/crd/bases \
-		output:webhook:dir=./config/webhook \
-		webhook
-
 .PHONY: generate-manifests-test-extension
 generate-manifests-test-extension: $(CONTROLLER_GEN) ## Generate manifests e.g. RBAC for test-extension provider
 	cd ./test/extension; $(CONTROLLER_GEN) \
@@ -421,7 +402,7 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 		paths=./controlplane/kubeadm/api/...
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
-generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for docker infrastructure provider
+generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api,$(CAPD_DIR)/$(EXP_DIR)/api"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
@@ -429,12 +410,11 @@ generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) ## Generate deepco
 		paths=./$(EXP_DIR)/api/...
 
 .PHONY: generate-go-deepcopy-in-memory-infrastructure
-generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory infrastructure provider
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPIM_DIR)/api,$(CAPIM_DIR)/internal/cloud/api"
+generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory cloud resources
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPIM_DIR)/pkg/cloud/api"
 	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/... \
-        paths=./internal/cloud/api/...
+        paths=./pkg/cloud/api/...
 
 .PHONY: generate-go-deepcopy-test-extension
 generate-go-deepcopy-test-extension: $(CONTROLLER_GEN) ## Generate deepcopy go code for test-extension
@@ -523,12 +503,8 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 		./$(EXP_DIR)/api/v1alpha3 \
 		./$(EXP_DIR)/api/v1alpha4
 
-.PHONY: generate-go-conversions-in-memory-infrastructure
-generate-go-conversions-in-memory-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
-	cd $(CAPIM_DIR)
-
 .PHONY: generate-go-conversions-test-extension
-generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
+generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for test runtime extension provider
 
 # The tmp/sigs.k8s.io/cluster-api symlink is a workaround to make this target run outside of GOPATH
 .PHONY: generate-go-openapi
@@ -560,7 +536,6 @@ generate-doctoc:
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.5 v1.6 v1.8 v1.9 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
-INMEMORY_TEMPLATES := test/e2e/data/infrastructure-inmemory
 
 .PHONY: generate-e2e-templates-v0.3
 generate-e2e-templates-v0.3: $(KUSTOMIZE)
@@ -612,8 +587,6 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ignition.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only.yaml
-
-	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
 generate-metrics-config: ## Generate ./config/metrics/crd-metrics-config.yaml
@@ -791,7 +764,7 @@ verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with im
 clusterctl: ## Build the clusterctl binary
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure
+ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
 
 .PHONY: managers
 managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
@@ -812,10 +785,6 @@ manager-kubeadm-control-plane: ## Build the kubeadm control plane manager binary
 manager-docker-infrastructure: ## Build the docker infrastructure manager binary into the ./bin folder
 	cd $(CAPD_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o ../../../$(BIN_DIR)/capd-manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
-.PHONY: manager-in-memory-infrastructure
-manager-in-memory-infrastructure: ## Build the in-memory-infrastructure infrastructure manager binary into the ./bin folder
-	cd $(CAPIM_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o ../../../$(BIN_DIR)/capim-manager sigs.k8s.io/cluster-api/test/infrastructure/inmemory
-
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
 	docker pull docker.io/docker/dockerfile:1.4
@@ -829,13 +798,13 @@ docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
 # Choice of images to build/push
-ALL_DOCKER_BUILD ?= core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension clusterctl
+ALL_DOCKER_BUILD ?= core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension clusterctl
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all the images
 	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
 
-ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension
+ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Run docker-build-* targets for all the images with settings to be used for the e2e tests
@@ -870,13 +839,6 @@ docker-build-docker-infrastructure: ## Build the docker image for docker infrast
 	cat $(CAPD_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
-
-.PHONY: docker-build-in-memory-infrastructure
-docker-build-in-memory-infrastructure: ## Build the docker image for in-memory infrastructure controller manager
-## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat $(CAPIM_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPIM_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-clusterctl
 docker-build-clusterctl: ## Build the docker image for clusterctl
@@ -956,20 +918,6 @@ test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and 
 	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
-
-.PHONY: test-in-memory-infrastructure
-test-in-memory-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for in-memory infrastructure provider
-	cd $(CAPIM_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
-
-.PHONY: test-in-memory-infrastructure-verbose
-test-in-memory-infrastructure-verbose: ## Run unit and integration tests for in-memory infrastructure provider with verbose flag
-	$(MAKE) test-in-memory-infrastructure TEST_ARGS="$(TEST_ARGS) -v"
-
-.PHONY: test-in-memory-infrastructure-junit
-test-in-memory-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for in-memory infrastructure provider
-	cd $(CAPIM_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_inmemory.exitcode) | tee $(ARTIFACTS)/junit.infra_inmemory.stdout
-	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_inmemory.xml --raw-command cat $(ARTIFACTS)/junit.infra_inmemory.stdout
-	exit $$(cat $(ARTIFACTS)/junit.infra_inmemory.exitcode)
 
 .PHONY: test-test-extension
 test-test-extension: $(SETUP_ENVTEST) ## Run unit and integration tests for the test extension
@@ -1088,10 +1036,6 @@ manifest-modification-dev: # Set the manifest images to the staging bucket.
 		TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-image \
-		MANIFEST_IMG=$(REGISTRY)/$(CAPIM_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
-	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="$(TEST_EXTENSION_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
@@ -1122,8 +1066,6 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build t
 release-manifests-dev: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the development manifests and copies them in the release folder
 	cd $(CAPD_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-development.yaml
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
-	cd $(CAPIM_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-in-memory-development.yaml
-	cp $(CAPIM_DIR)/templates/* $(RELEASE_DIR)/
 	cd $(TEST_EXTENSION_DIR); $(KUSTOMIZE) build config/default > ../../$(RELEASE_DIR)/runtime-extension-components-development.yaml
 
 .PHONY: release-binaries
@@ -1192,7 +1134,6 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CLUSTERCTL_IMG):$(TAG) $(CLUSTERCTL_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CAPD_CONTROLLER_IMG):$(TAG) $(CAPD_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
-	gcloud container images add-tag $(CAPIM_CONTROLLER_IMG):$(TAG) $(CAPIM_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(TEST_EXTENSION_IMG):$(TAG) $(TEST_EXTENSION_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes-tool
@@ -1285,18 +1226,6 @@ docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
-.PHONY: docker-push-in-memory-infrastructure
-docker-push-in-memory-infrastructure: ## Push the in-memory infrastructure provider image
-	docker push $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
-
-.PHONY: docker-push-manifest-in-memory-infrastructure
-docker-push-manifest-in-memory-infrastructure: ## Push the multiarch manifest for the in-memory infrastructure provider images
-	docker manifest create --amend $(CAPIM_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPIM_CONTROLLER_IMG)\-&:$(TAG)~g")
-	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPIM_CONTROLLER_IMG}:${TAG} ${CAPIM_CONTROLLER_IMG}-$${arch}:${TAG}; done
-	docker manifest push --purge $(CAPIM_CONTROLLER_IMG):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPIM_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
-
 .PHONY: docker-push-test-extension
 docker-push-test-extension: ## Push the test extension provider image
 	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
@@ -1357,7 +1286,6 @@ clean-tilt: clean-charts clean-kind ## Remove all files generated by Tilt
 	rm -rf ./controlplane/kubeadm/.tiltbuild
 	rm -rf ./bootstrap/kubeadm/.tiltbuild
 	rm -rf ./test/infrastructure/docker/.tiltbuild
-	rm -rf ./test/infrastructure/inmemory/.tiltbuild
 
 .PHONY: clean-charts
 clean-charts: ## Remove all local copies of Helm charts in ./hack/observability

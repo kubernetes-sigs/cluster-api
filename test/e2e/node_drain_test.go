@@ -43,7 +43,6 @@ var _ = Describe("When testing Node drain", func() {
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
 			Flavor:                 ptr.To("topology"),
-			InfrastructureProvider: ptr.To("docker"),
 			VerifyNodeVolumeDetach: true,
 			CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 				workloadClusterClient := clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()

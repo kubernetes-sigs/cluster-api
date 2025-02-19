@@ -30,25 +30,25 @@ func init() {
 var (
 	// requestTotal reports request results.
 	requestTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "capim_apiserver_request_total",
+		Name: "inmemory_apiserver_request_total",
 		Help: "Number of HTTP requests",
 	}, []string{
 		// Labels from the kube-apiserver apiserver_request_total metric.
 		"verb", "dry_run", "group", "version", "resource", "subresource", "scope", "component", "code",
-		// Additional CAPIM labels.
+		// Additional labels.
 		"method", "host", "path", "cluster_name", "user_agent",
 	})
 
 	requestLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "capim_apiserver_request_duration_seconds",
+			Name: "inmemory_apiserver_request_duration_seconds",
 			Help: "Request latency in seconds.",
 			Buckets: []float64{0.005, 0.025, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.25, 1.5, 2, 3,
 				4, 5, 6, 8, 10, 15, 20, 30, 45, 60},
 		}, []string{
 			// Labels from the kube-apiserver apiserver_request_total metric.
 			"verb", "dry_run", "group", "version", "resource", "subresource", "scope", "component",
-			// Additional CAPIM labels.
+			// Additional labels.
 			"method", "host", "path", "cluster_name", "user_agent",
 		})
 )

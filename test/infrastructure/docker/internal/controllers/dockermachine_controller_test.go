@@ -57,7 +57,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	r := DockerMachineReconciler{
 		Client: c,
 	}
-	out := r.DockerClusterToDockerMachines(context.Background(), dockerCluster)
+	out := r.dockerClusterToDockerMachines(context.Background(), dockerCluster)
 	machineNames := make([]string, len(out))
 	for i := range out {
 		machineNames[i] = out[i].Name

@@ -162,7 +162,7 @@ func (h *apiServerHandler) globalLogging(req *restful.Request, resp *restful.Res
 		requestTotalLabelValues := append(baseLabelValues, strconv.Itoa(resp.StatusCode()))
 		requestLatencyLabelValues := baseLabelValues
 
-		// Additional CAPIM specific label values.
+		// Additional label values.
 		wclName, _ := h.resourceGroupResolver(req.Request.Host)
 		userAgent := req.Request.Header.Get("User-Agent")
 		requestTotalLabelValues = append(requestTotalLabelValues, req.Request.Method, req.Request.Host, req.SelectedRoutePath(), wclName, userAgent)
@@ -626,8 +626,8 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 		podName,
 		podNamespace,
 		func(ctx context.Context, _, _, _ string, stream io.ReadWriteCloser) error {
-			// Given that in the in-memory provider there is no real infrastructure, and thus no real workload cluster,
-			// we are going to forward all the connection back to the same server (the CAPIM controller pod).
+			// Given that in the in-memory backend there is no real infrastructure, and thus no real workload cluster,
+			// we are going to forward all the connection back to the same server (the controller pod).
 			return h.doPortForward(ctx, req.Request.Host, stream)
 		},
 	)
@@ -638,7 +638,7 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 
 // doPortForward establish a connection to the target of the port forward operation,  and sets up
 // a bidirectional copy of data.
-// In the case of this provider, the target endpoint is always on the same server (the CAPIM controller pod).
+// In the case of the in.memory backend, the target endpoint is always on the same server (the controller pod).
 func (h *apiServerHandler) doPortForward(ctx context.Context, address string, stream io.ReadWriteCloser) error {
 	// Get a connection to the target of the port forward operation.
 	dial, err := net.Dial("tcp", address)

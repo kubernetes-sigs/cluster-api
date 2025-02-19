@@ -254,19 +254,14 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 	if len(nodeList.Items) == 0 {
 		// If for whatever reason the index isn't registered or available, we fallback to loop over the whole list.
 		nl := corev1.NodeList{}
-		for {
-			if err := c.List(ctx, &nl, client.Continue(nl.Continue)); err != nil {
-				return nil, err
-			}
+		// Note: We don't use pagination as this is a cached client and a cached client doesn't support pagination.
+		if err := c.List(ctx, &nl); err != nil {
+			return nil, err
+		}
 
-			for _, node := range nl.Items {
-				if providerID == node.Spec.ProviderID {
-					return &node, nil
-				}
-			}
-
-			if nl.Continue == "" {
-				break
+		for _, node := range nl.Items {
+			if providerID == node.Spec.ProviderID {
+				return &node, nil
 			}
 		}
 

@@ -308,7 +308,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	for i, resource := range clusterResourceSet.Spec.Resources {
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
-			if err == ErrSecretTypeNotSupported {
+			if errors.Is(err, ErrSecretTypeNotSupported) {
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
 				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ResourcesAppliedV1Beta2Condition,

@@ -356,6 +356,47 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(found).To(BeTrue())
 		g.Expect(durationString).To(Equal(expectedDurationString))
 	})
+	t.Run("Manages spec.readinessGates", func(t *testing.T) {
+		g := NewWithT(t)
+
+		readinessGates := []clusterv1.MachineReadinessGate{
+			{ConditionType: "foo"},
+			{ConditionType: "bar"},
+		}
+
+		g.Expect(ControlPlane().ReadinessGates().Path()).To(Equal(Path{"spec", "readinessGates"}))
+
+		err := ControlPlane().ReadinessGates().Set(obj, readinessGates)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().ReadinessGates().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(readinessGates))
+
+		// Nil readinessGates are not set.
+		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		readinessGates = nil
+
+		err = ControlPlane().ReadinessGates().Set(obj2, readinessGates)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().ReadinessGates().Get(obj2)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).To(BeNil())
+
+		// Empty readinessGates are set.
+		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		readinessGates = []clusterv1.MachineReadinessGate{}
+
+		err = ControlPlane().ReadinessGates().Set(obj3, readinessGates)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().ReadinessGates().Get(obj3)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(BeComparableTo(readinessGates))
+	})
 }
 
 func TestControlPlaneIsUpgrading(t *testing.T) {

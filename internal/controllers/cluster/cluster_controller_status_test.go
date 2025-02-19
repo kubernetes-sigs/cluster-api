@@ -2178,6 +2178,7 @@ func TestSetAvailableCondition(t *testing.T) {
 	testCases := []struct {
 		name            string
 		cluster         *clusterv1.Cluster
+		clusterClass    *clusterv1.ClusterClass
 		expectCondition metav1.Condition
 	}{
 		{
@@ -2367,7 +2368,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "Takes into account Availability gates when defined",
+			name: "Takes into account Availability gates when defined on the cluster",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine-test",
@@ -2418,11 +2419,81 @@ func TestSetAvailableCondition(t *testing.T) {
 					},
 				},
 			},
+			clusterClass: &clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					AvailabilityGates: []clusterv1.ClusterAvailabilityGate{
+						{
+							ConditionType: "MyClusterClassAvailabilityGate",
+						},
+					},
+				},
+			},
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
 				Message: "* MyAvailabilityGate: Some message",
+			},
+		},
+		{
+			name: "Takes into account Availability gates when defined on the cluster class",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.ClusterStatus{
+					V1Beta2: &clusterv1.ClusterV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.ClusterDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "Foo",
+							},
+							{
+								Type:    "MyClusterClassAvailabilityGate",
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some message",
+							},
+						},
+					},
+				},
+			},
+			clusterClass: &clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					AvailabilityGates: []clusterv1.ClusterAvailabilityGate{
+						{
+							ConditionType: "MyClusterClassAvailabilityGate",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Message: "* MyClusterClassAvailabilityGate: Some message",
 			},
 		},
 		{
@@ -2705,7 +2776,7 @@ func TestSetAvailableCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setAvailableCondition(ctx, tc.cluster)
+			setAvailableCondition(ctx, tc.cluster, tc.clusterClass)
 
 			condition := v1beta2conditions.Get(tc.cluster, clusterv1.ClusterAvailableV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())

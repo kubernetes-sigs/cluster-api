@@ -761,6 +761,9 @@ spec:
                 description: |-
                   availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 
+                  If this field is not defined and the Cluster implements a managed topology, availabilityGates
+                  from the corresponding ClusterClass will be used, if any.
+
                   NOTE: this field is considered only for computing v1beta2 conditions.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
@@ -1129,6 +1132,39 @@ spec:
                           nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                           to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                         type: string
+                      readinessGates:
+                        description: |-
+                          readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                          This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+                          computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+
+                          If this field is not defined, readinessGates from the corresponding ControlPlaneClass will be used, if any.
+
+                          NOTE: This field is considered only for computing v1beta2 conditions.
+                          NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
+                          e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+                        items:
+                          description: MachineReadinessGate contains the type of a
+                            Machine condition to be used as a readiness gate.
+                          properties:
+                            conditionType:
+                              description: |-
+                                conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+                                If the conditions doesn't exist, it will be treated as unknown.
+                                Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                              maxLength: 316
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                              type: string
+                          required:
+                          - conditionType
+                          type: object
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - conditionType
+                        x-kubernetes-list-type: map
                       replicas:
                         description: |-
                           replicas is the number of control plane nodes.
@@ -1440,6 +1476,38 @@ spec:
                                 nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                                 to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                               type: string
+                            readinessGates:
+                              description: |-
+                                readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                                This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+                                computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+
+                                If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any.
+
+                                NOTE: This field is considered only for computing v1beta2 conditions.
+                              items:
+                                description: MachineReadinessGate contains the type
+                                  of a Machine condition to be used as a readiness
+                                  gate.
+                                properties:
+                                  conditionType:
+                                    description: |-
+                                      conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+                                      If the conditions doesn't exist, it will be treated as unknown.
+                                      Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                                    maxLength: 316
+                                    minLength: 1
+                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                    type: string
+                                required:
+                                - conditionType
+                                type: object
+                              maxItems: 32
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - conditionType
+                              x-kubernetes-list-type: map
                             replicas:
                               description: |-
                                 replicas is the number of worker nodes belonging to this set.

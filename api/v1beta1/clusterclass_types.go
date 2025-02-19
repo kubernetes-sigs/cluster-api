@@ -81,6 +81,17 @@ type ClusterClass struct {
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
 type ClusterClassSpec struct {
+	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
+	//
+	// NOTE: this field is considered only for computing v1beta2 conditions.
+	// NOTE: If a Cluster using this ClusterClass, and this Cluster defines a custom list of availabilityGates,
+	// such list overrides availabilityGates defined in this field.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
+
 	// infrastructure is a reference to a provider-specific template that holds
 	// the details for provisioning infrastructure specific cluster
 	// for the underlying provider.
@@ -165,6 +176,22 @@ type ControlPlaneClass struct {
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// NOTE: If a Cluster has a ControlPlane object using this ControlPlaneClass, and this ControlPlane defines a custom list of readinessGates,
+	// such list overrides readinessGates defined in this field.
+	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
+	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 }
 
 // ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
@@ -249,6 +276,20 @@ type MachineDeploymentClass struct {
 	// is ready)
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// NOTE: If a Cluster has a MachineDeployment using this MachineDeploymentClass, and this MachineDeployment defines a custom list of readinessGates,
+	// such list overrides readinessGates defined in this field.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.

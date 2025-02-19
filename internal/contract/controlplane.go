@@ -17,6 +17,7 @@ limitations under the License.
 package contract
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/blang/semver/v4"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -350,4 +352,57 @@ func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
 	return &Duration{
 		path: Path{"spec", "machineTemplate", "nodeDeletionTimeout"},
 	}
+}
+
+// ReadinessGates provides access to control plane's ReadinessGates.
+func (c *ControlPlaneContract) ReadinessGates() *ReadinessGates {
+	return &ReadinessGates{}
+}
+
+// ReadinessGates provides a helper struct for working with ReadinessGates.
+type ReadinessGates struct{}
+
+// Path returns the path of the ReadinessGates.
+func (m *ReadinessGates) Path() Path {
+	return Path{"spec", "readinessGates"}
+}
+
+// Get gets the ReadinessGates object.
+func (m *ReadinessGates) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineReadinessGate, error) {
+	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.labels")
+	}
+	if !ok {
+		return nil, nil
+	}
+	jsonValue, err := json.Marshal(&unstructuredValue)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to Marshal control plane spec.readinessGates")
+	}
+	var readinessGates []clusterv1.MachineReadinessGate
+	if err := json.Unmarshal(jsonValue, &readinessGates); err != nil {
+		return nil, errors.Wrap(err, "failed to Unmarshal control plane spec.readinessGates")
+	}
+	return readinessGates, nil
+}
+
+// Set sets the ReadinessGates value.
+func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []clusterv1.MachineReadinessGate) error {
+	if readinessGates == nil {
+		return nil
+	}
+
+	jsonValue, err := json.Marshal(&readinessGates)
+	if err != nil {
+		return errors.Wrap(err, "failed to Marshal control plane spec.readinessGates")
+	}
+	var unstructuredValue []interface{}
+	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
+		return errors.Wrap(err, "failed to Unmarshal control plane spec.readinessGates")
+	}
+	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
+		return errors.Wrap(err, "failed to set control plane spec.readinessGates")
+	}
+	return nil
 }

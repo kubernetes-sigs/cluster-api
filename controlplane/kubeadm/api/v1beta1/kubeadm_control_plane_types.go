@@ -100,6 +100,22 @@ type KubeadmControlPlaneSpec struct {
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
+	// KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:
+	// APIServerPodHealthy, SchedulerPodHealthy, etc.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
+
 	// rolloutBefore is a field to indicate a rollout should be performed
 	// if the specified criteria is met.
 	// +optional

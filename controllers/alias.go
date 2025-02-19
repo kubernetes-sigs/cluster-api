@@ -74,17 +74,19 @@ type MachineReconciler struct {
 
 	RemoteConditionsGracePeriod time.Duration
 
-	AdditionalSyncMachineLabels []*regexp.Regexp
+	AdditionalSyncMachineLabels      []*regexp.Regexp
+	AdditionalSyncMachineAnnotations []*regexp.Regexp
 }
 
 func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinecontroller.Reconciler{
-		Client:                      r.Client,
-		APIReader:                   r.APIReader,
-		ClusterCache:                r.ClusterCache,
-		WatchFilterValue:            r.WatchFilterValue,
-		RemoteConditionsGracePeriod: r.RemoteConditionsGracePeriod,
-		AdditionalSyncMachineLabels: r.AdditionalSyncMachineLabels,
+		Client:                           r.Client,
+		APIReader:                        r.APIReader,
+		ClusterCache:                     r.ClusterCache,
+		WatchFilterValue:                 r.WatchFilterValue,
+		RemoteConditionsGracePeriod:      r.RemoteConditionsGracePeriod,
+		AdditionalSyncMachineLabels:      r.AdditionalSyncMachineLabels,
+		AdditionalSyncMachineAnnotations: r.AdditionalSyncMachineAnnotations,
 	}).SetupWithManager(ctx, mgr, options)
 }
 

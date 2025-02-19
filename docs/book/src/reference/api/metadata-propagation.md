@@ -59,9 +59,9 @@ Template labels and annotations continuously propagate to new and existing Machi
 - `.spec.template.metadata.annotations` => `Machine.annotations`, `InfraMachine.annotations`, `BootstrapConfig.annotations`
 
 ## Machine
-Top-level labels that meet a specific cretria are propagated to the Node labels and top-level annotatation are not propagated.
+Top-level labels that meet a specific criteria are propagated to the Node labels and top-level annotatation are not propagated.
 - `.labels.[label-meets-criteria]` => `Node.labels`
-- `.annotations` => Not propagated.
+- `.annotations.[annotation-meets-criteria]` => `Node.annotations`
 
 Labels that meet at least one of the following criteria are always propagated to the Node:
 - Has `node-role.kubernetes.io` as prefix.

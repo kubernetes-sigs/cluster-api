@@ -832,10 +832,10 @@ project][vSphere getting started guide].
 {{#tab Vultr}}
 
 ```bash
-export VULTR_API_KEY=<your_api_key>
+export VULTR_API_KEY="$(echo -n "${VULTR_API_KEY}" | base64 | tr -d '\n')"
 
 # initialize the management cluster
-clusterctl init --infrastructure vultr
+clusterctl init --infrastructure vultr-vultr
 ```
 {{#/tab }}
 {{#/tabs }}

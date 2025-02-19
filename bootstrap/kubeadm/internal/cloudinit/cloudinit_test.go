@@ -96,7 +96,7 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "$(date) hello BootCommands!"},
+				{"echo $(date)", "echo hello BootCommands!"},
 			},
 			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
@@ -122,8 +122,8 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedBootCmd := `bootcmd:
-  - - echo
-    - $(date) hello BootCommands!`
+  - - echo $(date)
+    - echo hello BootCommands!`
 
 	g.Expect(out).To(ContainSubstring(expectedBootCmd))
 
@@ -334,7 +334,7 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
 			BootCommands: []bootstrapv1.BootCommand{
-				{"echo", "$(date) hello BootCommands!"},
+				{"echo $(date)", "echo hello BootCommands!"},
 			},
 			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
@@ -359,8 +359,8 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedBootCmd := `bootcmd:
-  - - echo
-    - $(date) hello BootCommands!`
+  - - echo $(date)
+    - echo hello BootCommands!`
 
 	g.Expect(out).To(ContainSubstring(expectedBootCmd))
 

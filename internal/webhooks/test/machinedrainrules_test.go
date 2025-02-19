@@ -152,7 +152,7 @@ func Test_validate(t *testing.T) {
 				"spec.pods[0].namespaceSelector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator]",
 		},
 		{
-			name: "Return error if selectors are not unique",
+			name: "Return error if machine selectors are not unique",
 			machineDrainRule: &clusterv1.MachineDrainRule{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mdr",
@@ -188,6 +188,22 @@ func Test_validate(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
+				"spec.machines: Invalid value: \"array\": entries in machines must be unique",
+		},
+		{
+			name: "Return error if pod selectors are not unique",
+			machineDrainRule: &clusterv1.MachineDrainRule{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineDrainRuleSpec{
+					Drain: clusterv1.MachineDrainRuleDrainConfig{
+						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+					},
 					Pods: []clusterv1.MachineDrainRulePodSelector{
 						{
 							Selector: &metav1.LabelSelector{
@@ -216,9 +232,8 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
-				"spec.machines: Invalid value: \"array\": entries in machines must be unique, " +
-				"spec.pods: Invalid value: \"array\": entries in pods must be unique]",
+			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
+				"spec.pods: Invalid value: \"array\": entries in pods must be unique",
 		},
 	}
 

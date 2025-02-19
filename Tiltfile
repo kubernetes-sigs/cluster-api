@@ -541,7 +541,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     delete_clusterclass_cmd = kubectl_cmd + " --namespace=$NAMESPACE delete clusterclass " + clusterclass_name + ' --ignore-not-found=true; echo "\n"'
 
     local_resource(
-        name = clusterclass_name,
+        name = clusterclass_name + ".clusterclass",
         cmd = ["bash", "-c", apply_clusterclass_cmd],
         env = substitutions,
         auto_init = False,
@@ -550,7 +550,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     )
 
     cmd_button(
-        clusterclass_name + ":apply",
+        clusterclass_name + ".clusterclass:apply",
         argv = ["bash", "-c", apply_clusterclass_cmd],
         env = dictonary_to_list_of_string(substitutions),
         resource = clusterclass_name,
@@ -562,7 +562,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     )
 
     cmd_button(
-        clusterclass_name + ":delete",
+        clusterclass_name + ".clusterclass:delete",
         argv = ["bash", "-c", delete_clusterclass_cmd],
         env = dictonary_to_list_of_string(substitutions),
         resource = clusterclass_name,

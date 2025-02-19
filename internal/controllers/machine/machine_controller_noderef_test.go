@@ -19,7 +19,6 @@ package machine
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"testing"
 	"time"
 
@@ -42,9 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -699,198 +696,6 @@ func TestSummarizeNodeConditions(t *testing.T) {
 			}
 			status, _ := summarizeNodeConditions(node)
 			g.Expect(status).To(Equal(test.status))
-		})
-	}
-}
-
-func TestGetManagedLabels(t *testing.T) {
-	defaultLabels := map[string]string{
-		clusterv1.NodeRoleLabelPrefix + "/anyRole": "",
-
-		clusterv1.ManagedNodeLabelDomain:                                  "",
-		"custom-prefix." + clusterv1.ManagedNodeLabelDomain:               "",
-		clusterv1.ManagedNodeLabelDomain + "/anything":                    "",
-		"custom-prefix." + clusterv1.ManagedNodeLabelDomain + "/anything": "",
-
-		clusterv1.NodeRestrictionLabelDomain:                                  "",
-		"custom-prefix." + clusterv1.NodeRestrictionLabelDomain:               "",
-		clusterv1.NodeRestrictionLabelDomain + "/anything":                    "",
-		"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "",
-	}
-
-	additionalLabels := map[string]string{
-		"foo":                               "bar",
-		"bar":                               "baz",
-		"company.xyz/node.cluster.x-k8s.io": "not-managed",
-		"gpu-node.cluster.x-k8s.io":         "not-managed",
-		"company.xyz/node-restriction.kubernetes.io": "not-managed",
-		"gpu-node-restriction.kubernetes.io":         "not-managed",
-		"wrong.test.foo.com":                         "",
-	}
-
-	exampleRegex := regexp.MustCompile(`foo`)
-	defaultAndRegexLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		defaultAndRegexLabels[k] = v
-	}
-	defaultAndRegexLabels["foo"] = "bar"
-	defaultAndRegexLabels["wrong.test.foo.com"] = ""
-
-	allLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		allLabels[k] = v
-	}
-	for k, v := range additionalLabels {
-		allLabels[k] = v
-	}
-
-	tests := []struct {
-		name                        string
-		additionalSyncMachineLabels []*regexp.Regexp
-		allLabels                   map[string]string
-		managedLabels               map[string]string
-	}{
-		{
-			name:                        "always sync default labels",
-			additionalSyncMachineLabels: nil,
-			allLabels:                   allLabels,
-			managedLabels:               defaultLabels,
-		},
-		{
-			name: "sync additional defined labels",
-			additionalSyncMachineLabels: []*regexp.Regexp{
-				exampleRegex,
-			},
-			allLabels:     allLabels,
-			managedLabels: defaultAndRegexLabels,
-		},
-		{
-			name: "sync all labels",
-			additionalSyncMachineLabels: []*regexp.Regexp{
-				regexp.MustCompile(`.*`),
-			},
-			allLabels:     allLabels,
-			managedLabels: allLabels,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			r := &Reconciler{
-				AdditionalSyncMachineLabels: tt.additionalSyncMachineLabels,
-			}
-			got := labels.GetManagedLabels(tt.allLabels, r.AdditionalSyncMachineLabels...)
-			g.Expect(got).To(BeEquivalentTo(tt.managedLabels))
-		})
-	}
-}
-
-func TestGetManagedAnnotations(t *testing.T) {
-	machine := newFakeMachine("default", "test-cluster")
-	ms := builder.MachineSet("default", "ms").Build()
-	ref := metav1.NewControllerRef(ms, ms.GroupVersionKind())
-
-	defaultAnnotations := map[string]string{
-		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
-		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
-		clusterv1.MachineAnnotation:          machine.Name,
-	}
-
-	additionalAnnotations := map[string]string{
-		"foo":                                "bar",
-		"bar":                                "baz",
-		"example.test/node.cluster.x-k8s.io": "not-managed",
-		"gpu-node.cluster.x-k8s.io":          "not-managed",
-		"example.test/node-restriction.kubernetes.io": "not-managed",
-		"gpu-node-restriction.kubernetes.io":          "not-managed",
-		"wrong.test.foo.example.com":                  "",
-	}
-
-	exampleRegex := regexp.MustCompile(`foo`)
-	defaultAndRegexAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		defaultAndRegexAnnotations[k] = v
-	}
-	defaultAndRegexAnnotations["foo"] = "bar"
-	defaultAndRegexAnnotations["wrong.test.foo.example.com"] = ""
-
-	ownerRefAnnotations := map[string]string{
-		clusterv1.OwnerKindAnnotation: ms.Kind,
-		clusterv1.OwnerNameAnnotation: ms.Name,
-	}
-	defaultAndOwnerRefAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		defaultAndOwnerRefAnnotations[k] = v
-	}
-	for k, v := range ownerRefAnnotations {
-		defaultAndOwnerRefAnnotations[k] = v
-	}
-
-	allAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		allAnnotations[k] = v
-	}
-	for k, v := range additionalAnnotations {
-		allAnnotations[k] = v
-	}
-	for k, v := range ownerRefAnnotations {
-		allAnnotations[k] = v
-	}
-
-	tests := []struct {
-		name                             string
-		additionalSyncMachineAnnotations []*regexp.Regexp
-		allAnnotations                   map[string]string
-		managedAnnotations               map[string]string
-		owned                            bool
-	}{
-		{
-			name:                             "always sync default annotations",
-			additionalSyncMachineAnnotations: nil,
-			allAnnotations:                   allAnnotations,
-			managedAnnotations:               defaultAnnotations,
-		},
-		{
-			name: "sync additional defined labels",
-			additionalSyncMachineAnnotations: []*regexp.Regexp{
-				exampleRegex,
-			},
-			allAnnotations:     allAnnotations,
-			managedAnnotations: defaultAndRegexAnnotations,
-		},
-		{
-			name: "sync all labels",
-			additionalSyncMachineAnnotations: []*regexp.Regexp{
-				regexp.MustCompile(`.*`),
-			},
-			allAnnotations:     allAnnotations,
-			managedAnnotations: allAnnotations,
-		},
-		{
-			name:               "sync owner annotations",
-			allAnnotations:     allAnnotations,
-			managedAnnotations: defaultAndOwnerRefAnnotations,
-			owned:              true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testMachine := machine.DeepCopy()
-
-			if tt.owned {
-				testMachine.SetOwnerReferences([]metav1.OwnerReference{*ref})
-			}
-
-			testMachine.SetAnnotations(tt.allAnnotations)
-
-			g := NewWithT(t)
-			r := &Reconciler{
-				AdditionalSyncMachineAnnotations: tt.additionalSyncMachineAnnotations,
-			}
-			got := annotations.GetManagedAnnotations(testMachine, r.AdditionalSyncMachineAnnotations...)
-			g.Expect(got).To(BeEquivalentTo(tt.managedAnnotations))
 		})
 	}
 }

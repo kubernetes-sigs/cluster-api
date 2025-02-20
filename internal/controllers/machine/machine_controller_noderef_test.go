@@ -749,7 +749,7 @@ func TestPatchNode(t *testing.T) {
 		},
 		// Labels (CAPI owns a subset of labels, everything else should be preserved)
 		{
-			name: "Existing labels should be preserved if there are no label from machines",
+			name: "Existing labels should be preserved if there are no labels from machines",
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
@@ -757,6 +757,10 @@ func TestPatchNode(t *testing.T) {
 						"not-managed-by-capi": "foo",
 					},
 				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.AnnotationsFromMachineAnnotation: "",
+				clusterv1.LabelsFromMachineAnnotation:      "",
 			},
 			expectedLabels: map[string]string{
 				"not-managed-by-capi": "foo",
@@ -949,7 +953,7 @@ func TestPatchNode(t *testing.T) {
 				clusterv1.ClusterNamespaceAnnotation:       "bar",
 				clusterv1.MachineAnnotation:                "baz",
 				"not-managed-by-capi":                      "foo",
-				clusterv1.AnnotationsFromMachineAnnotation: "cluster.x-k8s.io/cluster-name,cluster.x-k8s.io/cluster-namespace,cluster.x-k8s.io/machine",
+				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{

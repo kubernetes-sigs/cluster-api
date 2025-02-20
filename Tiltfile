@@ -52,10 +52,12 @@ if not usingLocalRegistry:
 if settings.get("default_registry", "") != "":
     default_registry(settings.get("default_registry"))
 
-always_enable_providers = ["core"]
+core_provider_name = "core"
+
+default_enable_providers = [core_provider_name]
 
 providers = {
-    "core": {
+    core_provider_name: {
         "context": ".",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
@@ -147,7 +149,7 @@ providers = {
 #     }
 # }
 
-def load_provider_tiltfiles():
+def load_provider_tilt_files():
     provider_repos = settings.get("provider_repos", [])
 
     for repo in provider_repos:
@@ -392,8 +394,8 @@ def find_all_objects_names(objs):
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
 def include_user_tilt_files():
-    user_tiltfiles = listdir("tilt.d")
-    for f in user_tiltfiles:
+    user_tilt_files = listdir("tilt.d")
+    for f in user_tilt_files:
         include(f)
 
 # Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
@@ -403,7 +405,10 @@ def enable_providers():
 
 def get_providers():
     user_enable_providers = settings.get("enable_providers", [])
-    return {k: "" for k in user_enable_providers + always_enable_providers}.keys()
+    all_providers = set(user_enable_providers) | set(default_enable_providers)
+    if not settings.get("enable_core_provider", True):
+        return all_providers - set([core_provider_name])
+    return all_providers
 
 def deploy_provider_crds():
     # NOTE: we are applying raw yaml for clusterctl resources (vs delegating this to clusterctl methods) because
@@ -552,7 +557,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     cmd_button(
         clusterclass_name + ".clusterclass:apply",
         argv = ["bash", "-c", apply_clusterclass_cmd],
-        env = dictonary_to_list_of_string(substitutions),
+        env = dictionary_to_list_of_string(substitutions),
         resource = clusterclass_name,
         icon_name = "note_add",
         text = "Apply `" + clusterclass_name + "` ClusterClass",
@@ -564,7 +569,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     cmd_button(
         clusterclass_name + ".clusterclass:delete",
         argv = ["bash", "-c", delete_clusterclass_cmd],
-        env = dictonary_to_list_of_string(substitutions),
+        env = dictionary_to_list_of_string(substitutions),
         resource = clusterclass_name,
         icon_name = "delete_forever",
         text = "Delete `" + clusterclass_name + "` ClusterClass",
@@ -589,7 +594,7 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":apply",
         argv = ["bash", "-c", apply_cluster_template_cmd],
-        env = dictonary_to_list_of_string(substitutions),
+        env = dictionary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "add_box",
         text = "Create `" + template_name + "` cluster",
@@ -604,7 +609,7 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":delete",
         argv = ["bash", "-c", delete_clusters_cmd],
-        env = dictonary_to_list_of_string(substitutions),
+        env = dictionary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "delete_forever",
         text = "Delete `" + template_name + "` clusters",
@@ -616,14 +621,14 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":delete-all",
         argv = ["bash", "-c", kubectl_cmd + " delete clusters --all --wait=false"],
-        env = dictonary_to_list_of_string(substitutions),
+        env = dictionary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "delete_sweep",
         text = "Delete all workload clusters",
     )
 
-# A function to convert dictonary to list of strings in a format of "name=value"
-def dictonary_to_list_of_string(substitutions):
+# A function to convert dictionary to list of strings in a format of "name=value"
+def dictionary_to_list_of_string(substitutions):
     substitutions_list = []
     for name, value in substitutions.items():
         substitutions_list.append(name + "=" + value)
@@ -635,7 +640,7 @@ def dictonary_to_list_of_string(substitutions):
 
 include_user_tilt_files()
 
-load_provider_tiltfiles()
+load_provider_tilt_files()
 
 prepare_all()
 

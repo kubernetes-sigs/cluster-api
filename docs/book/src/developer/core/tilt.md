@@ -85,6 +85,8 @@ NB: the default is dynamic and will be "podman" if the string "Podman Engine" is
 **enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
 for more details.
 
+**enable_core_provider** (bool, default=true): By default, the `core` provider is enabled. This allows to disable it.
+
 **template_dirs** (Map{String: Array[]String}, default={"docker": [
 "./test/infrastructure/docker/templates"]}): A map of providers to directories containing cluster templates. An example of the field is given below. See [Deploying a workload cluster](#deploying-a-workload-cluster) for how this is used.
 

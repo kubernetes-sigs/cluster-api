@@ -48,6 +48,7 @@ const (
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"
+	HuaweiProviderName         = "huawei"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
 	InMemoryProviderName       = "in-memory"
@@ -271,6 +272,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HivelocityProviderName,
 			url:          "https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         HuaweiProviderName,
+			url:          "https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

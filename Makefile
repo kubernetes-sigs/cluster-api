@@ -533,7 +533,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.5 v1.6 v1.8 v1.9 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.5 v1.6 v1.7 v1.8 v1.9 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 
@@ -554,6 +554,11 @@ generate-e2e-templates-v1.5: $(KUSTOMIZE)
 generate-e2e-templates-v1.6: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology.yaml
+
+.PHONY: generate-e2e-templates-v1.7
+generate-e2e-templates-v1.7: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.7/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.7/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.7/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.7/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.8
 generate-e2e-templates-v1.8: $(KUSTOMIZE)

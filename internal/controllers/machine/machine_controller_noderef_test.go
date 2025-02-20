@@ -949,7 +949,7 @@ func TestPatchNode(t *testing.T) {
 				clusterv1.ClusterNamespaceAnnotation:       "bar",
 				clusterv1.MachineAnnotation:                "baz",
 				"not-managed-by-capi":                      "foo",
-				clusterv1.AnnotationsFromMachineAnnotation: "cluster.x-k8s.io/cluster-name,cluster.x-k8s.io/cluster-namespace,cluster.x-k8s.io/machine",
+				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{

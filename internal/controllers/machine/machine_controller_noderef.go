@@ -261,6 +261,14 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	if len(annotationsFromPreviousReconcile) == 1 && annotationsFromPreviousReconcile[0] == "" {
 		annotationsFromPreviousReconcile = []string{}
 	}
+	// append well known names
+	annotationsFromPreviousReconcile = append(annotationsFromPreviousReconcile,
+		"cluster.x-k8s.io/cluster-name",
+		"cluster.x-k8s.io/cluster-namespace",
+		"cluster.x-k8s.io/machine",
+		"cluster.x-k8s.io/owner-kind",
+		"cluster.x-k8s.io/owner-name",
+	)
 	// Adds the annotations CAPI sets on the node and computes the changes.
 	hasAnnotationChanges, annotationsFromCurrentReconcile := annotations.AddAnnotations(newNode, newAnnotations)
 	// Make sure any annotations that were in the previous reconcile but aren't in the current set are removed.
@@ -301,8 +309,26 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 			hasLabelChanges = true
 		}
 	}
-	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: strings.Join(labelsFromCurrentReconcile, ",")})
-	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: strings.Join(annotationsFromCurrentReconcile, ",")})
+
+	// drop the well known annotations before setting AnnotationsFromMachineAnnotation
+	newAnnotationsFromCurrentReconcile := []string{}
+	for _, entry := range annotationsFromCurrentReconcile {
+		switch entry {
+		case "cluster.x-k8s.io/cluster-name":
+		case "cluster.x-k8s.io/cluster-namespace":
+		case "cluster.x-k8s.io/machine":
+		case "cluster.x-k8s.io/owner-kind":
+		case "cluster.x-k8s.io/owner-name":
+		default:
+			newAnnotationsFromCurrentReconcile = append(newAnnotationsFromCurrentReconcile, entry)
+		}
+	}
+
+	newAnnotationsFromMachine := strings.Join(newAnnotationsFromCurrentReconcile, ",")
+	newLabelsFromMachine := strings.Join(labelsFromCurrentReconcile, ",")
+
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: newLabelsFromMachine})
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: newAnnotationsFromMachine})
 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)

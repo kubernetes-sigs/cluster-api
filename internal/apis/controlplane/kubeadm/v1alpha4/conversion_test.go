@@ -69,7 +69,6 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
-		kubeadmControlPlaneSpecFuzzer,
 	}
 }
 
@@ -91,11 +90,4 @@ func kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4(in *KubeadmControlPla
 	in.Spec.Version = ""
 	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
-}
-
-func kubeadmControlPlaneSpecFuzzer(obj *controlplanev1.KubeadmControlPlaneSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// KubeadmControlPlaneSpec.ReadinessGates has been added in v1beta1.
-	obj.ReadinessGates = nil
 }

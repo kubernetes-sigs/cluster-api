@@ -530,7 +530,10 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
+						ObjectMeta: kcpMachineTemplateObjectMeta,
+						ReadinessGates: []clusterv1.MachineReadinessGate{
+							{ConditionType: "Foo"},
+						},
 						NodeDrainTimeout:        duration5s,
 						NodeDeletionTimeout:     duration5s,
 						NodeVolumeDetachTimeout: duration5s,
@@ -680,6 +683,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta:              kcpMachineTemplateObjectMeta,
+						ReadinessGates:          []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
 						NodeDrainTimeout:        duration5s,
 						NodeDeletionTimeout:     duration5s,
 						NodeVolumeDetachTimeout: duration5s,
@@ -689,7 +693,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							ClusterName: clusterName,
 						},
 					},
-					ReadinessGates: []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
 				},
 			},
 			isUpdatingExistingMachine: false,
@@ -709,6 +712,9 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						NodeDrainTimeout:        duration5s,
 						NodeDeletionTimeout:     duration5s,
 						NodeVolumeDetachTimeout: duration5s,
+						ReadinessGates: []clusterv1.MachineReadinessGate{
+							{ConditionType: "Foo"},
+						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
@@ -784,7 +790,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					NodeDrainTimeout:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeout,
 					NodeDeletionTimeout:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeout,
 					NodeVolumeDetachTimeout: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
-					ReadinessGates:          append([]clusterv1.MachineReadinessGate{{ConditionType: "Foo"}}, mandatoryMachineReadinessGates...),
+					ReadinessGates:          append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
 				}
 
 				// Verify the Name and UID of the Machine remain unchanged
@@ -818,7 +824,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					NodeDrainTimeout:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeout,
 					NodeDeletionTimeout:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeout,
 					NodeVolumeDetachTimeout: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
-					ReadinessGates:          append(tt.kcp.Spec.ReadinessGates, mandatoryMachineReadinessGates...),
+					ReadinessGates:          append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
 				}
 				// Verify Name.
 				for _, matcher := range tt.want {

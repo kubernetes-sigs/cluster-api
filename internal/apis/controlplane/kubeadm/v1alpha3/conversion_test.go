@@ -57,7 +57,6 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
 		kubeadmClusterConfigurationFuzzer,
-		kubeadmControlPlaneSpecFuzzer,
 	}
 }
 
@@ -82,11 +81,4 @@ func kubeadmClusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.UseHyperKubeImage = false
-}
-
-func kubeadmControlPlaneSpecFuzzer(obj *controlplanev1.KubeadmControlPlaneSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// KubeadmControlPlaneSpec.ReadinessGates has been added in v1beta1.
-	obj.ReadinessGates = nil
 }

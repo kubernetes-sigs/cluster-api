@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,6 +53,10 @@ var mandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
 	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition)},
 	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition)},
 	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition)},
+}
+
+// etcdMandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns if etcd is managed.
+var etcdMandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
 	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)},
 	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition)},
 }
@@ -464,33 +469,26 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	if existingMachine != nil {
 		desiredMachine.Spec.InfrastructureRef = existingMachine.Spec.InfrastructureRef
 		desiredMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef
-		desiredMachine.Spec.ReadinessGates = existingMachine.Spec.ReadinessGates
 	}
-	ensureMandatoryReadinessGates(kcp.Spec.ReadinessGates, desiredMachine)
+
+	// Set machines readiness gates
+	allReadinessGates := []clusterv1.MachineReadinessGate{}
+	allReadinessGates = append(allReadinessGates, mandatoryMachineReadinessGates...)
+	isEtcdManaged := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
+	if isEtcdManaged {
+		allReadinessGates = append(allReadinessGates, etcdMandatoryMachineReadinessGates...)
+	}
+	allReadinessGates = append(allReadinessGates, kcp.Spec.MachineTemplate.ReadinessGates...)
+
+	desiredMachine.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{}
+	knownGates := sets.Set[string]{}
+	for _, gate := range allReadinessGates {
+		if knownGates.Has(gate.ConditionType) {
+			continue
+		}
+		desiredMachine.Spec.ReadinessGates = append(desiredMachine.Spec.ReadinessGates, gate)
+		knownGates.Insert(gate.ConditionType)
+	}
 
 	return desiredMachine, nil
-}
-
-func ensureMandatoryReadinessGates(kcpReadinessGates []clusterv1.MachineReadinessGate, m *clusterv1.Machine) {
-	allReadinessGates := []clusterv1.MachineReadinessGate{}
-	allReadinessGates = append(allReadinessGates, kcpReadinessGates...)
-	allReadinessGates = append(allReadinessGates, mandatoryMachineReadinessGates...)
-
-	if m.Spec.ReadinessGates == nil {
-		m.Spec.ReadinessGates = allReadinessGates
-		return
-	}
-
-	for _, want := range allReadinessGates {
-		found := false
-		for _, got := range m.Spec.ReadinessGates {
-			if got.ConditionType == want.ConditionType {
-				found = true
-				break
-			}
-		}
-		if !found {
-			m.Spec.ReadinessGates = append(m.Spec.ReadinessGates, want)
-		}
-	}
 }

@@ -169,7 +169,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	if cluster.Spec.Topology != nil {
 		s.clusterClass = &clusterv1.ClusterClass{}
 		if err := r.Client.Get(ctx, cluster.GetClassKey(), s.clusterClass); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to get cluster class")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterClass %s", cluster.GetClassKey())
 		}
 	}
 

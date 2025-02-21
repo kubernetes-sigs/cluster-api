@@ -91,6 +91,11 @@ func (in *KubeadmControlPlaneMachineTemplate) DeepCopyInto(out *KubeadmControlPl
 	*out = *in
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	out.InfrastructureRef = in.InfrastructureRef
+	if in.ReadinessGates != nil {
+		in, out := &in.ReadinessGates, &out.ReadinessGates
+		*out = make([]apiv1beta1.MachineReadinessGate, len(*in))
+		copy(*out, *in)
+	}
 	if in.NodeDrainTimeout != nil {
 		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
 		*out = new(v1.Duration)
@@ -128,11 +133,6 @@ func (in *KubeadmControlPlaneSpec) DeepCopyInto(out *KubeadmControlPlaneSpec) {
 	}
 	in.MachineTemplate.DeepCopyInto(&out.MachineTemplate)
 	in.KubeadmConfigSpec.DeepCopyInto(&out.KubeadmConfigSpec)
-	if in.ReadinessGates != nil {
-		in, out := &in.ReadinessGates, &out.ReadinessGates
-		*out = make([]apiv1beta1.MachineReadinessGate, len(*in))
-		copy(*out, *in)
-	}
 	if in.RolloutBefore != nil {
 		in, out := &in.RolloutBefore, &out.RolloutBefore
 		*out = new(RolloutBefore)

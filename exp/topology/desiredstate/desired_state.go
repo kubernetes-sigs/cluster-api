@@ -311,23 +311,23 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		if s.Current.ControlPlane.Object != nil {
 			currentRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Current.ControlPlane.Object)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed get spec.machineTemplate.infrastructureRef from the ControlPlane object")
+				return nil, errors.Wrapf(err, "failed get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
 			}
 			desiredRef, err := calculateRefDesiredAPIVersion(currentRef, refCopy)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to calculate desired spec.machineTemplate.infrastructureRef")
+				return nil, errors.Wrapf(err, "failed to calculate desired %s", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
 			}
 			refCopy.SetAPIVersion(desiredRef.APIVersion)
 		}
 		if err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, refCopy); err != nil {
-			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
 		}
 
 		// Add the ControlPlane labels and annotations to the ControlPlane machines as well.
 		// Note: We have to ensure the machine template metadata copied from the control plane template is not overwritten.
 		controlPlaneMachineTemplateMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.metadata from the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().Metadata().Path())
 		}
 
 		controlPlaneMachineTemplateMetadata.Labels = util.MergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
@@ -338,7 +338,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 				Labels:      controlPlaneMachineTemplateMetadata.Labels,
 				Annotations: controlPlaneMachineTemplateMetadata.Annotations,
 			}); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Metadata().Path())
 		}
 	}
 
@@ -347,7 +347,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// does not implement support for this field and the ControlPlane object is generated without the number of Replicas.
 	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
 		if err := contract.ControlPlane().Replicas().Set(controlPlane, int64(*s.Blueprint.Topology.ControlPlane.Replicas)); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.replicas in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().Replicas().Path())
 		}
 	}
 
@@ -356,11 +356,11 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
 	if s.Blueprint.Topology.ControlPlane.ReadinessGates != nil {
 		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.Topology.ControlPlane.ReadinessGates); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.readinessGates in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().ReadinessGates().Path())
 		}
 	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates != nil {
 		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.readinessGates in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().ReadinessGates().Path())
 		}
 	}
 
@@ -371,7 +371,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 	if nodeDrainTimeout != nil {
 		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *nodeDrainTimeout); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDrainTimeout in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path())
 		}
 	}
 
@@ -382,7 +382,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 	if nodeVolumeDetachTimeout != nil {
 		if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, *nodeVolumeDetachTimeout); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeVolumeDetachTimeout in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path())
 		}
 	}
 
@@ -393,7 +393,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 	if nodeDeletionTimeout != nil {
 		if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, *nodeDeletionTimeout); err != nil {
-			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDeletionTimeout in the ControlPlane object")
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path())
 		}
 	}
 
@@ -403,7 +403,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		return nil, errors.Wrap(err, "failed to compute version of control plane")
 	}
 	if err := contract.ControlPlane().Version().Set(controlPlane, version); err != nil {
-		return nil, errors.Wrap(err, "failed to set spec.version in the ControlPlane object")
+		return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().Version().Path())
 	}
 
 	return controlPlane, nil

@@ -493,7 +493,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().Replicas().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 	})
-	t.Run("Skips setting readinessGates if required", func(t *testing.T) {
+	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
 		g := NewWithT(t)
 
 		clusterClassWithoutReadinessGates := clusterClass.DeepCopy()
@@ -1606,6 +1606,56 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(clusterClassDuration))
+	})
+
+	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithoutReadinessGates := fakeClass.DeepCopy()
+		clusterClassWithoutReadinessGates.Spec.Workers.MachineDeployments[0].ReadinessGates = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClassWithoutReadinessGates,
+			MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+				"linux-worker": {
+					Metadata: clusterv1.ObjectMeta{
+						Labels:      labels,
+						Annotations: annotations,
+					},
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+					MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
+						UnhealthyConditions: unhealthyConditions,
+						NodeStartupTimeout: &metav1.Duration{
+							Duration: time.Duration(1),
+						},
+					},
+				},
+			},
+		}
+
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			// missing ReadinessGates
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// checking only values from CC defaults
+		actualMd := actual.Object
+		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(BeNil())
 	})
 
 	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {

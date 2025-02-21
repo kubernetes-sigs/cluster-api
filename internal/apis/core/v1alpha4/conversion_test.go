@@ -117,9 +117,6 @@ func ClusterClassJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		JSONPatchFuzzer,
 		JSONSchemaPropsFuzzer,
-		ClusterClassSpecFuzzer,
-		ControlPlaneClassFuzzer,
-		MachineDeploymentClassFuzzer,
 	}
 }
 
@@ -170,25 +167,4 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 		in.Properties[c.RandString()] = *in.DeepCopy()
 	}
 	in.Items = in.DeepCopy()
-}
-
-func ClusterClassSpecFuzzer(obj *clusterv1.ClusterClassSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// ClusterClassSpec.AvailabilityGates has been added in v1beta1.
-	obj.AvailabilityGates = nil
-}
-
-func ControlPlaneClassFuzzer(obj *clusterv1.ControlPlaneClass, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// ControlPlaneClass.ReadinessGates has been added in v1beta1.
-	obj.ReadinessGates = nil
-}
-
-func MachineDeploymentClassFuzzer(obj *clusterv1.MachineDeploymentClass, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// MachineDeploymentClass.ReadinessGates has been added in v1beta1.
-	obj.ReadinessGates = nil
 }

@@ -364,45 +364,47 @@ type ReadinessGates struct{}
 
 // Path returns the path of the ReadinessGates.
 func (m *ReadinessGates) Path() Path {
-	return Path{"spec", "readinessGates"}
+	return Path{"spec", "machineTemplate", "readinessGates"}
 }
 
 // Get gets the ReadinessGates object.
 func (m *ReadinessGates) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineReadinessGate, error) {
 	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to retrieve control plane metadata.labels")
+		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", m.Path())
 	}
 	if !ok {
 		return nil, nil
 	}
 	jsonValue, err := json.Marshal(&unstructuredValue)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to Marshal control plane spec.readinessGates")
+		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", m.Path())
 	}
 	var readinessGates []clusterv1.MachineReadinessGate
 	if err := json.Unmarshal(jsonValue, &readinessGates); err != nil {
-		return nil, errors.Wrap(err, "failed to Unmarshal control plane spec.readinessGates")
+		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", m.Path())
 	}
 	return readinessGates, nil
 }
 
 // Set sets the ReadinessGates value.
+// Note: in case the value is nil, the system assumes that the control plane do not implement the optional list of readiness gates.
 func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []clusterv1.MachineReadinessGate) error {
+	unstructured.RemoveNestedField(obj.UnstructuredContent(), m.Path()...)
 	if readinessGates == nil {
 		return nil
 	}
 
 	jsonValue, err := json.Marshal(&readinessGates)
 	if err != nil {
-		return errors.Wrap(err, "failed to Marshal control plane spec.readinessGates")
+		return errors.Wrapf(err, "failed to Marshal control plane %s", m.Path())
 	}
 	var unstructuredValue []interface{}
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
-		return errors.Wrap(err, "failed to Unmarshal control plane spec.readinessGates")
+		return errors.Wrapf(err, "failed to Unmarshal control plane %s", m.Path())
 	}
 	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
-		return errors.Wrap(err, "failed to set control plane spec.readinessGates")
+		return errors.Wrapf(err, "failed to set control plane %s", m.Path())
 	}
 	return nil
 }

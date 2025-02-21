@@ -364,7 +364,7 @@ func TestControlPlane(t *testing.T) {
 			{ConditionType: "bar"},
 		}
 
-		g.Expect(ControlPlane().ReadinessGates().Path()).To(Equal(Path{"spec", "readinessGates"}))
+		g.Expect(ControlPlane().ReadinessGates().Path()).To(Equal(Path{"spec", "machineTemplate", "readinessGates"}))
 
 		err := ControlPlane().ReadinessGates().Set(obj, readinessGates)
 		g.Expect(err).ToNot(HaveOccurred())

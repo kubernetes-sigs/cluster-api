@@ -464,10 +464,10 @@ must be propagated to machines without triggering rollouts.
 See [In place propagation of changes affecting Kubernetes objects only] as well as [Metadata propagation] for more details.
 
 In case you are developing a control plane provider that allows definition of machine readiness gates, you SHOULD also implement
-the following `spec` field.
+the following `machineTemplate` field.
 
 ```go
-type FooControlPlaneSpec struct {
+type FooControlPlaneMachineTemplate struct {
     // readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
     //
     // This field can be used e.g. by Cluster API control plane providers to extend the semantic of the

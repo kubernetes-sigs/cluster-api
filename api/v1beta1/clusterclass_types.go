@@ -84,7 +84,7 @@ type ClusterClassSpec struct {
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//
 	// NOTE: this field is considered only for computing v1beta2 conditions.
-	// NOTE: If a Cluster using this ClusterClass, and this Cluster defines a custom list of availabilityGates,
+	// NOTE: If a Cluster is using this ClusterClass, and this Cluster defines a custom list of availabilityGates,
 	// such list overrides availabilityGates defined in this field.
 	// +optional
 	// +listType=map
@@ -183,7 +183,7 @@ type ControlPlaneClass struct {
 	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
 	//
 	// NOTE: This field is considered only for computing v1beta2 conditions.
-	// NOTE: If a Cluster has a ControlPlane object using this ControlPlaneClass, and this ControlPlane defines a custom list of readinessGates,
+	// NOTE: If a Cluster defines a custom list of readinessGates for the control plane,
 	// such list overrides readinessGates defined in this field.
 	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
 	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
@@ -283,7 +283,7 @@ type MachineDeploymentClass struct {
 	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
 	//
 	// NOTE: This field is considered only for computing v1beta2 conditions.
-	// NOTE: If a Cluster has a MachineDeployment using this MachineDeploymentClass, and this MachineDeployment defines a custom list of readinessGates,
+	// NOTE: If a Cluster defines a custom list of readinessGates for a MachineDeployment using this MachineDeploymentClass,
 	// such list overrides readinessGates defined in this field.
 	// +optional
 	// +listType=map

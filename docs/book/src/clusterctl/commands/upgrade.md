@@ -83,12 +83,13 @@ Cluster API only tests a subset of possible clusterctl upgrade paths as otherwis
 Untested upgrade paths are not blocked by clusterctl and should work in general, but users
 intending to perform an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
 
-The following is an example of the tested upgrade paths for v1.7:
+The following is an example of the tested upgrade paths for v1.10:
 
-| From | To   | Note                         |
-|------|------|------------------------------|
-| v1.5 | v1.7 | n-2 --> n (v1.5 is v1.7 - 2) |
-| v1.6 | v1.7 | n-1 --> n (v1.6 is v1.7 - 1) |
+| From | To    | Note                          |
+|------|-------|-------------------------------|
+| v1.7 | v1.10 | n-3 --> n (v1.7 is v1.10 - 3) |
+| v1.8 | v1.10 | n-2 --> n (v1.8 is v1.10 - 2) |
+| v1.9 | v1.10 | n-1 --> n (v1.9 is v1.10 - 1) |
 
 </aside>
 

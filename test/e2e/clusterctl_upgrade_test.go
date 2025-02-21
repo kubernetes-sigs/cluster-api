@@ -179,6 +179,38 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 	})
 })
 
+// Note: This test should be changed during "prepare main branch", it should test n-3 => current.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.7=>current) [ClusterClass]", Label("ClusterClass"), func() {
+	// Get n-3 latest stable release
+	version := "1.7"
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        fmt.Sprintf(clusterctlDownloadURL, stableRelease),
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is the next minor for v1beta1).
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
+			InitWithProvidersContract:       "v1beta1",
+			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version.
+			InitWithKubernetesVersion:   "v1.30.0",
+			WorkloadKubernetesVersion:   "v1.30.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "topology",
+			UseKindForManagementCluster: true,
+		}
+	})
+})
+
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release
@@ -201,7 +233,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			// When picking this version, please check also the list of versions known by  the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   "v1.31.0",
 			WorkloadKubernetesVersion:   "v1.31.0",
 			MgmtFlavor:                  "topology",
@@ -227,7 +259,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			// When picking this version, please check also the list of versions known by  the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   "v1.32.0",
 			WorkloadKubernetesVersion:   "v1.32.0",
 			MgmtFlavor:                  "topology",
@@ -256,7 +288,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			InitWithProvidersContract: "v1beta1",
 			// Note: InitWithKubernetesVersion should be the latest of the next supported kubernetes version by the target Cluster API version.
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			// When picking this version, please check also the list of versions known by  the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   initKubernetesVersion,
 			WorkloadKubernetesVersion:   "v1.32.0",
 			MgmtFlavor:                  "topology",

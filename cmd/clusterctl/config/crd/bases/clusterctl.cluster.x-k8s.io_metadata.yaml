@@ -49,9 +49,11 @@ spec:
                   type: string
                 major:
                   description: major version of the release series
+                  format: int32
                   type: integer
                 minor:
                   description: minor version of the release series
+                  format: int32
                   type: integer
               type: object
             type: array

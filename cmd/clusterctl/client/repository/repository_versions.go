@@ -71,7 +71,7 @@ func latestContractRelease(ctx context.Context, repo Repository, contract string
 
 	// If the Major or Minor version of the latest release doesn't match the release series for the current contract,
 	// return the latest patch release of the desired Major/Minor version.
-	if sv.Major() != releaseSeries.Major || sv.Minor() != releaseSeries.Minor {
+	if sv.Major() != uint(releaseSeries.Major) || sv.Minor() != uint(releaseSeries.Minor) {
 		return latestPatchRelease(ctx, repo, &releaseSeries.Major, &releaseSeries.Minor)
 	}
 	return latest, nil
@@ -84,7 +84,7 @@ func latestRelease(ctx context.Context, repo Repository) (string, error) {
 }
 
 // latestPatchRelease returns the latest patch release for a given Major and Minor version.
-func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint) (string, error) {
+func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int32) (string, error) {
 	versions, err := repo.GetVersions(ctx)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get repository versions")
@@ -101,7 +101,7 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint
 			continue
 		}
 
-		if (major != nil && sv.Major() != *major) || (minor != nil && sv.Minor() != *minor) {
+		if (major != nil && sv.Major() != uint(*major)) || (minor != nil && sv.Minor() != uint(*minor)) {
 			// skip versions that don't match the desired Major.Minor version.
 			continue
 		}

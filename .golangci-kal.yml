@@ -65,3 +65,11 @@ issues:
     text: "Conditions field must be a slice of metav1.Condition"
     linters:
       - kal
+  - path: "api/v1beta1/*"
+    text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
+    linters:
+      - kal
+  - path: "exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
+    text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
+    linters:
+      - kal

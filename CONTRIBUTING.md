@@ -137,6 +137,7 @@ Cluster API maintains the most recent release/releases for all supported API and
 - For older API versions we only support the most recent minor release until the API version reaches EOL.
 - We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
   For example, if v1.6 and v1.7 are currently supported, we will also maintain test coverage for v1.5 for one additional release cycle. When v1.8 is released, tests for v1.5 will be removed.
+  - If there is a need for an emergency patch (e.g. to fix a critical security issue), please bring this up to maintainers and it will be considered on a case-by-case basis.
 
 | Minor Release | API Version  | Supported Until                                  |
 |---------------|--------------|--------------------------------------------------|

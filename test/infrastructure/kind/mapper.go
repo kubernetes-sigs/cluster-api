@@ -79,6 +79,7 @@ type Mapping struct {
 var preBuiltMappings = []Mapping{
 
 	// TODO: Add pre-built images for newer Kind versions on top
+	// Pre-built images for Kind v1.27.
 	{
 		KubernetesVersion: semver.MustParse("1.32.2"),
 		Mode:              Mode0_20,

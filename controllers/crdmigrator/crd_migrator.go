@@ -224,6 +224,7 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	if r.crdMigrationPhasesToRun.Has(StorageVersionMigrationPhase) && storageVersionMigrationRequired(crd, storageVersion) ||
 		r.crdMigrationPhasesToRun.Has(CleanupManagedFieldsPhase) {
 		// Get CustomResources only if we actually are going to run one of the phases.
+		// Note: This relies on that the version that is storageVersion is also served.
 		var err error
 		customResourceObjects, err = r.listCustomResources(ctx, crd, migrationConfig, storageVersion)
 		if err != nil {
@@ -379,6 +380,9 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		e := objectEntry{
 			Kind:      gvk.Kind,
 			ObjectKey: client.ObjectKeyFromObject(obj),
+			// Note: We also have to set the generation of the CRD to ensure we actually run the migration
+			// on the latest state of the CRD.
+			CRDGeneration: crd.Generation,
 		}
 
 		if _, alreadyMigrated := r.storageVersionMigrationCache.Has(e.Key()); alreadyMigrated {
@@ -537,8 +541,9 @@ func removeManagedFieldsWithNotServedGroupVersion(obj client.Object, servedGroup
 type objectEntry struct {
 	Kind string
 	client.ObjectKey
+	CRDGeneration int64
 }
 
 func (r objectEntry) Key() string {
-	return fmt.Sprintf("%s %s", r.Kind, r.ObjectKey.String())
+	return fmt.Sprintf("%s %s %d", r.Kind, r.ObjectKey.String(), r.CRDGeneration)
 }

@@ -166,6 +166,8 @@ func TestReconcile(t *testing.T) {
 			t.Logf("T1: Validate")
 			if tt.skipCRDMigrationPhases.Has(string(AllPhase)) {
 				// If all phases are skipped, the controller should do nothing.
+				// We just want to confirm the controller is not enabled, so we return
+				// after this validation.
 				g.Consistently(func(g Gomega) {
 					crd := &apiextensionsv1.CustomResourceDefinition{}
 					g.Expect(env.GetAPIReader().Get(ctx, crdObjectKey, crd)).To(Succeed())

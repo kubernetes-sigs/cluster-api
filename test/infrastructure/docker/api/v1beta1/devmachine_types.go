@@ -66,6 +66,119 @@ const (
 	APIServerWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
 )
 
+// DevMachine's v1Beta2 conditions that apply to all the supported backends.
+
+// DevMachine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// DevMachineReadyV1Beta2Condition is true if the DevMachine's VirtualMachineProvisioned, NodeProvisioned,
+	// EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true.
+	DevMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+
+	// DevMachineReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is met.
+	DevMachineReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// DevMachineNotReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is not met.
+	DevMachineNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// DevMachineReadyUnknownV1Beta2Reason surfaces when at least one DevMachine readiness criteria is unknown
+	// and no DevMachine readiness criteria is not met.
+	DevMachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+)
+
+// DevMachine's v1Beta2 conditions that apply to the in memory backend.
+
+// VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's with in memory backend.
+const (
+	// DevMachineInMemoryVirtualMachineProvisionedV1Beta2Condition documents the status of the provisioning of a fake VirtualMachine for a DevMachine's with in memory backend.
+	DevMachineInMemoryVirtualMachineProvisionedV1Beta2Condition string = "VirtualMachineProvisioned"
+
+	// DevMachineInMemoryVirtualMachineWaitingForClusterInfrastructureV1Beta2Reason documents a fake VirtualMachine for a DevMachine's with in memory backend waiting for the cluster
+	// infrastructure to be ready.
+	DevMachineInMemoryVirtualMachineWaitingForClusterInfrastructureV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureV1Beta2Reason
+
+	// DevMachineInMemoryVirtualMachineWaitingControlPlaneInitializedV1Beta2Reason documents a fake VirtualMachine for a DevMachine's with in memory backend waiting
+	// for the control plane to be initialized.
+	DevMachineInMemoryVirtualMachineWaitingControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingControlPlaneInitializedV1Beta2Reason
+
+	// DevMachineInMemoryVirtualMachineWaitingForBootstrapDataV1Beta2Reason documents a fake VirtualMachine for a DevMachine's with in memory backend waiting for the bootstrap
+	// data to be ready.
+	DevMachineInMemoryVirtualMachineWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapData1Beta2DataReason
+
+	// DevMachineInMemoryVirtualMachineWaitingForStartupTimeoutV1Beta2Reason documents the infrastructure for a fake VirtualMachine for a DevMachine's with in memory backend provisioning.
+	DevMachineInMemoryVirtualMachineWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
+
+	// DevMachineInMemoryVirtualMachineProvisionedV1Beta2Reason documents a fake VirtualMachine for a DevMachine's with in memory backend being provisioned.
+	DevMachineInMemoryVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// DevMachineInMemoryVirtualMachineInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake VirtualMachine for a DevMachine's with in memory backend.
+	DevMachineInMemoryVirtualMachineInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
+// NodeProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's with in memory backend.
+const (
+	// DevMachineInMemoryNodeProvisionedV1Beta2Condition documents the status of the provisioning of the node hosted on the InMemoryMachine.
+	DevMachineInMemoryNodeProvisionedV1Beta2Condition string = "NodeProvisioned"
+
+	// DevMachineInMemoryNodeWaitingForVirtualMachineProvisionedV1Beta2Reason documents a fake Node for a DevMachine's with in memory backend waiting for the VirtualMachine
+	// to be provisioned.
+	DevMachineInMemoryNodeWaitingForVirtualMachineProvisionedV1Beta2Reason = "WaitingForVirtualMachineProvisioned"
+
+	// DevMachineInMemoryNodeWaitingForStartupTimeoutV1Beta2Reason documents the fake Node for a DevMachine's with in memory backend provisioning.
+	DevMachineInMemoryNodeWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
+
+	// DevMachineInMemoryNodeProvisionedV1Beta2DataReason documents a fake Node for a DevMachine's with in memory backend being provisioned.
+	DevMachineInMemoryNodeProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// DevMachineInMemoryNodeInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake Node for a DevMachine's with in memory backend.
+	DevMachineInMemoryNodeInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
+// EtcdProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's with in memory backend.
+const (
+	// DevMachineInMemoryEtcdProvisionedV1Beta2Condition documents the status of the provisioning VM implementing the InMemoryMachine.
+	DevMachineInMemoryEtcdProvisionedV1Beta2Condition string = "EtcdProvisioned"
+
+	// DevMachineInMemoryEtcdWaitingForVirtualMachineProvisionedV1Beta2Reason documents a fake Etcd for a DevMachine's with in memory backend waiting for the VirtualMachine
+	// to be provisioned.
+	DevMachineInMemoryEtcdWaitingForVirtualMachineProvisionedV1Beta2Reason = "WaitingForVirtualMachineProvisioned"
+
+	// DevMachineInMemoryEtcdWaitingForNodeProvisionedV1Beta2Reason documents a fake Etcd for a DevMachine's with in memory backend waiting for the Node
+	// to be provisioned.
+	DevMachineInMemoryEtcdWaitingForNodeProvisionedV1Beta2Reason = "WaitingForNodeProvisioned"
+
+	// DevMachineInMemoryEtcdWaitingForStartupTimeoutV1Beta2Reason documents the fake Etcd for a DevMachine's with in memory backend provisioning.
+	DevMachineInMemoryEtcdWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
+
+	// DevMachineInMemoryEtcdProvisionedV1Beta2DataReason documents a fake Etcd for a DevMachine's with in memory backend being provisioned.
+	DevMachineInMemoryEtcdProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// DevMachineInMemoryEtcdInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake Etcd for a DevMachine's with in memory backend.
+	DevMachineInMemoryEtcdInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
+// APIServerProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's with in memory backend.
+const (
+	// DevMachineInMemoryAPIServerProvisionedV1Beta2Condition documents the status of the provisioning of the APIServer instance hosted on the InMemoryMachine.
+	DevMachineInMemoryAPIServerProvisionedV1Beta2Condition string = "APIServerProvisioned"
+
+	// DevMachineInMemoryAPIServerWaitingForVirtualMachineProvisionedV1Beta2Reason documents a fake APIServer for a DevMachine's with in memory backend waiting for the VirtualMachine
+	// to be provisioned.
+	DevMachineInMemoryAPIServerWaitingForVirtualMachineProvisionedV1Beta2Reason = "WaitingForVirtualMachineProvisioned"
+
+	// DevMachineInMemoryAPIServerWaitingForNodeProvisionedV1Beta2Reason documents a fake APIServer for a DevMachine's with in memory backend waiting for the Node
+	// to be provisioned.
+	DevMachineInMemoryAPIServerWaitingForNodeProvisionedV1Beta2Reason = "WaitingForNodeProvisioned"
+
+	// DevMachineInMemoryAPIServerWaitingForStartupTimeoutV1Beta2Reason documents the infrastructure for a fake APIServer for a DevMachine's with in memory backend provisioning.
+	DevMachineInMemoryAPIServerWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
+
+	// DevMachineInMemoryAPIServerProvisionedV1Beta2DataReason documents a fake APIServer for a DevMachine's with in memory backend being provisioned.
+	DevMachineInMemoryAPIServerProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// DevMachineInMemoryAPIServerInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake APIServer for a DevMachine's with in memory backend.
+	DevMachineInMemoryAPIServerInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
 // DevMachineSpec defines the desired state of DevMachine.
 type DevMachineSpec struct {
 	// providerID used to link this machine with the node hosted on it.

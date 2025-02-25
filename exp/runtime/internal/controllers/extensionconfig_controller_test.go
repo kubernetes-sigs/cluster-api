@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -45,6 +46,7 @@ import (
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 func TestExtensionReconciler_Reconcile(t *testing.T) {
@@ -106,9 +108,18 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		}
 		g.Expect(warmup.Start(ctx)).To(Succeed())
 
-		// Reconcile the extension and assert discovery has succeeded (the first reconcile adds Paused).
+		// Reconcile the extension and assert discovery has succeeded (the first reconcile adds the Paused condition).
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
+
+		// Wait until the ExtensionConfig in the cache has the Paused condition so the next Reconcile can do discovery.
+		g.Eventually(func(g Gomega) {
+			conf := &runtimev1.ExtensionConfig{}
+			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), conf)).To(Succeed())
+			pausedCondition := v1beta2conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
+			g.Expect(pausedCondition).ToNot(BeNil())
+			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -169,9 +180,18 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 			return nil
 		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())
 
-		// Reconcile the extension and assert discovery has succeeded  (the first reconcile adds Paused).
+		// Reconcile the extension and assert discovery has succeeded  (the first reconcile updates observedGeneration in the Paused condition).
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
+
+		// Wait until the ExtensionConfig in the cache has the up-to-date Paused condition so the next Reconcile can do discovery.
+		g.Eventually(func(g Gomega) {
+			conf := &runtimev1.ExtensionConfig{}
+			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), conf)).To(Succeed())
+			pausedCondition := v1beta2conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
+			g.Expect(pausedCondition).ToNot(BeNil())
+			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())

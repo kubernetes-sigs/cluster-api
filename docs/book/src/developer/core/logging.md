@@ -170,7 +170,7 @@ extra_args:
 ```
 The above options can be combined with other settings from our [Tilt](tilt.md) setup. Once Tilt is up and running with these settings users will be able to browse logs using the Grafana Explore UI.
 
-This will normally be available on `localhost:3001`. To explore logs from Loki, open the Explore interface for the DataSource 'Loki'. [This link](http://localhost:3001/explore?datasource%22:%22Loki%22) should work as a shortcut with the default Tilt settings.
+This will normally be available on `localhost:3000`. To explore logs from Loki, open the Explore interface for the DataSource 'Loki'. [This link](http://localhost:3000/explore?datasource%22:%22Loki%22) should work as a shortcut with the default Tilt settings.
 
 ### Example queries
 

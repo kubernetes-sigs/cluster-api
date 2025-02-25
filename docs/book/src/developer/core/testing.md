@@ -321,7 +321,7 @@ analyzing them via Grafana.
     * GCS path: `gs://kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`
     * Local folder: `./_artifacts`
 4. Now the logs are available:
-    * via [Grafana](http://localhost:3001/explore)
+    * via [Grafana](http://localhost:3000/explore)
     * via [Loki logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/)
       ```bash
       logcli query '{app="capi-controller-manager"}' --timezone=UTC --from="2022-02-22T10:00:00Z"

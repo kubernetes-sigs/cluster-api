@@ -158,7 +158,7 @@ func TestReconcile(t *testing.T) {
 
 			t.Logf("T1: Install CRDs")
 			g.Expect(installCRDs(ctx, env.GetClient(), "test/t1/crd")).To(Succeed())
-			validateStoredVersions(g, crdObjectKey, "v1beta1")
+			validateStoredVersions(t, g, crdObjectKey, "v1beta1")
 
 			t.Logf("T1: Start Manager")
 			cancelManager, managerStopped := startManager(ctx, managerT1)
@@ -178,8 +178,8 @@ func TestReconcile(t *testing.T) {
 				return
 			}
 			// Stored versions didn't change.
-			validateStoredVersions(g, crdObjectKey, "v1beta1")
-			validateObservedGeneration(g, crdObjectKey, 1)
+			validateStoredVersions(t, g, crdObjectKey, "v1beta1")
+			validateObservedGeneration(t, g, crdObjectKey, 1)
 
 			// Deploy test-cluster-1 and test-cluster-2.
 			testClusterT1 := unstructuredTestCluster("test-cluster-1", t1v1beta1.GroupVersion.WithKind("TestCluster"))
@@ -188,7 +188,7 @@ func TestReconcile(t *testing.T) {
 			testClusterT1 = unstructuredTestCluster("test-cluster-2", t1v1beta1.GroupVersion.WithKind("TestCluster"))
 			g.Expect(unstructured.SetNestedField(testClusterT1.Object, "foo-value", "spec", "foo")).To(Succeed())
 			g.Expect(managerT1.GetClient().Patch(ctx, testClusterT1, client.Apply, fieldOwner)).To(Succeed())
-			validateManagedFields(g, "v1beta1", map[string][]string{
+			validateManagedFields(t, g, "v1beta1", map[string][]string{
 				"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 				"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1"},
 			})
@@ -198,19 +198,19 @@ func TestReconcile(t *testing.T) {
 
 			t.Logf("T2: Install CRDs")
 			g.Expect(installCRDs(ctx, env.GetClient(), "test/t2/crd")).To(Succeed())
-			validateStoredVersions(g, crdObjectKey, "v1beta1", "v1beta2")
+			validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 
 			t.Logf("T2: Start Manager")
 			cancelManager, managerStopped = startManager(ctx, managerT2)
 
 			if tt.skipCRDMigrationPhases.Has(string(StorageVersionMigrationPhase)) {
 				// If storage version migration is skipped, stored versions didn't change.
-				validateStoredVersions(g, crdObjectKey, "v1beta1", "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 			} else {
 				// If storage version migration is run, CRs are now stored as v1beta2.
-				validateStoredVersions(g, crdObjectKey, "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta2")
 			}
-			validateObservedGeneration(g, crdObjectKey, 2)
+			validateObservedGeneration(t, g, crdObjectKey, 2)
 
 			// Set an additional field with a different field manager and v1beta2 apiVersion in test-cluster-2
 			testClusterT2 := unstructuredTestCluster("test-cluster-2", t2v1beta2.GroupVersion.WithKind("TestCluster"))
@@ -221,7 +221,7 @@ func TestReconcile(t *testing.T) {
 			g.Expect(unstructured.SetNestedField(testClusterT2.Object, "foo-value", "spec", "foo")).To(Succeed())
 			g.Expect(managerT2.GetClient().Patch(ctx, testClusterT2, client.Apply, fieldOwner)).To(Succeed())
 			// At this point we have clusters with all combinations of managedField apiVersions.
-			validateManagedFields(g, "v1beta2", map[string][]string{
+			validateManagedFields(t, g, "v1beta2", map[string][]string{
 				"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 				"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1", "test.cluster.x-k8s.io/v1beta2"},
 				"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
@@ -234,9 +234,9 @@ func TestReconcile(t *testing.T) {
 			g.Expect(installCRDs(ctx, env.GetClient(), "test/t3/crd")).To(Succeed())
 			// Stored versions didn't change.
 			if tt.skipCRDMigrationPhases.Has(string(StorageVersionMigrationPhase)) {
-				validateStoredVersions(g, crdObjectKey, "v1beta1", "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 			} else {
-				validateStoredVersions(g, crdObjectKey, "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta2")
 			}
 
 			t.Logf("T3: Start Manager")
@@ -244,22 +244,22 @@ func TestReconcile(t *testing.T) {
 
 			// Stored versions didn't change.
 			if tt.skipCRDMigrationPhases.Has(string(StorageVersionMigrationPhase)) {
-				validateStoredVersions(g, crdObjectKey, "v1beta1", "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 			} else {
-				validateStoredVersions(g, crdObjectKey, "v1beta2")
+				validateStoredVersions(t, g, crdObjectKey, "v1beta2")
 			}
-			validateObservedGeneration(g, crdObjectKey, 3)
+			validateObservedGeneration(t, g, crdObjectKey, 3)
 
 			if tt.skipCRDMigrationPhases.Has(string(CleanupManagedFieldsPhase)) {
 				// If managedField cleanup is skipped, managedField apiVersions didn't change.
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 					"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1", "test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
 				})
 			} else {
 				// If managedField cleanup is run, CRs now only have v1beta2 managedFields.
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-2": {"test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
@@ -278,25 +278,25 @@ func TestReconcile(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			validateStoredVersions(g, crdObjectKey, "v1beta2")
+			validateStoredVersions(t, g, crdObjectKey, "v1beta2")
 
 			t.Logf("T4: Start Manager")
 			cancelManager, managerStopped = startManager(ctx, managerT4)
 
 			// Stored versions didn't change.
-			validateStoredVersions(g, crdObjectKey, "v1beta2")
-			validateObservedGeneration(g, crdObjectKey, 4)
+			validateStoredVersions(t, g, crdObjectKey, "v1beta2")
+			validateObservedGeneration(t, g, crdObjectKey, 4)
 
 			// managedField apiVersions didn't change.
 			// This also verifies we can still read the test-cluster CRs, which means the CRs are now stored in v1beta2.
 			if tt.skipCRDMigrationPhases.Has(string(CleanupManagedFieldsPhase)) {
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 					"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1", "test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
 				})
 			} else {
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-2": {"test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
@@ -320,13 +320,13 @@ func TestReconcile(t *testing.T) {
 
 			if tt.skipCRDMigrationPhases.Has(string(CleanupManagedFieldsPhase)) {
 				// managedField apiVersions didn't change.
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 					"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1", "test.cluster.x-k8s.io/v1beta2"},
 					"test-cluster-3": {"test.cluster.x-k8s.io/v1beta2"},
 				})
 			} else {
-				validateManagedFields(g, "v1beta2", map[string][]string{
+				validateManagedFields(t, g, "v1beta2", map[string][]string{
 					// 1 entry .spec.foo (field manager: unit-test-client)
 					"test-cluster-1": {"test.cluster.x-k8s.io/v1beta2"},
 					// 1 entry .spec.foo (field manager: unit-test-client), 1 entry for .spec.bar (field manager: different-unit-test-client)
@@ -350,7 +350,9 @@ func unstructuredTestCluster(clusterName string, gvk schema.GroupVersionKind) *u
 	return u
 }
 
-func validateStoredVersions(g *WithT, crdObjectKey client.ObjectKey, storedVersions ...string) {
+func validateStoredVersions(t *testing.T, g *WithT, crdObjectKey client.ObjectKey, storedVersions ...string) {
+	t.Helper()
+
 	g.Eventually(func(g Gomega) {
 		crd := &apiextensionsv1.CustomResourceDefinition{}
 		g.Expect(env.GetAPIReader().Get(ctx, crdObjectKey, crd)).To(Succeed())
@@ -358,7 +360,9 @@ func validateStoredVersions(g *WithT, crdObjectKey client.ObjectKey, storedVersi
 	}).WithTimeout(5 * time.Second).Should(Succeed())
 }
 
-func validateObservedGeneration(g *WithT, crdObjectKey client.ObjectKey, observedGeneration int) {
+func validateObservedGeneration(t *testing.T, g *WithT, crdObjectKey client.ObjectKey, observedGeneration int) {
+	t.Helper()
+
 	g.Eventually(func(g Gomega) {
 		crd := &apiextensionsv1.CustomResourceDefinition{}
 		g.Expect(env.GetAPIReader().Get(ctx, crdObjectKey, crd)).To(Succeed())
@@ -366,7 +370,9 @@ func validateObservedGeneration(g *WithT, crdObjectKey client.ObjectKey, observe
 	}).WithTimeout(5 * time.Second).Should(Succeed())
 }
 
-func validateManagedFields(g *WithT, apiVersion string, expectedManagedFields map[string][]string) {
+func validateManagedFields(t *testing.T, g *WithT, apiVersion string, expectedManagedFields map[string][]string) {
+	t.Helper()
+
 	// Create a client that has v1beta1 & v1beta2 TestCluster registered in its scheme.
 	scheme := runtime.NewScheme()
 	_ = t2v1beta2.AddToScheme(scheme)

@@ -56,18 +56,18 @@ Once you know the scenario you are looking at and what you are tuning for, you c
 
 Among the many possible strategies, one usually very effective is to look at the KPIs you are aiming for, and then, if the current system performance is not good enough, start looking at other metrics trying to identify the biggest factor that is impacting the results. Usually by removing a single, performance bottleneck the behaviour of the system changes in a significant way; after that you can decide if the performance is now good enough or you need another round of tuning.
 
-Let's try to make this more clear by using an example, *machine provisioning time is degrading when running CAPI at scale* (machine provisioning time can be seen in the [Cluster API Performance dashboard](http://localhost:3001/d/b2660352-4f3c-4024-837c-393d901e6981/cluster-api-performance?orgId=1)).
+Let's try to make this more clear by using an example, *machine provisioning time is degrading when running CAPI at scale* (machine provisioning time can be seen in the [Cluster API Performance dashboard](http://localhost:3000/d/b2660352-4f3c-4024-837c-393d901e6981/cluster-api-performance?orgId=1)).
 
 When running at scale, one of the first things to take care of is the client-go rate limiting, which is a mechanism built inside client-go that prevents a Kubernetes client from being accidentally too aggressive to the API server.
 However this mechanism can also limit the performance of a controller when it actually requires to make many calls to the API server.
 
-So one of the first data point to look at is the rate limiting metrics; given that upstream CR doesn't have metric for that we can only look for logs containing "client-side throttling" via [Loki](http://localhost:3001/explore) (Note: this link should be open while tilt is running).
+So one of the first data point to look at is the rate limiting metrics; given that upstream CR doesn't have metric for that we can only look for logs containing "client-side throttling" via [Loki](http://localhost:3000/explore) (Note: this link should be open while tilt is running).
 
 If rate limiting is not your issue, then you can look at the controller's work queue. In an healthy system reconcile events are continuously queued, processed and removed from the queue. If the system is slowing down at scale, it could be that some controllers are struggling to keep up with the events being added in the queue, thus leading to slowness in reconciling the desired state.
 
-So then the next step after looking at rate limiting metrics, is to look at the "work queue depth" panel in the [Controller-Runtime dashboard](http://localhost:3001/d/abe29aa7-e44a-4eef-9474-970f95f08ee6/controller-runtime?orgId=1).
+So then the next step after looking at rate limiting metrics, is to look at the "work queue depth" panel in the [Controller-Runtime dashboard](http://localhost:3000/d/abe29aa7-e44a-4eef-9474-970f95f08ee6/controller-runtime?orgId=1).
 
-Assuming that one controller is struggling with its own work queue, the next step is to look at why this is happening. It might be that the average duration of each reconcile is high for some reason. This can be checked in the "Reconcile Duration by Controller" panel in the [Controller-Runtime dashboard](http://localhost:3001/d/abe29aa7-e44a-4eef-9474-970f95f08ee6/controller-runtime?orgId=1).
+Assuming that one controller is struggling with its own work queue, the next step is to look at why this is happening. It might be that the average duration of each reconcile is high for some reason. This can be checked in the "Reconcile Duration by Controller" panel in the [Controller-Runtime dashboard](http://localhost:3000/d/abe29aa7-e44a-4eef-9474-970f95f08ee6/controller-runtime?orgId=1).
 
 If this is the case, then it is time to start looking at traces, looking for the longer spans in average (or total). Unfortunately traces are not yet implemented in Cluster API, so alternative approaches must be used, like looking at condition transitions or at logs to figure out what the slowest operations are.
 

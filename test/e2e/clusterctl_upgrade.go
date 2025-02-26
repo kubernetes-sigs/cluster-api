@@ -153,6 +153,9 @@ type ClusterctlUpgradeSpecInputUpgrade struct {
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
 	AddonProviders            []string
+
+	// PostUpgrade is called after the upgrade is completed.
+	PostUpgrade func(proxy framework.ClusterProxy, namespace string, clusterName string)
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -696,6 +699,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				} else {
 					Byf("[%d] No MachineDeployments found to scale", i)
 				}
+			}
+
+			if upgrade.PostUpgrade != nil {
+				upgrade.PostUpgrade(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
 			}
 
 			Byf("[%d] Verify client-side SSA still works", i)

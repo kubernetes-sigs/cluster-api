@@ -172,7 +172,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
 
 	if newClusterClass.Spec.InfrastructureNamingStrategy != nil {
-		allErrs = append(allErrs, validateInfraClusterNamingStrategy(newClusterClass.Spec.InfrastructureNamingStrategy, specPath.Child("infraCluster"))...)
+		allErrs = append(allErrs, validateInfraClusterNamingStrategy(newClusterClass.Spec.InfrastructureNamingStrategy, specPath.Child("infrastructureNamingStrategy"))...)
 	}
 
 	// Validate variables.

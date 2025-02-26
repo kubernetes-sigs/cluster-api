@@ -860,8 +860,8 @@ spec:
                 - ref
                 type: object
               infrastructureNamingStrategy:
-                description: InfrastructuresNamingStrategy defines the naming strategy
-                  for infrastructure objects.
+                description: infrastructureNamingStrategy allows changing the naming
+                  pattern used when creating the infrastructure object.
                 properties:
                   template:
                     description: |-

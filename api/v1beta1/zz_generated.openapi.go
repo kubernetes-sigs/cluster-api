@@ -444,7 +444,8 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 					},
 					"infrastructureNamingStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("sigs.k8s.io/cluster-api/api/v1beta1.InfrastructuresNamingStrategy"),
+							Description: "infrastructureNamingStrategy allows changing the naming pattern used when creating the infrastructure object.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.InfrastructuresNamingStrategy"),
 						},
 					},
 					"controlPlane": {

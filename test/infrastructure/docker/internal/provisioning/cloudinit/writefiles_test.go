@@ -151,6 +151,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
   taints: null
 `,
 				`apiVersion: kubeadm.k8s.io/v1beta3
@@ -162,6 +163,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
   taints: null
 `,
 			},
@@ -210,6 +212,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
     runtime-cgroups: /system.slice/containerd.service
   taints: null
 `,
@@ -223,6 +226,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
     runtime-cgroups: /system.slice/containerd.service
   taints: null
 `,
@@ -272,6 +276,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
   taints: null
 `,
 				`apiVersion: kubeadm.k8s.io/v1beta3
@@ -284,6 +289,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
   taints: null
 `,
 			},
@@ -333,6 +339,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
     runtime-cgroups: /system.slice/containerd.service
   taints: null
 `,
@@ -347,6 +354,7 @@ nodeRegistration:
     cloud-provider: aws
     eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     fail-swap-on: "false"
+    image-gc-high-threshold: "100"
     runtime-cgroups: /system.slice/containerd.service
   taints: null
 `,

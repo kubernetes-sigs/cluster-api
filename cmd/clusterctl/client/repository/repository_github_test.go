@@ -698,9 +698,9 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		fmt.Fprint(w, "apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\nreleaseSeries:\n  - major: 0\n    minor: 4\n    contract: v1alpha4\n  - major: 0\n    minor: 5\n    contract: v1alpha4\n  - major: 0\n    minor: 3\n    contract: v1alpha3\n")
 	})
 
-	major0 := uint(0)
-	minor3 := uint(3)
-	minor4 := uint(4)
+	major0 := int32(0)
+	minor3 := int32(3)
+	minor4 := int32(4)
 
 	configVariablesClient := test.NewFakeVariableClient()
 
@@ -710,8 +710,8 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 	tests := []struct {
 		name    string
 		field   field
-		major   *uint
-		minor   *uint
+		major   *int32
+		minor   *int32
 		want    string
 		wantErr bool
 	}{

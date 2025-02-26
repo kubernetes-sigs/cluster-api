@@ -153,7 +153,7 @@ func (i *upgradeInfo) getContractsForUpgrade() []string {
 	contractsForUpgrade := sets.Set[string]{}
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
 		// Drop the release series if older than the current version, because not relevant for upgrade.
-		if i.currentVersion.Major() > releaseSeries.Major || (i.currentVersion.Major() == releaseSeries.Major && i.currentVersion.Minor() > releaseSeries.Minor) {
+		if i.currentVersion.Major() > uint(releaseSeries.Major) || (i.currentVersion.Major() == uint(releaseSeries.Major) && i.currentVersion.Minor() > uint(releaseSeries.Minor)) {
 			continue
 		}
 		contractsForUpgrade.Insert(releaseSeries.Contract)
@@ -177,8 +177,8 @@ func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 
 			// Drop the nextVersion version if not linked with the current
 			// release series or if it is a pre-release.
-			if nextVersion.Major() != releaseSeries.Major ||
-				nextVersion.Minor() != releaseSeries.Minor ||
+			if nextVersion.Major() != uint(releaseSeries.Major) ||
+				nextVersion.Minor() != uint(releaseSeries.Minor) ||
 				nextVersion.PreRelease() != "" {
 				continue
 			}

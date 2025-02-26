@@ -22,11 +22,15 @@ package e2e
 import (
 	"fmt"
 	"runtime"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
@@ -95,6 +99,14 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", Flake
 				},
 				{ // Upgrade to latest v1beta1.
 					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							func(crd apiextensionsv1.CustomResourceDefinition) bool {
+								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+							},
+							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
 				},
 			},
 			// CAPI v0.3.x does not work on Kubernetes >= v1.22.
@@ -166,6 +178,14 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 				},
 				{ // Upgrade to latest v1beta1.
 					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							func(crd apiextensionsv1.CustomResourceDefinition) bool {
+								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+							},
+							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
 				},
 			},
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
@@ -232,6 +252,19 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest v1beta1.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							func(crd apiextensionsv1.CustomResourceDefinition) bool {
+								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+							},
+							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   "v1.31.0",
@@ -258,6 +291,19 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest v1beta1.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							func(crd apiextensionsv1.CustomResourceDefinition) bool {
+								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+							},
+							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   "v1.32.0",
@@ -286,6 +332,19 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest v1beta1.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							func(crd apiextensionsv1.CustomResourceDefinition) bool {
+								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+							},
+							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
 			// Note: InitWithKubernetesVersion should be the latest of the next supported kubernetes version by the target Cluster API version.
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.

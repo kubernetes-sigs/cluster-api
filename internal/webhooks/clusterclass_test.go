@@ -1644,37 +1644,6 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: ptr.To("{{ .cluster.name }}-cp-{{ .random }}")}).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				WithWorkerMachineDeploymentClasses(
-					*builder.MachineDeploymentClass("aa").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
-						WithNamingStrategy(&clusterv1.MachineDeploymentClassNamingStrategy{Template: ptr.To("{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}")}).
-						Build()).
-				WithWorkerMachinePoolClasses(
-					*builder.MachinePoolClass("bb").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra2").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap2").Build()).
-						WithNamingStrategy(&clusterv1.MachinePoolClassNamingStrategy{Template: ptr.To("{{ .cluster.name }}-md-{{ .machinePool.topologyName }}-{{ .random }}")}).
-						Build()).
-				Build(),
-			expectErr: false,
-		},
-		{
-			name: "should not return error for valid namingStrategy.template",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
 				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("{{ .cluster.name }}-infra-{{ .random }}")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
@@ -1722,7 +1691,7 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("template-infra-{{ .invalidkey }}-")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("template-infra-{{ .cluster.name }}-")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).

@@ -31,12 +31,23 @@ rules:
   verbs:
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - apiextensions.k8s.io
+  resourceNames:
+  - kubeadmconfigs.bootstrap.cluster.x-k8s.io
   resources:
+  - customresourcedefinitions
+  - customresourcedefinitions/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - apiextensions.k8s.io
+  resourceNames:
+  - kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io
+  resources:
+  - customresourcedefinitions
   - customresourcedefinitions/status
   verbs:
   - patch

@@ -188,9 +188,11 @@ func InitFlags(fs *pflag.FlagSet) {
 // Add RBAC for the authorized diagnostics endpoint.
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
-// ADD RBAC for CRD Migrator.
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=update;patch
+// ADD CRD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=kubeadmconfigs.bootstrap.cluster.x-k8s.io
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io
+// ADD CR RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,verbs=get;list;watch;patch;update
 
 func main() {
@@ -355,6 +357,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:                 mgr.GetClient(),
 		APIReader:              mgr.GetAPIReader(),
 		SkipCRDMigrationPhases: skipCRDMigrationPhases,
+		// Note: The kubebuilder RBAC markers above has to be kept in sync
+		// with the CRDs that should be migrated by this provider.
 		Config: map[client.Object]crdmigrator.ByObjectConfig{
 			&bootstrapv1.KubeadmConfig{}:         {UseCache: true},
 			&bootstrapv1.KubeadmConfigTemplate{}: {UseCache: false},

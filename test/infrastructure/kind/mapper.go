@@ -79,7 +79,7 @@ type Mapping struct {
 var preBuiltMappings = []Mapping{
 
 	// TODO: Add pre-built images for newer Kind versions on top
-	// Pre-built images for Kind v1.27.
+	// Pre-built images for Kind v0.27.
 	{
 		KubernetesVersion: semver.MustParse("1.32.2"),
 		Mode:              Mode0_20,
@@ -88,7 +88,7 @@ var preBuiltMappings = []Mapping{
 	{
 		KubernetesVersion: semver.MustParse("1.31.6"),
 		Mode:              Mode0_20,
-		Image:             "kindest/node:v1.30.6@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87",
+		Image:             "kindest/node:v1.31.6@sha256:28b7cbb993dfe093c76641a0c95807637213c9109b761f1d422c2400e22b8e87",
 	},
 	{
 		KubernetesVersion: semver.MustParse("1.30.10"),
@@ -101,7 +101,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.29.14@sha256:8703bd94ee24e51b778d5556ae310c6c0fa67d761fae6379c8e0bb480e6fea29",
 	},
 
-	// Pre-built images for Kind v1.26.
+	// Pre-built images for Kind v0.26.
 	{
 		KubernetesVersion: semver.MustParse("1.32.0"),
 		Mode:              Mode0_20,
@@ -123,7 +123,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.29.12@sha256:62c0672ba99a4afd7396512848d6fc382906b8f33349ae68fb1dbfe549f70dec",
 	},
 
-	// Pre-built images for Kind v1.25.
+	// Pre-built images for Kind v0.25.
 	{
 		KubernetesVersion: semver.MustParse("1.32.0"),
 		Mode:              Mode0_20,
@@ -160,7 +160,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.26.15@sha256:c79602a44b4056d7e48dc20f7504350f1e87530fe953428b792def00bc1076dd",
 	},
 
-	// Pre-built images for Kind v1.24.
+	// Pre-built images for Kind v0.24.
 	{
 		KubernetesVersion: semver.MustParse("1.31.0"),
 		Mode:              Mode0_20,
@@ -212,7 +212,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.25.16@sha256:6110314339b3b44d10da7d27881849a87e092124afab5956f2e10ecdb463b025",
 	},
 
-	// Pre-built images for Kind v1.23.
+	// Pre-built images for Kind v0.23.
 	{
 		KubernetesVersion: semver.MustParse("1.30.0"),
 		Mode:              Mode0_20,
@@ -244,7 +244,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.25.16@sha256:5da57dfc290ac3599e775e63b8b6c49c0c85d3fec771cd7d55b45fae14b38d3b",
 	},
 
-	// Pre-built images for Kind v1.22.
+	// Pre-built images for Kind v0.22.
 	{
 		KubernetesVersion: semver.MustParse("1.29.2"),
 		Mode:              Mode0_20,
@@ -301,7 +301,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.23.17@sha256:14d0a9a892b943866d7e6be119a06871291c517d279aedb816a4b4bc0ec0a5b3",
 	},
 
-	// Pre-built images for Kind v1.21.
+	// Pre-built images for Kind v0.21.
 	{
 		KubernetesVersion: semver.MustParse("1.29.1"),
 		Mode:              Mode0_20,
@@ -338,7 +338,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.23.17@sha256:fbb92ac580fce498473762419df27fa8664dbaa1c5a361b5957e123b4035bdcf",
 	},
 
-	// Pre-built images for Kind v1.20.
+	// Pre-built images for Kind v0.20.
 	{
 		KubernetesVersion: semver.MustParse("1.29.0"),
 		Mode:              Mode0_20,
@@ -385,7 +385,7 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.21.14@sha256:8a4e9bb3f415d2bb81629ce33ef9c76ba514c14d707f9797a01e3216376ba093",
 	},
 
-	// Pre-built images for Kind v1.19.
+	// Pre-built images for Kind v0.19.
 	{
 		KubernetesVersion: semver.MustParse("1.27.1"),
 		Mode:              Mode0_19,
@@ -422,9 +422,9 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.21.14@sha256:220cfafdf6e3915fbce50e13d1655425558cb98872c53f802605aa2fb2d569cf",
 	},
 
-	// Pre-built and additional images for Kind v1.18.
+	// Pre-built and additional images for Kind v0.18.
 	// NOTE: This version predates the introduction of this change, but we are including it to expand
-	// the list of supported K8s versions; since they can be started with the same approach used up to kind 1.19,
+	// the list of supported K8s versions; since they can be started with the same approach used up to kind 0.19,
 	// we are considering this version part of the Mode0_19 group.
 	{
 		KubernetesVersion: semver.MustParse("1.26.3"),
@@ -467,9 +467,9 @@ var preBuiltMappings = []Mapping{
 		Image:             "kindest/node:v1.27.0@sha256:c6b22e613523b1af67d4bc8a0c38a4c3ea3a2b8fbc5b367ae36345c9cb844518",
 	},
 
-	// Pre-built and additional images for Kind v1.17.
+	// Pre-built and additional images for Kind v0.17.
 	// NOTE: This version predates the introduction of this change, but we are including it to expand
-	// the list of supported K8s versions; since they can be started with the same approach used up to kind 1.19,
+	// the list of supported K8s versions; since they can be started with the same approach used up to kind 0.19,
 	// we are considering this version part of the Mode0_19 group.
 
 	{

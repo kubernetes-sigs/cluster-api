@@ -291,7 +291,9 @@ type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterSpec   `json:"spec,omitempty"`
+	// spec is the desired state of Cluster.
+	Spec ClusterSpec `json:"spec,omitempty"`
+	// status is the observed state of Cluster.
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
@@ -397,7 +399,8 @@ func (f ClusterIPFamily) String() string {
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Cluster `json:"items"`
+	// items is the list of Clusters.
+	Items []Cluster `json:"items"`
 }
 
 func init() {

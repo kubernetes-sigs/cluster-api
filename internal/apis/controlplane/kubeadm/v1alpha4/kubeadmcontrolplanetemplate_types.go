@@ -39,6 +39,7 @@ type KubeadmControlPlaneTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec is the desired state of KubeadmControlPlaneTemplate.
 	Spec KubeadmControlPlaneTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -50,7 +51,8 @@ type KubeadmControlPlaneTemplate struct {
 type KubeadmControlPlaneTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubeadmControlPlaneTemplate `json:"items"`
+	// items is the list of KubeadmControlPlaneTemplates.
+	Items []KubeadmControlPlaneTemplate `json:"items"`
 }
 
 func init() {
@@ -59,5 +61,6 @@ func init() {
 
 // KubeadmControlPlaneTemplateResource describes the data needed to create a KubeadmControlPlane from a template.
 type KubeadmControlPlaneTemplateResource struct {
+	// spec is the desired state of KubeadmControlPlane.
 	Spec KubeadmControlPlaneSpec `json:"spec"`
 }

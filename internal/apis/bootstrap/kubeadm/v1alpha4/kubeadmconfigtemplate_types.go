@@ -28,6 +28,7 @@ type KubeadmConfigTemplateSpec struct {
 
 // KubeadmConfigTemplateResource defines the Template structure.
 type KubeadmConfigTemplateResource struct {
+	// spec is the desired state of KubeadmConfig.
 	Spec KubeadmConfigSpec `json:"spec,omitempty"`
 }
 
@@ -44,6 +45,7 @@ type KubeadmConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec is the desired state of KubeadmConfigTemplate.
 	Spec KubeadmConfigTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -55,7 +57,8 @@ type KubeadmConfigTemplate struct {
 type KubeadmConfigTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubeadmConfigTemplate `json:"items"`
+	// items is the list of KubeadmConfigTemplates.
+	Items []KubeadmConfigTemplate `json:"items"`
 }
 
 func init() {

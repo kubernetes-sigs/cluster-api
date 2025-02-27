@@ -175,7 +175,8 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 type ClusterResourceSetBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ClusterResourceSetBindingSpec `json:"spec,omitempty"`
+	// spec is the desired state of ClusterResourceSetBinding.
+	Spec ClusterResourceSetBindingSpec `json:"spec,omitempty"`
 }
 
 // ANCHOR: ClusterResourceSetBindingSpec
@@ -200,7 +201,8 @@ type ClusterResourceSetBindingSpec struct {
 type ClusterResourceSetBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterResourceSetBinding `json:"items"`
+	// items is the list of ClusterResourceSetBindings.
+	Items []ClusterResourceSetBinding `json:"items"`
 }
 
 func init() {

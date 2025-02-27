@@ -666,7 +666,9 @@ type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MachineSpec   `json:"spec,omitempty"`
+	// spec is the desired state of Machine.
+	Spec MachineSpec `json:"spec,omitempty"`
+	// status is the observed state of Machine.
 	Status MachineStatus `json:"status,omitempty"`
 }
 
@@ -702,7 +704,8 @@ func (m *Machine) SetV1Beta2Conditions(conditions []metav1.Condition) {
 type MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Machine `json:"items"`
+	// items is the list of Machines.
+	Items []Machine `json:"items"`
 }
 
 func init() {

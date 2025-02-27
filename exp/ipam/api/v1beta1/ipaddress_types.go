@@ -53,6 +53,7 @@ type IPAddress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec is the desired state of IPAddress.
 	Spec IPAddressSpec `json:"spec,omitempty"`
 }
 
@@ -62,7 +63,8 @@ type IPAddress struct {
 type IPAddressList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IPAddress `json:"items"`
+	// items is the list of IPAddresses.
+	Items []IPAddress `json:"items"`
 }
 
 func init() {

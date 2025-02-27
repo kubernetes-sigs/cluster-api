@@ -26,6 +26,7 @@ import (
 
 	"github.com/google/go-github/v53/github"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -1105,6 +1106,57 @@ func Test_gitHubRepository_releaseNotFound(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_handleGithubErr(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     error
+		message string
+		args    []any
+		want    error
+	}{
+		{
+			name:    "Return error",
+			err:     errors.New("error"),
+			message: "message %s and %s",
+			args:    []any{"arg1", "arg2"},
+			want:    fmt.Errorf("message arg1 and arg2: %w", errors.New("error")),
+		},
+		{
+			name: "Return RateLimitError",
+			err: &github.RateLimitError{
+				Response: &http.Response{
+					StatusCode: http.StatusForbidden,
+				},
+			},
+			message: "",
+			args:    nil,
+			want:    errRateLimit,
+		},
+		{
+			name: "Return ErrorResponse",
+			err: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: http.StatusNotFound,
+				},
+			},
+			message: "",
+			args:    nil,
+			want:    errNotFound,
+		},
+	}
+
+	gRepo := &gitHubRepository{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got := gRepo.handleGithubErr(tt.err, tt.message, tt.args...)
+			g.Expect(got.Error()).To(Equal(tt.want.Error()))
 		})
 	}
 }

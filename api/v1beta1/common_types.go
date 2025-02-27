@@ -197,6 +197,9 @@ const (
 	// VariableDefinitionFromInline indicates a patch or variable was defined in the `.spec` of a ClusterClass
 	// rather than from an external patch extension.
 	VariableDefinitionFromInline = "inline"
+
+	// CRDMigrationObservedGenerationAnnotation indicates on a CRD for which generation CRD migration is completed.
+	CRDMigrationObservedGenerationAnnotation = "crd-migration.cluster.x-k8s.io/observed-generation"
 )
 
 // MachineSetPreflightCheck defines a valid MachineSet preflight check.

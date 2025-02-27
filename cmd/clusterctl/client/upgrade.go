@@ -123,6 +123,9 @@ type ApplyUpgradeOptions struct {
 
 	// WaitProviderTimeout sets the timeout per provider upgrade.
 	WaitProviderTimeout time.Duration
+
+	// EnableCRDStorageVersionMigration enables storage version migration of CRDs.
+	EnableCRDStorageVersionMigration bool
 }
 
 func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error {
@@ -171,8 +174,9 @@ func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgrad
 		len(options.AddonProviders) > 0
 
 	opts := cluster.UpgradeOptions{
-		WaitProviders:       options.WaitProviders,
-		WaitProviderTimeout: options.WaitProviderTimeout,
+		WaitProviders:                    options.WaitProviders,
+		WaitProviderTimeout:              options.WaitProviderTimeout,
+		EnableCRDStorageVersionMigration: options.EnableCRDStorageVersionMigration,
 	}
 
 	// If we are upgrading a specific set of providers only, process the providers and call ApplyCustomPlan.

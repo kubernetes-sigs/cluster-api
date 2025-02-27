@@ -139,7 +139,7 @@ func CleanUpManagedFieldsForSSAAdoption(ctx context.Context, c client.Client, ob
 	// More specifically, if an existing object doesn't have managedFields when applying the first SSA the API server
 	// creates an entry with operation=Update (kind of guessing where the object comes from), but this entry ends up
 	// acting as a co-ownership and we want to prevent this.
-	// NOTE: fieldV1Map cannot be empty, so we add metadata.name which will be cleaned up at the first SSA patch.
+	// NOTE: fieldV1Map cannot be empty, so we add metadata.name which will be cleaned up at the first SSA patch of the same fieldManager.
 	fieldV1Map := map[string]interface{}{
 		"f:metadata": map[string]interface{}{
 			"f:name": map[string]interface{}{},

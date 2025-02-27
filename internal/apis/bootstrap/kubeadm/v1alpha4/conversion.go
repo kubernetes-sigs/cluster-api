@@ -106,6 +106,12 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 		dst.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.JoinConfiguration.NodeRegistration.ImagePullPolicy
 		dst.JoinConfiguration.NodeRegistration.ImagePullSerial = restored.JoinConfiguration.NodeRegistration.ImagePullSerial
 	}
+	if restored.DiskSetup != nil {
+		if dst.DiskSetup == nil {
+			dst.DiskSetup = &bootstrapv1.DiskSetup{}
+		}
+		dst.DiskSetup = restored.DiskSetup
+	}
 }
 
 func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
@@ -227,4 +233,9 @@ func Convert_v1beta1_LocalEtcd_To_v1alpha4_LocalEtcd(in *bootstrapv1.LocalEtcd, 
 func Convert_v1beta1_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in, out, s)
+}
+
+func Convert_v1beta1_Partition_To_v1alpha4_Partition(in *bootstrapv1.Partition, out *Partition, s apiconversion.Scope) error {
+	// Disk Layout was added in v1beta1.
+	return autoConvert_v1beta1_Partition_To_v1alpha4_Partition(in, out, s)
 }

@@ -270,6 +270,15 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar0",
 		},
+		Status: infrav1.DevMachineStatus{
+			Conditions: []clusterv1.Condition{
+				{
+					Type:               infrav1.VMProvisionedCondition,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		},
 	}
 
 	inMemoryMachineWithNodeProvisioned1 := &infrav1.DevMachine{
@@ -289,6 +298,11 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		},
 		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
+				{
+					Type:               infrav1.VMProvisionedCondition,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				},
 				{
 					Type:               infrav1.NodeProvisionedCondition,
 					Status:             corev1.ConditionTrue,
@@ -483,6 +497,15 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
+		Status: infrav1.DevMachineStatus{
+			Conditions: []clusterv1.Condition{
+				{
+					Type:               infrav1.VMProvisionedCondition,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		},
 	}
 
 	inMemoryMachineWithNodeProvisioned := &infrav1.DevMachine{
@@ -502,6 +525,11 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		},
 		Status: infrav1.DevMachineStatus{
 			Conditions: []clusterv1.Condition{
+				{
+					Type:               infrav1.VMProvisionedCondition,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				},
 				{
 					Type:               infrav1.NodeProvisionedCondition,
 					Status:             corev1.ConditionTrue,

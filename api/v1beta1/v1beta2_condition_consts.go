@@ -199,14 +199,14 @@ const (
 	// infrastructure to be ready.
 	WaitingForClusterInfrastructureV1Beta2Reason = "WaitingForClusterInfrastructure"
 
-	// WaitingControlPlaneInitializedV1Beta2Reason documents an infra Machine waiting
+	// WaitingForControlPlaneInitializedV1Beta2Reason documents an infra Machine waiting
 	// for the control plane to be initialized.
-	WaitingControlPlaneInitializedV1Beta2Reason = "WaitingControlPlaneInitialized"
+	WaitingForControlPlaneInitializedV1Beta2Reason = "WaitingForControlPlaneInitialized"
 
-	// WaitingForBootstrapData1Beta2DataReason documents an infra Machine waiting for the bootstrap
+	// WaitingForBootstrapDataV1Beta2Reason documents an infra Machine waiting for the bootstrap
 	// data to be ready before starting to create the Machine's infrastructure.
-	WaitingForBootstrapData1Beta2DataReason = "WaitingForBootstrapData"
+	WaitingForBootstrapDataV1Beta2Reason = "WaitingForBootstrapData"
 
-	// ProvisionedV1Beta2Reason documents a component being provisioned.
+	// ProvisionedV1Beta2Reason documents an object or a piece of infrastructure being provisioned.
 	ProvisionedV1Beta2Reason = "Provisioned"
 )

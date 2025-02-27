@@ -56,14 +56,10 @@ issues:
   max-issues-per-linter: 0
   exclude-rules:
   # KAL should only run on API folders.
-  - path-except: "api/*"
+  - path-except: "api//*"
     linters:
       - kal
-  # apiwarnings contains a `api` characters in the path, but it's not an API folder.
-  - path: "util/apiwarnings/*"
-    linters:
-      - kal
-  - path: "api/v1beta1/*|api/v1alpha1/*"
+  - path: "api//*"
     text: "Conditions field must be a slice of metav1.Condition"
     linters:
       - kal

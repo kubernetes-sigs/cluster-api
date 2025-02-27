@@ -103,7 +103,10 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", Flake
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 							func(crd apiextensionsv1.CustomResourceDefinition) bool {
 								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+									crd.Name != "providers.clusterctl.cluster.x-k8s.io" &&
+									// ClusterTopology feature is disabled via the CLUSTER_TOPOLOGY variable below,
+									// so we can't expect the CRD migrator to migrate the ClusterClass CRD.
+									crd.Name != "clusterclasses.cluster.x-k8s.io"
 							},
 							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},

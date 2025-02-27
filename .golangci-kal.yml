@@ -39,6 +39,8 @@ linters-settings:
             isFirstField: Warn # Require conditions to be the first field in the status struct.
             usePatchStrategy: Forbid # Conditions should not use the patch strategy on CRDs.
             useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
+          # jsontags:
+          #    jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
           # optionalOrRequired:
           #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
           #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.

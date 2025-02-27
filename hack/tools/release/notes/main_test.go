@@ -168,3 +168,139 @@ func Test_defaultBranchForNewTag(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateConfig(t *testing.T) {
+	type args struct {
+		config *notesCmdConfig
+	}
+	tests := []struct {
+		name         string
+		args         *notesCmdConfig
+		wantErr      bool
+		errorMessage string
+	}{
+		{
+			name: "Missing fromRef and newTag",
+			args: &notesCmdConfig{
+				branch:  "main",
+				fromRef: "",
+				newTag:  "",
+			},
+			wantErr:      true,
+			errorMessage: "at least one of --from or --release need to be set",
+		},
+		{
+			name: "Missing branch and newTag",
+			args: &notesCmdConfig{
+				fromRef: "ref1/tags",
+				branch:  "",
+				newTag:  "",
+			},
+			wantErr:      true,
+			errorMessage: "at least one of --branch or --release need to be set",
+		},
+		{
+			name: "Invalid fromRef",
+			args: &notesCmdConfig{
+				fromRef: "invalid",
+				branch:  "main",
+			},
+			wantErr:      true,
+			errorMessage: "invalid ref invalid: must follow [type]/[value]",
+		},
+		{
+			name: "Invalid toRef",
+			args: &notesCmdConfig{
+				toRef:   "invalid",
+				branch:  "main",
+				fromRef: "ref1/tags",
+			},
+			wantErr:      true,
+			errorMessage: "invalid ref invalid: must follow [type]/[value]",
+		},
+		{
+			name: "Valid fromRef, toRef, and newTag",
+			args: &notesCmdConfig{
+				fromRef: "ref1/tags",
+				toRef:   "ref2/tags",
+				newTag:  "v1.0.0",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateConfig(tt.args)
+			if tt.wantErr {
+				if err == nil || err.Error() != tt.errorMessage {
+					t.Errorf("expected error '%s', got '%v'", tt.errorMessage, err)
+				}
+			} else if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func Test_computeConfigDefaults(t *testing.T) {
+	type args struct {
+		config *notesCmdConfig
+	}
+	tests := []struct {
+		name    string
+		args    *notesCmdConfig
+		want    *notesCmdConfig
+		wantErr bool
+	}{
+		{
+			name: "New minor release, fromRef missing",
+			args: &notesCmdConfig{
+				branch: "develop",
+				newTag: "v1.1.0",
+			},
+			want: &notesCmdConfig{
+				fromRef: "tags/v1.0.0",
+				branch:  "develop",
+				toRef:   "heads/develop",
+				newTag:  "v1.1.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "New patch release, fromRef missing",
+			args: &notesCmdConfig{
+				newTag: "v1.1.3",
+			},
+			want: &notesCmdConfig{
+				fromRef: "tags/v1.1.2",
+				branch:  "release-1.1",
+				toRef:   "heads/release-1.1",
+				newTag:  "v1.1.3",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid semver",
+			args: &notesCmdConfig{
+				newTag: "invalid-tag",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := computeConfigDefaults(tt.args)
+			g := NewWithT(t)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring("invalid --release, is not a semver:"))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(tt.args.fromRef).To(Equal(tt.want.fromRef))
+				g.Expect(tt.args.branch).To(Equal(tt.want.branch))
+				g.Expect(tt.args.toRef).To(Equal(tt.want.toRef))
+			}
+		})
+	}
+}

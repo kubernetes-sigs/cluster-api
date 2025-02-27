@@ -67,6 +67,10 @@ const (
 	// Objects are sorted by their z-order from highest to lowest, and then by their name in alphabetical order if the
 	// z-order is the same. Objects with no z-order set are assumed to have a default z-order of 0.
 	ObjectZOrderAnnotation = "tree.cluster.x-k8s.io.io/z-order"
+
+	// LastObjectAnnotation defines the last object in the ObjectTree. This is necessary to built the prefix
+	// for multiline condition messages.
+	LastObjectAnnotation = "tree.cluster.x-k8s.io.io/last-object"
 )
 
 // GetMetaName returns the object meta name that should be used for the object in the presentation layer, if defined.
@@ -157,6 +161,15 @@ func GetZOrder(obj client.Object) int {
 		}
 	}
 	return 0
+}
+
+// GetLastObject returns the last object in the ObjectTree.
+// This annotation is set only on the root object.
+func GetLastObject(obj client.Object) string {
+	if val, ok := getAnnotation(obj, LastObjectAnnotation); ok {
+		return val
+	}
+	return ""
 }
 
 // IsVirtualObject returns true if the object does not correspond to any real object, but instead it is

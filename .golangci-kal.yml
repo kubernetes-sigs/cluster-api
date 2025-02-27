@@ -59,7 +59,7 @@ issues:
   max-issues-per-linter: 0
   exclude-rules:
   # KAL should only run on API folders.
-  - path-except: "api/*"
+  - path-except: "api//*"
     linters:
       - kal
   - path: "api/v1beta1/*|api/v1alpha1/*"
@@ -72,5 +72,9 @@ issues:
       - kal
   - path: "exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
+    linters:
+      - kal
+  - path: "api/v1alpha1/*|api/v1alpha3/*|api/v1beta1/*"
+    text: "maxlength"
     linters:
       - kal

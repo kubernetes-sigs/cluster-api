@@ -71,3 +71,7 @@ issues:
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
+  - path: "api//*"
+    text: "json tag does not match pattern"
+    linters:
+      - kal

@@ -1441,6 +1441,155 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	g.Expect(foundNew).To(BeTrue())
 }
 
+func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
+	t.Run("should not recreate the token for Machines", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
+		cluster.Status.InfrastructureReady = true
+		conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+		cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+		controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+		initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-config")
+
+		addKubeadmConfigToMachine(initConfig, controlPlaneInitMachine)
+
+		workerMachine := newWorkerMachineForCluster(cluster)
+		workerJoinConfig := newWorkerJoinKubeadmConfig(metav1.NamespaceDefault, "worker-join-cfg")
+		addKubeadmConfigToMachine(workerJoinConfig, workerMachine)
+		objects := []client.Object{
+			cluster,
+			workerMachine,
+			workerJoinConfig,
+		}
+
+		objects = append(objects, createSecrets(t, cluster, initConfig)...)
+		myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
+		remoteClient := fake.NewClientBuilder().Build()
+		k := &KubeadmConfigReconciler{
+			Client:              myclient,
+			SecretCachingClient: myclient,
+			KubeadmInitLock:     &myInitLocker{},
+			TokenTTL:            DefaultTokenTTL,
+			ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		}
+		request := ctrl.Request{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "worker-join-cfg",
+			},
+		}
+		result, err := k.Reconcile(ctx, request)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+
+		cfg, err := getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cfg.Status.Ready).To(BeTrue())
+		g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+		g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).ToNot(BeEmpty())
+		firstToken := cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+		l := &corev1.SecretList{}
+		g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+		g.Expect(l.Items).To(HaveLen(1))
+
+		t.Log("Token should not get recreated for single Machine since it will not use the new token if spec.bootstrap.dataSecretName was already set")
+
+		// Simulate token cleaner of Kubernetes having deleted the token secret
+		err = remoteClient.Delete(ctx, &l.Items[0])
+		g.Expect(err).ToNot(HaveOccurred())
+
+		result, err = k.Reconcile(ctx, request)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("failed to get bootstrap token secret in order to refresh it"))
+		// New token should not have been created
+		cfg, err = getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).To(Equal(firstToken))
+
+		l = &corev1.SecretList{}
+		g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+		g.Expect(l.Items).To(BeEmpty())
+	})
+	t.Run("should recreate the token for MachinePools", func(t *testing.T) {
+		_ = feature.MutableGates.Set("MachinePool=true")
+		g := NewWithT(t)
+
+		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
+		cluster.Status.InfrastructureReady = true
+		conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+		cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+		controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+		initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-config")
+
+		addKubeadmConfigToMachine(initConfig, controlPlaneInitMachine)
+
+		workerMachinePool := newWorkerMachinePoolForCluster(cluster)
+		workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachinePool.Namespace, "workerpool-join-cfg")
+		addKubeadmConfigToMachinePool(workerJoinConfig, workerMachinePool)
+		objects := []client.Object{
+			cluster,
+			workerMachinePool,
+			workerJoinConfig,
+		}
+
+		objects = append(objects, createSecrets(t, cluster, initConfig)...)
+		myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
+		remoteClient := fake.NewClientBuilder().Build()
+		k := &KubeadmConfigReconciler{
+			Client:              myclient,
+			SecretCachingClient: myclient,
+			KubeadmInitLock:     &myInitLocker{},
+			TokenTTL:            DefaultTokenTTL,
+			ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		}
+		request := ctrl.Request{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "workerpool-join-cfg",
+			},
+		}
+		result, err := k.Reconcile(ctx, request)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+
+		cfg, err := getKubeadmConfig(myclient, "workerpool-join-cfg", metav1.NamespaceDefault)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cfg.Status.Ready).To(BeTrue())
+		g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+		g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).ToNot(BeEmpty())
+		firstToken := cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+		l := &corev1.SecretList{}
+		g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+		g.Expect(l.Items).To(HaveLen(1))
+
+		t.Log("Ensure that the token gets recreated if it was cleaned up by Kubernetes (e.g. on expiry)")
+
+		// Simulate token cleaner of Kubernetes having deleted the token secret
+		err = remoteClient.Delete(ctx, &l.Items[0])
+		g.Expect(err).ToNot(HaveOccurred())
+
+		result, err = k.Reconcile(ctx, request)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+		// New token should have been created
+		cfg, err = getKubeadmConfig(myclient, "workerpool-join-cfg", metav1.NamespaceDefault)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).ToNot(BeEmpty())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).ToNot(Equal(firstToken))
+
+		l = &corev1.SecretList{}
+		g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+		g.Expect(l.Items).To(HaveLen(1))
+	})
+}
+
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testing.T) {
 	caHash := []string{"...."}

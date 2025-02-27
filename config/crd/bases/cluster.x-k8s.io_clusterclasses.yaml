@@ -446,6 +446,34 @@ spec:
           spec:
             description: ClusterClassSpec describes the desired state of the ClusterClass.
             properties:
+              availabilityGates:
+                description: |-
+                  availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
+
+                  NOTE: this field is considered only for computing v1beta2 conditions.
+                  NOTE: If a Cluster is using this ClusterClass, and this Cluster defines a custom list of availabilityGates,
+                  such list overrides availabilityGates defined in this field.
+                items:
+                  description: ClusterAvailabilityGate contains the type of a Cluster
+                    condition to be used as availability gate.
+                  properties:
+                    conditionType:
+                      description: |-
+                        conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+                        If the conditions doesn't exist, it will be treated as unknown.
+                        Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
+                      maxLength: 316
+                      minLength: 1
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - conditionType
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - conditionType
+                x-kubernetes-list-type: map
               controlPlane:
                 description: |-
                   controlPlane is a reference to a local struct that holds the details
@@ -694,6 +722,39 @@ spec:
                       to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                       NOTE: This value can be overridden while defining a Cluster.Topology.
                     type: string
+                  readinessGates:
+                    description: |-
+                      readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                      This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+                      computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+
+                      NOTE: This field is considered only for computing v1beta2 conditions.
+                      NOTE: If a Cluster defines a custom list of readinessGates for the control plane,
+                      such list overrides readinessGates defined in this field.
+                      NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
+                      e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+                    items:
+                      description: MachineReadinessGate contains the type of a Machine
+                        condition to be used as a readiness gate.
+                      properties:
+                        conditionType:
+                          description: |-
+                            conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+                            If the conditions doesn't exist, it will be treated as unknown.
+                            Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                          maxLength: 316
+                          minLength: 1
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - conditionType
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - conditionType
+                    x-kubernetes-list-type: map
                   ref:
                     description: |-
                       ref is a required reference to a custom resource
@@ -1550,6 +1611,37 @@ spec:
                             to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
                           type: string
+                        readinessGates:
+                          description: |-
+                            readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                            This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+                            computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+
+                            NOTE: This field is considered only for computing v1beta2 conditions.
+                            NOTE: If a Cluster defines a custom list of readinessGates for a MachineDeployment using this MachineDeploymentClass,
+                            such list overrides readinessGates defined in this field.
+                          items:
+                            description: MachineReadinessGate contains the type of
+                              a Machine condition to be used as a readiness gate.
+                            properties:
+                              conditionType:
+                                description: |-
+                                  conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+                                  If the conditions doesn't exist, it will be treated as unknown.
+                                  Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                                maxLength: 316
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                type: string
+                            required:
+                            - conditionType
+                            type: object
+                          maxItems: 32
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - conditionType
+                          x-kubernetes-list-type: map
                         strategy:
                           description: |-
                             strategy is the deployment strategy to use to replace existing machines with

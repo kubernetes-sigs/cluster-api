@@ -527,6 +527,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	}
 	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, PreserveFields{
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
+		contract.ControlPlane().MachineTemplate().ReadinessGates().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
 		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),
 		contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path(),

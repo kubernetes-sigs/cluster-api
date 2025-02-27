@@ -61,6 +61,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		if restored.Spec.Topology.ControlPlane.NodeDeletionTimeout != nil {
 			dst.Spec.Topology.ControlPlane.NodeDeletionTimeout = restored.Spec.Topology.ControlPlane.NodeDeletionTimeout
 		}
+		dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
 
 		if restored.Spec.Topology.Workers != nil {
 			if dst.Spec.Topology.Workers == nil {
@@ -69,6 +70,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			for i := range restored.Spec.Topology.Workers.MachineDeployments {
 				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
 				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
+				dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
 				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout
 				dst.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeout
 				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeout
@@ -127,7 +129,9 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Patches = restored.Spec.Patches
 	dst.Spec.Variables = restored.Spec.Variables
+	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
 	dst.Spec.ControlPlane.MachineHealthCheck = restored.Spec.ControlPlane.MachineHealthCheck
+	dst.Spec.ControlPlane.ReadinessGates = restored.Spec.ControlPlane.ReadinessGates
 	dst.Spec.ControlPlane.NamingStrategy = restored.Spec.ControlPlane.NamingStrategy
 	dst.Spec.ControlPlane.NodeDrainTimeout = restored.Spec.ControlPlane.NodeDrainTimeout
 	dst.Spec.ControlPlane.NodeVolumeDetachTimeout = restored.Spec.ControlPlane.NodeVolumeDetachTimeout
@@ -136,6 +140,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 	for i := range restored.Spec.Workers.MachineDeployments {
 		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
+		dst.Spec.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Workers.MachineDeployments[i].ReadinessGates
 		dst.Spec.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Workers.MachineDeployments[i].FailureDomain
 		dst.Spec.Workers.MachineDeployments[i].NamingStrategy = restored.Spec.Workers.MachineDeployments[i].NamingStrategy
 		dst.Spec.Workers.MachineDeployments[i].NodeDrainTimeout = restored.Spec.Workers.MachineDeployments[i].NodeDrainTimeout

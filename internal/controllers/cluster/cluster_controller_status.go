@@ -74,7 +74,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setScalingDownCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
 	setDeletingCondition(ctx, s.cluster, s.deletingReason, s.deletingMessage)
-	setAvailableCondition(ctx, s.cluster)
+	setAvailableCondition(ctx, s.cluster, s.clusterClass)
 }
 
 func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
@@ -1053,7 +1053,7 @@ func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 	).Merge(conditions, conditionTypes)
 }
 
-func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
+func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	log := ctrl.LoggerFrom(ctx)
 
 	forConditionTypes := v1beta2conditions.ForConditionTypes{
@@ -1064,7 +1064,11 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster) {
 		clusterv1.ClusterWorkersAvailableV1Beta2Condition,
 		clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 	}
-	for _, g := range cluster.Spec.AvailabilityGates {
+	availabilityGates := cluster.Spec.AvailabilityGates
+	if availabilityGates == nil && clusterClass != nil {
+		availabilityGates = clusterClass.Spec.AvailabilityGates
+	}
+	for _, g := range availabilityGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
 	}
 

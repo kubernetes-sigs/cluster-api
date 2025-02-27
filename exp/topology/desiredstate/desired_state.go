@@ -355,12 +355,12 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
 	if s.Blueprint.Topology.ControlPlane.ReadinessGates != nil {
-		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.Topology.ControlPlane.ReadinessGates); err != nil {
-			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().ReadinessGates().Path())
+		if err := contract.ControlPlane().MachineTemplate().ReadinessGates().Set(controlPlane, s.Blueprint.Topology.ControlPlane.ReadinessGates); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().ReadinessGates().Path())
 		}
 	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates != nil {
-		if err := contract.ControlPlane().ReadinessGates().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
-			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().ReadinessGates().Path())
+		if err := contract.ControlPlane().MachineTemplate().ReadinessGates().Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
+			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().ReadinessGates().Path())
 		}
 	}
 

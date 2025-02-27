@@ -355,7 +355,7 @@ func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
 }
 
 // ReadinessGates provides access to control plane's ReadinessGates.
-func (c *ControlPlaneContract) ReadinessGates() *ReadinessGates {
+func (c *ControlPlaneMachineTemplate) ReadinessGates() *ReadinessGates {
 	return &ReadinessGates{}
 }
 
@@ -371,19 +371,21 @@ func (m *ReadinessGates) Path() Path {
 func (m *ReadinessGates) Get(obj *unstructured.Unstructured) ([]clusterv1.MachineReadinessGate, error) {
 	unstructuredValue, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), m.Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", m.Path())
+		return nil, errors.Wrapf(err, "failed to retrieve control plane %s", "."+m.Path().String())
 	}
 	if !ok {
-		return nil, nil
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+m.Path().String())
 	}
-	jsonValue, err := json.Marshal(&unstructuredValue)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", m.Path())
-	}
+
 	var readinessGates []clusterv1.MachineReadinessGate
-	if err := json.Unmarshal(jsonValue, &readinessGates); err != nil {
-		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", m.Path())
+	jsonValue, err := json.Marshal(unstructuredValue)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
+	if err := json.Unmarshal(jsonValue, &readinessGates); err != nil {
+		return nil, errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
+	}
+
 	return readinessGates, nil
 }
 
@@ -395,16 +397,16 @@ func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []cl
 		return nil
 	}
 
-	jsonValue, err := json.Marshal(&readinessGates)
+	jsonValue, err := json.Marshal(readinessGates)
 	if err != nil {
-		return errors.Wrapf(err, "failed to Marshal control plane %s", m.Path())
+		return errors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
 	var unstructuredValue []interface{}
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
-		return errors.Wrapf(err, "failed to Unmarshal control plane %s", m.Path())
+		return errors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
 	if err := unstructured.SetNestedSlice(obj.UnstructuredContent(), unstructuredValue, m.Path()...); err != nil {
-		return errors.Wrapf(err, "failed to set control plane %s", m.Path())
+		return errors.Wrapf(err, "failed to set control plane %s", "."+m.Path().String())
 	}
 	return nil
 }

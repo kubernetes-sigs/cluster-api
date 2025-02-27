@@ -18,6 +18,7 @@ linters-settings:
           enable:
           - "conditions" # Ensure conditions have the correct json tags and markers.
           - "integers" # Ensure only int32 and int64 are used for integers.
+          - "nofloats" # Ensure floats are not used.
 
           # Per discussion in July 2024, we are keeping phase fields for now.
           # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508

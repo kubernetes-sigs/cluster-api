@@ -44,6 +44,8 @@ linters-settings:
         # optionalOrRequired:
         #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
         #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
+        # requiredFields:
+        #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
 
 issues:
   exclude-files:

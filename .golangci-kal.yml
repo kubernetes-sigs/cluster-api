@@ -71,7 +71,14 @@ issues:
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
-  - path: "api//*"
-    text: "json tag does not match pattern"
+  # These reporting are false positives.
+  # When the following issue is fixed, remove the exclusion.
+  # https://github.com/JoelSpeed/kal/issues/43
+  - path: "bootstrap/kubeadm/api/v1beta1/*"
+    text: "jsontags: field ID json tag does not match pattern"
+    linters:
+      - kal
+  - path: "bootstrap/kubeadm/api/v1beta1/*"
+    text: "jsontags: field Secret json tag does not match pattern"
     linters:
       - kal

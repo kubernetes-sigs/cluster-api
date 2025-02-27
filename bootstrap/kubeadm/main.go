@@ -92,7 +92,7 @@ var (
 	clusterConcurrency       int
 	clusterCacheConcurrency  int
 	kubeadmConfigConcurrency int
-	skipCRDMigrationPhases   string
+	skipCRDMigrationPhases   []string
 	tokenTTL                 time.Duration
 )
 
@@ -144,8 +144,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
 		"Number of kubeadm configs to process simultaneously")
 
-	fs.StringVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", "",
-		"Comma-separated list of CRD migration phases to skip. Valid values are: All, StorageVersionMigration, CleanupManagedFields.")
+	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -353,16 +353,22 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	for _, p := range skipCRDMigrationPhases {
+		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
+	}
 	if err := (&crdmigrator.CRDMigrator{
 		Client:                 mgr.GetClient(),
 		APIReader:              mgr.GetAPIReader(),
-		SkipCRDMigrationPhases: skipCRDMigrationPhases,
+		SkipCRDMigrationPhases: crdMigratorSkipPhases,
 		// Note: The kubebuilder RBAC markers above has to be kept in sync
 		// with the CRDs that should be migrated by this provider.
 		Config: map[client.Object]crdmigrator.ByObjectConfig{
 			&bootstrapv1.KubeadmConfig{}:         {UseCache: true},
 			&bootstrapv1.KubeadmConfigTemplate{}: {UseCache: false},
 		},
+		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a
+		// lot of CRs concurrently.
 	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
 		os.Exit(1)

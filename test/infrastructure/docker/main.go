@@ -103,7 +103,7 @@ var (
 	// CAPD specific flags.
 	concurrency             int
 	clusterCacheConcurrency int
-	skipCRDMigrationPhases  string
+	skipCRDMigrationPhases  []string
 )
 
 func init() {
@@ -159,8 +159,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
-	fs.StringVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", "",
-		"Comma-separated list of CRD migration phases to skip. Valid values are: All, StorageVersionMigration, CleanupManagedFields.")
+	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -403,11 +403,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		crdMigratorConfig[&infraexpv1.DockerMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
 		crdMigratorConfig[&infraexpv1.DockerMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
 	}
+	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	for _, p := range skipCRDMigrationPhases {
+		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
+	}
 	if err := (&crdmigrator.CRDMigrator{
 		Client:                 mgr.GetClient(),
 		APIReader:              mgr.GetAPIReader(),
-		SkipCRDMigrationPhases: skipCRDMigrationPhases,
+		SkipCRDMigrationPhases: crdMigratorSkipPhases,
 		Config:                 crdMigratorConfig,
+		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a
+		// lot of CRs concurrently.
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
 		os.Exit(1)

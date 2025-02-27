@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -54,9 +53,6 @@ import (
 type Phase string
 
 var (
-	// AllPhase includes all phases, i.e. StorageVersionMigration and CleanupManagedFields.
-	AllPhase Phase = "All"
-
 	// StorageVersionMigrationPhase is the phase in which the storage version is migrated.
 	// This means if the .status.storedVersions field of a CRD is not equal to [storageVersion],
 	// a no-op patch is applied to all custom resources of the CRD to ensure they are all stored in
@@ -86,7 +82,7 @@ type CRDMigrator struct {
 
 	// Comma-separated list of CRD migration phases to skip.
 	// Valid values are: All, StorageVersionMigration, CleanupManagedFields.
-	SkipCRDMigrationPhases  string
+	SkipCRDMigrationPhases  []Phase
 	crdMigrationPhasesToRun sets.Set[Phase]
 
 	// Config allows to configure which objects should be migrated.
@@ -126,6 +122,8 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 			// conversion.UpdateReferenceAPIContract.
 			builder.OnlyMetadata,
 			builder.WithPredicates(
+				// We filter out all re-sync events. CRDMigrator only has to reconcile a CRD
+				// if the CRD actually changed, e.g. changes in apiVersions.
 				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 			),
 		).
@@ -145,18 +143,14 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 	}
 
 	r.crdMigrationPhasesToRun = sets.Set[Phase]{}.Insert(StorageVersionMigrationPhase, CleanupManagedFieldsPhase)
-	if r.SkipCRDMigrationPhases != "" {
-		for _, skipPhase := range strings.Split(r.SkipCRDMigrationPhases, ",") {
-			switch skipPhase {
-			case string(AllPhase):
-				r.crdMigrationPhasesToRun.Delete(StorageVersionMigrationPhase, CleanupManagedFieldsPhase)
-			case string(StorageVersionMigrationPhase):
-				r.crdMigrationPhasesToRun.Delete(StorageVersionMigrationPhase)
-			case string(CleanupManagedFieldsPhase):
-				r.crdMigrationPhasesToRun.Delete(CleanupManagedFieldsPhase)
-			default:
-				return errors.Errorf("Invalid phase %s specified in SkipCRDMigrationPhases", skipPhase)
-			}
+	for _, skipPhase := range r.SkipCRDMigrationPhases {
+		switch skipPhase {
+		case StorageVersionMigrationPhase:
+			r.crdMigrationPhasesToRun.Delete(StorageVersionMigrationPhase)
+		case CleanupManagedFieldsPhase:
+			r.crdMigrationPhasesToRun.Delete(CleanupManagedFieldsPhase)
+		default:
+			return errors.Errorf("Invalid phase %s specified in SkipCRDMigrationPhases", skipPhase)
 		}
 	}
 
@@ -207,13 +201,15 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	originalCRD := crd.DeepCopy()
 	defer func() {
 		if reterr == nil {
+			originalCRD := crd.DeepCopy()
 			if crd.Annotations == nil {
 				crd.Annotations = map[string]string{}
 			}
 			crd.Annotations[clusterv1.CRDMigrationObservedGenerationAnnotation] = currentGeneration
+			// Note: Optimistic locking is not required here, because if the CRD and its apiVersions was changed
+			// in the meantime, we'll reconcile it again with the next generation.
 			if err := r.Client.Patch(ctx, crd, client.MergeFrom(originalCRD)); err != nil {
 				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)})
 			}
@@ -238,8 +234,10 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			return ctrl.Result{}, err
 		}
 
+		originalCRD := crd.DeepCopy()
 		crd.Status.StoredVersions = []string{storageVersion}
-		if err := r.Client.Status().Patch(ctx, crd, client.MergeFrom(originalCRD)); err != nil {
+		// Note: Using optimistic locking to ensure the CRD and its apiVersions was not changed in the meantime.
+		if err := r.Client.Status().Patch(ctx, crd, client.MergeFromWithOptions(originalCRD, client.MergeFromWithOptimisticLock{})); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to patch CustomResourceDefinition %s", crd.Name)
 		}
 	}
@@ -368,7 +366,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 	}
 
 	log := ctrl.LoggerFrom(ctx)
-	log.V(2).Info(fmt.Sprintf("Running storage version migration to version: %s", storageVersion))
+	log.Info(fmt.Sprintf("Running storage version migration to apiVersion %s (for %d objects)", storageVersion, len(customResourceObjects)))
 
 	gvk := schema.GroupVersionKind{
 		Group:   crd.Spec.Group,
@@ -423,7 +421,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 	}
 
 	log := ctrl.LoggerFrom(ctx)
-	log.V(2).Info("Running managedField cleanup")
+	log.Info(fmt.Sprintf("Running managedField cleanup (for %d objects)", len(customResourceObjects)))
 
 	// Collect all GroupVersions that still exist and are served.
 	servedGroupVersions := sets.Set[string]{}
@@ -487,8 +485,6 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 					"value": managedFields,
 				},
 				{
-					// Use "replace" instead of "test" operation so that etcd rejects with
-					// 409 conflict instead of apiserver with an invalid request
 					"op":    "replace",
 					"path":  "/metadata/resourceVersion",
 					"value": obj.GetResourceVersion(),

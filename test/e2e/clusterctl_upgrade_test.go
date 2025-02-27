@@ -105,7 +105,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", Flake
 								return crdShouldBeMigrated(crd) &&
 									// ClusterTopology feature is disabled via the CLUSTER_TOPOLOGY variable below,
 									// so we can't expect the CRD migrator to migrate the ClusterClass CRD.
-									crd.Name != "clusterclasses.cluster.x-k8s.io"
+									crd.Name != "clusterclasses.cluster.x-k8s.io" &&
+									// We don't expect CRD Migrator to also migrate *MachinePools in the exp apiGroups.
+									// It should only migrate *MachinePools in the regular apiGroups.
+									crd.Name != "machinepools.exp.cluster.x-k8s.io" &&
+									crd.Name != "dockermachinepools.exp.infrastructure.cluster.x-k8s.io"
 							},
 							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},

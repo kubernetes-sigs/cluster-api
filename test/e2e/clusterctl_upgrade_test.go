@@ -102,8 +102,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", Flake
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 							func(crd apiextensionsv1.CustomResourceDefinition) bool {
-								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io" &&
+								return crdShouldBeMigrated(crd) &&
 									// ClusterTopology feature is disabled via the CLUSTER_TOPOLOGY variable below,
 									// so we can't expect the CRD migrator to migrate the ClusterClass CRD.
 									crd.Name != "clusterclasses.cluster.x-k8s.io"
@@ -183,11 +182,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
-							func(crd apiextensionsv1.CustomResourceDefinition) bool {
-								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
-							},
-							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},
 				},
 			},
@@ -260,11 +255,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
-							func(crd apiextensionsv1.CustomResourceDefinition) bool {
-								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
-							},
-							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},
 				},
 			},
@@ -299,11 +290,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
-							func(crd apiextensionsv1.CustomResourceDefinition) bool {
-								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
-							},
-							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},
 				},
 			},
@@ -340,11 +327,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
-							func(crd apiextensionsv1.CustomResourceDefinition) bool {
-								return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
-									crd.Name != "providers.clusterctl.cluster.x-k8s.io"
-							},
-							clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 					},
 				},
 			},
@@ -359,3 +342,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 		}
 	})
 })
+
+func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {
+	return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+		crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+}

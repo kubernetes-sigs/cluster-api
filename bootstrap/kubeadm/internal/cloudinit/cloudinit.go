@@ -45,6 +45,7 @@ const (
 // BaseUserData is shared across all the various types of files written to disk.
 type BaseUserData struct {
 	Header               string
+	BootCommands         []bootstrapv1.BootCommand
 	PreKubeadmCommands   []string
 	PostKubeadmCommands  []string
 	AdditionalFiles      []bootstrapv1.File
@@ -81,6 +82,10 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
 		return nil, errors.Wrap(err, "failed to parse files template")
+	}
+
+	if _, err := tm.Parse(bootCommandsTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse boot commands template")
 	}
 
 	if _, err := tm.Parse(commandsTemplate); err != nil {

@@ -2045,6 +2045,17 @@ spec:
               KubeadmConfigSpec defines the desired state of KubeadmConfig.
               Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
             properties:
+              bootCommands:
+                description: |-
+                  bootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd
+                  module. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
+                items:
+                  description: BootCommand defines input for each bootcmd command
+                    in cloud-init.
+                  items:
+                    type: string
+                  type: array
+                type: array
               clusterConfiguration:
                 description: clusterConfiguration along with InitConfiguration are
                   the configurations necessary for the init command
@@ -3595,14 +3606,18 @@ spec:
                     type: array
                 type: object
               postKubeadmCommands:
-                description: postKubeadmCommands specifies extra commands to run after
-                  kubeadm runs
+                description: |-
+                  postKubeadmCommands specifies extra commands to run after kubeadm runs.
+                  With cloud-init, this is appended to the runcmd module configuration, and is typically executed in
+                  the cloud-final.service systemd unit. In Ignition, this is appended to /etc/kubeadm.sh.
                 items:
                   type: string
                 type: array
               preKubeadmCommands:
-                description: preKubeadmCommands specifies extra commands to run before
-                  kubeadm runs
+                description: |-
+                  preKubeadmCommands specifies extra commands to run before kubeadm runs.
+                  With cloud-init, this is prepended to the runcmd module configuration, and is typically executed in
+                  the cloud-final.service systemd unit. In Ignition, this is prepended to /etc/kubeadm.sh.
                 items:
                   type: string
                 type: array

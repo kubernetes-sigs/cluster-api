@@ -34,15 +34,6 @@ rules:
   - apiextensions.k8s.io
   resourceNames:
   - kubeadmcontrolplanes.controlplane.cluster.x-k8s.io
-  resources:
-  - customresourcedefinitions
-  - customresourcedefinitions/status
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - apiextensions.k8s.io
-  resourceNames:
   - kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io
   resources:
   - customresourcedefinitions

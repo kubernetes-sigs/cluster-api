@@ -272,19 +272,7 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 // ADD CRD RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterclasses.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterresourcesetbindings.addons.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterresourcesets.addons.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusters.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=extensionconfigs.runtime.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=ipaddressclaims.ipam.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=ipaddresses.ipam.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machinedeployments.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machinedrainrules.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machinehealthchecks.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machinepools.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machines.cluster.x-k8s.io
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=machinesets.cluster.x-k8s.io
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterclasses.cluster.x-k8s.io;clusterresourcesetbindings.addons.cluster.x-k8s.io;clusterresourcesets.addons.cluster.x-k8s.io;clusters.cluster.x-k8s.io;extensionconfigs.runtime.cluster.x-k8s.io;ipaddressclaims.ipam.cluster.x-k8s.io;ipaddresses.ipam.cluster.x-k8s.io;machinedeployments.cluster.x-k8s.io;machinedrainrules.cluster.x-k8s.io;machinehealthchecks.cluster.x-k8s.io;machinepools.cluster.x-k8s.io;machines.cluster.x-k8s.io;machinesets.cluster.x-k8s.io
 // ADD CR RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses;ipaddressclaims,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedrainrules,verbs=get;list;watch;patch;update

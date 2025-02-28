@@ -463,7 +463,37 @@ Please note that some of the above fields (`metadata`, `nodeDrainTimeout`, `node
 must be propagated to machines without triggering rollouts.
 See [In place propagation of changes affecting Kubernetes objects only] as well as [Metadata propagation] for more details.
 
-Additionally, in case you are developing a control plane provider where control plane instances uses a Cluster API Machine 
+In case you are developing a control plane provider that allows definition of machine readiness gates, you SHOULD also implement
+the following `machineTemplate` field.
+
+```go
+type FooControlPlaneMachineTemplate struct {
+    // readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+    //
+    // This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+    // Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+    // for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+    //
+    // Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+    // they can include the status of those components with a new condition and add this condition to ReadinessGates.
+    //
+    // NOTE: This field is considered only for computing v1beta2 conditions.
+    // NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
+    // readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+    // readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
+    // This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+    // +optional
+    // +listType=map
+    // +listMapKey=conditionType
+    // +kubebuilder:validation:MaxItems=32
+    ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
+
+    // See other rules for more details about mandatory/optional fields in ControlPlane spec.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
+
+In case you are developing a control plane provider where control plane instances uses a Cluster API Machine 
 object to represent each control plane instance, but those instances do not show up as a Kubernetes node (for example, 
 managed control plane providers for AKS, EKS, GKE etc), you SHOULD also implement the following `status` field.
 

@@ -493,6 +493,9 @@ type ClusterSpec struct {
 
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//
+	// If this field is not defined and the Cluster implements a managed topology, availabilityGates
+	// from the corresponding ClusterClass will be used, if any.
+	//
 	// NOTE: this field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
@@ -594,6 +597,22 @@ type ControlPlaneTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// If this field is not defined, readinessGates from the corresponding ControlPlaneClass will be used, if any.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
+	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+
 	// variables can be used to customize the ControlPlane through patches.
 	// +optional
 	Variables *ControlPlaneVariables `json:"variables,omitempty"`
@@ -673,6 +692,20 @@ type MachineDeploymentTopology struct {
 	// is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any.
+	//
+	// NOTE: This field is considered only for computing v1beta2 conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.

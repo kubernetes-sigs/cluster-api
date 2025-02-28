@@ -17,6 +17,7 @@ limitations under the License.
 package desiredstate
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -295,6 +296,8 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 }
 
 func TestComputeControlPlane(t *testing.T) {
+	g := NewWithT(t)
+
 	// templates and ClusterClass
 	labels := map[string]string{"l1": ""}
 	annotations := map[string]string{"a1": ""}
@@ -313,8 +316,12 @@ func TestComputeControlPlane(t *testing.T) {
 		Annotations: controlPlaneMachineTemplateAnnotations,
 	})
 	clusterClassDuration := 20 * time.Second
+	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
+		{ConditionType: "foo"},
+	}
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
+		WithControlPlaneReadinessGates(clusterClassReadinessGates).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneNodeDrainTimeout(&metav1.Duration{Duration: clusterClassDuration}).
 		WithControlPlaneNodeVolumeDetachTimeout(&metav1.Duration{Duration: clusterClassDuration}).
@@ -328,6 +335,10 @@ func TestComputeControlPlane(t *testing.T) {
 	nodeDrainTimeout := metav1.Duration{Duration: topologyDuration}
 	nodeVolumeDetachTimeout := metav1.Duration{Duration: topologyDuration}
 	nodeDeletionTimeout := metav1.Duration{Duration: topologyDuration}
+	readinessGates := []clusterv1.MachineReadinessGate{
+		{ConditionType: "foo"},
+		{ConditionType: "bar"},
+	}
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
@@ -341,6 +352,7 @@ func TestComputeControlPlane(t *testing.T) {
 						Labels:      map[string]string{"l2": ""},
 						Annotations: map[string]string{"a2": ""},
 					},
+					ReadinessGates:          readinessGates,
 					Replicas:                &replicas,
 					NodeDrainTimeout:        &nodeDrainTimeout,
 					NodeVolumeDetachTimeout: &nodeVolumeDetachTimeout,
@@ -349,6 +361,15 @@ func TestComputeControlPlane(t *testing.T) {
 			},
 		},
 	}
+
+	jsonValue, err := json.Marshal(&clusterClassReadinessGates)
+	g.Expect(err).ToNot(HaveOccurred())
+	var expectedClusterClassReadinessGates []interface{}
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).ToNot(HaveOccurred())
+	jsonValue, err = json.Marshal(&readinessGates)
+	g.Expect(err).ToNot(HaveOccurred())
+	var expectedReadinessGates []interface{}
+	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).ToNot(HaveOccurred())
 
 	t.Run("Generates the ControlPlane from the template", func(t *testing.T) {
 		g := NewWithT(t)
@@ -381,6 +402,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
 		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
@@ -406,7 +428,7 @@ func TestComputeControlPlane(t *testing.T) {
 							Annotations: map[string]string{"a2": ""},
 						},
 						Replicas: &replicas,
-						// no values for NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout
+						// no values for ReadinessGates, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout
 					},
 				},
 			},
@@ -429,6 +451,7 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		// checking only values from CC defaults
+		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
 		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
@@ -469,6 +492,33 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().Replicas().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
+	})
+	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithoutReadinessGates := clusterClass.DeepCopy()
+		clusterClassWithoutReadinessGates.Spec.ControlPlane.ReadinessGates = nil
+
+		clusterWithoutReadinessGates := cluster.DeepCopy()
+		clusterWithoutReadinessGates.Spec.Topology.ControlPlane.ReadinessGates = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     clusterWithoutReadinessGates.Spec.Topology,
+			ClusterClass: clusterClassWithoutReadinessGates,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
+		}
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithoutReadinessGates)
+		scope.Blueprint = blueprint
+
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
 	})
 	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -1366,6 +1416,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
+	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
+		{ConditionType: "foo"},
+	}
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
 		WithAnnotations(annotations).
@@ -1375,6 +1428,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			UnhealthyConditions: unhealthyConditions,
 			NodeStartupTimeout:  nodeTimeoutDuration,
 		}).
+		WithReadinessGates(clusterClassReadinessGates).
 		WithFailureDomain(&clusterClassFailureDomain).
 		WithNodeDrainTimeout(&clusterClassDuration).
 		WithNodeVolumeDetachTimeout(&clusterClassDuration).
@@ -1431,6 +1485,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
+	readinessGates := []clusterv1.MachineReadinessGate{
+		{ConditionType: "foo"},
+		{ConditionType: "bar"},
+	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{
@@ -1449,6 +1507,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Name:                    "big-pool-of-machines",
 		Replicas:                &replicas,
 		FailureDomain:           &topologyFailureDomain,
+		ReadinessGates:          readinessGates,
 		NodeDrainTimeout:        &topologyDuration,
 		NodeVolumeDetachTimeout: &topologyDuration,
 		NodeDeletionTimeout:     &topologyDuration,
@@ -1488,6 +1547,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(topologyDuration))
+		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(readinessGates))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -1529,7 +1589,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
+			// missing ReadinessGates, FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
 		e := generator{}
@@ -1542,9 +1602,60 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
 		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
+		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(clusterClassDuration))
+	})
+
+	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClassWithoutReadinessGates := fakeClass.DeepCopy()
+		clusterClassWithoutReadinessGates.Spec.Workers.MachineDeployments[0].ReadinessGates = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClassWithoutReadinessGates,
+			MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+				"linux-worker": {
+					Metadata: clusterv1.ObjectMeta{
+						Labels:      labels,
+						Annotations: annotations,
+					},
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+					MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
+						UnhealthyConditions: unhealthyConditions,
+						NodeStartupTimeout: &metav1.Duration{
+							Duration: time.Duration(1),
+						},
+					},
+				},
+			},
+		}
+
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			// missing ReadinessGates
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// checking only values from CC defaults
+		actualMd := actual.Object
+		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(BeNil())
 	})
 
 	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {

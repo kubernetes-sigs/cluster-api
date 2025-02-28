@@ -125,6 +125,11 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = new(v1beta1.ObjectMeta)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.controlPlaneReadinessGates != nil {
+		in, out := &in.controlPlaneReadinessGates, &out.controlPlaneReadinessGates
+		*out = make([]v1beta1.MachineReadinessGate, len(*in))
+		copy(*out, *in)
+	}
 	if in.controlPlaneTemplate != nil {
 		in, out := &in.controlPlaneTemplate, &out.controlPlaneTemplate
 		*out = (*in).DeepCopy()
@@ -511,6 +516,11 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 		in, out := &in.machineHealthCheckClass, &out.machineHealthCheckClass
 		*out = new(v1beta1.MachineHealthCheckClass)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.readinessGates != nil {
+		in, out := &in.readinessGates, &out.readinessGates
+		*out = make([]v1beta1.MachineReadinessGate, len(*in))
+		copy(*out, *in)
 	}
 	if in.failureDomain != nil {
 		in, out := &in.failureDomain, &out.failureDomain

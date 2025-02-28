@@ -279,6 +279,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmC
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
+	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type

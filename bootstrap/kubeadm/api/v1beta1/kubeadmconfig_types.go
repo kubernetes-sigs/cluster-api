@@ -76,7 +76,8 @@ type KubeadmConfigSpec struct {
 	Mounts []MountPoints `json:"mounts,omitempty"`
 
 	// bootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd
-	// module. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
+	// module. bootcmd will run on every boot, 'cloud-init-per' command can be used to make bootcmd run exactly
+	// once. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
 	// +optional
 	BootCommands []BootCommand `json:"bootCommands,omitempty"`
 

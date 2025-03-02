@@ -170,9 +170,6 @@ func Test_defaultBranchForNewTag(t *testing.T) {
 }
 
 func Test_validateConfig(t *testing.T) {
-	type args struct {
-		config *notesCmdConfig
-	}
 	tests := []struct {
 		name         string
 		args         *notesCmdConfig
@@ -243,9 +240,6 @@ func Test_validateConfig(t *testing.T) {
 }
 
 func Test_computeConfigDefaults(t *testing.T) {
-	type args struct {
-		config *notesCmdConfig
-	}
 	tests := []struct {
 		name    string
 		args    *notesCmdConfig

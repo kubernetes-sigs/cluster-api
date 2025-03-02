@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
@@ -127,6 +128,7 @@ var (
 	machinePoolConcurrency        int
 	clusterResourceSetConcurrency int
 	machineHealthCheckConcurrency int
+	skipCRDMigrationPhases        []string
 	additionalSyncMachineLabels   []string
 )
 
@@ -224,6 +226,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 10,
 		"Number of machine health checks to process simultaneously")
 
+	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
+
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
@@ -265,6 +270,12 @@ func InitFlags(fs *pflag.FlagSet) {
 // Add RBAC for the authorized diagnostics endpoint.
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// ADD CRD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterclasses.cluster.x-k8s.io;clusterresourcesetbindings.addons.cluster.x-k8s.io;clusterresourcesets.addons.cluster.x-k8s.io;clusters.cluster.x-k8s.io;extensionconfigs.runtime.cluster.x-k8s.io;ipaddressclaims.ipam.cluster.x-k8s.io;ipaddresses.ipam.cluster.x-k8s.io;machinedeployments.cluster.x-k8s.io;machinedrainrules.cluster.x-k8s.io;machinehealthchecks.cluster.x-k8s.io;machinepools.cluster.x-k8s.io;machines.cluster.x-k8s.io;machinesets.cluster.x-k8s.io
+// ADD CR RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses;ipaddressclaims,verbs=get;list;watch;patch;update
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedrainrules,verbs=get;list;watch;patch;update
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -460,6 +471,45 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
 		setupLog.Error(err, "Unable to create ClusterCache")
+		os.Exit(1)
+	}
+
+	// Note: The kubebuilder RBAC markers above has to be kept in sync
+	// with the CRDs that should be migrated by this provider.
+	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
+		&addonsv1.ClusterResourceSetBinding{}: {UseCache: true},
+		&addonsv1.ClusterResourceSet{}:        {UseCache: true},
+		&clusterv1.Cluster{}:                  {UseCache: true},
+		&clusterv1.MachineDeployment{}:        {UseCache: true},
+		&clusterv1.MachineDrainRule{}:         {UseCache: true},
+		&clusterv1.MachineHealthCheck{}:       {UseCache: true},
+		&clusterv1.Machine{}:                  {UseCache: true},
+		&clusterv1.MachineSet{}:               {UseCache: true},
+		&ipamv1.IPAddress{}:                   {UseCache: false},
+		&ipamv1.IPAddressClaim{}:              {UseCache: false},
+	}
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: true}
+	}
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: true}
+	}
+	if feature.Gates.Enabled(feature.MachinePool) {
+		crdMigratorConfig[&expv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
+	}
+	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	for _, p := range skipCRDMigrationPhases {
+		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
+	}
+	if err := (&crdmigrator.CRDMigrator{
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		SkipCRDMigrationPhases: crdMigratorSkipPhases,
+		Config:                 crdMigratorConfig,
+		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a
+		// lot of CRs concurrently.
+	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
 		os.Exit(1)
 	}
 

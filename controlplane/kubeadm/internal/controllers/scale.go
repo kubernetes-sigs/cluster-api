@@ -30,6 +30,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -182,6 +183,15 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	// so it is considered ok to proceed.
 	if controlPlane.Machines.Len() == 0 {
 		return ctrl.Result{}, nil
+	}
+
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		// Block when we expect an upgrade to be propagated for topology clusters.
+		if controlPlane.Cluster.Spec.Topology != nil && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
+			logger.Info("Waiting for a pending version upgrade", "version", controlPlane.Cluster.Spec.Topology.Version)
+			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
+			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+		}
 	}
 
 	// If there are deleting machines, wait for the operation to complete.

@@ -423,7 +423,9 @@ type KubeadmControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubeadmControlPlaneSpec   `json:"spec,omitempty"`
+	// spec is the desired state of KubeadmControlPlane.
+	Spec KubeadmControlPlaneSpec `json:"spec,omitempty"`
+	// status is the observed state of KubeadmControlPlane.
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
 }
 
@@ -459,7 +461,8 @@ func (in *KubeadmControlPlane) SetV1Beta2Conditions(conditions []metav1.Conditio
 type KubeadmControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubeadmControlPlane `json:"items"`
+	// items is the list of KubeadmControlPlanes.
+	Items []KubeadmControlPlane `json:"items"`
 }
 
 func init() {

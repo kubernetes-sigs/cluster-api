@@ -29,6 +29,7 @@ type Metadata struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// releaseSeries map a provider release series (major/minor) with a API Version of Cluster API (contract).
 	// +optional
 	ReleaseSeries []ReleaseSeries `json:"releaseSeries"`
 }

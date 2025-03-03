@@ -75,7 +75,9 @@ type ClusterClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterClassSpec   `json:"spec,omitempty"`
+	// spec is the desired state of ClusterClass.
+	Spec ClusterClassSpec `json:"spec,omitempty"`
+	// status is the observed state of ClusterClass.
 	Status ClusterClassStatus `json:"status,omitempty"`
 }
 
@@ -1114,7 +1116,8 @@ func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
 type ClusterClassList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterClass `json:"items"`
+	// items is the list of ClusterClasses.
+	Items []ClusterClass `json:"items"`
 }
 
 func init() {

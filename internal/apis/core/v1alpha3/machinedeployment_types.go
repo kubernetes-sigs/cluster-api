@@ -259,7 +259,9 @@ type MachineDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MachineDeploymentSpec   `json:"spec,omitempty"`
+	// spec is the desired state of MachineDeployment.
+	Spec MachineDeploymentSpec `json:"spec,omitempty"`
+	// status is the observed state of MachineDeployment.
 	Status MachineDeploymentStatus `json:"status,omitempty"`
 }
 
@@ -271,7 +273,8 @@ type MachineDeployment struct {
 type MachineDeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MachineDeployment `json:"items"`
+	// items is the list of MachineDeployments.
+	Items []MachineDeployment `json:"items"`
 }
 
 func init() {

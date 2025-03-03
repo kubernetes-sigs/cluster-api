@@ -63,6 +63,14 @@ type ExtensionHandler struct {
 	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// This is defaulted to FailurePolicyFail if not defined.
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
+
+	// Priority defines the order in which this handler will be invoked. Hooks are executed in the descending order.
+	// +optional
+	Priority int32 `json:"priority,omitempty"`
+
+	// Serial defines if the blocked hook is allowed to run in parallel with others.
+	// +optional
+	Serial bool `json:"serial,omitempty"`
 }
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.

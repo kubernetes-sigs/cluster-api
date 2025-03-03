@@ -150,6 +150,12 @@ type ExtensionHandler struct {
 	// If left undefined, this will be defaulted to FailurePolicyFail when processing the answer to the discovery
 	// call for this server.
 	FailurePolicy *runtimehooksv1.FailurePolicy
+
+	// Priority defines the order in which this handler will be invoked. Hooks are executed in the descending order.
+	Priority int32
+
+	// Serial defines if the blocked hook is allowed to run in parallel with others.
+	Serial bool
 }
 
 // AddExtensionHandler adds an extension handler to the server.
@@ -268,6 +274,8 @@ func discoveryHandler(handlers map[string]ExtensionHandler) func(context.Context
 			},
 			TimeoutSeconds: handler.TimeoutSeconds,
 			FailurePolicy:  handler.FailurePolicy,
+			Priority:       handler.Priority,
+			Serial:         handler.Serial,
 		})
 	}
 

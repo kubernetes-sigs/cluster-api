@@ -17,6 +17,7 @@ limitations under the License.
 package registry
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -84,6 +85,13 @@ type ExtensionRegistration struct {
 
 	// Settings captures additional information sent in call to the RuntimeExtensions.
 	Settings map[string]string
+
+	// Priority defines the order in which this handler will be invoked. Hooks are executed in the descending order.
+	Priority int32
+
+	// Serial defines if the hook should be executed serially. This ensures that previously pending hooks are finished
+	// first, as well as current hook reached completion, before moving to the next one.
+	Serial bool
 }
 
 // extensionRegistry is an implementation of ExtensionRegistry.
@@ -210,6 +218,11 @@ func (r *extensionRegistry) List(gh runtimecatalog.GroupHook) ([]*ExtensionRegis
 			l = append(l, registration)
 		}
 	}
+
+	sort.SliceStable(l, func(i, j int) bool {
+		return l[i].Priority > l[j].Priority
+	})
+
 	return l, nil
 }
 
@@ -263,6 +276,8 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 			TimeoutSeconds:    e.TimeoutSeconds,
 			FailurePolicy:     e.FailurePolicy,
 			Settings:          extensionConfig.Spec.Settings,
+			Priority:          e.Priority,
+			Serial:            e.Serial,
 		})
 	}
 

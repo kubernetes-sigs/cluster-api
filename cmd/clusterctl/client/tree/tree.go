@@ -63,10 +63,11 @@ type ObjectTreeOptions struct {
 
 // ObjectTree defines an object tree representing the status of a Cluster API cluster.
 type ObjectTree struct {
-	root      client.Object
-	options   ObjectTreeOptions
-	items     map[types.UID]client.Object
-	ownership map[types.UID]map[types.UID]bool
+	root       client.Object
+	options    ObjectTreeOptions
+	items      map[types.UID]client.Object
+	ownership  map[types.UID]map[types.UID]bool
+	parentship map[types.UID]types.UID
 }
 
 // NewObjectTree creates a new object tree with the given root and options.
@@ -78,10 +79,11 @@ func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
 	}
 
 	return &ObjectTree{
-		root:      root,
-		options:   options,
-		items:     make(map[types.UID]client.Object),
-		ownership: make(map[types.UID]map[types.UID]bool),
+		root:       root,
+		options:    options,
+		items:      make(map[types.UID]client.Object),
+		ownership:  make(map[types.UID]map[types.UID]bool),
+		parentship: make(map[types.UID]types.UID),
 	}
 }
 
@@ -234,6 +236,7 @@ func (od ObjectTree) remove(parent client.Object, s client.Object) {
 	}
 	delete(od.items, s.GetUID())
 	delete(od.ownership[parent.GetUID()], s.GetUID())
+	delete(od.parentship, s.GetUID())
 }
 
 func (od ObjectTree) addInner(parent client.Object, obj client.Object) {
@@ -242,6 +245,19 @@ func (od ObjectTree) addInner(parent client.Object, obj client.Object) {
 		od.ownership[parent.GetUID()] = make(map[types.UID]bool)
 	}
 	od.ownership[parent.GetUID()][obj.GetUID()] = true
+	od.parentship[obj.GetUID()] = parent.GetUID()
+}
+
+// GetParent returns parent of an object.
+func (od ObjectTree) GetParent(id types.UID) client.Object {
+	parentID, ok := od.parentship[id]
+	if !ok {
+		return nil
+	}
+	if parentID == od.root.GetUID() {
+		return od.root
+	}
+	return od.items[parentID]
 }
 
 // GetRoot returns the root of the tree.

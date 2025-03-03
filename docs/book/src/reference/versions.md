@@ -1,148 +1,370 @@
-# Cluster API Version Support and Kubernetes Version Skew Policy
+# Cluster API version support matrix and Kubernetes version support matrix
 
-## Supported Versions
+<!-- TOC -->
+* [Cluster API version support matrix and Kubernetes version support matrix](#cluster-api-version-support-matrix-and-kubernetes-version-support-matrix)
+  * [Version support policies](#version-support-policies)
+    * [Cluster API release support](#cluster-api-release-support)
+      * [Skip upgrades](#skip-upgrades)
+      * [Downgrades](#downgrades)
+      * [Cluster API release vs API versions](#cluster-api-release-vs-api-versions)
+      * [Cluster API release vs contract versions](#cluster-api-release-vs-contract-versions)
+      * [Supported Cluster API - Cluster API provider version Skew](#supported-cluster-api---cluster-api-provider-version-skew)
+    * [Kubernetes versions support](#kubernetes-versions-support)
+      * [Maximum version skew between various Kubernetes components](#maximum-version-skew-between-various-kubernetes-components)
+  * [Supported versions matrix by provider or component](#supported-versions-matrix-by-provider-or-component)
+    * [Core Provider (`cluster-api-controller`)](#core-provider-cluster-api-controller)
+    * [Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)](#kubeadm-bootstrap-provider-kubeadm-bootstrap-controller-)
+      * [Kubeadm configuration API Support](#kubeadm-configuration-api-support)
+    * [Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)](#kubeadm-control-plane-provider-kubeadm-control-plane-controller)
+      * [Bootstrap provider Support](#bootstrap-provider-support)
+      * [Etcd API Support](#etcd-api-support)
+      * [CoreDNS Support](#coredns-support)
+    * [Other providers](#other-providers)
+    * [clusterctl](#clusterctl)
+  * [Annexes](#annexes)
+    * [Kubernetes Version Support and Cluster API deployment model](#kubernetes-version-support-and-cluster-api-deployment-model)
+    * [Kubernetes version specific notes](#kubernetes-version-specific-notes)
+<!-- TOC -->
 
-The Cluster API team maintains branches for **v1.x (v1beta1)**. For more details see [Support and guarantees](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#support-and-guarantees).
+## Version support policies
 
-Releases include these components:
+### Cluster API release support
 
-- Core Provider
-- Kubeadm Bootstrap Provider
-- Kubeadm Control Plane Provider
-- clusterctl client
+This paragraph documents the general rules defining how we determine Cluster API supported releases.
 
-All Infrastructure Providers are maintained by independent teams. Other Bootstrap and Control Plane Providers are also maintained by independent teams. For more information about their version support, see [below](#providers-maintained-by-independent-teams).
+A Cluster API release correspond to a release in the [GitHub repository](https://github.com/kubernetes-sigs/cluster-api/releases)
+for this project, and the corresponding images published in the Kubernetes docker registry.
 
-## Supported Kubernetes Versions
+For the sake of this document, the most important artifacts included in a Cluster API release are:
 
-A Cluster API minor release supports (when it's initially created):
+- The Cluster API Core Provider image
+- The Kubeadm Bootstrap Provider image
+- The Kubeadm Control Plane Provider image
+- The clusterctl binary
+
+The Cluster API team will release a new Cluster API version approximately every four months (3 release each year).
+See [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md) and [release calendars](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases) for more details about Cluster API releases management.
+
+The Cluster API team actively supports the latest two minor release (N, N-1); support in this context means that we:
+
+- Have dedicate CI signal with E2E tests, unit tests, CVE scanners etc.
+- Accept bug fixes, perform golang or dependency bump, etc. 
+- Periodically cut patch releases
+
+On top of supporting the N and N-1 release, the Cluster API team also maintain CI signal for the Cluster API N-2 release 
+in case we have to do an emergency patch release.  
+- If there is a need for an emergency patch, e.g. to fix a critical security issue, please bring this up to maintainers
+  and it will be considered on a case-by-case basis. 
+
+All considered, each Cluster API minor release is supported for a period of roughly sixteen (12) months:
+
+- The first eight months of this timeframe will be considered the standard support period for a minor release.
+- The next four months the minor release will be considered in maintenance mode.
+- At the end of the four-month maintenance mode period, the minor release will be considered EOL (end of life) and 
+  cherry picks to the associated branch are to be closed soon afterwards.
+
+The table below documents support matrix for Cluster API versions (versions older than v1.0 omitted).
+
+| Minor Release | Status                  | Supported Until (including maintenance mode)       |
+|---------------|-------------------------|----------------------------------------------------|
+| v1.10.x       | Under development       | when v1.12.0 will be released                      |
+| v1.9.x        | Standard support period | when v1.11.0 will be released                      |
+| v1.8.x        | Standard support period | when v1.10.0 will be released                      |
+| v1.7.x        | Maintenance mode        | Maintenance since 2024-12-10 - v1.9.0 release date |
+| v1.6.x        | EOL                     | EOL since 2024-08-12 - v1.8.0 release date (*)     |
+| v1.5.x        | EOL                     | EOL since 2024-04-16 - v1.7.0 release date (*)     |
+| v1.4.x        | EOL                     | EOL since 2023-12-05 - v1.6.0 release date (*)     |
+| v1.3.x        | EOL                     | EOL since 2023-07-25 - v1.5.0 release date (*)     |
+| v1.2.x        | EOL                     | EOL since 2023-03-28 - v1.4.0 release date (*)     |
+| v1.1.x        | EOL                     | EOL since 2022-07-18 - v1.2.0 release date (**)    |
+| v1.0.x        | EOL                     | EOL since 2022-02-02 - v1.1.0 release date (**)    |
+
+(*) Maintenance mode were not implemented (even if test were maintained);
+(**) Older minor releases were immediately unsupported when a new minor release was available.
+
+#### Skip upgrades
+
+Cluster API supports at maximum n-3 minor version skip upgrades.
+
+For example, if you are running Cluster API v1.6.x, you can upgrade up to Cluster API v1.9.x skipping intermediate
+minor versions (v1.6 is v1.9 minus three minor versions).
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Upgrades outside from version older n-3 might lead to a management cluster in a non functional state.
+
+ </aside>
+
+#### Downgrades
+
+Cluster API do not support version downgrades.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Version downgrades might lead to a management cluster in a non functional state.
+
+ </aside>
+
+#### Cluster API release vs API versions
+
+Each Cluster API release can support one or more API versions.
+
+An API version is determined from the GroupVersion defined in the top-level `api/` package of a specific Cluster API release, and it is used
+in the `apiVersion` field of Cluster API custom resources.
+
+An API Version is considered deprecated when a new API version is published.
+
+API deprecation and removal follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/);
+Cluster API maintainers might decide to support API versions longer than what is defined in the Kubernetes policy.
+
+| API Version | Status         | Supported Until                                                                      |
+|-------------|----------------|--------------------------------------------------------------------------------------|
+| v1beta1     | Supported      | no less than 9 months or 3 minor releases after a newer API version will be released |
+| v1alpha4    | Not served (*) | EOL since 2023-12-05 - v1.6.0 release date                                           |
+| v1alpha3    | Not served (*) | EOL since 2023-07-25 - v1.5.0 release date                                           |
+
+(*) Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release. 
+Those types still exist in Cluster API while we work to a fix (or a workaround) for [10051](https://github.com/kubernetes-sigs/cluster-api/issues/10051). 
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Note: Removal of a deprecated APIVersion in Kubernetes can cause issues with garbage collection by the kube-controller-manager.
+This means that some objects which rely on garbage collection for cleanup - e.g. MachineSets and their descendent objects, 
+like Machines and InfrastructureMachines, may not be cleaned up properly if those objects were created with an APIVersion 
+which is no longer served.
+
+To avoid these issues it’s advised to ensure a restart to the kube-controller-manager is done after upgrading to a version
+of Cluster API which drops support for an APIVersion - e.g. v1.5 and v1.6.
+
+This can be accomplished with any Kubernetes control-plane rollout, including a Kubernetes version upgrade, or by manually
+stopping and restarting the kube-controller-manager.
+
+</aside>
+
+#### Cluster API release vs contract versions
+
+Each Cluster API contract version defines a set of rules a provider is expected to comply with in order to interact with a specific Cluster API release.
+Those rules can be in the form of CustomResourceDefinition (CRD) fields and/or expected behaviors to be implemented.
+See [provider contracts](../developer/providers/contracts/overview.md)
+
+Each Cluster API release supports only one contract version, and by convention the supported contract version matches
+the newest API version in the same Cluster API release.
+
+| Contract Version | Status    | Supported Until                                                                      |
+|------------------|-----------|--------------------------------------------------------------------------------------|
+| v1beta1          | Supported | no less than 9 months or 3 minor releases after a newer API version will be released |
+| v1alpha4         | EOL       | EOL since 2023-12-05 - v1.6.0 release date                                           |
+| v1alpha3         | EOL       | EOL since 2023-07-25 - v1.5.0 release date                                           |
+
+#### Supported Cluster API - Cluster API provider version Skew
+
+When running a Cluster API release, all the provider installed in the same management cluster MUST
+implement the CustomResourceDefinition (CRD) fields and/or expected behaviors defined by the release's contract version.
+
+As a corollary, Provider's version number and Provider's API version number are not required to match Cluster API versions.
+
+<aside class="note">
+
+The Cluster API command line tool, `clustertcl`, will take care of ensuring all the providers are on the
+same contract version both during init and upgrade of a management cluster.
+
+</aside>
+
+### Kubernetes versions support
+
+This paragraph documents the general rules defining how the Cluster API team determine Kubernetes supported version for every
+Cluster API release. 
+
+When a new Cluster API release is cut, we will document the Kubernetes version compatibility matrix the release
+has been tested with in the [table](#supported-versions-matrix-by-provider-or-component) below.
+
+Each Cluster API minor release supports (when it's initially created):
 * 4 Kubernetes minor releases for the management cluster (N - N-3)
 * 6 Kubernetes minor releases for the workload cluster (N - N-5)
 
-When a new Kubernetes minor release is available, we will try to support it in an upcoming Cluster API patch release
-(although only in the latest supported Cluster API minor release). See Cluster API [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md)
-and [release calendars](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases) for more details.
+When a new Kubernetes minor release is available, the Cluster API team will try to support it in an upcoming Cluster API
+patch release, thus extending the support matrix for the latest supported Cluster API minor release to:
+* 5 Kubernetes minor releases for the management cluster (N - N-4)
+* 7 Kubernetes minor releases for the workload cluster (N - N-6)
 
 For example, Cluster API v1.7.0 would support the following Kubernetes versions:
 * v1.26.x to v1.29.x for the management cluster
 * v1.24.x to v1.29.x for the workload cluster
 * When Kubernetes 1.30 is released, it will be supported in v1.7.x (but not in v1.6.x)
 
-Support in this context means that we:
-* maintain corresponding code paths
-* have test coverage
-* accept bug fixes
+<aside class="note warning">
 
-Important! if the changes in Cluster API required to support a new Kubernetes release are too invasive, we won't backport
-it to older releases and users have to wait for the next Cluster API minor release.
+<h1>Warning</h1>
 
-Important! This is not a replacement/alternative for upstream Kubernetes support policies!
+Cluster API support for older Kubernetes version is not a replacement/alternative for upstream Kubernetes support policies!
+
 Support for versions of Kubernetes which itself are out of support is limited to "Cluster API can start a Cluster with this Kubernetes version"
 and "Cluster API  can upgrade to the next Kubernetes version"; it does not include any extended support to Kubernetes itself.
 
-Whenever a new Cluster API release is cut, we will document the Kubernetes version compatibility matrix the release
-has been tested with. Summaries of Kubernetes versions supported by each component are additionally maintained in
-the [tables](#release-components) below.
+</aside>
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+if the changes in Cluster API required to support a new Kubernetes release are too invasive, we won't backport
+it to older releases and users have to wait for the next Cluster API minor release.
+
+</aside>
+
+See [Kubernetes Version Support and Cluster API deployment model](#kubernetes-version-support-and-cluster-api-deployment-model) 
+to understand how do you deploy Cluster API might affect the Kubernetes version support matrix for a Cluster.
 
 On a final comment, let's praise all the contributors keeping care of such a wide support matrix.
 If someone is looking for opportunities to help with the project, this is definitely an area where additional hands
 and eyes will be more than welcome and greatly beneficial to the entire community.
 
-See the [following section](#kubernetes-version-support-as-a-function-of-cluster-topology) to understand how cluster topology affects version support.
+#### Maximum version skew between various Kubernetes components
 
-### Kubernetes Version Support As A Function Of Cluster Topology
+Standard [Kubernetes Version Skew Policy](https://kubernetes.io/releases/version-skew-policy/)
+defines the maximum version skew supported between various Kubernetes components within a single cluster.
 
-The Core Provider, Kubeadm Bootstrap Provider, and Kubeadm Control Plane Provider run on the Management Cluster, and clusterctl talks to that cluster's API server.
+Notably, version skew between various Kubernetes components also defines constraints to be observed
+by Cluster API, Cluster API providers or Cluster API users when performing Kubernetes version upgrades.
 
-In some cases, the Management Cluster is separate from the Workload Clusters. The Kubernetes version of the Management and Workload Clusters are allowed to be different.
+In some cases, also Cluster API and/or Cluster API providers are defining additional version skew constraints. For instance:
+- If you are using kubeadm as a bootstrapper, you must abide to [kubeadm skew policy](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#version-skew-policy). 
+- If you using image builder, all the Kubernetes components on a single machine are of the same version
+- If your Cluster has a defined topology, with `cluster.spec.topology` set and referencing a ClusterClass, 
+  Cluster API enforces a single Kubernetes version for all the machines in the cluster.
 
-Management Clusters and Workload Clusters can be upgraded independently and in any order, however, if you are additionally moving from
-v1alpha3 (v0.3.x) or v1alpha4 (v0.4.x) to v1beta1 (v1.x) as part of the upgrade, prior to upgrading any workload cluster using Cluster API v1beta1, 
-the management cluster will need to be upgraded the at least the minimum supported Kubernetes version for your target CAPI version.
+## Supported versions matrix by provider or component
 
-These diagrams show the relationships between components in a Cluster API release (yellow), and other components (white).
+### Core Provider (`cluster-api-controller`)
 
-#### Management And Workload Cluster Are the Same (Self-hosted)
+The following table define the support matrix for the Cluster API core provider.
+See [Cluster API release support](#cluster-api-release-support) and [Kubernetes versions support](#kubernetes-versions-support).
 
-![Management/Workload Same Cluster](../images/management-workload-same-cluster.png)
+|                  | v1.8, _Maintenance Mode_ | v1.9              | v1.10             |
+|------------------|--------------------------|-------------------|-------------------|
+| Kubernetes v1.24 |                          |                   |                   |
+| Kubernetes v1.25 | ✓ (only workload)        |                   |                   |
+| Kubernetes v1.26 | ✓ (only workload)        | ✓ (only workload) |                   |
+| Kubernetes v1.27 | ✓                        | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.28 | ✓                        | ✓                 | ✓ (only workload) |
+| Kubernetes v1.29 | ✓                        | ✓                 | ✓                 |
+| Kubernetes v1.30 | ✓                        | ✓                 | ✓                 |
+| Kubernetes v1.31 | ✓ >= v1.8.1              | ✓                 | ✓                 |
+| Kubernetes v1.32 |                          | ✓ >= v1.9.1       | ✓                 |
 
-#### Management And Workload Clusters Are Separate
+See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
+
+### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`) 
+
+For each version of the Cluster API core provider, there is a corresponding version of the Kubeadm Bootstrap Provider.
+
+The Kubeadm Bootstrap also follows the same support rules defined in [Cluster API release support](#cluster-api-release-support) 
+and [Kubernetes versions support](#kubernetes-versions-support).
+
+As a consequence, the support matrix for the Kubeadm Bootstrap Provider is the same as the one
+defined for the Cluster API [Core Provider](#core-provider-cluster-api-controller).
+
+#### Kubeadm configuration API Support
+
+When creating new machines, the Kubeadm Bootstrap Provider provider generates kubeadm init/join configuration files
+using the [kubeadm API](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/) version recommended for the target Kubernetes version.
+
+|                  | kubeadm API version                                                                |
+|------------------|------------------------------------------------------------------------------------|
+| Kubernetes v1.24 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.25 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.26 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.27 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.28 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.29 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.30 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
+| Kubernetes v1.31 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+| Kubernetes v1.32 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+
+### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
+
+For each version of the Cluster API core provider, there is a corresponding version of the Kubeadm Control Plane Provider.
+
+The Kubeadm Control Plane also follows the same support rules defined in [Cluster API release support](#cluster-api-release-support) 
+and [Kubernetes versions support](#kubernetes-versions-support).
+
+As a consequence, the support matrix for the Kubeadm Control Plane Provider is the same as the one
+defined for the Cluster API [Core Provider](#core-provider-cluster-api-controller).
+
+#### Bootstrap provider Support
+
+The Kubeadm Control Plane requires to work with a Kubeadm Bootstrap Provider of a same version.
+
+#### Etcd API Support
+
+The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns.
+All the Cluster API Kubeadm Control Plane Provider currently supported are using [etcd v3 API](https://etcd.io/docs/v3.2/rfc/v3api/) when communicating with etcd.
+
+#### CoreDNS Support
+
+Each version of the Kubeadm Control Plane can upgrade up to a max CoreDNS version.
+Notably, the Max CoreDNS Version could change also with patch releases.
+
+| KCP Version | Max CoreDNS version |
+|-------------|---------------------|
+| v1.5        | v1.10.1             |
+| >= v1.5.1   | v1.11.1             |
+| v1.6        | v1.11.1             |
+| v1.7        | v1.11.1             |
+| v1.8        | v1.11.3             |
+| >= v1.8.9   | v1.12.0             |
+| v1.9        | v1.11.3             |
+| >= v1.9.4   | v1.12.0             |
+| v1.10       | v1.12.0             |
+
+See [corefile-migration](https://github.com/coredns/corefile-migration)
+
+### Other providers
+
+Cluster API has a vibrant ecosystem of awesome other providers maintained by independent teams and hosted outside of
+the the Cluster API [GitHub repository](https://github.com/kubernetes-sigs/cluster-api/).
+
+To understand the list of supported version of a specific provider, its own Kubernetes support matrix, supported API versions, 
+supported contract version and specific skip upgrade rules, please see its documentation. Please refer to [providers list](providers.md)
+
+In general, if a Provider version M says it is compatible with Cluster API version N, then version MUST be compatible 
+with a subset of the Kubernetes versions supported by Cluster API version N.
+
+### clusterctl
+
+It is strongly recommended to always use the latest patch version of [clusterctl](../clusterctl/overview.md), in order to get all the fixes/latest changes.
+
+In case of upgrades, clusterctl should be upgraded first and then used to upgrade all the other components.
+
+## Annexes
+
+### Kubernetes Version Support and Cluster API deployment model
+
+The most common deployment model for Cluster API assumes Core Provider, Kubeadm Bootstrap Provider, and Kubeadm Control Plane
+and at least one infrastructure provider Provider running on the Management Cluster, all managing the lifecycle
+of a set of _separated_ Workload clusters.
 
 ![Management/Workload Separate Clusters](../images/management-workload-separate-clusters.png)
 
-### Release Components
+In this scenario, the Kubernetes version of the Management and Workload Clusters are allowed to be different.
+Additionally, management Clusters and Workload Clusters can be upgraded independently and in any order.
 
-#### Core Provider (`cluster-api-controller`)
+In another deployment model for Cluster API,  the Cluster API providers are used not only to managing the
+lifecycle of _separated_ Workload clusters, but also to managing the lifecycle of the Management cluster it self.
+This cluster is also referred as a "self-hosted" cluster.
 
-|                   | v1.8 (v1beta1) EOL | v1.9 (v1beta1)    | v1.10 (v1beta1)   |
-|-------------------|--------------------|-------------------|-------------------|
-| Kubernetes v1.24  |                    |                   |                   |
-| Kubernetes v1.25  | ✓ (only workload)  |                   |                   |
-| Kubernetes v1.26  | ✓ (only workload)  | ✓ (only workload) |                   |
-| Kubernetes v1.27  | ✓                  | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.28  | ✓                  | ✓                 | ✓ (only workload) |
-| Kubernetes v1.29  | ✓                  | ✓                 | ✓                 |
-| Kubernetes v1.30  | ✓                  | ✓                 | ✓                 |
-| Kubernetes v1.31  | ✓ >= v1.8.1        | ✓                 | ✓                 |
-| Kubernetes v1.32  |                    | ✓ >= v1.9.1       | ✓                 |
+![Management/Workload Same Cluster](../images/management-workload-same-cluster.png)
 
+The Kubernetes version of the "self-hosted" cluster is limited to the Kubernetes version currently supported
+for the Management clusters.
 
-\* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
-	 Previous Kubernetes **minor** versions are not affected.
-
-The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
-
-#### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)
-
-|                                    | v1.8 (v1beta1) EOL  | v1.9 (v1beta1)     | v1.10 (v1beta1)    |
-|------------------------------------|---------------------|--------------------|--------------------|
-| Kubernetes v1.24 + kubeadm/v1beta3 |                     |                    |                    |
-| Kubernetes v1.25 + kubeadm/v1beta3 | ✓  (only workload)  |                    |                    |
-| Kubernetes v1.26 + kubeadm/v1beta3 | ✓  (only workload)  | ✓  (only workload) |                    |
-| Kubernetes v1.27 + kubeadm/v1beta3 | ✓                   | ✓  (only workload) | ✓  (only workload) |
-| Kubernetes v1.28 + kubeadm/v1beta3 | ✓                   | ✓                  | ✓  (only workload) |
-| Kubernetes v1.29 + kubeadm/v1beta3 | ✓                   | ✓                  | ✓                  |
-| Kubernetes v1.30 + kubeadm/v1beta3 | ✓                   | ✓                  | ✓                  |
-| Kubernetes v1.31 + kubeadm/v1beta4 | ✓ >= v1.8.1         | ✓                  | ✓                  |
-| Kubernetes v1.32 + kubeadm/v1beta4 |                     | ✓ >= v1.9.1        | ✓                  |
-
-The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
-
-#### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
-
-|                            | v1.8 (v1beta1) EOL | v1.9 (v1beta1)    | v1.10 (v1beta1)   |
-|----------------------------|--------------------|-------------------|-------------------|
-| Kubernetes v1.24 + etcd/v3 |                    |                   |                   |
-| Kubernetes v1.25 + etcd/v3 | ✓ (only workload)  |                   |                   |
-| Kubernetes v1.26 + etcd/v3 | ✓ (only workload)  | ✓ (only workload) |                   |
-| Kubernetes v1.27 + etcd/v3 | ✓                  | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.28 + etcd/v3 | ✓                  | ✓                 | ✓ (only workload) |
-| Kubernetes v1.29 + etcd/v3 | ✓                  | ✓                 | ✓                 |
-| Kubernetes v1.30 + etcd/v3 | ✓                  | ✓                 | ✓                 |
-| Kubernetes v1.31 + etcd/v3 | ✓ >= v1.8.1        | ✓                 | ✓                 |
-| Kubernetes v1.32 + etcd/v3 |                    | ✓ >= v1.9.1       | ✓                 |
-
-The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
-
-The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
-
-\*  Newer versions of CoreDNS may not be compatible as an upgrade target for clusters managed with Cluster API. Kubernetes versions marked on the table are supported as an upgrade target only if CoreDNS is not upgraded to the latest version supported by the respective Kubernetes version. The versions supported are represented in the below table.
-
-##### CoreDNS
-
-| CAPI Version        | Max CoreDNS Version for Upgrade |
-|---------------------|---------------------------------|
-| v1.5 (v1beta1)      | v1.10.1                         |
-| >= v1.5.1 (v1beta1) | v1.11.1                         |
-| v1.6 (v1beta1)      | v1.11.1                         |
-| v1.7 (v1beta1)      | v1.11.1                         |
-| v1.8 (v1beta1)      | v1.11.3                         |
-| >= v1.8.9 (v1beta1) | v1.12.0                         |
-| v1.9 (v1beta1)      | v1.11.3                         |
-| >= v1.9.4 (v1beta1) | v1.12.0                         |
-| v1.10 (v1beta1)     | v1.12.0                         |
-
-#### Kubernetes version specific notes
+### Kubernetes version specific notes
 
 **1.31**:
 
@@ -157,19 +379,7 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 
 **1.24**:
 * Kubeadm Bootstrap Provider:
-		* `kubeadm` now sets both the `node-role.kubernetes.io/control-plane` and `node-role.kubernetes.io/master` taints on control plane nodes.
-		* `kubeadm` now only sets the `node-role.kubernetes.io/control-plane` label on control plane nodes (the `node-role.kubernetes.io/master` label is not set anymore).
+  * `kubeadm` now sets both the `node-role.kubernetes.io/control-plane` and `node-role.kubernetes.io/master` taints on control plane nodes.
+  * `kubeadm` now only sets the `node-role.kubernetes.io/control-plane` label on control plane nodes (the `node-role.kubernetes.io/master` label is not set anymore).
 * Kubeadm Bootstrap Provider and Kubeadm Control Plane Provider
-		* `criSocket` without a scheme prefix has been deprecated in the kubelet since a while. `kubeadm` now shows a warning if no scheme is present and eventually the support for `criSocket`'s without prefix will be dropped. Please adjust the `criSocket` accordingly (e.g. `unix:///var/run/containerd/containerd.sock`) if you are configuring the `criSocket` in CABPK or KCP resources.
-
-#### clusterctl
-
-It is strongly recommended to always use the latest version of [clusterctl](../clusterctl/overview.md), in order to get all the fixes/latest changes.
-
-In case of upgrades, clusterctl should be upgraded first and then used to upgrade all the other components.
-
-## Providers Maintained By Independent Teams
-
-In general, if a Provider version M says it is compatible with Cluster API version N, then version M must be compatible with a subset of the Kubernetes versions supported by Cluster API version N.
-
-To understand the version compatibility of a specific provider, please see its documentation. This book includes [a list of independent providers](providers.md)
+  * `criSocket` without a scheme prefix has been deprecated in the kubelet since a while. `kubeadm` now shows a warning if no scheme is present and eventually the support for `criSocket`'s without prefix will be dropped. Please adjust the `criSocket` accordingly (e.g. `unix:///var/run/containerd/containerd.sock`) if you are configuring the `criSocket` in CABPK or KCP resources.

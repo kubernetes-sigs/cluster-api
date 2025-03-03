@@ -20,6 +20,8 @@ spec:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: DockerClusterTemplate
       name: quick-start-cluster
+  infrastructureNamingStrategy:
+      template: "{{ .cluster.name }}-infra-{{ .random }}"
   workers:
     machineDeployments:
     - class: default-worker

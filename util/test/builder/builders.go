@@ -347,6 +347,7 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
 	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
+	infraClusterNamingStrategy                *clusterv1.InfrastructuresNamingStrategy
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	machinePoolClasses                        []clusterv1.MachinePoolClass
 	variables                                 []clusterv1.ClusterClassVariable
@@ -423,6 +424,12 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Dura
 // WithControlPlaneNamingStrategy sets the NamingStrategy for the ControlPlane to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.ControlPlaneClassNamingStrategy) *ClusterClassBuilder {
 	c.controlPlaneNamingStrategy = n
+	return c
+}
+
+// WithInfraClusterStrategy sets the NamingStrategy for the infra cluster to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithInfraClusterStrategy(n *clusterv1.InfrastructuresNamingStrategy) *ClusterClassBuilder {
+	c.infraClusterNamingStrategy = n
 	return c
 }
 
@@ -523,6 +530,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	}
 	if c.controlPlaneNamingStrategy != nil {
 		obj.Spec.ControlPlane.NamingStrategy = c.controlPlaneNamingStrategy
+	}
+	if c.infraClusterNamingStrategy != nil {
+		obj.Spec.InfrastructureNamingStrategy = c.infraClusterNamingStrategy
 	}
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses

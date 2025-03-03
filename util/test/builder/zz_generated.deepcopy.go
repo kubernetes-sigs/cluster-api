@@ -163,6 +163,11 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = new(v1beta1.ControlPlaneClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.infraClusterNamingStrategy != nil {
+		in, out := &in.infraClusterNamingStrategy, &out.infraClusterNamingStrategy
+		*out = new(v1beta1.InfrastructuresNamingStrategy)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.machineDeploymentClasses != nil {
 		in, out := &in.machineDeploymentClasses, &out.machineDeploymentClasses
 		*out = make([]v1beta1.MachineDeploymentClass, len(*in))

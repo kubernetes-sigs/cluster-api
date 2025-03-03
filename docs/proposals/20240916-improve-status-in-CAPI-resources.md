@@ -933,25 +933,26 @@ Notes:
 
 #### Cluster Print columns
 
-| Current         | To be                 |
-|-----------------|-----------------------|
-| `NAME`          | `NAME`                |
-| `CLUSTER CLASS` | `CLUSTER CLASS`       |
-| `PHASE`         | `PAUSED` (new) (*)    |
-| `AGE`           | `AVAILABLE` (new)     |
-| `VERSION`       | `CP_DESIRED` (new)    |
-|                 | `CP_CURRENT`(new) (*) |
-|                 | `CP_READY` (new) (*)  |
-|                 | `CP_AVAILABLE` (new)  |
-|                 | `CP_UP-TO-DATE` (new) |
-|                 | `W_DESIRED` (new)     |
-|                 | `W_CURRENT`(new) (*)  |
-|                 | `W_READY` (new) (*)   |
-|                 | `W_AVAILABLE` (new)   |
-|                 | `W_UP-TO-DATE` (new)  |
-|                 | `PHASE`               |
-|                 | `AGE`                 |
-|                 | `VERSION`             |
+| Current         | To be                           |
+|-----------------|---------------------------------|
+| `NAME`          | `NAME`                          |
+| `CLUSTER CLASS` | `CLUSTER CLASS`                 |
+|                 | `TOPOLOGY_NAMESPACE` (new) (*)  |
+| `PHASE`         | `PAUSED` (new) (*)              |
+| `AGE`           | `AVAILABLE` (new)               |
+| `VERSION`       | `CP_DESIRED` (new)              |
+|                 | `CP_CURRENT`(new) (*)           |
+|                 | `CP_READY` (new) (*)            |
+|                 | `CP_AVAILABLE` (new)            |
+|                 | `CP_UP-TO-DATE` (new)           |
+|                 | `W_DESIRED` (new)               |
+|                 | `W_CURRENT`(new) (*)            |
+|                 | `W_READY` (new) (*)             |
+|                 | `W_AVAILABLE` (new)             |
+|                 | `W_UP-TO-DATE` (new)            |
+|                 | `PHASE`                         |
+|                 | `AGE`                           |
+|                 | `VERSION`                       |
 
 (*) visible only when using `kubectl get -o wide`
 

@@ -28,6 +28,46 @@ const (
 	ListenerAnnotationName = "inmemorycluster.infrastructure.cluster.x-k8s.io/listener"
 )
 
+// DevCluster's v1Beta2 conditions that apply to all the supported backends.
+
+// DevCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// DevClusterReadyV1Beta2Condition is true if the DevCluster's VMProvisioned, NodeProvisioned,
+	// EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true.
+	DevClusterReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+
+	// DevClusterReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is met.
+	DevClusterReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// DevClusterNotReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is not met.
+	DevClusterNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// DevClusterReadyUnknownV1Beta2Reason surfaces when at least one DevCluster readiness criteria is unknown
+	// and no DevCluster readiness criteria is not met.
+	DevClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+)
+
+// DevMachine's v1Beta2 conditions that apply to the docker backend.
+
+// LoadBalancerAvailable condition and corresponding reasons that will be used in v1Beta2 API version for a DevCluster's docker backend.
+const (
+	// DockerClusterDockerLoadBalancerAvailableV1Beta2Condition documents the availability of the container that implements
+	// the load balancer for a DevCluster's docker backend..
+	DockerClusterDockerLoadBalancerAvailableV1Beta2Condition string = "LoadBalancerAvailable"
+
+	// DockerClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements
+	// the load balancer for a DevCluster's docker backend is not available.
+	DockerClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
+
+	// DockerClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements
+	// the load balancer for a DevCluster's docker backend is available.
+	DockerClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// DockerClusterDockerLoadBalancerDeletingV1Beta2Reason surfaces when the container that implements
+	// the load balancer for a DevCluster's docker backend is deleting.
+	DockerClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
 // DevClusterSpec defines the desired state of the DevCluster infrastructure.
 type DevClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.

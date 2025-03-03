@@ -37,6 +37,7 @@ import (
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -206,20 +207,6 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Client:           r.Client,
 		ContainerRuntime: r.ContainerRuntime,
 		ClusterCache:     r.ClusterCache,
-		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
-			devMachine, ok := obj.(*infrav1.DevMachine)
-			if !ok {
-				panic(fmt.Sprintf("Expected obj to be *infrav1.DevMachine, got %T", obj))
-			}
-			dockerMachine := &infrav1.DockerMachine{}
-			devMachineToDockerMachine(devMachine, dockerMachine)
-			return patch.NewHelper(dockerMachine, crClient)
-		},
-		PatchDevMachineFunc: func(ctx context.Context, patchHelper *patch.Helper, devMachine *infrav1.DevMachine, _ bool) error {
-			dockerMachine := &infrav1.DockerMachine{}
-			devMachineToDockerMachine(devMachine, dockerMachine)
-			return patchDockerMachine(ctx, patchHelper, dockerMachine)
-		},
 	}
 
 	return nil
@@ -268,6 +255,25 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 		),
 		conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
+	if err := v1beta2conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
+			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
+			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+		},
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				// Use custom reasons.
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					infrav1.DevMachineNotReadyV1Beta2Reason,
+					infrav1.DevMachineReadyUnknownV1Beta2Reason,
+					infrav1.DevMachineReadyV1Beta2Reason,
+				)),
+			),
+		},
+	); err != nil {
+		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevMachineReadyV1Beta2Condition)
+	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	return patchHelper.Patch(
@@ -277,6 +283,11 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 			clusterv1.ReadyCondition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			infrav1.DevMachineReadyV1Beta2Condition,
+			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
+			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
 		}},
 	)
 }

@@ -720,7 +720,7 @@ func (b *machinePoolBuilder) build() expv1.MachinePool {
 }
 
 func TestFilterOwnedDescendants(t *testing.T) {
-	_ = feature.MutableGates.Set("MachinePool=true")
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 	c := clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{

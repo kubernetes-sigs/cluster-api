@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -87,7 +88,7 @@ func TestGetConfigOwner(t *testing.T) {
 		})
 
 		t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
-			_ = feature.MutableGates.Set("MachinePool=true")
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 			g := NewWithT(t)
 			myPool := &expv1.MachinePool{

@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -31,6 +32,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -94,6 +96,30 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantV1Beta2ConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			wantErr: false,
+		},
+		{
+			name:         "should set the condition to false if the there is a blocking annotation hook",
+			reconcileErr: nil,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
+					},
+				},
+			},
+			s: &scope.Scope{
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = true
+					return ut
+				}(),
+			},
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledHookBlockingReason,
+			wantConditionMessage:        "hook annotation is blocking: " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test=true",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "hook annotation is blocking: " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test=true",
 		},
 		{
 			name:         "should set the condition to false if the there is a blocking hook",
@@ -1026,6 +1052,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 			objs := []client.Object{}
 			if tt.s != nil && tt.s.Current != nil {

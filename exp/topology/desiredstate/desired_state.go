@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // Generator is a generator to generate the desired state.
@@ -526,6 +527,11 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if annotations.HasWithPrefix(clusterv1.BeforeClusterUpgradeHookAnnotationPrefix, s.Current.Cluster.Annotations) {
+			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q annotation hook", desiredVersion, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix))
+			return *currentVersion, nil
+		}
+
 		// At this point the control plane and the machine deployments are stable and we are almost ready to pick
 		// up the desiredVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
 		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{

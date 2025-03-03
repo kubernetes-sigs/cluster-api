@@ -200,6 +200,13 @@ const (
 
 	// CRDMigrationObservedGenerationAnnotation indicates on a CRD for which generation CRD migration is completed.
 	CRDMigrationObservedGenerationAnnotation = "crd-migration.cluster.x-k8s.io/observed-generation"
+
+	// BeforeClusterUpgradeHookAnnotationPrefix annotation specifies the prefix we search each annotation
+	// for during the before-upgrade lifecycle hook to block propagating the new version to the control plane.
+	// This hook can be used to execute pre-upgrade add-on tasks and block upgrades of the ControlPlane and Workers.
+	// Note: While the upgrade is blocked changes made to the Cluster Topology will be delayed propagating to the underlying
+	// objects while the object is waiting for upgrade.
+	BeforeClusterUpgradeHookAnnotationPrefix = "before-upgrade.hook.cluster.cluster.x-k8s.io"
 )
 
 // MachineSetPreflightCheck defines a valid MachineSet preflight check.

@@ -18,10 +18,11 @@ linters-settings:
           enable:
           - "conditions" # Ensure conditions have the correct json tags and markers.
           - "integers" # Ensure only int32 and int64 are used for integers.
-          - "statussubresource" # All root objects that have a `status` field should have a status subresource.
-          - "nofloats" # Ensure floats are not used.
           - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
           - "nobools" # Bools do not evolve over time, should use enums instead.
+          - "nofloats" # Ensure floats are not used.
+          - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+          - "statussubresource" # All root objects that have a `status` field should have a status subresource.
 
           # Per discussion in July 2024, we are keeping phase fields for now.
           # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
@@ -32,7 +33,6 @@ linters-settings:
           # - "commentstart" # Ensure comments start with the serialized version of the field name.
           # - "jsontags" # Ensure every field has a json tag.
           # - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
-          # - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
           disable:
           - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
         lintersConfig:

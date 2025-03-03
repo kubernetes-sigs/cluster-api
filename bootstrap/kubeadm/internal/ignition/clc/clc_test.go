@@ -64,7 +64,6 @@ func TestRender(t *testing.T) {
 		// Test multi-line commands as well.
 		"cat <<EOF > /etc/modules-load.d/containerd.conf\noverlay\nbr_netfilter\nEOF\n",
 	}
-
 	tc := []struct {
 		desc         string
 		input        *cloudinit.BaseUserData

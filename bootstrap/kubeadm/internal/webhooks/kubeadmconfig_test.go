@@ -457,6 +457,36 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"bootCommands configured with Ignition format": {
+			enableIgnitionFeature: true,
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					BootCommands: []bootstrapv1.BootCommand{
+						{"echo", "$(date) hello BootCommands!"},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"bootCommands configured with CloudConfig format": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.CloudConfig,
+					BootCommands: []bootstrapv1.BootCommand{
+						{"echo", "$(date) hello BootCommands!"},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tt := range cases {

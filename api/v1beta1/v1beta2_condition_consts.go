@@ -157,10 +157,6 @@ const (
 	// (e.g. its status is missing).
 	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"
 
-	// NoReasonReportedV1Beta2Reason applies to a condition, usually read from an external object, that reports no reason.
-	// Note: this could happen e.g. when an external object still uses Cluster API v1beta1 Conditions.
-	NoReasonReportedV1Beta2Reason = "NoReasonReported"
-
 	// InternalErrorV1Beta2Reason surfaces unexpected errors reporting by controllers.
 	// In most cases, it will be required to look at controllers logs to properly triage those issues.
 	InternalErrorV1Beta2Reason = "InternalError"
@@ -198,4 +194,19 @@ const (
 
 	// InspectionFailedV1Beta2Reason applies to a condition when inspection of the underlying object failed.
 	InspectionFailedV1Beta2Reason = "InspectionFailed"
+
+	// WaitingForClusterInfrastructureReadyV1Beta2Reason documents an infra Machine waiting for the cluster
+	// infrastructure to be ready.
+	WaitingForClusterInfrastructureReadyV1Beta2Reason = "WaitingForClusterInfrastructureReady"
+
+	// WaitingForControlPlaneInitializedV1Beta2Reason documents an infra Machine waiting
+	// for the control plane to be initialized.
+	WaitingForControlPlaneInitializedV1Beta2Reason = "WaitingForControlPlaneInitialized"
+
+	// WaitingForBootstrapDataV1Beta2Reason documents an infra Machine waiting for the bootstrap
+	// data to be ready before starting to create the Machine's infrastructure.
+	WaitingForBootstrapDataV1Beta2Reason = "WaitingForBootstrapData"
+
+	// ProvisionedV1Beta2Reason documents an object or a piece of infrastructure being provisioned.
+	ProvisionedV1Beta2Reason = "Provisioned"
 )

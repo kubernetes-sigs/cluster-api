@@ -1064,12 +1064,16 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 		clusterv1.ClusterWorkersAvailableV1Beta2Condition,
 		clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 	}
+	negativePolarityConditionTypes := []string{clusterv1.ClusterDeletingV1Beta2Condition}
 	availabilityGates := cluster.Spec.AvailabilityGates
 	if availabilityGates == nil && clusterClass != nil {
 		availabilityGates = clusterClass.Spec.AvailabilityGates
 	}
 	for _, g := range availabilityGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
+		if g.NegativePolarity {
+			negativePolarityConditionTypes = append(negativePolarityConditionTypes, g.ConditionType)
+		}
 	}
 
 	summaryOpts := []v1beta2conditions.SummaryOption{
@@ -1082,7 +1086,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 			MergeStrategy: clusterConditionCustomMergeStrategy{
 				cluster: cluster,
 				// Instruct merge to consider Deleting condition with negative polarity,
-				negativePolarityConditionTypes: []string{clusterv1.ClusterDeletingV1Beta2Condition},
+				negativePolarityConditionTypes: negativePolarityConditionTypes,
 			},
 		},
 	}

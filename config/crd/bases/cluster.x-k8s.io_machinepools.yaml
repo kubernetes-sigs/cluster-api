@@ -1289,6 +1289,11 @@ spec:
                               minLength: 1
                               pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                               type: string
+                            negativePolarity:
+                              description: negativePolarity must be set to true if
+                                False represents normal operation for the conditionType
+                                specified in this availabilityGate.
+                              type: boolean
                           required:
                           - conditionType
                           type: object

@@ -467,6 +467,10 @@ type MachineReadinessGate struct {
 	// +kubebuilder:validation:MaxLength=316
 	// +kubebuilder:validation:MinLength=1
 	ConditionType string `json:"conditionType"`
+
+	// negativePolarity must be set to true if False represents normal operation for the conditionType specified in this availabilityGate.
+	// +optional
+	NegativePolarity bool `json:"negativePolarity,omitempty"`
 }
 
 // ANCHOR_END: MachineSpec

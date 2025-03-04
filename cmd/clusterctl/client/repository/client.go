@@ -187,7 +187,7 @@ func repositoryFactory(ctx context.Context, providerConfig config.Provider, conf
 
 		// if the url is a GitLab repository
 		if strings.HasPrefix(rURL.Host, gitlabHostPrefix) && strings.HasPrefix(rURL.EscapedPath(), gitlabPackagesAPIPrefix) {
-			repo, err := NewGitLabRepository(providerConfig, configVariablesClient)
+			repo, err := NewGitLabRepository(ctx, providerConfig, configVariablesClient)
 			if err != nil {
 				return nil, errors.Wrap(err, "error creating the GitLab repository client")
 			}

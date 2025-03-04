@@ -42,16 +42,16 @@ For the sake of this document, the most important artifacts included in a Cluste
 - The Kubeadm Control Plane provider image
 - The clusterctl binary
 
-The Cluster API team will release a new Cluster API version approximately every four months (3 release each year).
+The Cluster API team will release a new Cluster API version approximately every four months (3 releases each year).
 See [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md) and [release calendars](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases) for more details about Cluster API releases management.
 
-The Cluster API team actively supports the latest two minor release (N, N-1); support in this context means that we:
+The Cluster API team actively supports the latest two minor releases (N, N-1); support in this context means that we:
 
 - Have CI signal with E2E tests, unit tests, CVE scans etc.
 - Accept bug fixes, perform golang or dependency bumps, etc. 
 - Periodically cut patch releases
 
-On top of supporting the N and N-1 release, the Cluster API team also maintain CI signal for the Cluster API N-2 release 
+On top of supporting the N and N-1 releases, the Cluster API team also maintains CI signal for the Cluster API N-2 releases 
 in case we have to do an emergency patch release.  
 - If there is a need for an emergency patch, e.g. to fix a critical security issue, please bring this up to maintainers
   and it will be considered on a case-by-case basis. 
@@ -136,7 +136,7 @@ This means that some objects which rely on garbage collection for cleanup - e.g.
 like Machines and InfrastructureMachines, may not be cleaned up properly if those objects were created with an APIVersion 
 which is no longer served.
 
-To avoid these issues it’s advised to ensure a restart to the kube-controller-manager is done after upgrading to a version
+To avoid these issues it’s advised to ensure a restart of the kube-controller-manager is done after upgrading to a version
 of Cluster API which drops support for an APIVersion - e.g. v1.5 and v1.6.
 
 This can be accomplished with any Kubernetes control-plane rollout, including a Kubernetes version upgrade, or by manually
@@ -170,7 +170,7 @@ As a corollary, provider's version number and provider's API version number are 
 
 <aside class="note">
 
-The Cluster API command line tool, `clustertcl`, will take care of ensuring all the providers are on the
+The Cluster API command line tool, `clusterctl`, will take care of ensuring all the providers are on the
 same contract version both during init and upgrade of a management cluster.
 
 </aside>
@@ -220,7 +220,7 @@ and eyes will be more than welcome and greatly beneficial to the entire communit
 Standard [Kubernetes version Skew Policy](https://kubernetes.io/releases/version-skew-policy/)
 defines the maximum version skew supported between various Kubernetes components within a single cluster.
 
-Notably, version skew between various Kubernetes components also defines constraints to be observed
+Notably, version skew between various Kubernetes components also define constraints to be observed
 by Cluster API, Cluster API providers or Cluster API users when performing Kubernetes version upgrades.
 
 In some cases, also Cluster API and/or Cluster API providers are defining additional version skew constraints. For instance:
@@ -343,7 +343,7 @@ of a set of _separate_ Workload clusters.
 ![Management/Workload Separate Clusters](../images/management-workload-separate-clusters.png)
 
 In this scenario, the Kubernetes version of the Management and Workload Clusters are allowed to be different.
-Additionally, management Clusters and Workload Clusters can be upgraded independently and in any order.
+Additionally, Management Clusters and Workload Clusters can be upgraded independently and in any order.
 
 In another deployment model for Cluster API,  the Cluster API providers are used not only to managing the
 lifecycle of _separate_ Workload clusters, but also to manage the lifecycle of the Management cluster itself.

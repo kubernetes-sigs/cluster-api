@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterSpec defines the desired state of Cluster.
+            description: spec is the desired state of Cluster.
             properties:
               clusterNetwork:
                 description: clusterNetwork is the cluster network configuration.
@@ -197,7 +197,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: ClusterStatus defines the observed state of Cluster.
+            description: status is the observed state of Cluster.
             properties:
               conditions:
                 description: conditions defines current service state of the cluster.
@@ -337,7 +337,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterSpec defines the desired state of Cluster.
+            description: spec is the desired state of Cluster.
             properties:
               clusterNetwork:
                 description: clusterNetwork is the cluster network configuration.
@@ -614,7 +614,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ClusterStatus defines the observed state of Cluster.
+            description: status is the observed state of Cluster.
             properties:
               conditions:
                 description: conditions defines current service state of the cluster.
@@ -755,7 +755,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterSpec defines the desired state of Cluster.
+            description: spec is the desired state of Cluster.
             properties:
               availabilityGates:
                 description: |-
@@ -1797,7 +1797,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ClusterStatus defines the observed state of Cluster.
+            description: status is the observed state of Cluster.
             properties:
               conditions:
                 description: conditions defines current service state of the cluster.

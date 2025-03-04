@@ -48,15 +48,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmControlPlaneTemplateSpec defines the desired state
-              of KubeadmControlPlaneTemplate.
+            description: spec is the desired state of KubeadmControlPlaneTemplate.
             properties:
               template:
                 description: template defines the desired state of KubeadmControlPlaneTemplate.
                 properties:
                   spec:
-                    description: KubeadmControlPlaneSpec defines the desired state
-                      of KubeadmControlPlane.
+                    description: spec is the desired state of KubeadmControlPlane.
                     properties:
                       kubeadmConfigSpec:
                         description: |-
@@ -1160,8 +1158,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmControlPlaneTemplateSpec defines the desired state
-              of KubeadmControlPlaneTemplate.
+            description: spec is the desired state of KubeadmControlPlaneTemplate.
             properties:
               template:
                 description: template defines the desired state of KubeadmControlPlaneTemplate.
@@ -1191,12 +1188,7 @@ spec:
                         type: object
                     type: object
                   spec:
-                    description: |-
-                      KubeadmControlPlaneTemplateResourceSpec defines the desired state of KubeadmControlPlane.
-                      NOTE: KubeadmControlPlaneTemplateResourceSpec is similar to KubeadmControlPlaneSpec but
-                      omits Replicas and Version fields. These fields do not make sense on the KubeadmControlPlaneTemplate,
-                      because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
-                      be configured on the KubeadmControlPlaneTemplate.
+                    description: spec is the desired state of KubeadmControlPlaneTemplateResource.
                     properties:
                       kubeadmConfigSpec:
                         description: |-

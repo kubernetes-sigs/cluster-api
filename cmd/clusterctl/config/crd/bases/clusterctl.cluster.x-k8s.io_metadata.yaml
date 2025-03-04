@@ -37,6 +37,8 @@ spec:
           metadata:
             type: object
           releaseSeries:
+            description: releaseSeries maps a provider release series (major/minor)
+              with an API Version of Cluster API (contract).
             items:
               description: ReleaseSeries maps a provider release series (major/minor)
                 with a API Version of Cluster API (contract).

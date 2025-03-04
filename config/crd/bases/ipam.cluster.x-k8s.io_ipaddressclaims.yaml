@@ -52,7 +52,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPAddressClaimSpec is the desired state of an IPAddressClaim.
+            description: spec is the desired state of IPAddressClaim.
             properties:
               poolRef:
                 description: poolRef is a reference to the pool from which an IP address
@@ -79,7 +79,7 @@ spec:
             - poolRef
             type: object
           status:
-            description: IPAddressClaimStatus is the observed status of a IPAddressClaim.
+            description: status is the observed state of IPAddressClaim.
             properties:
               addressRef:
                 description: addressRef is a reference to the address that was created
@@ -183,7 +183,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPAddressClaimSpec is the desired state of an IPAddressClaim.
+            description: spec is the desired state of IPAddressClaim.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -214,7 +214,7 @@ spec:
             - poolRef
             type: object
           status:
-            description: IPAddressClaimStatus is the observed status of a IPAddressClaim.
+            description: status is the observed state of IPAddressClaim.
             properties:
               addressRef:
                 description: addressRef is a reference to the address that was created

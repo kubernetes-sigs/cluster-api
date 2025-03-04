@@ -59,7 +59,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool.
+            description: spec is the desired state of MachinePool.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -434,7 +434,7 @@ spec:
             - template
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool.
+            description: status is the observed state of MachinePool.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas
@@ -633,7 +633,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool.
+            description: spec is the desired state of MachinePool.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -847,7 +847,7 @@ spec:
             - template
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool.
+            description: status is the observed state of MachinePool.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas
@@ -1051,7 +1051,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool.
+            description: spec is the desired state of MachinePool.
             properties:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
@@ -1313,7 +1313,7 @@ spec:
             - template
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool.
+            description: status is the observed state of MachinePool.
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas

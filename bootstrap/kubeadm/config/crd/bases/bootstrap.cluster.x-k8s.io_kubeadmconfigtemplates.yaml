@@ -43,15 +43,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
+            description: spec is the desired state of KubeadmConfigTemplate.
             properties:
               template:
                 description: template defines the desired state of KubeadmConfigTemplate.
                 properties:
                   spec:
-                    description: |-
-                      KubeadmConfigSpec defines the desired state of KubeadmConfig.
-                      Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+                    description: spec is the desired state of KubeadmConfig.
                     properties:
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration
@@ -1002,15 +1000,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
+            description: spec is the desired state of KubeadmConfigTemplate.
             properties:
               template:
                 description: template defines the desired state of KubeadmConfigTemplate.
                 properties:
                   spec:
-                    description: |-
-                      KubeadmConfigSpec defines the desired state of KubeadmConfig.
-                      Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+                    description: spec is the desired state of KubeadmConfig.
                     properties:
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration
@@ -1958,7 +1954,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
+            description: spec is the desired state of KubeadmConfigTemplate.
             properties:
               template:
                 description: template defines the desired state of KubeadmConfigTemplate.
@@ -1988,9 +1984,7 @@ spec:
                         type: object
                     type: object
                   spec:
-                    description: |-
-                      KubeadmConfigSpec defines the desired state of KubeadmConfig.
-                      Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+                    description: spec is the desired state of KubeadmConfig.
                     properties:
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration

@@ -166,7 +166,8 @@ func (p ProviderType) Order() int {
 type ProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
+	// items is the list of Providers.
+	Items []Provider `json:"items"`
 }
 
 // FilterByNamespace returns a new list of providers that reside in the namespace provided.

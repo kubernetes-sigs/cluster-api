@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterClassSpec describes the desired state of the ClusterClass.
+            description: spec is the desired state of ClusterClass.
             properties:
               controlPlane:
                 description: |-
@@ -444,7 +444,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterClassSpec describes the desired state of the ClusterClass.
+            description: spec is the desired state of ClusterClass.
             properties:
               availabilityGates:
                 description: |-
@@ -2101,7 +2101,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ClusterClassStatus defines the observed state of the ClusterClass.
+            description: status is the observed state of ClusterClass.
             properties:
               conditions:
                 description: conditions defines current observed state of the ClusterClass.

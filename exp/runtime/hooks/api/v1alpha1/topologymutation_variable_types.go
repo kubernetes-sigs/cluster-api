@@ -27,10 +27,14 @@ const BuiltinsName = "builtin"
 
 // Builtins represents builtin variables exposed through patches.
 type Builtins struct {
-	Cluster           *ClusterBuiltins           `json:"cluster,omitempty"`
-	ControlPlane      *ControlPlaneBuiltins      `json:"controlPlane,omitempty"`
+	// cluster represents builtin cluster variables.
+	Cluster *ClusterBuiltins `json:"cluster,omitempty"`
+	// controlPlane represents builtin ControlPlane variables.
+	ControlPlane *ControlPlaneBuiltins `json:"controlPlane,omitempty"`
+	// machineDeployment represents builtin MachineDeployment variables.
 	MachineDeployment *MachineDeploymentBuiltins `json:"machineDeployment,omitempty"`
-	MachinePool       *MachinePoolBuiltins       `json:"machinePool,omitempty"`
+	// machinePool represents builtin MachinePool variables.
+	MachinePool *MachinePoolBuiltins `json:"machinePool,omitempty"`
 }
 
 // ClusterBuiltins represents builtin cluster variables.

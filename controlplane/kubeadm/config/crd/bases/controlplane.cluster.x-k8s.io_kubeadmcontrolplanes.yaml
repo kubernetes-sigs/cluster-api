@@ -77,7 +77,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
+            description: spec is the desired state of KubeadmControlPlane.
             properties:
               infrastructureTemplate:
                 description: |-
@@ -1088,7 +1088,7 @@ spec:
             - version
             type: object
           status:
-            description: KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
+            description: status is the observed state of KubeadmControlPlane.
             properties:
               conditions:
                 description: conditions defines current service state of the KubeadmControlPlane.
@@ -1267,7 +1267,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
+            description: spec is the desired state of KubeadmControlPlane.
             properties:
               kubeadmConfigSpec:
                 description: |-
@@ -2313,7 +2313,7 @@ spec:
             - version
             type: object
           status:
-            description: KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
+            description: status is the observed state of KubeadmControlPlane.
             properties:
               conditions:
                 description: conditions defines current service state of the KubeadmControlPlane.
@@ -2503,7 +2503,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
+            description: spec is the desired state of KubeadmControlPlane.
             properties:
               kubeadmConfigSpec:
                 description: |-
@@ -4461,7 +4461,7 @@ spec:
             - version
             type: object
           status:
-            description: KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
+            description: status is the observed state of KubeadmControlPlane.
             properties:
               conditions:
                 description: conditions defines current service state of the KubeadmControlPlane.

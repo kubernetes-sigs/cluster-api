@@ -477,7 +477,9 @@ type KubeadmConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubeadmConfigSpec   `json:"spec,omitempty"`
+	// spec is the desired state of KubeadmConfig.
+	Spec KubeadmConfigSpec `json:"spec,omitempty"`
+	// status is the observed state of KubeadmConfig.
 	Status KubeadmConfigStatus `json:"status,omitempty"`
 }
 
@@ -513,7 +515,8 @@ func (c *KubeadmConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
 type KubeadmConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubeadmConfig `json:"items"`
+	// items is the list of KubeadmConfigs.
+	Items []KubeadmConfig `json:"items"`
 }
 
 func init() {

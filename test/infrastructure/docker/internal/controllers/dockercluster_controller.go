@@ -19,7 +19,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +35,7 @@ import (
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -145,20 +145,6 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	r.backendReconciler = &dockerbackend.ClusterBackEndReconciler{
 		Client:           r.Client,
 		ContainerRuntime: r.ContainerRuntime,
-		NewPatchHelperFunc: func(obj client.Object, crClient client.Client) (*patch.Helper, error) {
-			devCluster, ok := obj.(*infrav1.DevCluster)
-			if !ok {
-				panic(fmt.Sprintf("Expected obj to be *infrav1.DevCluster, got %T", obj))
-			}
-			dockerCluster := &infrav1.DockerCluster{}
-			devClusterToDockerCluster(devCluster, dockerCluster)
-			return patch.NewHelper(dockerCluster, crClient)
-		},
-		PatchDevClusterFunc: func(ctx context.Context, patchHelper *patch.Helper, devCluster *infrav1.DevCluster) error {
-			dockerCluster := &infrav1.DockerCluster{}
-			devClusterToDockerCluster(devCluster, dockerCluster)
-			return patchDockerCluster(ctx, patchHelper, dockerCluster)
-		},
 	}
 
 	return nil
@@ -173,6 +159,24 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 		),
 		conditions.WithStepCounterIf(dockerCluster.ObjectMeta.DeletionTimestamp.IsZero()),
 	)
+	if err := v1beta2conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
+			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
+		},
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				// Use custom reasons.
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					infrav1.DevClusterNotReadyV1Beta2Reason,
+					infrav1.DevClusterReadyUnknownV1Beta2Reason,
+					infrav1.DevClusterReadyV1Beta2Reason,
+				)),
+			),
+		},
+	); err != nil {
+		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyV1Beta2Condition)
+	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	return patchHelper.Patch(
@@ -181,6 +185,10 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.LoadBalancerAvailableCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			infrav1.DevClusterReadyV1Beta2Condition,
+			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		}},
 	)
 }

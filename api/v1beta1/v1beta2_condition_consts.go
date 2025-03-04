@@ -209,4 +209,7 @@ const (
 
 	// ProvisionedV1Beta2Reason documents an object or a piece of infrastructure being provisioned.
 	ProvisionedV1Beta2Reason = "Provisioned"
+
+	// NotProvisionedV1Beta2Reason documents an object or a piece of infrastructure is not provisioned.
+	NotProvisionedV1Beta2Reason = "NotProvisioned"
 )

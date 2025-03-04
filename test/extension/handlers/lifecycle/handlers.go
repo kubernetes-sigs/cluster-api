@@ -115,6 +115,30 @@ func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, 
 	}
 }
 
+// JustBeforeClusterUpgrade is the hook that will be called before the control plane is upgraded for the first time and before the BeforeClusterUpgrade hook.
+func JustBeforeClusterUpgrade(*runtimehooksv1.BeforeClusterUpgradeRequest, *runtimehooksv1.BeforeClusterUpgradeResponse) {
+}
+
+// DoJustBeforeClusterUpgrade implements the HandlerFunc for the DoJustBeforeClusterUpgrade hook.
+// The hook answers with the response stored in a well know config map, thus allowing E2E tests to
+// control the hook behaviour during a test.
+// NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
+func (m *ExtensionHandlers) DoJustBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("DoJustBeforeClusterUpgrade is called")
+
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, JustBeforeClusterUpgrade, request.GetSettings(), response); err != nil {
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
+	}
+
+	if err := m.recordCallInConfigMap(ctx, &request.Cluster, JustBeforeClusterUpgrade, response); err != nil {
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+	}
+}
+
 // DoAfterControlPlaneUpgrade implements the HandlerFunc for the AfterControlPlaneUpgrade hook.
 // The hook answers with the response stored in a well know config map, thus allowing E2E tests to
 // control the hook behaviour during a test.
@@ -223,6 +247,7 @@ func responsesConfigMap(cluster *clusterv1.Cluster, defaultAllHandlersToBlocking
 		Data: map[string]string{
 			// Blocking hooks are set to return RetryAfterSeconds initially. These will be changed during the test.
 			"BeforeClusterCreate-preloadedResponse":      fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
+			"JustBeforeClusterUpgrade-preloadedResponse": fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d, "Message": "JustBeforeClusterUpgrade message"}`, retryAfterSeconds),
 			"BeforeClusterUpgrade-preloadedResponse":     fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
 			"AfterControlPlaneUpgrade-preloadedResponse": fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
 			"BeforeClusterDelete-preloadedResponse":      fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),

@@ -1317,6 +1317,20 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
+					"priority": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Priority defines the order in which this handler will be invoked. Hooks are executed in the descending order.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"serial": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Serial defines if the blocked hook is allowed to run in parallel with others.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"name", "requestHook"},
 			},

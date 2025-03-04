@@ -206,7 +206,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Update the ContainerProvisioned and BootstrapExecSucceeded condition if not already in the correct state.
 	requeue := false
-	if conditions.GetReason(dockerMachine, infrav1.ContainerProvisionedCondition) != "" {
+	if !conditions.IsTrue(dockerMachine, infrav1.ContainerProvisionedCondition) {
 		conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
 		v1beta2conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,

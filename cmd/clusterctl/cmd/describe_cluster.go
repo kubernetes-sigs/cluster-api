@@ -50,6 +50,10 @@ const (
 	lastElemPrefix  = `└─`
 	indent          = "  "
 	pipe            = `│ `
+
+	// lastObjectAnnotation defines the last object in the ObjectTree.
+	// This is necessary to built the prefix for multiline condition messages.
+	lastObjectAnnotation = "tree.cluster.x-k8s.io.io/last-object"
 )
 
 var (
@@ -304,9 +308,10 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 		rowDescriptor.age,
 		msg0})
 
+	multilinePrefix := getRootMultiLineObjectPrefix(obj, objectTree)
 	for _, m := range msg[1:] {
 		tbl.Append([]string{
-			getMultilinePrefix(gray.Sprint(prefix)),
+			gray.Sprint(multilinePrefix),
 			"",
 			"",
 			"",
@@ -324,7 +329,14 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
 	childrenObj := objectTree.GetObjectsByParent(obj.GetUID())
+	childrenObj = orderChildrenObjects(childrenObj)
 
+	for i, child := range childrenObj {
+		addObjectRowV1Beta2(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+	}
+}
+
+func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 	// printBefore returns true if children[i] should be printed before children[j]. Objects are sorted by z-order and
 	// row name such that objects with higher z-order are printed first, and objects with the same z-order are
 	// printed in alphabetical order.
@@ -336,10 +348,7 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 		return tree.GetZOrder(childrenObj[i]) > tree.GetZOrder(childrenObj[j])
 	}
 	sort.Slice(childrenObj, printBefore)
-
-	for i, child := range childrenObj {
-		addObjectRowV1Beta2(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
-	}
+	return childrenObj
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.
@@ -452,7 +461,7 @@ func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree
 
 		for _, m := range msg[1:] {
 			tbl.Append([]string{
-				gray.Sprint(getMultilinePrefix(childPrefix)),
+				gray.Sprint(getMultilineConditionPrefix(childPrefix)),
 				"",
 				"",
 				"",
@@ -510,8 +519,8 @@ func getChildPrefix(currentPrefix string, childIndex, childCount int) string {
 	return nextPrefix + lastElemPrefix
 }
 
-// getMultilinePrefix return the tree view prefix for a multiline condition.
-func getMultilinePrefix(currentPrefix string) string {
+// getMultilineConditionPrefix return the tree view prefix for a multiline condition.
+func getMultilineConditionPrefix(currentPrefix string) string {
 	// All ├─ should be replaced by |, so all the existing hierarchic dependencies are carried on
 	if strings.HasSuffix(currentPrefix, firstElemPrefix) {
 		return strings.TrimSuffix(currentPrefix, firstElemPrefix) + pipe
@@ -522,6 +531,81 @@ func getMultilinePrefix(currentPrefix string) string {
 	}
 
 	return "?"
+}
+
+// getRootMultiLineObjectPrefix generates the multiline prefix for an object.
+func getRootMultiLineObjectPrefix(obj ctrlclient.Object, objectTree *tree.ObjectTree) string {
+	// If the object is the last one in the tree, no prefix is needed.
+	if ensureLastObjectInTree(objectTree) == string(obj.GetUID()) {
+		return ""
+	}
+
+	// Determine the prefix for the current object.
+	// If it is a leaf we don't have to add any prefix.
+	var prefix string
+	if len(objectTree.GetObjectsByParent(obj.GetUID())) > 0 {
+		prefix = pipe
+	}
+
+	// Traverse upward through the tree, calculating each parent's prefix.
+	// The parent of the root object is nil, so we stop when we reach that point.
+	previousUID := obj.GetUID()
+	parent := objectTree.GetParent(obj.GetUID())
+	for parent != nil {
+		// We have to break the loop if the previous ID is the same as the current ID.
+		// This should never happen as the root object doesn't have set the parentship.
+		if previousUID == parent.GetUID() {
+			break
+		}
+
+		// Use pipe if the parent has children and the current node is not the last child.
+		parentChildren := orderChildrenObjects(objectTree.GetObjectsByParent(parent.GetUID()))
+		isLastChild := len(parentChildren) > 0 && parentChildren[len(parentChildren)-1].GetUID() == previousUID
+		if objectTree.IsObjectWithChild(parent.GetUID()) && !isLastChild {
+			prefix = pipe + prefix
+		} else {
+			prefix = indent + prefix
+		}
+
+		// Set prefix and move up the tree.
+		previousUID = parent.GetUID()
+		parent = objectTree.GetParent(parent.GetUID())
+	}
+	return prefix
+}
+
+func ensureLastObjectInTree(objectTree *tree.ObjectTree) string {
+	// Compute last object in the tree and set it in the annotations.
+	annotations := objectTree.GetRoot().GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
+	// Return if last object is already set.
+	if val, ok := annotations[lastObjectAnnotation]; ok {
+		return val
+	}
+
+	lastObjectInTree := string(getLastObjectInTree(objectTree).GetUID())
+	annotations[lastObjectAnnotation] = lastObjectInTree
+	objectTree.GetRoot().SetAnnotations(annotations)
+	return lastObjectInTree
+}
+
+func getLastObjectInTree(objectTree *tree.ObjectTree) ctrlclient.Object {
+	var objs []ctrlclient.Object
+
+	var traverse func(obj ctrlclient.Object)
+	traverse = func(obj ctrlclient.Object) {
+		objs = append(objs, obj)
+		children := orderChildrenObjects(objectTree.GetObjectsByParent(obj.GetUID()))
+		for _, child := range children {
+			traverse(child)
+		}
+	}
+
+	traverse(objectTree.GetRoot())
+	return objs[len(objs)-1]
 }
 
 // getRowName returns the object name in the tree view according to following rules:

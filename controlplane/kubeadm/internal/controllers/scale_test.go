@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,6 +35,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -516,8 +518,10 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 }
 
 func TestPreflightChecks(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	testCases := []struct {
 		name            string
+		cluster         *clusterv1.Cluster
 		kcp             *controlplanev1.KubeadmControlPlane
 		machines        []*clusterv1.Machine
 		expectResult    ctrl.Result
@@ -531,6 +535,33 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               false,
 				ControlPlaneComponentsNotHealthy: false,
 				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          false,
+			},
+		},
+		{
+			name: "control plane with a pending upgrade should requeue",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Version: "v1.33.0",
+					},
+				},
+			},
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.32.0",
+				},
+			},
+			machines: []*clusterv1.Machine{
+				{},
+			},
+
+			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          true,
 			},
 		},
 		{
@@ -548,6 +579,7 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               true,
 				ControlPlaneComponentsNotHealthy: false,
 				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          false,
 			},
 		},
 		{
@@ -566,6 +598,7 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               false,
 				ControlPlaneComponentsNotHealthy: true,
 				EtcdClusterNotHealthy:            true,
+				TopologyVersionMismatch:          false,
 			},
 		},
 		{
@@ -593,6 +626,7 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               false,
 				ControlPlaneComponentsNotHealthy: true,
 				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          false,
 			},
 		},
 		{
@@ -620,6 +654,7 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               false,
 				ControlPlaneComponentsNotHealthy: false,
 				EtcdClusterNotHealthy:            true,
+				TopologyVersionMismatch:          false,
 			},
 		},
 		{
@@ -654,6 +689,7 @@ func TestPreflightChecks(t *testing.T) {
 				HasDeletingMachine:               false,
 				ControlPlaneComponentsNotHealthy: false,
 				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          false,
 			},
 		},
 	}
@@ -665,8 +701,12 @@ func TestPreflightChecks(t *testing.T) {
 			r := &KubeadmControlPlaneReconciler{
 				recorder: record.NewFakeRecorder(32),
 			}
+			cluster := &clusterv1.Cluster{}
+			if tt.cluster != nil {
+				cluster = tt.cluster
+			}
 			controlPlane := &internal.ControlPlane{
-				Cluster:  &clusterv1.Cluster{},
+				Cluster:  cluster,
 				KCP:      tt.kcp,
 				Machines: collections.FromMachines(tt.machines...),
 			}

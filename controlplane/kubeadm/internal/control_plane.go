@@ -91,6 +91,8 @@ type PreflightCheckResults struct {
 	ControlPlaneComponentsNotHealthy bool
 	// EtcdClusterNotHealthy reports true if preflight check detected that the etcd cluster is not fully healthy.
 	EtcdClusterNotHealthy bool
+	// TopologyVersionMismatch reports true if preflight check detected that the Cluster's topology version does not match the control plane's version
+	TopologyVersionMismatch bool
 }
 
 // NewControlPlane returns an instantiated ControlPlane.

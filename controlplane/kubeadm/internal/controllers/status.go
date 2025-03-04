@@ -806,6 +806,10 @@ func minTime(t1, t2 time.Time) time.Time {
 
 func getPreflightMessages(preflightChecks internal.PreflightCheckResults) []string {
 	additionalMessages := []string{}
+	if preflightChecks.TopologyVersionMismatch {
+		additionalMessages = append(additionalMessages, "* waiting for a pending control plane version upgrade")
+	}
+
 	if preflightChecks.HasDeletingMachine {
 		additionalMessages = append(additionalMessages, "* waiting for a control plane Machine to complete deletion")
 	}

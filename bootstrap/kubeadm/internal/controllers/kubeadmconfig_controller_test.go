@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -725,7 +726,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
-	_ = feature.MutableGates.Set("MachinePool=true")
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.InfrastructureReady = true
@@ -1250,7 +1251,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 }
 
 func TestBootstrapTokenRotationMachinePool(t *testing.T) {
-	_ = feature.MutableGates.Set("MachinePool=true")
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -1515,7 +1516,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		g.Expect(l.Items).To(BeEmpty())
 	})
 	t.Run("should recreate the token for MachinePools", func(t *testing.T) {
-		_ = feature.MutableGates.Set("MachinePool=true")
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -2002,7 +2003,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 // If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
 // This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
 func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
-	_ = feature.MutableGates.Set("MachinePool=true")
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()

@@ -18,7 +18,7 @@ Enabling `MachineSetPreflightChecks` provides safety in such circumstances by ma
 
 ### `ControlPlaneIsStable`
 
-* This preflight check ensures that the ControlPlane is currently stable i.e. the ControlPlane is currently neither provisioning nor upgrading.   
+* This preflight check ensures that the ControlPlane is currently stable i.e. the ControlPlane is currently neither provisioning, upgrading nor pending an upgrade.   
 * This preflight check is only performed if:
   * The Cluster uses a ControlPlane provider.
   * ControlPlane version is defined (`ControlPlane.spec.version` is set).

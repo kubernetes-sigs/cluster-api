@@ -36,6 +36,7 @@ import (
 )
 
 func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	ns := "ns1"
 
 	controlPlaneWithNoVersion := builder.ControlPlane(ns, "cp1").Build()
@@ -166,6 +167,26 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
 					"GenericControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+				},
+				wantErr: false,
+			},
+			{
+				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						Topology: &clusterv1.Topology{
+							Version: "v1.27.2",
+						},
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: []string{
+					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},

@@ -91,7 +91,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	preflightCheckErrs := []preflightCheckErrorMessage{}
 	// Run the control-plane-stable preflight check.
 	if !skipped.Has(clusterv1.MachineSetPreflightCheckControlPlaneIsStable) {
-		preflightCheckErr, err := r.controlPlaneStablePreflightCheck(controlPlane)
+		preflightCheckErr, err := r.controlPlaneStablePreflightCheck(controlPlane, cluster, *cpVersion)
 		if err != nil {
 			errList = append(errList, err)
 		}
@@ -142,8 +142,14 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	return nil, nil
 }
 
-func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured) (preflightCheckErrorMessage, error) {
+func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
+
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		if cluster.Spec.Topology != nil && cluster.Spec.Topology.Version != controlPlaneVersion {
+			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, cluster.Spec.Topology.Version, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		}
+	}
 
 	// Check that the control plane is not provisioning.
 	isProvisioning, err := contract.ControlPlane().IsProvisioning(controlPlane)

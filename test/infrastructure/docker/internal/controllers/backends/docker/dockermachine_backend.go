@@ -75,7 +75,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		v1beta2conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerContainerWaitingForClusterInfrastructureV1Beta2Reason,
+			Reason: infrav1.DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason,
 		})
 		return ctrl.Result{}, nil
 	}
@@ -132,12 +132,12 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 				return ctrl.Result{}, errors.Wrap(err, "failed to set the machine address")
 			}
 		} else {
-			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exists anymore", externalMachine.Name()))
+			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()))
 			v1beta2conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.DevMachineDockerContainerNotProvisionedV1Beta2Reason,
-				Message: fmt.Sprintf("Container %s does not exists anymore", externalMachine.Name()),
+				Message: fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()),
 			})
 		}
 		return ctrl.Result{}, nil
@@ -218,9 +218,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if !conditions.Has(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
 		conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(dockerMachine, metav1.Condition{
-			Type:   infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+			Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.DevMachineDockerBootstrapExecNotSucceededV1Beta2Reason,
+			Reason: infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
 		})
 		requeue = true
 	}
@@ -276,9 +276,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
 				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 				v1beta2conditions.Set(dockerMachine, metav1.Condition{
-					Type:    infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  infrav1.DevMachineDockerBootstrapExecNotSucceededV1Beta2Reason,
+					Reason:  infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
 					Message: "Failed to exec DockerMachine bootstrap",
 				})
 				return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
@@ -288,9 +288,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, true); err != nil {
 				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 				v1beta2conditions.Set(dockerMachine, metav1.Condition{
-					Type:    infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  infrav1.DevMachineDockerBootstrapExecNotSucceededV1Beta2Reason,
+					Reason:  infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
 					Message: "Failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete",
 				})
 				return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
@@ -302,9 +302,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Update the BootstrapExecSucceededCondition condition
 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
 	v1beta2conditions.Set(dockerMachine, metav1.Condition{
-		Type:   infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+		Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Reason,
+		Reason: infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason,
 	})
 
 	if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
@@ -443,7 +443,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	if err := v1beta2conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		v1beta2conditions.ForConditionTypes{
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		v1beta2conditions.CustomMergeStrategy{
@@ -472,7 +472,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		}},
 	)
 }

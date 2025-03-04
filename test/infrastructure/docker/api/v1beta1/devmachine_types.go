@@ -70,8 +70,10 @@ const (
 
 // DevMachine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// DevMachineReadyV1Beta2Condition is true if the DevMachine's VMProvisioned, NodeProvisioned,
-	// EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true.
+	// DevMachineReadyV1Beta2Condition is true if
+	// - The DevMachine's is using a docker backend and LoadBalancerAvailable is true.
+	// - The DevMachine's is using an in memory backend and VMProvisioned, NodeProvisioned,
+	//	 EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true
 	DevMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
 
 	// DevMachineReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is met.
@@ -96,9 +98,9 @@ const (
 	// by the DevMachine's docker backend controller (not by cloud-init).
 	DevMachineDockerContainerProvisionedV1Beta2Condition string = "ContainerProvisioned"
 
-	// DevMachineDockerContainerWaitingForClusterInfrastructureV1Beta2Reason documents the container for a DevMachine's docker backend waiting for the cluster
+	// DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason documents the container for a DevMachine's docker backend waiting for the cluster
 	// infrastructure to be ready.
-	DevMachineDockerContainerWaitingForClusterInfrastructureV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+	DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
 
 	// DevMachineDockerContainerWaitingForControlPlaneInitializedV1Beta2Reason documents a container for a DevMachine's docker backend waiting
 	// for the control plane to be initialized.
@@ -111,7 +113,7 @@ const (
 	// DevMachineDockerContainerProvisionedV1Beta2Reason documents the container for a DevMachine's docker backend is provisioned.
 	DevMachineDockerContainerProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
 
-	// DevMachineDockerContainerWaitingForClusterInfrastructureV1Beta2Reason documents the container for a DevMachine's docker
+	// DevMachineDockerContainerNotProvisionedV1Beta2Reason documents the container for a DevMachine's docker
 	// backend is not provisioned.
 	DevMachineDockerContainerNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
 
@@ -122,22 +124,22 @@ const (
 
 // BootstrapExecSucceeded condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's docker backend.
 const (
-	// DockerMachineBootstrapExecSucceededV1Beta2Condition provides an observation of the DevMachine's docker backend bootstrap process.
+	// DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition provides an observation of the DevMachine's docker backend bootstrap process.
 	// It is set based on successful execution of bootstrap commands and on the existence of
 	// the /run/cluster-api/bootstrap-success.complete file.
-	// The condition gets generated after ContainerProvisionedCondition is True.
+	// The condition gets generated after ContainerProvisioned condition is True.
 	//
 	// NOTE as a difference from other providers, container provisioning and bootstrap are directly managed
 	// by the DevMachine's docker backend controller (not by cloud-init).
-	DevMachineDockerBootstrapExecSucceededV1Beta2Condition string = "BootstrapExecSucceeded"
+	DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition string = "BootstrapExecSucceeded"
 
-	// DevMachineDockerBootstrapExecSucceededV1Beta2Reason documents the container for a DevMachine's docker backend having
+	// DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason documents the container for a DevMachine's docker backend having
 	// completed bootstrap exec commands.
-	DevMachineDockerBootstrapExecSucceededV1Beta2Reason string = "Succeeded"
+	DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason string = "Succeeded"
 
-	// DevMachineDockerBootstrapExecSucceededV1Beta2Reason documents the container for a DevMachine's docker backend not having
+	// DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason documents the container for a DevMachine's docker backend not having
 	// completed bootstrap exec commands.
-	DevMachineDockerBootstrapExecNotSucceededV1Beta2Reason string = "NotSucceeded"
+	DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason string = "NotSucceeded"
 )
 
 // DevMachine's v1Beta2 conditions that apply to the in memory backend.

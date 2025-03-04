@@ -258,7 +258,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	if err := v1beta2conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		v1beta2conditions.ForConditionTypes{
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		v1beta2conditions.CustomMergeStrategy{
@@ -287,7 +287,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		}},
 	)
 }

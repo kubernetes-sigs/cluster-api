@@ -161,16 +161,16 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 	)
 	if err := v1beta2conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyV1Beta2Condition,
 		v1beta2conditions.ForConditionTypes{
-			infrav1.DockerClusterDockerLoadBalancerAvailableV1Beta2Condition,
+			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		v1beta2conditions.CustomMergeStrategy{
 			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
 				// Use custom reasons.
 				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
-					infrav1.DevMachineNotReadyV1Beta2Reason,
-					infrav1.DevMachineReadyUnknownV1Beta2Reason,
-					infrav1.DevMachineReadyV1Beta2Reason,
+					infrav1.DevClusterNotReadyV1Beta2Reason,
+					infrav1.DevClusterReadyUnknownV1Beta2Reason,
+					infrav1.DevClusterReadyV1Beta2Reason,
 				)),
 			),
 		},
@@ -188,7 +188,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 			infrav1.DevClusterReadyV1Beta2Condition,
-			infrav1.DockerClusterDockerLoadBalancerAvailableV1Beta2Condition,
+			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		}},
 	)
 }

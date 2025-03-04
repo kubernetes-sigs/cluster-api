@@ -34,6 +34,7 @@ type ClusterClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec is the desired state of ClusterClass.
 	Spec ClusterClassSpec `json:"spec,omitempty"`
 }
 
@@ -130,7 +131,8 @@ type LocalObjectTemplate struct {
 type ClusterClassList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterClass `json:"items"`
+	// items is the list of ClusterClasses.
+	Items []ClusterClass `json:"items"`
 }
 
 func init() {

@@ -734,22 +734,26 @@ func schema_runtime_hooks_api_v1alpha1_Builtins(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins"),
+							Description: "cluster represents builtin cluster variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins"),
 						},
 					},
 					"controlPlane": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneBuiltins"),
+							Description: "controlPlane represents builtin ControlPlane variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneBuiltins"),
 						},
 					},
 					"machineDeployment": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineDeploymentBuiltins"),
+							Description: "machineDeployment represents builtin MachineDeployment variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineDeploymentBuiltins"),
 						},
 					},
 					"machinePool": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachinePoolBuiltins"),
+							Description: "machinePool represents builtin MachinePool variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachinePoolBuiltins"),
 						},
 					},
 				},

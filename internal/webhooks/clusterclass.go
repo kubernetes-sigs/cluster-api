@@ -229,14 +229,6 @@ func validateInfraClusterNamingStrategy(infraClusterNamingStrategy *clusterv1.In
 	var allErrs field.ErrorList
 
 	if infraClusterNamingStrategy.Template != nil {
-		if !strings.Contains(*infraClusterNamingStrategy.Template, "{{ .random }}") {
-			allErrs = append(allErrs,
-				field.Invalid(
-					pathPrefix.Child("template"),
-					infraClusterNamingStrategy.Template,
-					"invalid template, {{ .random }} is missing",
-				))
-		}
 		name, err := topologynames.InfraClusterNameGenerator(*infraClusterNamingStrategy.Template, "cluster", "infraCluster").GenerateName()
 		if err != nil {
 			allErrs = append(allErrs,

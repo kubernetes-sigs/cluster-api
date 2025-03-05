@@ -16,6 +16,7 @@ linters-settings:
       settings:
         linters:
           enable:
+          - "commentstart" # Ensure comments start with the serialized version of the field name.
           - "conditions" # Ensure conditions have the correct json tags and markers.
           - "integers" # Ensure only int32 and int64 are used for integers.
           - "jsontags" # Ensure every field has a json tag.
@@ -31,7 +32,6 @@ linters-settings:
           # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
           
           # Linters below this line are disabled, pending conversation on how and when to enable them.
-          # - "commentstart" # Ensure comments start with the serialized version of the field name.
           # - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
           disable:
           - "*" # We will manually enable new linters after understanding the impact. Disable all by default.

@@ -807,6 +807,24 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				expectedVersion: "v1.2.2",
 			},
 			{
+				name:            "should return cluster.spec.topology.version if the control plane is scaling",
+				topologyVersion: "v1.2.3",
+				controlPlaneObj: builder.ControlPlane("test1", "cp1").
+					WithSpecFields(map[string]interface{}{
+						"spec.version":  "v1.2.2",
+						"spec.replicas": int64(2),
+					}).
+					WithStatusFields(map[string]interface{}{
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(1),
+						"status.updatedReplicas":     int64(1),
+						"status.readyReplicas":       int64(1),
+						"status.unavailableReplicas": int64(0),
+					}).
+					Build(),
+				expectedVersion: "v1.2.3",
+			},
+			{
 				name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the MachineDeployments and one of the MachinePools is upgrading",
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").

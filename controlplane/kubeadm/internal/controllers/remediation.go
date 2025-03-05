@@ -172,14 +172,19 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Skip remediation when we expect an upgrade to be propagated from the cluster topology.
 		if controlPlane.Cluster.Spec.Topology != nil && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
-			log.Info("A control plane machine needs remediation, but waiting for a pending version upgrade. Skipping remediation", "version", controlPlane.Cluster.Spec.Topology.Version)
-			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if a version upgrade is pending")
+			message := fmt.Sprintf("KubeadmControlPlane can't remediate while waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", controlPlane.Cluster.Spec.Topology.Version)
+			log.Info(fmt.Sprintf("A control plane machine needs remediation, but %s. Skipping remediation", message))
+			conditions.MarkFalse(machineToBeRemediated,
+				clusterv1.MachineOwnerRemediatedCondition,
+				clusterv1.WaitingForRemediationReason,
+				clusterv1.ConditionSeverityWarning,
+				message)
 
 			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
-				Message: "KubeadmControlPlane can't remediate if a version upgrade is pending",
+				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
+				Message: message,
 			})
 
 			return ctrl.Result{}, nil

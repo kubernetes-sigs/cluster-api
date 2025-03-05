@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -188,7 +189,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Block when we expect an upgrade to be propagated for topology clusters.
 		if controlPlane.Cluster.Spec.Topology != nil && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
-			logger.Info("Waiting for a pending version upgrade", "version", controlPlane.Cluster.Spec.Topology.Version)
+			logger.Info(fmt.Sprintf("Waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", controlPlane.Cluster.Spec.Topology.Version))
 			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 		}

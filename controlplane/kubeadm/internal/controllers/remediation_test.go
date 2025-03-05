@@ -320,8 +320,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if a version upgrade is pending")
-		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason, "KubeadmControlPlane can't remediate if a version upgrade is pending")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
+		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
 		g.Expect(err).ToNot(HaveOccurred())

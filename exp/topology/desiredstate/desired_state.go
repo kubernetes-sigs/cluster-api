@@ -202,7 +202,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
-		nameGenerator:         topologynames.InfraClusterNameGenerator(nameTemplate, cluster.Name, s.Blueprint.InfrastructureClusterTemplate.GetName()),
+		nameGenerator:         topologynames.InfraClusterNameGenerator(nameTemplate, cluster.Name),
 		currentObjectRef:      currentRef,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.

@@ -1644,7 +1644,7 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("{{ .cluster.name }}-infra-{{ .random }}")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("{{ .cluster.name }}-infra-{{ .random }}")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
@@ -1676,7 +1676,7 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("template-infra-{{ .invalidkey }}")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("template-infra-{{ .invalidkey }}")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
@@ -1691,7 +1691,7 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructuresNamingStrategy{Template: ptr.To("template-infra-{{ .cluster.name }}-")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("template-infra-{{ .cluster.name }}-")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).

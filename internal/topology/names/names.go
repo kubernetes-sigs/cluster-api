@@ -107,13 +107,9 @@ func MachineSetMachineNameGenerator(templateString, clusterName, machineSetName 
 }
 
 // InfraClusterNameGenerator returns a generator for creating a infrastructure cluster name.
-func InfraClusterNameGenerator(templateString, clusterName, infraClusterName string) NameGenerator {
+func InfraClusterNameGenerator(templateString, clusterName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{
-			"infraCluster": map[string]interface{}{
-				"name": infraClusterName,
-			},
-		})
+		map[string]interface{}{})
 }
 
 // templateGenerator parses the template string as text/template and executes it using

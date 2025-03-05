@@ -347,7 +347,7 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
 	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
-	infraClusterNamingStrategy                *clusterv1.InfrastructuresNamingStrategy
+	infraClusterNamingStrategy                *clusterv1.InfrastructureNamingStrategy
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	machinePoolClasses                        []clusterv1.MachinePoolClass
 	variables                                 []clusterv1.ClusterClassVariable
@@ -428,7 +428,7 @@ func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.Contro
 }
 
 // WithInfraClusterStrategy sets the NamingStrategy for the infra cluster to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithInfraClusterStrategy(n *clusterv1.InfrastructuresNamingStrategy) *ClusterClassBuilder {
+func (c *ClusterClassBuilder) WithInfraClusterStrategy(n *clusterv1.InfrastructureNamingStrategy) *ClusterClassBuilder {
 	c.infraClusterNamingStrategy = n
 	return c
 }

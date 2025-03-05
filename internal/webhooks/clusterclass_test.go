@@ -1672,7 +1672,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "should return error for invalid InfraCluster InfrastructuresNamingStrategy.template",
+			name: "should return error for invalid InfraCluster InfrastructureNamingStrategy.template",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -1687,7 +1687,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "should return error for invalid InfraCluster InfrastructuresNamingStrategy.template when the generated name does not conform to RFC 1123",
+			name: "should return error for invalid InfraCluster InfrastructureNamingStrategy.template when the generated name does not conform to RFC 1123",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).

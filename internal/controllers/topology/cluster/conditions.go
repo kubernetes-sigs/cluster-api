@@ -25,7 +25,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -140,32 +139,6 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 	// If any of the lifecycle hooks are blocking any part of the reconciliation then topology
 	// is not considered as fully reconciled.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if annotations.HasWithPrefix(clusterv1.BeforeClusterUpgradeHookAnnotationPrefix, cluster.Annotations) {
-			var annotation string
-			for k, v := range cluster.Annotations {
-				if strings.HasPrefix(k, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix) {
-					annotation = fmt.Sprintf("%s=%s", k, v)
-				}
-			}
-			message := fmt.Sprintf("hook annotation is blocking: %s", annotation)
-			conditions.Set(cluster,
-				conditions.FalseCondition(
-					clusterv1.TopologyReconciledCondition,
-					clusterv1.TopologyReconciledHookBlockingReason,
-					clusterv1.ConditionSeverityInfo,
-					message,
-				),
-			)
-			v1beta2conditions.Set(cluster, metav1.Condition{
-				Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
-				Message: message,
-			})
-			return nil
-		}
-	}
 	if s.HookResponseTracker.AggregateRetryAfter() != 0 {
 		conditions.Set(cluster,
 			conditions.FalseCondition(

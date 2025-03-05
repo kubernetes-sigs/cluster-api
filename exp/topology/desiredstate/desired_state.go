@@ -20,6 +20,8 @@ package desiredstate
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // Generator is a generator to generate the desired state.
@@ -527,8 +528,32 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if annotations.HasWithPrefix(clusterv1.BeforeClusterUpgradeHookAnnotationPrefix, s.Current.Cluster.Annotations) {
-			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q annotation hook", desiredVersion, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix))
+		var hookAnnotations []string
+		for key := range s.Current.Cluster.Annotations {
+			if strings.HasPrefix(key, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix) {
+				hookAnnotations = append(hookAnnotations, key)
+			}
+		}
+		if len(hookAnnotations) > 0 {
+			slices.Sort(hookAnnotations)
+			message := fmt.Sprintf("annotations [%s] are set", strings.Join(hookAnnotations, ", "))
+			if len(hookAnnotations) == 1 {
+				message = fmt.Sprintf("annotation [%s] is set", strings.Join(hookAnnotations, ", "))
+			}
+			// Add the hook with a response to the tracker so we can later update the condition.
+			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
+				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+					// RetryAfterSeconds needs to be set because having only hooks without RetryAfterSeconds
+					// would lead to not updating the condition. We can rely on getting an event when the
+					// annotation gets removed so we set twice of the default sync-period to not cause additional events.
+					RetryAfterSeconds: 20 * 60,
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Message: message,
+					},
+				},
+			})
+
+			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook (via annotations)", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
 			return *currentVersion, nil
 		}
 

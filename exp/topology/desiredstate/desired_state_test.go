@@ -869,7 +869,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				expectedVersion:             "v1.2.3",
 			},
 			{
-				name:            "should return the controlplane.spec.version if the BeforeClusterUpgrade hooks returns a blocking response",
+				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook returns a blocking response",
 				hookResponse:    blockingBeforeClusterUpgradeResponse,
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").
@@ -908,7 +908,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				wantErr:         true,
 			},
 			{
-				name:            "should return the controlplane.spec.version if the BeforeClusterUpgradeHookAnnotation is set",
+				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook annotation is set",
 				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").

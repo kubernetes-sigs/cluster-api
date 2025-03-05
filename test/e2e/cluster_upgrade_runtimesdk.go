@@ -263,6 +263,13 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 		// TODO: check if AfterControlPlaneInitialized has been called (or add this check to the operation above)
 
+		// Add a BeforeClusterUpgrade hook annotation to block via the annotation.
+		beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"
+		patchHelper, err := patch.NewHelper(clusterResources.Cluster, input.BootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		clusterResources.Cluster.Annotations[beforeClusterUpgradeAnnotation] = ""
+		Expect(patchHelper.Patch(ctx, clusterResources.Cluster)).To(Succeed())
+
 		// Upgrade the Cluster topology to run through an entire cluster lifecycle to test the lifecycle hooks.
 		By("Upgrading the Cluster topology; creation waits for BeforeClusterUpgradeHook and AfterControlPlaneUpgradeHook to gate the operation")
 		framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
@@ -278,6 +285,13 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 			WaitForDNSUpgrade:              input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			WaitForEtcdUpgrade:             input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			PreWaitForControlPlaneToBeUpgraded: func() {
+				beforeClusterUpgradeAnnotationIsBlocking(ctx,
+					input.BootstrapClusterProxy.GetClient(),
+					clusterRef,
+					input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
+					beforeClusterUpgradeAnnotation,
+					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+
 				beforeClusterUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
@@ -560,6 +574,66 @@ func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluste
 		}
 		return blocked
 	}, intervals)
+}
+
+// beforeClusterUpgradeAnnotationIsBlocking checks if the cluster is successfully blocking due to the given BeforeClusterUpgrade
+// hook annotation by checking for the right condition message and that none of the machines in the control plane has been
+// updated to the target Kubernetes version.
+func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Client, clusterRef types.NamespacedName, toVersion, annotation string, intervals []interface{}) {
+	hookName := "BeforeClusterUpgrade"
+	log.Logf("Blocking with %s hook for 60 seconds with the annotation", hookName)
+
+	expectedBlockingMessage := fmt.Sprintf("hook %q is blocking: annotation [%s] is set", hookName, annotation)
+
+	blockingConditionCheck := func() error {
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
+
+		if conditions.GetReason(cluster, clusterv1.TopologyReconciledCondition) != clusterv1.TopologyReconciledHookBlockingReason {
+			return fmt.Errorf("hook %s (via annotation) should lead to LifecycleHookBlocking reason", hookName)
+		}
+		if !strings.Contains(conditions.GetMessage(cluster, clusterv1.TopologyReconciledCondition), expectedBlockingMessage) {
+			return fmt.Errorf("hook %[1]s (via annotation) should show hook %[1]s is blocking as message with: %[2]s", hookName, expectedBlockingMessage)
+		}
+
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: clusterRef.Name, Namespace: clusterRef.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if *machine.Spec.Version == toVersion {
+				return errors.Errorf("Machine's %s version (%s) does match %s", klog.KObj(&machine), *machine.Spec.Version, toVersion)
+			}
+		}
+
+		return nil
+	}
+
+	// Check that the LifecycleHook annotation is blocking at least once with the expected blocking reason, message and none of the CP machines being upgraded.
+	Eventually(blockingConditionCheck, 30*time.Second).Should(Succeed(), "%s (via annotation %s) did not block", hookName, annotation)
+
+	// The check  should consistently succeed.
+	Consistently(blockingConditionCheck, 60*time.Second).Should(Succeed(),
+		fmt.Sprintf("Cluster Topology reconciliation continued unexpectedly: hook %s (via annotation %s) is not blocking", hookName, annotation))
+
+	// Patch the Cluster to remove the LifecycleHook annotation hook and unblock.
+	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+		Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
+	patchHelper, err := patch.NewHelper(cluster, c)
+	Expect(err).ToNot(HaveOccurred())
+	delete(cluster.Annotations, annotation)
+	Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+
+	// Expect the LifecycleHook annotation to not block anymore.
+	Eventually(func() error {
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
+
+		if strings.Contains(conditions.GetMessage(cluster, clusterv1.TopologyReconciledCondition), expectedBlockingMessage) {
+			return fmt.Errorf("hook %s (via annotation %s) should not be blocking anymore with message: %s", hookName, annotation, expectedBlockingMessage)
+		}
+
+		return nil
+	}, intervals...).Should(Succeed(),
+		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when unblocking hook %s (via annotation %s)", hookName, annotation))
 }
 
 // beforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if

@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -3602,7 +3603,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 	})
 
 	t.Run("does not remove any control plane Machines if MachinePools exist", func(t *testing.T) {
-		_ = feature.MutableGates.Set("MachinePool=true")
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)

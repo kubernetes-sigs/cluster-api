@@ -193,11 +193,16 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
+	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
+	if s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy != nil && s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy.Template != nil {
+		nameTemplate = *s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy.Template
+	}
+
 	infrastructureCluster, err := templateToObject(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
-		nameGenerator:         topologynames.SimpleNameGenerator(fmt.Sprintf("%s-", cluster.Name)),
+		nameGenerator:         topologynames.InfraClusterNameGenerator(nameTemplate, cluster.Name),
 		currentObjectRef:      currentRef,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.

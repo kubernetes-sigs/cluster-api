@@ -435,6 +435,23 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
+	if clusterClass.Spec.InfrastructureNamingStrategy != nil && clusterClass.Spec.InfrastructureNamingStrategy.Template != nil {
+		name, err := topologynames.InfraClusterNameGenerator(*clusterClass.Spec.InfrastructureNamingStrategy.Template, "cluster").GenerateName()
+		templateFldPath := field.NewPath("spec", "infrastructureNamingStrategy", "template")
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					*clusterClass.Spec.InfrastructureNamingStrategy.Template,
+					fmt.Sprintf("invalid InfraCluster name template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs, field.Invalid(templateFldPath, *clusterClass.Spec.InfrastructureNamingStrategy.Template, err))
+			}
+		}
+	}
+
 	if clusterClass.Spec.ControlPlane.NamingStrategy != nil && clusterClass.Spec.ControlPlane.NamingStrategy.Template != nil {
 		name, err := topologynames.ControlPlaneNameGenerator(*clusterClass.Spec.ControlPlane.NamingStrategy.Template, "cluster").GenerateName()
 		templateFldPath := field.NewPath("spec", "controlPlane", "namingStrategy", "template")

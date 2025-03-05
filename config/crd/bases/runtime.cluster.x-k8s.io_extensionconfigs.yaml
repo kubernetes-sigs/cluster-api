@@ -228,6 +228,11 @@ spec:
                     name:
                       description: name is the unique name of the ExtensionHandler.
                       type: string
+                    priority:
+                      description: Priority defines the order in which this handler
+                        will be invoked. Hooks are executed in the descending order.
+                      format: int32
+                      type: integer
                     requestHook:
                       description: requestHook defines the versioned runtime hook
                         which this ExtensionHandler serves.
@@ -243,6 +248,10 @@ spec:
                       - apiVersion
                       - hook
                       type: object
+                    serial:
+                      description: Serial defines if the blocked hook is allowed to
+                        run in parallel with others.
+                      type: boolean
                     timeoutSeconds:
                       description: |-
                         timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.

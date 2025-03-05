@@ -279,10 +279,12 @@ spec:
                         - kind
                         - name
                         type: object
+                      maxItems: 1000
                       type: array
                   required:
                   - clusterResourceSetName
                   type: object
+                maxItems: 1000
                 type: array
               clusterName:
                 description: |-

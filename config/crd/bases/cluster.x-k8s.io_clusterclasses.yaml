@@ -590,6 +590,7 @@ spec:
                           - timeout
                           - type
                           type: object
+                        maxItems: 100
                         type: array
                       unhealthyRange:
                         description: |-
@@ -945,6 +946,7 @@ spec:
                               - op
                               - path
                               type: object
+                            maxItems: 1000
                             type: array
                           selector:
                             description: selector defines on which templates the patch
@@ -980,6 +982,7 @@ spec:
                                           names.
                                         items:
                                           type: string
+                                        maxItems: 1000
                                         type: array
                                     type: object
                                   machinePoolClass:
@@ -992,6 +995,7 @@ spec:
                                           names.
                                         items:
                                           type: string
+                                        maxItems: 1000
                                         type: array
                                     type: object
                                 type: object
@@ -1004,6 +1008,7 @@ spec:
                         - jsonPatches
                         - selector
                         type: object
+                      maxItems: 1000
                       type: array
                     description:
                       description: description is a human-readable description of
@@ -1049,6 +1054,7 @@ spec:
                   required:
                   - name
                   type: object
+                maxItems: 1000
                 type: array
               variables:
                 description: |-
@@ -1137,6 +1143,7 @@ spec:
                                 NOTE: Can be set for all types.
                               items:
                                 x-kubernetes-preserve-unknown-fields: true
+                              maxItems: 100
                               type: array
                             example:
                               description: example is an example for this variable.
@@ -1248,6 +1255,7 @@ spec:
                                 NOTE: Can only be set if type is object.
                               items:
                                 type: string
+                              maxItems: 1000
                               type: array
                             type:
                               description: |-
@@ -1398,6 +1406,7 @@ spec:
                                 required:
                                 - rule
                                 type: object
+                              maxItems: 100
                               type: array
                               x-kubernetes-list-map-keys:
                               - rule
@@ -1432,6 +1441,7 @@ spec:
                   - required
                   - schema
                   type: object
+                maxItems: 1000
                 type: array
               workers:
                 description: |-
@@ -1569,6 +1579,7 @@ spec:
                                 - timeout
                                 - type
                                 type: object
+                              maxItems: 100
                               type: array
                             unhealthyRange:
                               description: |-
@@ -1894,6 +1905,7 @@ spec:
                       - class
                       - template
                       type: object
+                    maxItems: 1000
                     type: array
                     x-kubernetes-list-map-keys:
                     - class
@@ -1920,6 +1932,7 @@ spec:
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
                           items:
                             type: string
+                          maxItems: 1000
                           type: array
                         minReadySeconds:
                           description: |-
@@ -2109,6 +2122,7 @@ spec:
                       - class
                       - template
                       type: object
+                    maxItems: 1000
                     type: array
                     x-kubernetes-list-map-keys:
                     - class
@@ -2331,6 +2345,7 @@ spec:
                                       NOTE: Can be set for all types.
                                     items:
                                       x-kubernetes-preserve-unknown-fields: true
+                                    maxItems: 100
                                     type: array
                                   example:
                                     description: example is an example for this variable.
@@ -2442,6 +2457,7 @@ spec:
                                       NOTE: Can only be set if type is object.
                                     items:
                                       type: string
+                                    maxItems: 1000
                                     type: array
                                   type:
                                     description: |-
@@ -2601,6 +2617,7 @@ spec:
                                       required:
                                       - rule
                                       type: object
+                                    maxItems: 100
                                     type: array
                                     x-kubernetes-list-map-keys:
                                     - rule
@@ -2635,6 +2652,7 @@ spec:
                         - required
                         - schema
                         type: object
+                      maxItems: 100
                       type: array
                     definitionsConflict:
                       description: definitionsConflict specifies whether or not there
@@ -2647,6 +2665,7 @@ spec:
                   - definitions
                   - name
                   type: object
+                maxItems: 1000
                 type: array
             type: object
         type: object

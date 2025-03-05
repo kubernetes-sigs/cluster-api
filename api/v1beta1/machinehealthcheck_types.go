@@ -63,6 +63,7 @@ type MachineHealthCheckSpec struct {
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
 	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
@@ -165,6 +166,7 @@ type MachineHealthCheckStatus struct {
 
 	// targets shows the current list of machines the machine health check is watching
 	// +optional
+	// +kubebuilder:validation:MaxItems=100000
 	Targets []string `json:"targets,omitempty"`
 
 	// conditions defines current service state of the MachineHealthCheck.

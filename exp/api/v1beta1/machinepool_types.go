@@ -55,10 +55,12 @@ type MachinePoolSpec struct {
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100000
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// failureDomains is the list of failure domains this MachinePool should be attached to.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
 
@@ -70,6 +72,7 @@ type MachinePoolSpec struct {
 type MachinePoolStatus struct {
 	// nodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100000
 	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`
 
 	// replicas is the most recently observed number of replicas.

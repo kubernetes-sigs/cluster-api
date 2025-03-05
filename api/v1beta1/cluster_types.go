@@ -556,6 +556,7 @@ type Topology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
 }
 
@@ -624,12 +625,14 @@ type WorkersTopology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=10000
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 
 	// machinePools is a list of machine pools in the cluster.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=10000
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
 }
 
@@ -758,6 +761,7 @@ type MachinePoolTopology struct {
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
@@ -825,6 +829,7 @@ type ControlPlaneVariables struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -834,6 +839,7 @@ type MachineDeploymentVariables struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -843,6 +849,7 @@ type MachinePoolVariables struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -878,6 +885,7 @@ type ClusterNetwork struct {
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
+	// +kubebuilder:validation:MaxItems=1000
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 

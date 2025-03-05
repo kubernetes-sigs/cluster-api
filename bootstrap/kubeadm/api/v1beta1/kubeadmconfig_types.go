@@ -65,6 +65,7 @@ type KubeadmConfigSpec struct {
 
 	// files specifies extra files to be passed to user_data upon creation.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	Files []File `json:"files,omitempty"`
 
 	// diskSetup specifies options for the creation of partition tables and file systems on devices.
@@ -73,18 +74,22 @@ type KubeadmConfigSpec struct {
 
 	// mounts specifies a list of mount points to be setup.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Mounts []MountPoints `json:"mounts,omitempty"`
 
 	// preKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
 
 	// postKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
 
 	// users specifies extra users to add
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Users []User `json:"users,omitempty"`
 
 	// ntp specifies NTP configuration
@@ -657,6 +662,7 @@ type User struct {
 
 	// sshAuthorizedKeys specifies a list of ssh authorized keys for the user
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 }
 
@@ -664,6 +670,7 @@ type User struct {
 type NTP struct {
 	// servers specifies which NTP servers to use
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Servers []string `json:"servers,omitempty"`
 
 	// enabled specifies whether NTP should be enabled
@@ -675,10 +682,12 @@ type NTP struct {
 type DiskSetup struct {
 	// partitions specifies the list of the partitions to setup.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Partitions []Partition `json:"partitions,omitempty"`
 
 	// filesystems specifies the list of file systems to setup.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
 }
 
@@ -722,6 +731,7 @@ type Filesystem struct {
 	ReplaceFS *string `json:"replaceFS,omitempty"`
 	// extraOpts defined extra options to add to the command for creating the file system.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	ExtraOpts []string `json:"extraOpts,omitempty"`
 }
 

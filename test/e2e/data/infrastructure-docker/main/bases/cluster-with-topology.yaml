@@ -40,8 +40,8 @@ spec:
             Cluster.topology.machineDeployment.label.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeLabelValue"
           annotations:
             Cluster.topology.machineDeployment.annotation: "Cluster.topology.machineDeployment.annotationValue"
-            # Note: this annotation is propagated to Nodes.
-            Cluster.topology.machineDeployment.annotation.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeAnnotationValue"
+            # Note: this annotation is propagated to Nodes. Shortened due to name length limitations
+            Cluster.topology.md.annotation.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeAnnotationValue"
         nodeDeletionTimeout: "30s"
         nodeVolumeDetachTimeout: "5m"
         minReadySeconds: 5

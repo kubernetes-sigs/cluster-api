@@ -128,6 +128,7 @@ var (
 	machinePoolConcurrency           int
 	clusterResourceSetConcurrency    int
 	machineHealthCheckConcurrency    int
+	skipCRDMigrationPhases           []string
 	additionalSyncMachineLabels      []string
 	additionalSyncMachineAnnotations []string
 )

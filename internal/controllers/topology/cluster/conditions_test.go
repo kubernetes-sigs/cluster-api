@@ -148,7 +148,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							CommonResponse: runtimehooksv1.CommonResponse{
 								Message: "annotations [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test, " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test2] are set",
 							},
-							RetryAfterSeconds: int32(20 * 60),
+							RetryAfterSeconds: 20 * 60,
 						},
 					})
 					return hrt
@@ -173,7 +173,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							CommonResponse: runtimehooksv1.CommonResponse{
 								Message: "msg",
 							},
-							RetryAfterSeconds: int32(10),
+							RetryAfterSeconds: 10,
 						},
 					})
 					return hrt

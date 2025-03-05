@@ -545,7 +545,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 					// RetryAfterSeconds needs to be set because having only hooks without RetryAfterSeconds
 					// would lead to not updating the condition. We can rely on getting an event when the
-					// annotation gets removed so we set twice of the default sync-period to not cause additional events.
+					// annotation gets removed so we set twice of the default sync-period to not cause additional reconciles.
 					RetryAfterSeconds: 20 * 60,
 					CommonResponse: runtimehooksv1.CommonResponse{
 						Message: message,

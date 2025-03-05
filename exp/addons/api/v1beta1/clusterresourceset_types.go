@@ -176,7 +176,9 @@ func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition)
 // ClusterResourceSet is the Schema for the clusterresourcesets API.
 // For advanced use cases an add-on provider should be used instead.
 type ClusterResourceSet struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ClusterResourceSet.
@@ -190,6 +192,8 @@ type ClusterResourceSet struct {
 // ClusterResourceSetList contains a list of ClusterResourceSet.
 type ClusterResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ClusterResourceSets.
 	Items []ClusterResourceSet `json:"items"`

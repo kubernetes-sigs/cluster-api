@@ -582,7 +582,9 @@ func (md *MachineDeploymentStatus) GetTypedPhase() MachineDeploymentPhase {
 
 // MachineDeployment is the Schema for the machinedeployments API.
 type MachineDeployment struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineDeployment.
@@ -596,6 +598,8 @@ type MachineDeployment struct {
 // MachineDeploymentList contains a list of MachineDeployment.
 type MachineDeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of MachineDeployments.
 	Items []MachineDeployment `json:"items"`

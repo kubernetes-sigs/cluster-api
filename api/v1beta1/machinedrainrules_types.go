@@ -205,6 +205,8 @@ type MachineDrainRulePodSelector struct {
 type MachineDrainRule struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +required
 	metav1.ObjectMeta `json:"metadata"`
 
@@ -219,6 +221,8 @@ type MachineDrainRule struct {
 type MachineDrainRuleList struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	// +required
 	metav1.ListMeta `json:"metadata"`
 

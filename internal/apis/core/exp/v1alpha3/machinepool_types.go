@@ -218,7 +218,9 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 //
 // Deprecated: This type will be removed in one of the next releases.
 type MachinePool struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachinePool.
@@ -244,6 +246,8 @@ func (m *MachinePool) SetConditions(conditions clusterv1alpha3.Conditions) {
 // Deprecated: This type will be removed in one of the next releases.
 type MachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of MachinePools.
 	Items []MachinePool `json:"items"`

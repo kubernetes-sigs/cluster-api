@@ -259,7 +259,9 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 
 // MachinePool is the Schema for the machinepools API.
 type MachinePool struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachinePool.
@@ -299,6 +301,8 @@ func (m *MachinePool) SetV1Beta2Conditions(conditions []metav1.Condition) {
 // MachinePoolList contains a list of MachinePool.
 type MachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of MachinePools.
 	Items []MachinePool `json:"items"`

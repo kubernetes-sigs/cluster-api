@@ -209,7 +209,9 @@ func (v APIEndpoint) String() string {
 
 // Cluster is the Schema for the clusters API.
 type Cluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Cluster.
@@ -233,6 +235,8 @@ func (c *Cluster) SetConditions(conditions Conditions) {
 // ClusterList contains a list of Cluster.
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of Clusters.
 	Items []Cluster `json:"items"`

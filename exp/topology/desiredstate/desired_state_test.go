@@ -808,6 +808,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			},
 			{
 				name:            "should return cluster.spec.topology.version if the control plane is scaling",
+				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").
 					WithSpecFields(map[string]interface{}{

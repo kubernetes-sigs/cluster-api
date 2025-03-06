@@ -347,6 +347,7 @@ func processIfTopologyManaged(scheme *runtime.Scheme, logger logr.Logger, object
 func ClusterTopologyVersionChanged(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			logger := logger.WithValues("predicate", "ClusterTopologyVersionChanged", "eventType", "update")
 			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
 				logger = logger.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
 			}

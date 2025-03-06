@@ -758,6 +758,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			name                        string
 			hookResponse                *runtimehooksv1.BeforeClusterUpgradeResponse
 			topologyVersion             string
+			clusterModifier             func(c *clusterv1.Cluster)
 			controlPlaneObj             *unstructured.Unstructured
 			upgradingMachineDeployments []string
 			upgradingMachinePools       []string
@@ -868,7 +869,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				expectedVersion:             "v1.2.3",
 			},
 			{
-				name:            "should return the controlplane.spec.version if the BeforeClusterUpgrade hooks returns a blocking response",
+				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook returns a blocking response",
 				hookResponse:    blockingBeforeClusterUpgradeResponse,
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").
@@ -906,6 +907,30 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				expectedVersion: "v1.2.2",
 				wantErr:         true,
 			},
+			{
+				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook annotation is set",
+				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
+				topologyVersion: "v1.2.3",
+				controlPlaneObj: builder.ControlPlane("test1", "cp1").
+					WithSpecFields(map[string]interface{}{
+						"spec.version":  "v1.2.2",
+						"spec.replicas": int64(2),
+					}).
+					WithStatusFields(map[string]interface{}{
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
+					}).
+					Build(),
+				clusterModifier: func(c *clusterv1.Cluster) {
+					c.Annotations = map[string]string{
+						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
+					}
+				},
+				expectedVersion: "v1.2.2",
+			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -929,6 +954,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					},
 					UpgradeTracker:      scope.NewUpgradeTracker(),
 					HookResponseTracker: scope.NewHookResponseTracker(),
+				}
+				if tt.clusterModifier != nil {
+					tt.clusterModifier(s.Current.Cluster)
 				}
 				if len(tt.upgradingMachineDeployments) > 0 {
 					s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)

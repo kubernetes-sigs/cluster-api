@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -24,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -31,6 +33,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -96,6 +99,69 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:         "should set the condition to false if the there is a blocking annotation hook",
+			reconcileErr: nil,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
+					},
+				},
+			},
+			s: &scope.Scope{
+				HookResponseTracker: func() *scope.HookResponseTracker {
+					hrt := scope.NewHookResponseTracker()
+					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
+						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+							CommonResponse: runtimehooksv1.CommonResponse{
+								Message: fmt.Sprintf("annotation [%s] is set", clusterv1.BeforeClusterUpgradeHookAnnotationPrefix+"/test"),
+							},
+							RetryAfterSeconds: int32(20 * 60),
+						},
+					})
+					return hrt
+				}(),
+			},
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledHookBlockingReason,
+			wantConditionMessage:        "hook \"BeforeClusterUpgrade\" is blocking: annotation [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test] is set",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "hook \"BeforeClusterUpgrade\" is blocking: annotation [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test] is set",
+		},
+		{
+			name:         "should set the condition to false if the there are multiple blocking annotation hooks",
+			reconcileErr: nil,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test":  "true",
+						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test2": "true",
+					},
+				},
+			},
+			s: &scope.Scope{
+				HookResponseTracker: func() *scope.HookResponseTracker {
+					hrt := scope.NewHookResponseTracker()
+					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
+						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+							CommonResponse: runtimehooksv1.CommonResponse{
+								Message: "annotations [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test, " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test2] are set",
+							},
+							RetryAfterSeconds: 20 * 60,
+						},
+					})
+					return hrt
+				}(),
+			},
+			wantConditionStatus:         corev1.ConditionFalse,
+			wantConditionReason:         clusterv1.TopologyReconciledHookBlockingReason,
+			wantConditionMessage:        "hook \"BeforeClusterUpgrade\" is blocking: annotations [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test, " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test2] are set",
+			wantV1Beta2ConditionStatus:  metav1.ConditionFalse,
+			wantV1Beta2ConditionReason:  clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
+			wantV1Beta2ConditionMessage: "hook \"BeforeClusterUpgrade\" is blocking: annotations [" + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test, " + clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test2] are set",
+		},
+		{
 			name:         "should set the condition to false if the there is a blocking hook",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
@@ -107,7 +173,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							CommonResponse: runtimehooksv1.CommonResponse{
 								Message: "msg",
 							},
-							RetryAfterSeconds: int32(10),
+							RetryAfterSeconds: 10,
 						},
 					})
 					return hrt
@@ -1027,6 +1093,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+
 			objs := []client.Object{}
 			if tt.s != nil && tt.s.Current != nil {
 				for _, md := range tt.s.Current.MachineDeployments {
@@ -1050,15 +1118,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 
 				actualCondition := conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
 				g.Expect(actualCondition).ToNot(BeNil())
-				g.Expect(actualCondition.Status).To(Equal(tt.wantConditionStatus))
-				g.Expect(actualCondition.Reason).To(Equal(tt.wantConditionReason))
-				g.Expect(actualCondition.Message).To(Equal(tt.wantConditionMessage))
+				g.Expect(actualCondition.Status).To(BeEquivalentTo(tt.wantConditionStatus))
+				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantConditionReason))
+				g.Expect(actualCondition.Message).To(BeEquivalentTo(tt.wantConditionMessage))
 
 				actualV1Beta2Condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledV1Beta2Condition)
 				g.Expect(actualV1Beta2Condition).ToNot(BeNil())
-				g.Expect(actualV1Beta2Condition.Status).To(Equal(tt.wantV1Beta2ConditionStatus))
-				g.Expect(actualV1Beta2Condition.Reason).To(Equal(tt.wantV1Beta2ConditionReason))
-				g.Expect(actualV1Beta2Condition.Message).To(Equal(tt.wantV1Beta2ConditionMessage))
+				g.Expect(actualV1Beta2Condition.Status).To(BeEquivalentTo(tt.wantV1Beta2ConditionStatus))
+				g.Expect(actualV1Beta2Condition.Reason).To(BeEquivalentTo(tt.wantV1Beta2ConditionReason))
+				g.Expect(actualV1Beta2Condition.Message).To(BeEquivalentTo(tt.wantV1Beta2ConditionMessage))
 			}
 		})
 	}

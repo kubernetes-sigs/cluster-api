@@ -32,10 +32,11 @@ superseded-by:
     - [Story 1](#story-1)
     - [Story 2](#story-2)
     - [Story 3](#story-3)
+  - [Story 4](#story-4)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-  - [Label domains & prefixes](#label-domains--prefixes)
-    - [Synchronization of CAPI Labels](#synchronization-of-capi-labels)
-    - [Delay between Node Create and Label Sync](#delay-between-node-create-and-label-sync)
+  - [Domains & prefixes](#domains--prefixes)
+    - [Synchronization of CAPI Labels and Annotatioins](#synchronization-of-capi-labels-and-annotatioins)
+    - [Delay between Node Creation and Sync](#delay-between-node-creation-and-sync)
 - [Alternatives](#alternatives)
   - [Use KubeadmConfigTemplate capabilities](#use-kubeadmconfigtemplate-capabilities)
   - [Apply labels using kubectl](#apply-labels-using-kubectl)
@@ -91,7 +92,7 @@ As a cluster admin/user, I want that Cluster API label management on Kubernetes 
 
 ### Story 4
 
-As a cluster admin/user, I would like a declarative and secure means by which to annotate my Cluster API-managed nodes.
+As a cluster admin/user, I would like a declarative and secure means by which to annotate my Cluster API-managed nodes. For example, I want to set infrastructure metadata such as virtual network or subnet IDs.
 
 ### Implementation Details/Notes/Constraints
 

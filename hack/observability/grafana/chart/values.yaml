@@ -30,7 +30,7 @@ datasources:
       isDefault: true
       editable: true
       # This header has to be set as we had to set an OrgID
-      # in promtail to be able to push the logs to Loki.
+      # in alloy to be able to push the logs to Loki.
       jsonData:
         maxLines: 1000
         derivedFields:

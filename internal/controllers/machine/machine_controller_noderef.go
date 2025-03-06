@@ -45,7 +45,7 @@ import (
 var (
 	// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
-	/// CommonNodeAnnotations is a collection of annotations common to all nodes that ClusterAPI manages.
+	// CommonNodeAnnotations is a collection of annotations common to all nodes that ClusterAPI manages.
 	CommonNodeAnnotations = []string{
 		clusterv1.ClusterNameAnnotation,
 		clusterv1.ClusterNamespaceAnnotation,

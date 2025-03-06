@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -420,7 +421,7 @@ func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
 func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("ma-annotationtest"),
+			Name:      "ma-annotationtest",
 			Namespace: namespace,
 		},
 		Spec: newFakeMachineSpec(namespace, clusterName),

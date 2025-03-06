@@ -297,7 +297,7 @@ Supported values are:
 * `loki`: To receive and store logs.
 * `metrics-server`: To enable `kubectl top node/pod`.
 * `prometheus`*: For collecting metrics from Kubernetes.
-* `promtail`: For providing pod logs to `loki`.
+* `alloy`: For providing pod logs to `loki`.
 * `parca`*: For visualizing profiling data.
 * `tempo`: To store traces.
 * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.

@@ -135,19 +135,19 @@ thorny parts of code. Over time, based on feedback from SRE/developers, more log
 
 ## Developing and testing logs
 
-Our [Tilt](tilt.md) setup offers a batteries-included log suite based on [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/), [Loki](https://grafana.com/docs/loki/latest/fundamentals/overview/) and [Grafana](https://grafana.com/docs/grafana/latest/explore/logs-integration/).
+Our [Tilt](tilt.md) setup offers a batteries-included log suite based on [alloy](https://grafana.com/docs/loki/latest/send-data/alloy/), [Loki](https://grafana.com/docs/loki/latest/fundamentals/overview/) and [Grafana](https://grafana.com/docs/grafana/latest/explore/logs-integration/).
 
 We are working to continuously improving this experience, allowing Cluster API developers to use logs and improve them as part of their development process.
 
 For the best experience exploring the logs using Tilt:
 1. Set `--logging-format=json`.
 2. Set a high log verbosity, e.g. `v=5`.
-3. Enable Promtail, Loki, and Grafana under `deploy_observability`.
+3. Enable alloy, Loki, and Grafana under `deploy_observability`.
 
 A minimal example of a tilt-settings.yaml file that deploys a ready-to-use logging suite looks like:
 ```yaml
 deploy_observability:
-  - promtail
+  - alloy
   - loki
   - grafana
 enable_providers:
@@ -208,7 +208,6 @@ Will return logs from the `capi-controller-manager`, associated with the Cluster
 Will return the logs from four CAPI providers - the Core provider, Kubeadm Control Plane provider, Kubeadm Bootstrap provider and the Docker infrastructure provider. It filters by the cluster name and the machine name and then formats the log lines to show just the source controller and the message. This allows us to correlate logs and see actions taken by each of these four providers related to the machine `my-cluster-linux-worker-1`.
 
 For more information on formatting and filtering logs using Grafana and Loki see:
-- [json parsing](https://grafana.com/docs/loki/latest/clients/promtail/stages/json/)
 - [log queries](https://grafana.com/docs/loki/latest/logql/log_queries/)
 
 ## What about providers

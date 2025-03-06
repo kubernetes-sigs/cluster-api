@@ -9,7 +9,7 @@ When tuning controllers, both for scalability, performance or for reducing their
 
 Cluster API provides a full stack of tools for tuning its own controllers as well as controllers for all providers if developed using controller runtime. As a bonus, most of this tooling can be used with any other controller runtime based controllers.
 
-With tilt, you can easily deploy a full observability stack with Grafana, Loki, promtail, Prometheus, kube-state-metrics, Parca and Tempo.
+With tilt, you can easily deploy a full observability stack with Grafana, Loki, alloy, Prometheus, kube-state-metrics, Parca and Tempo.
 
 All tools are preconfigured, and most notably kube-state-metrics already collects CAPI metrics and Grafana is configured with a set of dashboards that we used in previous rounds of CAPI tuning. Overall, the CAPI dev environment offers a considerable amount of expertise, free to use and to improve for the entire community. We highly recommend to invest time in looking into those tools, learn and provide feedback.
 

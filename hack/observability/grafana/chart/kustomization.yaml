@@ -4,7 +4,7 @@ helmCharts:
     releaseName: grafana
     namespace: observability
     valuesFile: values.yaml
-    version: 8.8.2
+    version: 8.10.1
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

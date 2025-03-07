@@ -519,7 +519,7 @@ const (
 
 // ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
 type ClusterAvailabilityGate struct {
-	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+	// conditionType refers to a condition with matching type in the Cluster's condition list.
 	// If the conditions doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
 	// +required
@@ -529,7 +529,10 @@ type ClusterAvailabilityGate struct {
 	ConditionType string `json:"conditionType"`
 
 	// polarity of the conditionType specified in this availabilityGate.
-	// The default is Positive.
+	// Valid values are Positive, Negative and omitted.
+	// When omitted, the default behaviour will be Positive.
+	// A positive polarity means that the condition should report a true status under normal conditions.
+	// A negative polarity means that the condition should report a false status under normal conditions.
 	// +kubebuilder:validation:Enum=Positive;Negative
 	// +optional
 	Polarity ConditionPolarity `json:"polarity,omitempty"`

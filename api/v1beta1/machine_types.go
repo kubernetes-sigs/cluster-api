@@ -459,7 +459,7 @@ type MachineSpec struct {
 
 // MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
 type MachineReadinessGate struct {
-	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+	// conditionType refers to a condition with matching type in the Machine's condition list.
 	// If the conditions doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
 	// +required
@@ -469,7 +469,10 @@ type MachineReadinessGate struct {
 	ConditionType string `json:"conditionType"`
 
 	// polarity of the conditionType specified in this readinessGate.
-	// The default is Positive.
+	// Valid values are Positive, Negative and omitted.
+	// When omitted, the default behaviour will be Positive.
+	// A positive polarity means that the condition should report a true status under normal conditions.
+	// A negative polarity means that the condition should report a false status under normal conditions.
 	// +kubebuilder:validation:Enum=Positive;Negative
 	// +optional
 	Polarity ConditionPolarity `json:"polarity,omitempty"`

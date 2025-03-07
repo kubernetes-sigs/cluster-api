@@ -95,6 +95,8 @@ type Reconciler struct {
 	APIReader    client.Reader
 	ClusterCache clustercache.ClusterCache
 
+	PreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 

@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -597,6 +598,126 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantMessages: nil,
 				wantErr:      true,
 			},
+			{
+				name: "control plane version preflight check: should pass if the machine set version and control plane version are not the same but the preflight check is skipped",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology:        &clusterv1.Topology{},
+						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: "foobar," + string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: ptr.To("v1.26.0"),
+							},
+						},
+					},
+				},
+				wantMessages: nil,
+				wantErr:      false,
+			},
+			{
+				name: "control plane version preflight check: should pass if the machine set version and control plane version are not the same but the Cluster does not have a managed topology",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						// No Topology
+						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: ptr.To("v1.26.0"),
+							},
+						},
+					},
+				},
+				wantMessages: nil,
+				wantErr:      false,
+			},
+			{
+				name: "control plane version preflight check: should fail if the machine set version and control plane version are not the same",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology:        &clusterv1.Topology{},
+						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: ptr.To("v1.26.0"),
+							},
+						},
+					},
+				},
+				wantMessages: []string{"MachineSet version (v1.26.0) is not yet the same as the ControlPlane version (v1.26.2), waiting for version to be propagated to the MachineSet (\"ControlPlaneVersionSkew\" preflight check failed)"},
+				wantErr:      false,
+			},
+			{
+				name: "control plane version preflight check: should pass if the machine set version and control plane version are the same",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Topology:        &clusterv1.Topology{},
+						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet: &clusterv1.MachineSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
+						},
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Template: clusterv1.MachineTemplateSpec{
+							Spec: clusterv1.MachineSpec{
+								Version: ptr.To("v1.26.2"),
+							},
+						},
+					},
+				},
+				wantMessages: nil,
+				wantErr:      false,
+			},
 		}
 
 		for _, tt := range tests {
@@ -608,7 +729,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				}
 				fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 				r := &Reconciler{
-					Client: fakeClient,
+					Client:          fakeClient,
+					PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
 				}
 				preflightCheckErrMessage, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
 				if tt.wantErr {
@@ -656,4 +778,85 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(messages).To(BeNil())
 	})
+}
+
+func TestMachineSetReconciler_shouldRun(t *testing.T) {
+	tests := []struct {
+		name                   string
+		preflightChecks        sets.Set[clusterv1.MachineSetPreflightCheck]
+		skippedPreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
+		preflightCheck         clusterv1.MachineSetPreflightCheck
+		expected               bool
+	}{
+		{
+			name: "Should run all",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckAll,
+			),
+			skippedPreflightChecks: nil,
+			preflightCheck:         clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:               true,
+		},
+		{
+			name: "Should run ControlPlaneIsStable",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			),
+			skippedPreflightChecks: nil,
+			preflightCheck:         clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:               true,
+		},
+		{
+			name: "Should skip all",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckAll,
+			),
+			skippedPreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckAll,
+			),
+			preflightCheck: clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:       false,
+		},
+		{
+			name: "Should skip all",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			),
+			skippedPreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckAll,
+			),
+			preflightCheck: clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:       false,
+		},
+		{
+			name: "Should skip ControlPlaneIsStable",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			),
+			skippedPreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			),
+			preflightCheck: clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:       false,
+		},
+		{
+			name: "Should skip ControlPlaneIsStable",
+			preflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckAll,
+			),
+			skippedPreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(
+				clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			),
+			preflightCheck: clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+			expected:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			actual := shouldRun(tt.preflightChecks, tt.skippedPreflightChecks, tt.preflightCheck)
+			g.Expect(actual).To(Equal(tt.expected))
+		})
+	}
 }

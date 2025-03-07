@@ -18,7 +18,8 @@ Enabling `MachineSetPreflightChecks` provides safety in such circumstances by ma
 
 ### `ControlPlaneIsStable`
 
-* This preflight check ensures that the ControlPlane is currently stable i.e. the ControlPlane is currently neither provisioning, upgrading nor pending an upgrade.   
+* This preflight check ensures that the ControlPlane is currently stable i.e. the ControlPlane is currently neither provisioning, upgrading.
+* For Clusters with a managed topology it also checks if a control plane upgrade is pending.
 * This preflight check is only performed if:
   * The Cluster uses a ControlPlane provider.
   * ControlPlane version is defined (`ControlPlane.spec.version` is set).
@@ -40,11 +41,25 @@ Enabling `MachineSetPreflightChecks` provides safety in such circumstances by ma
   * MachineSet version is defined (`MachineSet.spec.template.spec.version` is set).
   * MachineSet uses the `Kubeadm` Bootstrap provider.
 
-## Opting out of PreflightChecks
+### `ControlPlaneVersionSkew`
 
-Once the feature flag is enabled the preflight checks are enabled for all the MachineSets including new and existing MachineSets.
-It is possible to opt-out of one or all of the preflight checks on a per MachineSet basis by specifying a comma-separated list of the preflight checks on the 
-`machineset.cluster.x-k8s.io/skip-preflight-checks` annotation on the MachineSet.  
+* This preflight check ensures that the MachineSet and the ControlPlane have the same version. The idea behind this 
+  check is that it doesn't make sense to create a Machine with an old version, if we already know based on the control 
+  plane version that the Machine has to be replaced soon.
+* This preflight check is only performed if:
+  * The Cluster has a managed topology
+  * The Cluster uses a ControlPlane provider.
+  * ControlPlane version is defined (`ControlPlane.spec.version` is set).
+  * MachineSet version is defined (`MachineSet.spec.template.spec.version` is set).
+
+## Configuring MachineSet PreflightChecks
+
+Per default all preflight checks are enabled for all MachineSets including new and existing MachineSets.
+The enabled preflight checks can be overwritten with the `--machineset-preflight-checks` command-line flag.
+
+It is also possible to opt-out of one or all of the preflight checks on a per MachineSet basis by specifying a 
+comma-separated list of the preflight checks via the `machineset.cluster.x-k8s.io/skip-preflight-checks` annotation
+on the MachineSet.
 
 Examples: 
 * To opt out of all the preflight checks set the `machineset.cluster.x-k8s.io/skip-preflight-checks: All` annotation.

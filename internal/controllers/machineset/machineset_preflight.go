@@ -56,7 +56,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 
 	skipped := skippedPreflightChecks(ms)
 	// If all the preflight checks are skipped then return early.
-	if skipped.Has(clusterv1.MachineSetPreflightCheckAll) {
+	if len(r.PreflightChecks) == 0 || skipped.Has(clusterv1.MachineSetPreflightCheckAll) {
 		return nil, nil
 	}
 
@@ -90,7 +90,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	errList := []error{}
 	preflightCheckErrs := []preflightCheckErrorMessage{}
 	// Run the control-plane-stable preflight check.
-	if !skipped.Has(clusterv1.MachineSetPreflightCheckControlPlaneIsStable) {
+	if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckControlPlaneIsStable) {
 		preflightCheckErr, err := r.controlPlaneStablePreflightCheck(controlPlane, cluster, *cpVersion)
 		if err != nil {
 			errList = append(errList, err)
@@ -109,7 +109,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		}
 
 		// Run the kubernetes-version skew preflight check.
-		if !skipped.Has(clusterv1.MachineSetPreflightCheckKubernetesVersionSkew) {
+		if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew) {
 			preflightCheckErr := r.kubernetesVersionPreflightCheck(cpSemver, msSemver)
 			if preflightCheckErr != nil {
 				preflightCheckErrs = append(preflightCheckErrs, preflightCheckErr)
@@ -117,12 +117,19 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		}
 
 		// Run the kubeadm-version skew preflight check.
-		if !skipped.Has(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) {
+		if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) {
 			preflightCheckErr, err := r.kubeadmVersionPreflightCheck(cpSemver, msSemver, ms)
 			if err != nil {
 				errList = append(errList, err)
 			}
 			if preflightCheckErr != nil {
+				preflightCheckErrs = append(preflightCheckErrs, preflightCheckErr)
+			}
+		}
+
+		// Run the control plane version skew preflight check.
+		if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) {
+			if preflightCheckErr := r.controlPlaneVersionPreflightCheck(cluster, *cpVersion, msVersion); preflightCheckErr != nil {
 				preflightCheckErrs = append(preflightCheckErrs, preflightCheckErr)
 			}
 		}
@@ -140,6 +147,11 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		return preflightCheckErrStrings, nil
 	}
 	return nil, nil
+}
+
+func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck], preflightCheck clusterv1.MachineSetPreflightCheck) bool {
+	return (preflightChecks.Has(clusterv1.MachineSetPreflightCheckAll) || preflightChecks.Has(preflightCheck)) &&
+		!(skippedPreflightChecks.Has(clusterv1.MachineSetPreflightCheckAll) || skippedPreflightChecks.Has(preflightCheck))
 }
 
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {
@@ -214,6 +226,16 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 		}
 	}
 	return nil, nil
+}
+
+func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
+	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology != nil {
+		if cpVersion != msVersion {
+			return ptr.To(fmt.Sprintf("MachineSet version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachineSet (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
+		}
+	}
+
+	return nil
 }
 
 func skippedPreflightChecks(ms *clusterv1.MachineSet) sets.Set[clusterv1.MachineSetPreflightCheck] {

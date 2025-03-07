@@ -1533,8 +1533,8 @@ func TestSetReadyCondition(t *testing.T) {
 							ConditionType: "MyReadinessGate",
 						},
 						{
-							ConditionType:    "MyReadinessGateGateWithNegativePolarity",
-							NegativePolarity: true,
+							ConditionType: "MyReadinessGateGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
 						},
 					},
 				},

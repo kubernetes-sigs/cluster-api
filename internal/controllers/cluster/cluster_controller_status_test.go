@@ -2380,8 +2380,8 @@ func TestSetAvailableCondition(t *testing.T) {
 							ConditionType: "MyAvailabilityGate",
 						},
 						{
-							ConditionType:    "MyAvailabilityGateWithNegativePolarity",
-							NegativePolarity: true,
+							ConditionType: "MyAvailabilityGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
 						},
 					},
 				},
@@ -2504,8 +2504,8 @@ func TestSetAvailableCondition(t *testing.T) {
 							ConditionType: "MyClusterClassAvailabilityGate",
 						},
 						{
-							ConditionType:    "MyClusterClassAvailabilityGateWithNegativePolarity",
-							NegativePolarity: true,
+							ConditionType: "MyClusterClassAvailabilityGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
 						},
 					},
 				},

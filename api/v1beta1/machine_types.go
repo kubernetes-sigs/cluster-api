@@ -468,9 +468,11 @@ type MachineReadinessGate struct {
 	// +kubebuilder:validation:MinLength=1
 	ConditionType string `json:"conditionType"`
 
-	// negativePolarity must be set to true if False represents normal operation for the conditionType specified in this availabilityGate.
+	// polarity of the conditionType specified in this readinessGate.
+	// The default is Positive.
+	// +kubebuilder:validation:Enum=Positive;Negative
 	// +optional
-	NegativePolarity bool `json:"negativePolarity,omitempty"`
+	Polarity ConditionPolarity `json:"polarity,omitempty"`
 }
 
 // ANCHOR_END: MachineSpec

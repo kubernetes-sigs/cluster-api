@@ -633,7 +633,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingV1Beta2Condition}
 	for _, g := range machine.Spec.ReadinessGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
-		if g.NegativePolarity {
+		if g.Polarity == clusterv1.NegativePolarityCondition {
 			negativePolarityConditionTypes = append(negativePolarityConditionTypes, g.ConditionType)
 		}
 	}

@@ -1071,7 +1071,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 	}
 	for _, g := range availabilityGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
-		if g.NegativePolarity {
+		if g.Polarity == clusterv1.NegativePolarityCondition {
 			negativePolarityConditionTypes = append(negativePolarityConditionTypes, g.ConditionType)
 		}
 	}

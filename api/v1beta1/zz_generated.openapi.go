@@ -244,10 +244,10 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterAvailabilityGate(ref common
 							Format:      "",
 						},
 					},
-					"negativePolarity": {
+					"polarity": {
 						SchemaProps: spec.SchemaProps{
-							Description: "negativePolarity must be set to true if False represents normal operation for the conditionType specified in this availabilityGate.",
-							Type:        []string{"boolean"},
+							Description: "polarity of the conditionType specified in this availabilityGate. The default is Positive.",
+							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
@@ -3686,10 +3686,10 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineReadinessGate(ref common.Re
 							Format:      "",
 						},
 					},
-					"negativePolarity": {
+					"polarity": {
 						SchemaProps: spec.SchemaProps{
-							Description: "negativePolarity must be set to true if False represents normal operation for the conditionType specified in this availabilityGate.",
-							Type:        []string{"boolean"},
+							Description: "polarity of the conditionType specified in this readinessGate. The default is Positive.",
+							Type:        []string{"string"},
 							Format:      "",
 						},
 					},

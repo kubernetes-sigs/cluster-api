@@ -1833,6 +1833,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			name:      "should update",
 			expectErr: false,
 			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
 					WithVersion("v1.19.1").
@@ -1855,6 +1856,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Build()).
 				Build(),
 			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
 					WithVersion("v1.19.2").
@@ -1876,6 +1878,21 @@ func TestClusterTopologyValidation(t *testing.T) {
 							Build()).
 					Build()).
 				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					Build(),
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.19.1").Build(),
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").Build(),
+			},
 		},
 		{
 			name:      "should return error when upgrade concurrency annotation value is < 1",

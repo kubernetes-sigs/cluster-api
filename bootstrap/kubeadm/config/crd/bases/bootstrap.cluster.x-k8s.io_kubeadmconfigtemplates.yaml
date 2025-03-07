@@ -2884,6 +2884,30 @@ spec:
                                 device:
                                   description: device is the name of the device.
                                   type: string
+                                diskLayout:
+                                  description: |-
+                                    diskLayout specifies the percentage of disk space and partition types.
+                                    If specified, this will override the Layout field.
+                                  items:
+                                    description: PartitionSpec defines the size and
+                                      optional type for a partition
+                                    properties:
+                                      partitionType:
+                                        description: PartitionType is the numerical
+                                          value of the partition type (optional)
+                                        format: int32
+                                        type: integer
+                                      percentage:
+                                        description: Percentage of disk that partition
+                                          will take (1-100)
+                                        format: int32
+                                        maximum: 100
+                                        minimum: 1
+                                        type: integer
+                                    required:
+                                    - percentage
+                                    type: object
+                                  type: array
                                 layout:
                                   description: |-
                                     layout specifies the device layout.
@@ -2897,7 +2921,7 @@ spec:
                                   type: boolean
                                 tableType:
                                   description: |-
-                                    tableType specifies the tupe of partition table. The following are supported:
+                                    tableType specifies the type of partition table. The following are supported:
                                     'mbr': default and setups a MS-DOS partition table
                                     'gpt': setups a GPT partition table
                                   type: string

@@ -10,8 +10,6 @@
   - [APIs](#apis)
   - [CLIs](#clis)
 - [Branches](#branches)
-  - [Support and guarantees](#support-and-guarantees)
-  - [Removal of v1alpha3 & v1alpha4 apiVersions](#removal-of-v1alpha3--v1alpha4-apiversions)
 - [Contributing a Patch](#contributing-a-patch)
 - [Documentation changes](#documentation-changes)
 - [Releases](#releases)
@@ -92,8 +90,9 @@ Any backport MUST NOT be breaking for API or behavioral changes.
 
 We usually backport critical bugs or security fixes, changes to support new Kubernetes minor versions (see [supported Kubernetes versions](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions)), documentation and test signal improvements. Everything else is considered case by case.
 
-[Out of support](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#support-and-guarantees) release branches are usually frozen,
-although maintainers may allow backports in specific situations like CVEs, security, and other critical bug fixes.
+Release branches outside of the [standard support period](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) are usually frozen,
+although maintainers may allow backports to releases in [maintenance mode](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) in specific situations 
+like CVEs, security, and other critical bug fixes.
 
 ### APIs
 
@@ -120,56 +119,6 @@ major or minor release, a new branch is created. It is from these
 branches that minor and patch releases are tagged. In some cases, it may
 be necessary to open PRs for bugfixes directly against stable branches, but
 this should generally not be the case.
-
-### Support and guarantees
-
-Cluster API maintains the most recent release/releases for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions;
-[backport policy](#backporting-a-patch) is defined above.
-
-- The API version is determined from the GroupVersion defined in the top-level `api/` package.
-- The EOL date of each API Version is determined from the last release available once a new API version is published.
-
-| API Version  | Supported Until                                                                         |
-|--------------|-----------------------------------------------------------------------------------------|
-| **v1beta1**  | TBD (current stable)                                                                    |
-
-- For the current stable API version (v1beta1) we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available.
-- For older API versions we only support the most recent minor release until the API version reaches EOL.
-- We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
-  For example, if v1.6 and v1.7 are currently supported, we will also maintain test coverage for v1.5 for one additional release cycle. When v1.8 is released, tests for v1.5 will be removed.
-  - If there is a need for an emergency patch (e.g. to fix a critical security issue), please bring this up to maintainers and it will be considered on a case-by-case basis.
-
-| Minor Release | API Version  | Supported Until                                  |
-|---------------|--------------|--------------------------------------------------|
-| v1.10.x       | **v1beta1**  | when v1.12.0 will be released                    |
-| v1.9.x        | **v1beta1**  | when v1.11.0 will be released                    |
-| v1.8.x        | **v1beta1**  | when v1.10.0 will be released                    |
-| v1.7.x        | **v1beta1**  | EOL since 2024-12-10 - v1.9.0 release date       |
-| v1.6.x        | **v1beta1**  | EOL since 2024-08-12 - v1.8.0 release date       |
-| v1.5.x        | **v1beta1**  | EOL since 2024-04-16 - v1.7.0 release date       |
-| v1.4.x        | **v1beta1**  | EOL since 2023-12-05 - v1.6.0 release date       |
-| v1.3.x        | **v1beta1**  | EOL since 2023-07-25 - v1.5.0 release date       |
-| v1.2.x        | **v1beta1**  | EOL since 2023-03-28 - v1.4.0 release date       |
-| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*)   |
-| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*)   |
-| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL           |
-| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL           |
-
-(*) Previous support policy applies, older minor releases were immediately unsupported when a new major/minor release was available
-
-- Exceptions can be filed with maintainers and taken into consideration on a case-by-case basis.
-
-### Removal of v1alpha3 & v1alpha4 apiVersions
-
-Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release.
-Those types still exist in Cluster API while we work to a fix (or a workaround) for https://github.com/kubernetes-sigs/cluster-api/issues/10051.
-IMPORTANT! v1alpha3 and v1alpha4 types only exist for conversion and cannot be used by clients anymore.
-
-Note: Removal of a deprecated APIVersion in Kubernetes [can cause issues with garbage collection by the kube-controller-manager](https://github.com/kubernetes/kubernetes/issues/102641)
-This means that some objects which rely on garbage collection for cleanup - e.g. MachineSets and their descendent objects, like Machines and InfrastructureMachines, may not be cleaned up properly if those
-objects were created with an APIVersion which is no longer served.
-To avoid these issues it's advised to ensure a restart to the kube-controller-manager is done after upgrading to a version of Cluster API which drops support for an APIVersion - e.g. v1.5 and v1.6.
-This can be accomplished with any Kubernetes control-plane rollout, including a Kubernetes version upgrade, or by manually stopping and restarting the kube-controller-manager.
 
 ## Contributing a Patch
 

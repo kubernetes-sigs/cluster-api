@@ -338,6 +338,13 @@ func Test_setScalingUpCondition(t *testing.T) {
 		{
 			name: "Scaling up, preflight checks blocking",
 			controlPlane: &internal.ControlPlane{
+				Cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						Topology: &clusterv1.Topology{
+							Version: "v1.32.0",
+						},
+					},
+				},
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
 					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
@@ -351,6 +358,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 					HasDeletingMachine:               true,
 					ControlPlaneComponentsNotHealthy: true,
 					EtcdClusterNotHealthy:            true,
+					TopologyVersionMismatch:          true,
 				},
 			},
 			expectCondition: metav1.Condition{
@@ -358,6 +366,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
+					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
 					"* waiting for control plane components to become healthy\n" +
 					"* waiting for etcd cluster to become healthy",
@@ -368,7 +377,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingUpCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.InfraMachineTemplateIsNotFound, tt.controlPlane.PreflightCheckResults)
+			setScalingUpCondition(ctx, tt.controlPlane.Cluster, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.InfraMachineTemplateIsNotFound, tt.controlPlane.PreflightCheckResults)
 
 			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -525,6 +534,13 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		{
 			name: "Scaling down, preflight checks blocking",
 			controlPlane: &internal.ControlPlane{
+				Cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						Topology: &clusterv1.Topology{
+							Version: "v1.32.0",
+						},
+					},
+				},
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
 					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
@@ -538,6 +554,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					HasDeletingMachine:               true,
 					ControlPlaneComponentsNotHealthy: true,
 					EtcdClusterNotHealthy:            true,
+					TopologyVersionMismatch:          true,
 				},
 			},
 			expectCondition: metav1.Condition{
@@ -545,6 +562,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
+					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
 					"* waiting for control plane components to become healthy\n" +
 					"* waiting for etcd cluster to become healthy",
@@ -555,7 +573,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingDownCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.PreflightCheckResults)
+			setScalingDownCondition(ctx, tt.controlPlane.Cluster, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.PreflightCheckResults)
 
 			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())

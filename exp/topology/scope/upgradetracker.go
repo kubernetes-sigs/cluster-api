@@ -53,16 +53,6 @@ type ControlPlaneUpgradeTracker struct {
 	// If IsStartingUpgrade is true it implies that the desired Control Plane version and the current Control Plane
 	// versions are different.
 	IsStartingUpgrade bool
-
-	// IsScaling is true if the current Control Plane is scaling. False otherwise.
-	// IsScaling only represents the state of the current Control Plane. IsScaling does not represent the state
-	// of the desired Control Plane.
-	// Example:
-	// - IsScaling will be true if the current ControlPlane is scaling.
-	// - IsScaling will not be true if the current Control Plane is stable and the reconcile loop is going to scale the Control Plane.
-	// Note: Refer to control plane contract for definition of scaling.
-	// Note: IsScaling will be false if the Control Plane does not support replicas.
-	IsScaling bool
 }
 
 // WorkerUpgradeTracker holds the current upgrade status of MachineDeployments or MachinePools.
@@ -166,12 +156,6 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 func (t *ControlPlaneUpgradeTracker) IsControlPlaneStable() bool {
 	// If the current control plane is upgrading it is not considered stable.
 	if t.IsUpgrading {
-		return false
-	}
-
-	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If the current control plane is scaling then it is not considered stable.
-	if t.IsScaling {
 		return false
 	}
 

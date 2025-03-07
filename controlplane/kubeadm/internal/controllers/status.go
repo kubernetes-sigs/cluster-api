@@ -162,8 +162,8 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context,
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
 	setRollingOutCondition(ctx, controlPlane.KCP, controlPlane.Machines)
-	setScalingUpCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
-	setScalingDownCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
+	setScalingUpCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
+	setScalingDownCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setMachinesUpToDateCondition(ctx, controlPlane.KCP, controlPlane.Machines)
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
@@ -265,7 +265,7 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 	})
 }
 
-func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, infrastructureObjectNotFound bool, preflightChecks internal.PreflightCheckResults) {
+func setScalingUpCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, infrastructureObjectNotFound bool, preflightChecks internal.PreflightCheckResults) {
 	if kcp.Spec.Replicas == nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
@@ -300,7 +300,7 @@ func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
 
-	additionalMessages := getPreflightMessages(preflightChecks)
+	additionalMessages := getPreflightMessages(cluster, preflightChecks)
 	if missingReferencesMessage != "" {
 		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", missingReferencesMessage))
 	}
@@ -317,7 +317,7 @@ func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	})
 }
 
-func setScalingDownCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, preflightChecks internal.PreflightCheckResults) {
+func setScalingDownCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, preflightChecks internal.PreflightCheckResults) {
 	if kcp.Spec.Replicas == nil {
 		v1beta2conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
@@ -345,7 +345,7 @@ func setScalingDownCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 
 	message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
 
-	additionalMessages := getPreflightMessages(preflightChecks)
+	additionalMessages := getPreflightMessages(cluster, preflightChecks)
 	if staleMessage := aggregateStaleMachines(machines); staleMessage != "" {
 		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", staleMessage))
 	}
@@ -804,8 +804,12 @@ func minTime(t1, t2 time.Time) time.Time {
 	return t1
 }
 
-func getPreflightMessages(preflightChecks internal.PreflightCheckResults) []string {
+func getPreflightMessages(cluster *clusterv1.Cluster, preflightChecks internal.PreflightCheckResults) []string {
 	additionalMessages := []string{}
+	if preflightChecks.TopologyVersionMismatch {
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", cluster.Spec.Topology.Version))
+	}
+
 	if preflightChecks.HasDeletingMachine {
 		additionalMessages = append(additionalMessages, "* waiting for a control plane Machine to complete deletion")
 	}

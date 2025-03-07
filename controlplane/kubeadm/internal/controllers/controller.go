@@ -122,7 +122,10 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
-					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+					predicates.Any(mgr.GetScheme(), predicateLog,
+						predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+						predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
+					),
 				),
 			),
 		).

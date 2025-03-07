@@ -341,3 +341,46 @@ func processIfTopologyManaged(scheme *runtime.Scheme, logger logr.Logger, object
 	logger.V(6).Info("Cluster does not have topology, blocking further processing")
 	return false
 }
+
+// ClusterTopologyVersionChanged returns a Predicate that returns true when cluster.Spec.Topology.Version
+// was changed.
+func ClusterTopologyVersionChanged(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			logger := logger.WithValues("predicate", "ClusterTopologyVersionChanged", "eventType", "update")
+			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
+				logger = logger.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
+			}
+
+			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
+			if !ok {
+				logger.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				return false
+			}
+
+			newCluster := e.ObjectNew.(*clusterv1.Cluster)
+
+			if oldCluster.Spec.Topology == nil || newCluster.Spec.Topology == nil {
+				logger.V(6).Info("Cluster does not have topology, blocking further processing")
+				return false
+			}
+
+			if oldCluster.Spec.Topology.Version != newCluster.Spec.Topology.Version {
+				logger.V(6).Info("Cluster topology version has changed, allowing further processing")
+				return true
+			}
+
+			logger.V(6).Info("Cluster topology version has not changed, blocking further processing")
+			return false
+		},
+		CreateFunc: func(_ event.CreateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(_ event.DeleteEvent) bool {
+			return false
+		},
+		GenericFunc: func(_ event.GenericEvent) bool {
+			return false
+		},
+	}
+}

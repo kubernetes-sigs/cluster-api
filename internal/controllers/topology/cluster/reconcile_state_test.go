@@ -621,7 +621,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantError:          false,
 		},
 		{
-			name: "hook should not be called if the control plane is scaling - hook is marked",
+			name: "hook should be called if the control plane is scaling - hook is not marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
@@ -639,7 +639,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
-						Spec: clusterv1.ClusterSpec{},
+						Spec: clusterv1.ClusterSpec{Topology: &clusterv1.Topology{}},
 					},
 					ControlPlane: &scope.ControlPlaneState{
 						Object: controlPlaneObj,
@@ -648,13 +648,12 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 				UpgradeTracker: func() *scope.UpgradeTracker {
 					ut := scope.NewUpgradeTracker()
-					ut.ControlPlane.IsScaling = true
 					return ut
 				}(),
 			},
-			wantMarked:         true,
+			wantMarked:         false,
 			hookResponse:       successResponse,
-			wantHookToBeCalled: false,
+			wantHookToBeCalled: true,
 			wantError:          false,
 		},
 		{

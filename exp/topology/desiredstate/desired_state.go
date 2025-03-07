@@ -510,19 +510,6 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		return *currentVersion, nil
 	}
 
-	// If the control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If yes, then do not pick up the desiredVersion yet. We will pick up the new version after the control plane is stable.
-	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		cpScaling, err := contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
-		}
-		if cpScaling {
-			s.UpgradeTracker.ControlPlane.IsScaling = true
-			return *currentVersion, nil
-		}
-	}
-
 	// If the control plane is not upgrading or scaling, we can assume the control plane is stable.
 	// However, we should also check for the MachineDeployments/MachinePools upgrading.
 	// If the MachineDeployments/MachinePools are upgrading, then do not pick up the desiredVersion yet.

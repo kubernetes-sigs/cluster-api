@@ -283,6 +283,7 @@ func validateSkippedMachineSetPreflightChecks(o client.Object) *field.Error {
 		clusterv1.MachineSetPreflightCheckKubeadmVersionSkew,
 		clusterv1.MachineSetPreflightCheckKubernetesVersionSkew,
 		clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+		clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew,
 	)
 
 	skippedList := strings.Split(skip, ",")

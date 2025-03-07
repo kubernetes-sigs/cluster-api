@@ -17,12 +17,17 @@ limitations under the License.
 package annotations
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestAddAnnotations(t *testing.T) {
@@ -34,6 +39,7 @@ func TestAddAnnotations(t *testing.T) {
 		input    map[string]string
 		expected map[string]string
 		changed  bool
+		keys     []string
 	}{
 		{
 			name: "should return false if no changes are made",
@@ -53,6 +59,7 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "bar",
 			},
 			changed: false,
+			keys:    []string{},
 		},
 		{
 			name: "should do nothing if no annotations are provided",
@@ -70,6 +77,7 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "bar",
 			},
 			changed: false,
+			keys:    []string{},
 		},
 		{
 			name: "should do nothing if no annotations are provided and have been nil before",
@@ -83,6 +91,7 @@ func TestAddAnnotations(t *testing.T) {
 			input:    map[string]string{},
 			expected: nil,
 			changed:  false,
+			keys:     []string{},
 		},
 		{
 			name: "should return true if annotations are added",
@@ -105,6 +114,7 @@ func TestAddAnnotations(t *testing.T) {
 				"buzz":   "blah",
 			},
 			changed: true,
+			keys:    []string{"thing1", "buzz"},
 		},
 		{
 			name: "should return true if annotations are changed",
@@ -124,6 +134,7 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
+			keys:    []string{"foo"},
 		},
 		{
 			name: "should return true if annotations are changed and have been nil before",
@@ -141,6 +152,7 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
+			keys:    []string{"foo"},
 		},
 		{
 			name: "should add annotations to an empty unstructured",
@@ -152,6 +164,7 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
+			keys:    []string{"foo"},
 		},
 		{
 			name: "should add annotations to a non empty unstructured",
@@ -174,14 +187,16 @@ func TestAddAnnotations(t *testing.T) {
 				"buzz":   "blah",
 			},
 			changed: true,
+			keys:    []string{"thing1", "buzz"},
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(*testing.T) {
-			res := AddAnnotations(tc.obj, tc.input)
+			res, changedKeys := AddAnnotations(tc.obj, tc.input)
 			g.Expect(res).To(Equal(tc.changed))
 			g.Expect(tc.obj.GetAnnotations()).To(Equal(tc.expected))
+			g.Expect(changedKeys).To(ContainElements(tc.keys))
 		})
 	}
 }
@@ -274,5 +289,141 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 				g.Expect(ret).To(BeFalse())
 			}
 		})
+	}
+}
+
+func TestGetManagedAnnotations(t *testing.T) {
+	machineObj := newFakeMachine("default", "test-cluster")
+	ms := builder.MachineSet("default", "ms").Build()
+	ref := metav1.NewControllerRef(ms, ms.GroupVersionKind())
+
+	defaultAnnotations := map[string]string{
+		clusterv1.ClusterNameAnnotation:      machineObj.Spec.ClusterName,
+		clusterv1.ClusterNamespaceAnnotation: machineObj.GetNamespace(),
+		clusterv1.MachineAnnotation:          machineObj.Name,
+	}
+
+	additionalAnnotations := map[string]string{
+		"foo":                                "bar",
+		"bar":                                "baz",
+		"example.test/node.cluster.x-k8s.io": "not-managed",
+		"gpu-node.cluster.x-k8s.io":          "not-managed",
+		"example.test/node-restriction.kubernetes.io": "not-managed",
+		"gpu-node-restriction.kubernetes.io":          "not-managed",
+		"wrong.test.foo.example.com":                  "",
+	}
+
+	exampleRegex := regexp.MustCompile(`foo`)
+	defaultAndRegexAnnotations := map[string]string{}
+	for k, v := range defaultAnnotations {
+		defaultAndRegexAnnotations[k] = v
+	}
+	defaultAndRegexAnnotations["foo"] = "bar"
+	defaultAndRegexAnnotations["wrong.test.foo.example.com"] = ""
+
+	ownerRefAnnotations := map[string]string{
+		clusterv1.OwnerKindAnnotation: ms.Kind,
+		clusterv1.OwnerNameAnnotation: ms.Name,
+	}
+	defaultAndOwnerRefAnnotations := map[string]string{}
+	for k, v := range defaultAnnotations {
+		defaultAndOwnerRefAnnotations[k] = v
+	}
+	for k, v := range ownerRefAnnotations {
+		defaultAndOwnerRefAnnotations[k] = v
+	}
+
+	allAnnotations := map[string]string{}
+	for k, v := range defaultAnnotations {
+		allAnnotations[k] = v
+	}
+	for k, v := range additionalAnnotations {
+		allAnnotations[k] = v
+	}
+	for k, v := range ownerRefAnnotations {
+		allAnnotations[k] = v
+	}
+
+	tests := []struct {
+		name                             string
+		additionalSyncMachineAnnotations []*regexp.Regexp
+		allAnnotations                   map[string]string
+		managedAnnotations               map[string]string
+		owned                            bool
+	}{
+		{
+			name:                             "always sync default annotations",
+			additionalSyncMachineAnnotations: nil,
+			allAnnotations:                   allAnnotations,
+			managedAnnotations:               defaultAnnotations,
+		},
+		{
+			name: "sync additional defined labels",
+			additionalSyncMachineAnnotations: []*regexp.Regexp{
+				exampleRegex,
+			},
+			allAnnotations:     allAnnotations,
+			managedAnnotations: defaultAndRegexAnnotations,
+		},
+		{
+			name: "sync all labels",
+			additionalSyncMachineAnnotations: []*regexp.Regexp{
+				regexp.MustCompile(`.*`),
+			},
+			allAnnotations:     allAnnotations,
+			managedAnnotations: allAnnotations,
+		},
+		{
+			name:               "sync owner annotations",
+			allAnnotations:     allAnnotations,
+			managedAnnotations: defaultAndOwnerRefAnnotations,
+			owned:              true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testMachine := machineObj.DeepCopy()
+
+			if tt.owned {
+				testMachine.SetOwnerReferences([]metav1.OwnerReference{*ref})
+			}
+
+			testMachine.SetAnnotations(tt.allAnnotations)
+
+			g := NewWithT(t)
+			got := GetManagedAnnotations(testMachine, tt.additionalSyncMachineAnnotations...)
+			g.Expect(got).To(BeEquivalentTo(tt.managedAnnotations))
+		})
+	}
+}
+
+func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
+	return clusterv1.MachineSpec{
+		ClusterName: clusterName,
+		Bootstrap: clusterv1.Bootstrap{
+			ConfigRef: &corev1.ObjectReference{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+				Kind:       "KubeadmConfigTemplate",
+				Name:       fmt.Sprintf("%s-md-0", clusterName),
+				Namespace:  namespace,
+			},
+		},
+		InfrastructureRef: corev1.ObjectReference{
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+			Kind:       "FakeMachineTemplate",
+			Name:       fmt.Sprintf("%s-md-0", clusterName),
+			Namespace:  namespace,
+		},
+	}
+}
+
+func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ma-annotationtest",
+			Namespace: namespace,
+		},
+		Spec: newFakeMachineSpec(namespace, clusterName),
 	}
 }

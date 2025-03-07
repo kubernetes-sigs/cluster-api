@@ -154,6 +154,11 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 
 // IsControlPlaneStable returns true is the ControlPlane is stable.
 func (t *ControlPlaneUpgradeTracker) IsControlPlaneStable() bool {
+	// If the current control plane is provisioning it is not considered stable.
+	if t.IsProvisioning {
+		return false
+	}
+
 	// If the current control plane is upgrading it is not considered stable.
 	if t.IsUpgrading {
 		return false

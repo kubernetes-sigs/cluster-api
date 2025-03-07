@@ -1529,7 +1529,13 @@ func TestSetReadyCondition(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ReadinessGates: []clusterv1.MachineReadinessGate{
-						{ConditionType: "MyReadinessGate"},
+						{
+							ConditionType: "MyReadinessGate",
+						},
+						{
+							ConditionType: "MyReadinessGateGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
+						},
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1562,6 +1568,12 @@ func TestSetReadyCondition(t *testing.T) {
 								Message: "Some message",
 							},
 							{
+								Type:    "MyReadinessGateGateWithNegativePolarity",
+								Status:  metav1.ConditionTrue,
+								Reason:  "SomeReason",
+								Message: "Some other message",
+							},
+							{
 								Type:   clusterv1.MachineDeletingV1Beta2Condition,
 								Status: metav1.ConditionFalse,
 								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
@@ -1571,10 +1583,11 @@ func TestSetReadyCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineNotReadyV1Beta2Reason,
-				Message: "* MyReadinessGate: Some message",
+				Type:   clusterv1.MachineReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotReadyV1Beta2Reason,
+				Message: "* MyReadinessGate: Some message\n" +
+					"* MyReadinessGateGateWithNegativePolarity: Some other message",
 			},
 		},
 		{

@@ -432,8 +432,6 @@ Notes:
 - As of today v1beta1 MachineDeployments, MachineSets, MachinePools already have a `spec.MinReadySeconds` field. 
   In v1beta2 those field are going to be migrated to MachineDeployments, MachineSets, MachinePools `spec.template.spec.MinReadySeconds` field, which is
   the `MinReadySeconds` field added in the first line of the table above.
-- Similarly to Pod's `ReadinessGates`, also Machine's `ReadinessGates` accept only conditions with positive polarity;
-  The Cluster API project might revisit this in the future to stay aligned with Kubernetes or if there are use cases justifying this change.
 - Both `MinReadySeconds` and `ReadinessGates` should be treated as other in-place propagated fields (changing them should not trigger rollouts).
 
 #### Machine Print columns
@@ -924,12 +922,6 @@ type ClusterAvailabilityGate struct {
 |---------------------------|------------------------------|----------------------------------------------------|
 | `AvailabilityGates` (new) | `AvailabilityGates`          | `AvailabilityGates`                                |
 | other fields...           | other fields...              | other fields...                                    |
-
-Notes:
-- Similarly to Pod's `ReadinessGates`, also Cluster's `AvailabilityGates` accepts only conditions with positive polarity;
-  The Cluster API project might revisit this in the future to stay aligned with Kubernetes or if there are use cases justifying this change.
-- In future the Cluster API project might consider ways to make `AvailabilityGates` configurable at ClusterClass level, but
-  this can be implemented as a follow-up.
 
 #### Cluster Print columns
 

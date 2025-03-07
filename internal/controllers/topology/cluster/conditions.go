@@ -238,9 +238,6 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 			}
 			fmt.Fprintf(msgBuilder, " Control plane is upgrading to version %s", *cpVersion)
 
-		case s.UpgradeTracker.ControlPlane.IsScaling:
-			msgBuilder.WriteString(" Control plane is reconciling desired replicas")
-
 		case len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0:
 			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are upgrading",
 				computeNameList(s.UpgradeTracker.MachineDeployments.UpgradingNames()),

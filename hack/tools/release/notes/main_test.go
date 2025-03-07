@@ -177,21 +177,17 @@ func Test_validateConfig(t *testing.T) {
 		errorMessage string
 	}{
 		{
-			name: "Missing fromRef and newTag",
+			name: "Missing fromRef or newTag when branch is set only",
 			args: &notesCmdConfig{
-				branch:  "main",
-				fromRef: "",
-				newTag:  "",
+				branch: "main",
 			},
 			wantErr:      true,
 			errorMessage: "at least one of --from or --release need to be set",
 		},
 		{
-			name: "Missing branch and newTag",
+			name: "Missing branch or newTag when fromRef is set only",
 			args: &notesCmdConfig{
 				fromRef: "ref1/tags",
-				branch:  "",
-				newTag:  "",
 			},
 			wantErr:      true,
 			errorMessage: "at least one of --branch or --release need to be set",
@@ -224,6 +220,15 @@ func Test_validateConfig(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Missing branch when newTag is set",
+			args: &notesCmdConfig{
+				branch: "main",
+				toRef:  "ref2/tags",
+				newTag: "v1.0.0",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -247,7 +252,7 @@ func Test_computeConfigDefaults(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "New minor release, fromRef missing",
+			name: "Calculate fromRef when newTag is a new minor release and toRef",
 			args: &notesCmdConfig{
 				branch: "develop",
 				newTag: "v1.1.0",
@@ -261,7 +266,7 @@ func Test_computeConfigDefaults(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "New patch release, fromRef missing",
+			name: "Calculate fromRef when newTag is not a new minor release, branch and toRef",
 			args: &notesCmdConfig{
 				newTag: "v1.1.3",
 			},
@@ -274,7 +279,7 @@ func Test_computeConfigDefaults(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Invalid semver",
+			name: "Fail when newTag is not a valid semver",
 			args: &notesCmdConfig{
 				newTag: "invalid-tag",
 			},

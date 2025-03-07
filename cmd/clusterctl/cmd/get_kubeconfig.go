@@ -19,9 +19,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -32,6 +34,7 @@ type getKubeconfigOptions struct {
 	kubeconfig        string
 	kubeconfigContext string
 	namespace         string
+	intoKubeconfig    string
 }
 
 var gk = &getKubeconfigOptions{}
@@ -67,6 +70,8 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	getKubeconfigCmd.Flags().StringVar(&gk.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
+	getKubeconfigCmd.Flags().StringVar(&gk.intoKubeconfig, "into-kubeconfig", "",
+		"Path to the kubeconfig file where the resulting kubeconfig will be inserted.")
 
 	// completions
 	getKubeconfigCmd.ValidArgsFunction = resourceNameCompletionFunc(
@@ -98,6 +103,35 @@ func runGetKubeconfig(workloadClusterName string) error {
 	if err != nil {
 		return err
 	}
+	if gk.intoKubeconfig != "" {
+		return intoKubeconfig(gk.intoKubeconfig, out)
+	}
+
 	fmt.Println(out)
 	return nil
+}
+
+func intoKubeconfig(path, kubeconfig string) error {
+	kubeconfigFile, err := os.CreateTemp("", "kubeconfig")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(kubeconfigFile.Name())
+
+	if _, err = kubeconfigFile.WriteString(kubeconfig); err != nil {
+		return err
+	}
+	if err = kubeconfigFile.Close(); err != nil {
+		return err
+	}
+
+	rules := &clientcmd.ClientConfigLoadingRules{
+		Precedence: []string{path, kubeconfigFile.Name()},
+	}
+	config, err := rules.Load()
+	if err != nil {
+		return err
+	}
+
+	return clientcmd.WriteToFile(*config, rules.Precedence[0])
 }

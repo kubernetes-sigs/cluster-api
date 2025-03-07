@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -446,6 +445,11 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 }
 
 func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) *field.Error {
+	// Nothing to do if the version doesn't change.
+	if version.Compare(inVersion, oldVersion, version.WithBuildTags()) == 0 {
+		return nil
+	}
+
 	// Version could only be increased.
 	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithBuildTags()) == -1 {
 		return field.Invalid(
@@ -469,39 +473,27 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 		)
 	}
 
-	// Only check the following cases if the minor version increases by 1 (we already return above for >= 2).
-	ceilVersion = semver.Version{
-		Major: oldVersion.Major,
-		Minor: oldVersion.Minor + 1,
-		Patch: 0,
-	}
-
-	// Return early if its not a minor version upgrade.
-	if !inVersion.GTE(ceilVersion) {
-		return nil
-	}
-
 	allErrs := []error{}
 	// minor version cannot be increased if control plane is upgrading or not yet on the current version
 	if err := validateTopologyControlPlaneVersion(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, fmt.Errorf("blocking version update due to ControlPlane version check: %v", err))
+		allErrs = append(allErrs, err)
 	}
 
 	// minor version cannot be increased if MachineDeployments are upgrading or not yet on the current version
 	if err := validateTopologyMachineDeploymentVersions(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachineDeployment version check: %v", err))
+		allErrs = append(allErrs, err)
 	}
 
 	// minor version cannot be increased if MachinePools are upgrading or not yet on the current version
 	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachinePool version check: %v", err))
+		allErrs = append(allErrs, err)
 	}
 
 	if len(allErrs) > 0 {
 		return field.Invalid(
 			fldPath,
 			fldValue,
-			fmt.Sprintf("minor version update cannot happen at this time: %v", kerrors.NewAggregate(allErrs)),
+			fmt.Sprintf("version cannot be changed: %v", kerrors.NewAggregate(allErrs)),
 		)
 	}
 
@@ -511,39 +503,39 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
 	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef)
 	if err != nil {
-		return errors.Wrap(err, "failed to get ControlPlane object")
+		return errors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane object")
 	}
 
 	cpVersionString, err := contract.ControlPlane().Version().Get(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to get ControlPlane version")
+		return errors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane version")
 	}
 
 	cpVersion, err := semver.ParseTolerant(*cpVersionString)
 	if err != nil {
 		// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-		return errors.New("failed to parse version of ControlPlane")
+		return errors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
 	}
 	if cpVersion.NE(oldVersion) {
-		return fmt.Errorf("ControlPlane version %q does not match the current version %q", cpVersion, oldVersion)
+		return fmt.Errorf("Cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) //nolint:stylecheck // capitalization is intentional
 	}
 
 	provisioning, err := contract.ControlPlane().IsProvisioning(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if ControlPlane is provisioning")
+		return errors.Wrap(err, "failed to check if control plane is provisioning")
 	}
 
 	if provisioning {
-		return errors.New("ControlPlane is currently provisioning")
+		return errors.New("control plane is currently provisioning")
 	}
 
 	upgrading, err := contract.ControlPlane().IsUpgrading(cp)
 	if err != nil {
-		return errors.Wrap(err, "failed to check if ControlPlane is upgrading")
+		return errors.Wrap(err, "failed to check if control plane is upgrading")
 	}
 
 	if upgrading {
-		return errors.New("ControlPlane is still completing a previous upgrade")
+		return errors.New("control plane is still completing a previous upgrade")
 	}
 
 	return nil
@@ -561,7 +553,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 		client.InNamespace(oldCluster.Namespace),
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to read MachineDeployments for managed topology")
+		return errors.Wrap(err, "failed to check if MachineDeployments are upgrading: failed to get MachineDeployments")
 	}
 
 	if len(mds.Items) == 0 {
@@ -576,7 +568,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 		mdVersion, err := semver.ParseTolerant(*md.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to parse MachineDeployment's %q version %q", klog.KObj(md), *md.Spec.Template.Spec.Version)
+			return errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, *md.Spec.Template.Spec.Version)
 		}
 
 		if mdVersion.NE(oldVersion) {
@@ -586,7 +578,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 
 		upgrading, err := check.IsMachineDeploymentUpgrading(ctx, ctrlClient, md)
 		if err != nil {
-			return errors.Wrap(err, "failed to check if MachineDeployment is upgrading")
+			return err
 		}
 		if upgrading {
 			mdUpgradingNames = append(mdUpgradingNames, md.Name)
@@ -594,7 +586,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 	}
 
 	if len(mdUpgradingNames) > 0 {
-		return fmt.Errorf("there are MachineDeployments still completing a previous upgrade: [%s]", strings.Join(mdUpgradingNames, ", "))
+		return fmt.Errorf("there are still MachineDeployments completing a previous upgrade: [%s]", strings.Join(mdUpgradingNames, ", "))
 	}
 
 	return nil
@@ -612,17 +604,16 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		client.InNamespace(oldCluster.Namespace),
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to read MachinePools for managed topology")
+		return errors.Wrap(err, "failed to check if MachinePools are upgrading: failed to get MachinePools")
 	}
 
-	// Return early
 	if len(mps.Items) == 0 {
 		return nil
 	}
 
 	wlClient, err := clusterCacheReader.GetReader(ctx, client.ObjectKeyFromObject(oldCluster))
 	if err != nil {
-		return errors.Wrap(err, "unable to get client for workload cluster")
+		return errors.Wrap(err, "failed to check if MachinePools are upgrading: unable to get client for workload cluster")
 	}
 
 	mpUpgradingNames := []string{}
@@ -633,7 +624,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		mpVersion, err := semver.ParseTolerant(*mp.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to parse MachinePool's %q version %q", klog.KObj(mp), *mp.Spec.Template.Spec.Version)
+			return errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, *mp.Spec.Template.Spec.Version)
 		}
 
 		if mpVersion.NE(oldVersion) {
@@ -643,7 +634,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 
 		upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp)
 		if err != nil {
-			return errors.Wrap(err, "failed to check if MachinePool is upgrading")
+			return err
 		}
 		if upgrading {
 			mpUpgradingNames = append(mpUpgradingNames, mp.Name)
@@ -651,7 +642,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 	}
 
 	if len(mpUpgradingNames) > 0 {
-		return fmt.Errorf("there are MachinePools still completing a previous upgrade: [%s]", strings.Join(mpUpgradingNames, ", "))
+		return fmt.Errorf("there are still MachinePools completing a previous upgrade: [%s]", strings.Join(mpUpgradingNames, ", "))
 	}
 
 	return nil

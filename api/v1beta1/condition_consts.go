@@ -358,3 +358,25 @@ const (
 	// if the references are up-to-date.
 	ClusterClassRefVersionsUpToDateInternalErrorReason = "InternalError"
 )
+
+// Conditions and condition Reasons for the ClusterResourceSet object.
+const (
+	// ResourcesAppliedCondition documents that all resources in the ClusterResourceSet object are applied to
+	// all matching clusters. This indicates all resources exist, and no errors during applying them to all clusters.
+	ResourcesAppliedCondition ConditionType = "ResourcesApplied"
+
+	// RemoteClusterClientFailedReason (Severity=Error) documents failure during getting the remote cluster client.
+	RemoteClusterClientFailedReason = "RemoteClusterClientFailed"
+
+	// ClusterMatchFailedReason (Severity=Warning) documents failure getting clusters that match the clusterSelector.
+	ClusterMatchFailedReason = "ClusterMatchFailed"
+
+	// ApplyFailedReason (Severity=Warning) documents applying at least one of the resources to one of the matching clusters is failed.
+	ApplyFailedReason = "ApplyFailed"
+
+	// RetrievingResourceFailedReason (Severity=Warning) documents at least one of the resources are not successfully retrieved.
+	RetrievingResourceFailedReason = "RetrievingResourceFailed"
+
+	// WrongSecretTypeReason (Severity=Warning) documents at least one of the Secret's type in the resource list is not supported.
+	WrongSecretTypeReason = "WrongSecretType"
+)

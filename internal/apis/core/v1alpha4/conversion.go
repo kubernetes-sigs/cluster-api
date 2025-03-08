@@ -476,3 +476,96 @@ func Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStat
 	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in, out, s)
 }
+
+func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.ClusterResourceSet)
+
+	if err := Convert_v1alpha4_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.ClusterResourceSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
+	return nil
+}
+
+func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.ClusterResourceSet)
+
+	if err := Convert_v1beta1_ClusterResourceSet_To_v1alpha4_ClusterResourceSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
+}
+
+func (src *ClusterResourceSetList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.ClusterResourceSetList)
+
+	return Convert_v1alpha4_ClusterResourceSetList_To_v1beta1_ClusterResourceSetList(src, dst, nil)
+}
+
+func (dst *ClusterResourceSetList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.ClusterResourceSetList)
+
+	return Convert_v1beta1_ClusterResourceSetList_To_v1alpha4_ClusterResourceSetList(src, dst, nil)
+}
+
+func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.ClusterResourceSetBinding)
+
+	if err := Convert_v1alpha4_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &clusterv1.ClusterResourceSetBinding{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.ClusterName = restored.Spec.ClusterName
+	return nil
+}
+
+func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.ClusterResourceSetBinding)
+
+	if err := Convert_v1beta1_ClusterResourceSetBinding_To_v1alpha4_ClusterResourceSetBinding(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (src *ClusterResourceSetBindingList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.ClusterResourceSetBindingList)
+
+	return Convert_v1alpha4_ClusterResourceSetBindingList_To_v1beta1_ClusterResourceSetBindingList(src, dst, nil)
+}
+
+func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.ClusterResourceSetBindingList)
+
+	return Convert_v1beta1_ClusterResourceSetBindingList_To_v1alpha4_ClusterResourceSetBindingList(src, dst, nil)
+}
+
+// Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha4_ClusterResourceSetBindingSpec is a conversion function.
+func Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha4_ClusterResourceSetBindingSpec(in *clusterv1.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s apiconversion.Scope) error {
+	// Spec.ClusterName does not exist in ClusterResourceSetBinding v1alpha4 API.
+	return autoConvert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha4_ClusterResourceSetBindingSpec(in, out, s)
+}
+
+func Convert_v1beta1_ClusterResourceSetStatus_To_v1alpha4_ClusterResourceSetStatus(in *clusterv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1
+	return autoConvert_v1beta1_ClusterResourceSetStatus_To_v1alpha4_ClusterResourceSetStatus(in, out, s)
+}

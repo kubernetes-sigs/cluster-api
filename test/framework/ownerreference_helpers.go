@@ -38,7 +38,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -201,7 +200,7 @@ var (
 
 	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String(), Controller: ptr.To(true)}
 
-	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: addonsv1.GroupVersion.String()}
+	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: clusterv1.GroupVersion.String()}
 )
 
 // ExpOwnerReferenceAssertions maps experimental types to functions which return an error if the passed OwnerReferences
@@ -402,7 +401,7 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 
 // forceClusterResourceSetReconcile forces reconciliation of all ClusterResourceSets.
 func forceClusterResourceSetReconcile(ctx context.Context, cli client.Client, namespace string) {
-	crsList := &addonsv1.ClusterResourceSetList{}
+	crsList := &clusterv1.ClusterResourceSetList{}
 	Expect(cli.List(ctx, crsList, client.InNamespace(namespace))).To(Succeed())
 	for _, crs := range crsList.Items {
 		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))

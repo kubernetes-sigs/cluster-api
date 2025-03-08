@@ -109,3 +109,19 @@ type MachineDrainRule struct{}
 func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr)
 }
+
+// ClusterResourceSet implements a validating and defaulting webhook for ClusterResourceSet.
+type ClusterResourceSet struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr)
+}
+
+// ClusterResourceSetBinding implements a validating webhook for ClusterResourceSetBinding.
+type ClusterResourceSetBinding struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr)
+}

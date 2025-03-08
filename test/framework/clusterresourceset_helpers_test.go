@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 )
 
 func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {

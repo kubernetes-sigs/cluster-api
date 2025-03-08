@@ -286,12 +286,10 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./internal/apis/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
+		paths=./internal/apis/addons/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/internal/webhooks/... \
-		paths=./$(EXP_DIR)/addons/api/... \
-		paths=./$(EXP_DIR)/addons/internal/controllers/... \
-		paths=./$(EXP_DIR)/addons/internal/webhooks/... \
 		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
@@ -389,12 +387,12 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./$(EXP_DIR)/api,./$(EXP_DIR)/addons/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./internal/apis/addons,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
+		paths=./internal/apis/addons/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/hooks/api/... \
@@ -443,6 +441,7 @@ generate-go-conversions: ## Run all generate-go-conversions-* targets
 .PHONY: generate-go-conversions-core
 generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 	$(MAKE) generate-go-conversions-core-api
+	$(MAKE) generate-go-conversions-addons-api
 	$(MAKE) generate-go-conversions-core-exp
 	$(MAKE) generate-go-conversions-core-exp-ipam
 	$(MAKE) generate-go-conversions-core-runtime
@@ -456,16 +455,23 @@ generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go c
 		./internal/apis/core/v1alpha3 \
 		./internal/apis/core/v1alpha4
 
+.PHONY: generate-go-conversions-addons-api
+generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/addons/v1alpha3,./internal/apis/addons/v1alpha4"
+	$(CONVERSION_GEN) \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/apis/addons/v1alpha3 \
+		./internal/apis/addons/v1alpha4
+
 .PHONY: generate-go-conversions-core-exp
 generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go code for core exp
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/addons/v1alpha3,./internal/apis/core/exp/v1alpha4,./internal/apis/core/exp/addons/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/exp/v1alpha3 \
-		./internal/apis/core/exp/v1alpha4 \
-		./internal/apis/core/exp/addons/v1alpha3 \
-		./internal/apis/core/exp/addons/v1alpha4
+		./internal/apis/core/exp/v1alpha4
 
 .PHONY: generate-go-conversions-core-exp-ipam
 generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
@@ -527,7 +533,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
-	for pkg in "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
+	for pkg in "api/v1beta1" "api/addons/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \

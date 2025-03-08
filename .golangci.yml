@@ -144,11 +144,11 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
         alias: expv1
       # CAPI exp addons
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha3
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3
         alias: addonsv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha4
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha4
         alias: addonsv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
+      - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
         alias: addonsv1
       # CAPI exp IPAM
       - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
@@ -282,6 +282,12 @@ issues:
   - linters:
       - staticcheck
     text: "SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release."
+  - linters:
+      - revive
+    text: "exported: type name will be used as clusterresourceset.ClusterResourceSetBindingReconciler by other packages, and that stutters; consider calling this BindingReconciler"
+  - linters:
+      - revive
+    text: "exported: type name will be used as clusterresourceset.ClusterResourceSetReconciler by other packages, and that stutters; consider calling this Reconciler"
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

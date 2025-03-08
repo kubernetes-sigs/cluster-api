@@ -58,9 +58,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
-	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
@@ -72,12 +69,11 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	expwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha3"
-	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha4"
 	expv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3"
 	expv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
+	crscontrollers "sigs.k8s.io/cluster-api/internal/controllers/clusterresourceset"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
@@ -144,10 +140,6 @@ func init() {
 	_ = expv1alpha3.AddToScheme(scheme)
 	_ = expv1alpha4.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
-
-	_ = addonsv1alpha3.AddToScheme(scheme)
-	_ = addonsv1alpha4.AddToScheme(scheme)
-	_ = addonsv1.AddToScheme(scheme)
 
 	_ = runtimev1.AddToScheme(scheme)
 
@@ -477,16 +469,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
-		&addonsv1.ClusterResourceSetBinding{}: {UseCache: true},
-		&addonsv1.ClusterResourceSet{}:        {UseCache: true},
-		&clusterv1.Cluster{}:                  {UseCache: true},
-		&clusterv1.MachineDeployment{}:        {UseCache: true},
-		&clusterv1.MachineDrainRule{}:         {UseCache: true},
-		&clusterv1.MachineHealthCheck{}:       {UseCache: true},
-		&clusterv1.Machine{}:                  {UseCache: true},
-		&clusterv1.MachineSet{}:               {UseCache: true},
-		&ipamv1.IPAddress{}:                   {UseCache: false},
-		&ipamv1.IPAddressClaim{}:              {UseCache: false},
+		&clusterv1.ClusterResourceSetBinding{}: {UseCache: true},
+		&clusterv1.ClusterResourceSet{}:        {UseCache: true},
+		&clusterv1.Cluster{}:                   {UseCache: true},
+		&clusterv1.MachineDeployment{}:         {UseCache: true},
+		&clusterv1.MachineDrainRule{}:          {UseCache: true},
+		&clusterv1.MachineHealthCheck{}:        {UseCache: true},
+		&clusterv1.Machine{}:                   {UseCache: true},
+		&clusterv1.MachineSet{}:                {UseCache: true},
+		&ipamv1.IPAddress{}:                    {UseCache: false},
+		&ipamv1.IPAddressClaim{}:               {UseCache: false},
 	}
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: true}
@@ -671,23 +663,23 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		}
 	}
 
-	if feature.Gates.Enabled(feature.ClusterResourceSet) {
-		if err := (&addonscontrollers.ClusterResourceSetReconciler{
-			Client:           mgr.GetClient(),
-			ClusterCache:     clusterCache,
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), partialSecretCache); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSet")
-			os.Exit(1)
-		}
-		if err := (&addonscontrollers.ClusterResourceSetBindingReconciler{
-			Client:           mgr.GetClient(),
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSetBinding")
-			os.Exit(1)
-		}
+	//if feature.Gates.Enabled(feature.ClusterResourceSet) {
+	if err := (&crscontrollers.ClusterResourceSetReconciler{
+		Client:           mgr.GetClient(),
+		ClusterCache:     clusterCache,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), partialSecretCache); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSet")
+		os.Exit(1)
 	}
+	if err := (&crscontrollers.ClusterResourceSetBindingReconciler{
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSetBinding")
+		os.Exit(1)
+	}
+	//}
 
 	if err := (&controllers.MachineHealthCheckReconciler{
 		Client:           mgr.GetClient(),
@@ -745,13 +737,13 @@ func setupWebhooks(mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheRea
 
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&addonswebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSet")
 		os.Exit(1)
 	}
 	// NOTE: ClusterResourceSetBinding is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&addonswebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSetBinding")
 		os.Exit(1)
 	}

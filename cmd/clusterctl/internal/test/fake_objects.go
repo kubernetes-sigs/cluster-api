@@ -37,7 +37,6 @@ import (
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
 	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1120,17 +1119,17 @@ func (f *FakeClusterResourceSet) ApplyToCluster(cluster *clusterv1.Cluster) *Fak
 }
 
 func (f *FakeClusterResourceSet) Objs() []client.Object {
-	crs := &addonsv1.ClusterResourceSet{
+	crs := &clusterv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterResourceSet",
-			APIVersion: addonsv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
 			Namespace: f.namespace,
 		},
-		Spec: addonsv1.ClusterResourceSetSpec{
-			Resources: []addonsv1.ResourceRef{},
+		Spec: clusterv1.ClusterResourceSetSpec{
+			Resources: []clusterv1.ResourceRef{},
 		},
 	}
 
@@ -1151,7 +1150,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			UID:        crs.UID,
 		}})
 
-		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
+		crs.Spec.Resources = append(crs.Spec.Resources, clusterv1.ResourceRef{
 			Name: secret.Name,
 			Kind: secret.Kind,
 		})
@@ -1171,7 +1170,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			UID:        crs.UID,
 		}})
 
-		crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
+		crs.Spec.Resources = append(crs.Spec.Resources, clusterv1.ResourceRef{
 			Name: configMap.Name,
 			Kind: configMap.Kind,
 		})
@@ -1181,18 +1180,18 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 
 	// Ensures all the binding with the clusters where resources are applied.
 	for _, cluster := range f.clusters {
-		binding := &addonsv1.ClusterResourceSetBinding{
+		binding := &clusterv1.ClusterResourceSetBinding{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ClusterResourceSetBinding",
-				APIVersion: addonsv1.GroupVersion.String(),
+				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cluster.Name,
 				Namespace: cluster.Namespace,
 			},
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
+			Spec: clusterv1.ClusterResourceSetBindingSpec{
 				ClusterName: cluster.Name,
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []*clusterv1.ResourceSetBinding{
 					{
 						ClusterResourceSetName: crs.Name,
 					},
@@ -1212,15 +1211,15 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 
 		objs = append(objs, binding)
 
-		resourceSetBinding := addonsv1.ResourceSetBinding{
+		resourceSetBinding := clusterv1.ResourceSetBinding{
 			ClusterResourceSetName: crs.Name,
-			Resources:              []addonsv1.ResourceBinding{},
+			Resources:              []clusterv1.ResourceBinding{},
 		}
 		binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
 
 		// creates map entries for each cluster/resource of type Secret
 		for _, secret := range f.secrets {
-			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1.ResourceBinding{ResourceRef: addonsv1.ResourceRef{
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, clusterv1.ResourceBinding{ResourceRef: clusterv1.ResourceRef{
 				Name: secret.Name,
 				Kind: "Secret",
 			}})
@@ -1228,7 +1227,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 
 		// creates map entries for each cluster/resource of type ConfigMap
 		for _, configMap := range f.configMaps {
-			resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1.ResourceBinding{ResourceRef: addonsv1.ResourceRef{
+			resourceSetBinding.Resources = append(resourceSetBinding.Resources, clusterv1.ResourceBinding{ResourceRef: clusterv1.ResourceRef{
 				Name: configMap.Name,
 				Kind: "ConfigMap",
 			}})
@@ -1461,8 +1460,8 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
 		FakeNamespacedCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
-		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
-		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "ClusterResourceSet", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
 		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),
 		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlaneTemplate", version),
 		FakeNamespacedCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "GenericInfrastructureCluster", version),

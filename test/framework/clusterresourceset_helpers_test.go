@@ -17,108 +17,107 @@ limitations under the License.
 package framework
 
 import (
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 	tests := []struct {
 		name      string
-		inputCRSB *addonsv1.ClusterResourceSetBinding
-		inputCRS  *addonsv1.ClusterResourceSet
-		want      *addonsv1.ResourceSetBinding
+		inputCRSB *v1beta1.ClusterResourceSetBinding
+		inputCRS  *v1beta1.ClusterResourceSet
+		want      *v1beta1.ResourceSetBinding
 	}{{
 		name: "nil inputs",
 		want: nil,
 	}, {
 		name:      "nil CRS",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{},
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{},
 		want:      nil,
 	}, {
 		name:     "nil CRSB",
-		inputCRS: &addonsv1.ClusterResourceSet{},
+		inputCRS: &v1beta1.ClusterResourceSet{},
 		want:     nil,
 	}, {
 		name:      "CRSB with no bindings",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{},
-		inputCRS:  &addonsv1.ClusterResourceSet{},
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{},
+		inputCRS:  &v1beta1.ClusterResourceSet{},
 		want:      nil,
 	}, {
 		name: "CRSB with no matching bindings",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
 		want:     nil,
 	}, {
 		name: "CRSB with single matching bindings",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "foo"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		want:     &v1beta1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at index 0",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "foo"},
 					{ClusterResourceSetName: "bar"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		want:     &v1beta1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at index 1",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "foo"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		want:     &v1beta1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at middle index",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "foo"},
 					{ClusterResourceSetName: "baz"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		want:     &v1beta1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at last index",
-		inputCRSB: &addonsv1.ClusterResourceSetBinding{
-			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+		inputCRSB: &v1beta1.ClusterResourceSetBinding{
+			Spec: v1beta1.ClusterResourceSetBindingSpec{
+				Bindings: []*v1beta1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "baz"},
 					{ClusterResourceSetName: "foo"},
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
+		inputCRS: &v1beta1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		want:     &v1beta1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

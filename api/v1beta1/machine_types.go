@@ -84,6 +84,9 @@ const (
 	NodeRestrictionLabelDomain = "node-restriction.kubernetes.io"
 	// ManagedNodeLabelDomain is one of the CAPI managed Node label domains.
 	ManagedNodeLabelDomain = "node.cluster.x-k8s.io"
+
+	// ManagedNodeAnnotationDomain is one of the CAPI managed Node annotation domains.
+	ManagedNodeAnnotationDomain = "node.cluster.x-k8s.io"
 )
 
 // Machine's Available condition and corresponding reasons that will be used in v1Beta2 API version.

@@ -20,13 +20,72 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Getting started
 
 ### Create a kind cluster
-A script to create a KIND cluster along with a local Docker registry and the correct mounts to run CAPD is included in the hack/ folder.
 
-To create a pre-configured cluster run:
+This guide offers instructions for using the following CAPI infrastructure providers for running a
+development environment without using real machines or cloud resources:
+
+- [CAPD](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/README.md) - uses Docker containers as workload cluster nodes
+- [CAPK](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt) - uses KubeVirt VMs as workload cluster nodes
+
+CAPD is the default as it's more lightweight and requires less setup. KubeVirt is useful when
+Docker isn't suitable for whatever reason. Other infrastructure providers may be enabled as well
+(see [below](#create-a-tilt-settings-file)).
+
+{{#tabs name:"tab-management-cluster-creation" tabs:"Docker,KubeVirt"}}
+{{#tab Docker}}
+
+To create a kind cluster along with a local Docker registry and the correct mounts to run CAPD, run
+the following:
 
 ```bash
-./hack/kind-install-for-capd.sh
+make kind-cluster
 ```
+
+{{#/tab }}
+{{#tab KubeVirt}}
+
+To create a kind cluster with CAPK, run the following:
+
+```bash
+make kind-cluster-kubevirt
+```
+
+<aside class="note">
+
+KubeVirt uses *container disks* to create VMs inside pods. These are special container images which
+need to be pulled from a registry. To support pulling container disks from private registries as
+well as avoid getting rate-limited by Docker Hub (if used), the CAPK script mounts your Docker
+config file inside the kind cluster to let the Kubelet access your credentials.
+
+The script looks for the Docker config file at `$HOME/.docker/config.json` by default. To specify
+a different path, set the following variable before running Make above:
+
+```bash
+export DOCKER_CONFIG_FILE="/foo/config.json"
+```
+
+</aside>
+
+<aside class="note">
+
+The CAPK script uses [MetalLB](https://metallb.org/) to expose the API servers of workload clusters
+on the local machine. The API servers are exposed as LoadBalancer services handled by MetalLB. For
+this to work, MetalLB needs to figure out your container runtime IP prefix. The script assumes
+Docker is used and figures the IP prefix out automatically. In case a different runtime is used,
+specify your container runtime's IP prefix manually (the first two octets only):
+
+```bash
+export CAPI_METALLB_IP_PREFIX="172.20"
+```
+
+The script uses 255.200-255.250 in the last two octets to set the range MetalLB should use to
+allocate IPs to LoadBalancer services. For example, for `172.20` the resulting IP range is
+`172.20.255.200-172.20.255.250`.
+
+</aside>
+
+{{#/tab }}
+{{#/tabs }}
 
 You can see the status of the cluster with:
 
@@ -36,7 +95,12 @@ kubectl cluster-info --context kind-capi-test
 
 ### Create a tilt-settings file
 
-Next, create a `tilt-settings.yaml` file and place it in your local copy of `cluster-api`. Here is an example that uses the components from the CAPI repo:
+Next, create a `tilt-settings.yaml` file and place it in your local copy of `cluster-api`.
+
+Here are some examples:
+
+{{#tabs name:"tab-tilt-settings" tabs:"Docker,KubeVirt"}}
+{{#tab Docker}}
 
 ```yaml
 default_registry: gcr.io/your-project-name-here
@@ -46,7 +110,33 @@ enable_providers:
 - kubeadm-control-plane
 ```
 
-To use tilt to launch a provider with its own repo, using Cluster API Provider AWS here, `tilt-settings.yaml` should look like:
+{{#/tab }}
+{{#tab KubeVirt}}
+
+```yaml
+enable_providers:
+- kubevirt
+- kubeadm-bootstrap
+- kubeadm-control-plane
+provider_repos:
+# Path to a local clone of CAPK (replace with actual path)
+- ../cluster-api-provider-kubevirt
+kustomize_substitutions:
+  # CAPK needs access to the containerd socket (replace with actual path)
+  CRI_PATH: "/var/run/containerd/containerd.sock"
+  KUBERNETES_VERSION: "v1.30.1"
+  # An example - replace with an appropriate container disk image for the desired k8s version
+  NODE_VM_IMAGE_TEMPLATE: "quay.io/capk/ubuntu-2204-container-disk:v1.30.1"
+# Allow deploying CAPK workload clusters from the Tilt UI (optional)
+template_dirs:
+  kubevirt:
+  - ../cluster-api-provider-kubevirt/templates
+```
+
+{{#/tab }}
+{{#/tabs }}
+
+Other infrastructure providers may be added to the cluster using local clones and a configuration similar to the following:
 
 ```yaml
 default_registry: gcr.io/your-project-name-here

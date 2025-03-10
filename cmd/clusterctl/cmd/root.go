@@ -218,7 +218,7 @@ func handlePlugins() {
 			case "help", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
 				// Don't search for a plugin
 			default:
-				if err := handlePluginCommand(pluginHandler, cmdPathPieces, 0); err != nil {
+				if err = handlePluginCommand(pluginHandler, cmdPathPieces, 0); err != nil {
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 					os.Exit(1)
 				}

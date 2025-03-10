@@ -78,10 +78,6 @@ issues:
     text: "maxlength"
     linters:
       - kal
-  - path: "api/v1beta1/*"
-    text: "must have a maximum length, add (kubebuilder:validation:MaxLength|kubebuilder:validation:items:MaxLength) marker"
-    linters:
-      - kal
   # controller-gen does not allow to add MaxItems to Schemaless fields
   - path: "api/v1beta1/*"
     text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"

@@ -52,8 +52,9 @@ var (
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck.
 type MachineHealthCheckSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 
 	// selector is a label selector to match machines whose health will be exercised
@@ -88,6 +89,7 @@ type MachineHealthCheckSpec struct {
 	//
 	// +optional
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	// +kubebuilder:validation:MaxLength=32
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
 	// nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
@@ -172,6 +174,7 @@ type MachineHealthCheckStatus struct {
 	// targets shows the current list of machines the machine health check is watching
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:items:MaxLength=253
 	Targets []string `json:"targets,omitempty"`
 
 	// conditions defines current service state of the MachineHealthCheck.

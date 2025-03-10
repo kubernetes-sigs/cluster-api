@@ -278,6 +278,7 @@ var (
 )
 
 // MachineAddressType describes a valid MachineAddress type.
+// +kubebuilder:validation:MaxLength=16
 type MachineAddressType string
 
 // Define the MachineAddressType constants.
@@ -297,6 +298,7 @@ type MachineAddress struct {
 
 	// address is the machine address.
 	// +required
+	// +kubebuilder:validation:MaxLength=256
 	Address string `json:"address"`
 }
 

@@ -377,8 +377,9 @@ const (
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 
 	// bootstrap is a reference to a local struct which encapsulates
@@ -394,6 +395,7 @@ type MachineSpec struct {
 	// version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 
 	// providerID is the identification ID of the machine provided by the provider.
@@ -407,11 +409,13 @@ type MachineSpec struct {
 	// This field will be set by the actuators and consumed by higher level entities like autoscaler that will
 	// be interfacing with cluster-api as generic provider.
 	// +optional
+	// +kubebuilder:validation:MaxLength=253
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
 	// The minimum number of seconds for which a Machine should be ready before considering it available.
@@ -542,6 +546,7 @@ type MachineStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// addresses is a list of addresses assigned to the machine.
@@ -552,6 +557,7 @@ type MachineStatus struct {
 	// phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
+	// +kubebuilder:validation:MaxLength=50
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
@@ -657,6 +663,7 @@ type Bootstrap struct {
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
+	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 }
 

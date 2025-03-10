@@ -30,6 +30,7 @@ type IPAddressSpec struct {
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 
 	// address is the IP address.
+	// +kubebuilder:validation:MaxLength=256
 	Address string `json:"address"`
 
 	// prefix is the prefix of the address.
@@ -37,6 +38,7 @@ type IPAddressSpec struct {
 
 	// gateway is the network gateway of the network the address is from.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	Gateway string `json:"gateway,omitempty"`
 }
 

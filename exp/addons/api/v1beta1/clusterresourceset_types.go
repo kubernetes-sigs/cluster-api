@@ -87,6 +87,7 @@ const (
 type ResourceRef struct {
 	// name of the resource that is in the same namespace with ClusterResourceSet object.
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name"`
 
 	// kind of the resource. Supported kinds are: Secrets and ConfigMaps.

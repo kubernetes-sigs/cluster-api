@@ -29,6 +29,7 @@ import (
 )
 
 // RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
+// +kubebuilder:validation:Enum=RollingUpdate
 type RolloutStrategyType string
 
 const (
@@ -90,6 +91,7 @@ type KubeadmControlPlaneSpec struct {
 	// Please use a newer patch version with the new registry instead. The default registries of kubeadm are:
 	//   * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
 	//   * k8s.gcr.io (old registry): all older versions
+	// +kubebuilder:validation:MaxLength=256
 	Version string `json:"version"`
 
 	// machineTemplate contains information about how machines
@@ -280,6 +282,7 @@ type KubeadmControlPlaneStatus struct {
 	// describe.. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +kubebuilder:validation:MaxLength=4096
 	Selector string `json:"selector,omitempty"`
 
 	// replicas is the total number of non-terminated machines targeted by this control plane
@@ -290,6 +293,7 @@ type KubeadmControlPlaneStatus struct {
 	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 
 	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
@@ -343,6 +347,7 @@ type KubeadmControlPlaneStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
@@ -392,6 +397,7 @@ type KubeadmControlPlaneV1Beta2Status struct {
 // more remediations than expected might happen.
 type LastRemediationStatus struct {
 	// machine is the machine name of the latest machine being remediated.
+	// +kubebuilder:validation:MaxLength=253
 	Machine string `json:"machine"`
 
 	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.

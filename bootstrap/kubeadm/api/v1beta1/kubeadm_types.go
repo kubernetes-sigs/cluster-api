@@ -61,6 +61,7 @@ type InitConfiguration struct {
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:items:MaxLength=256
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during
@@ -88,6 +89,7 @@ type ClusterConfiguration struct {
 	// kubernetesVersion is the target version of the control plane.
 	// NB: This value defaults to the Machine object spec.version
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
@@ -103,6 +105,7 @@ type ClusterConfiguration struct {
 	// could be used for assigning a stable DNS to the control plane.
 	// NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	ControlPlaneEndpoint string `json:"controlPlaneEndpoint,omitempty"`
 
 	// apiServer contains extra settings for the API server control plane component
@@ -124,6 +127,7 @@ type ClusterConfiguration struct {
 	// certificatesDir specifies where to store or look for all required certificates.
 	// NB: if not provided, this will default to `/etc/kubernetes/pki`
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	CertificatesDir string `json:"certificatesDir,omitempty"`
 
 	// imageRepository sets the container registry to pull images from.
@@ -138,6 +142,7 @@ type ClusterConfiguration struct {
 	//  `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components
 	//   and for kube-proxy, while `registry.k8s.io` will be used for all the other images.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	ImageRepository string `json:"imageRepository,omitempty"`
 
 	// featureGates enabled by the user.
@@ -146,6 +151,7 @@ type ClusterConfiguration struct {
 
 	// clusterName is the cluster name
 	// +optional
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName,omitempty"`
 }
 
@@ -176,6 +182,7 @@ type APIServer struct {
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=253
 	CertSANs []string `json:"certSANs,omitempty"`
 
 	// timeoutForControlPlane controls the timeout that we use for API server to appear
@@ -195,11 +202,13 @@ type ImageMeta struct {
 	// imageRepository sets the container registry to pull images from.
 	// if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	ImageRepository string `json:"imageRepository,omitempty"`
 
 	// imageTag allows to specify a tag for the image.
 	// In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	ImageTag string `json:"imageTag,omitempty"`
 
 	// TODO: evaluate if we need also a ImageName based on user feedbacks
@@ -224,6 +233,7 @@ type ClusterStatus struct {
 type APIEndpoint struct {
 	// advertiseAddress sets the IP address for the API server to advertise.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	AdvertiseAddress string `json:"advertiseAddress,omitempty"`
 
 	// bindPort sets the secure port for the API Server to bind to.
@@ -240,10 +250,12 @@ type NodeRegistrationOptions struct {
 	// This field is also used in the CommonName field of the kubelet's client certificate to the API server.
 	// Defaults to the hostname of the node if not provided.
 	// +optional
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
 	// criSocket is used to retrieve container runtime info. This information will be annotated to the Node API object, for later re-use
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	CRISocket string `json:"criSocket,omitempty"`
 
 	// taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
@@ -262,6 +274,7 @@ type NodeRegistrationOptions struct {
 	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:items:MaxLength=512
 	IgnorePreflightErrors []string `json:"ignorePreflightErrors,omitempty"`
 
 	// imagePullPolicy specifies the policy for image pulling
@@ -337,14 +350,17 @@ type Networking struct {
 	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
 	// to "10.96.0.0/12" if that's unset.
 	// +optional
+	// +kubebuilder:validation:MaxLength=1024
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 	// podSubnet is the subnet used by pods.
 	// If unset, the API server will not allocate CIDR ranges for every node.
 	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
 	// +optional
+	// +kubebuilder:validation:MaxLength=1024
 	PodSubnet string `json:"podSubnet,omitempty"`
 	// dnsDomain is the dns domain used by k8s services. Defaults to "cluster.local".
 	// +optional
+	// +kubebuilder:validation:MaxLength=253
 	DNSDomain string `json:"dnsDomain,omitempty"`
 }
 
@@ -356,6 +372,7 @@ type BootstrapToken struct {
 	// description sets a human-friendly message why this token exists and what it's used
 	// for, so other administrators can know its purpose.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	Description string `json:"description,omitempty"`
 	// ttl defines the time to live for this token. Defaults to 24h.
 	// Expires and TTL are mutually exclusive.
@@ -369,11 +386,13 @@ type BootstrapToken struct {
 	// for establishing bidirectional trust, but that can be changed here.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=256
 	Usages []string `json:"usages,omitempty"`
 	// groups specifies the extra groups that this token will authenticate as when/if
 	// used for authentication
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=256
 	Groups []string `json:"groups,omitempty"`
 }
 
@@ -399,6 +418,7 @@ type LocalEtcd struct {
 	// dataDir is the directory etcd will place its data.
 	// Defaults to "/var/lib/etcd".
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	DataDir string `json:"dataDir,omitempty"`
 
 	// extraArgs are extra arguments provided to the etcd binary
@@ -416,11 +436,13 @@ type LocalEtcd struct {
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=253
 	ServerCertSANs []string `json:"serverCertSANs,omitempty"`
 
 	// peerCertSANs sets extra Subject Alternative Names for the etcd peer signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=253
 	PeerCertSANs []string `json:"peerCertSANs,omitempty"`
 }
 
@@ -429,18 +451,22 @@ type LocalEtcd struct {
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:items:MaxLength=256
 	Endpoints []string `json:"endpoints"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +kubebuilder:validation:MaxLength=512
 	CAFile string `json:"caFile"`
 
 	// certFile is an SSL certification file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +kubebuilder:validation:MaxLength=512
 	CertFile string `json:"certFile"`
 
 	// keyFile is an SSL key file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +kubebuilder:validation:MaxLength=512
 	KeyFile string `json:"keyFile"`
 }
 
@@ -461,6 +487,7 @@ type JoinConfiguration struct {
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
+	// +kubebuilder:validation:MaxLength=512
 	CACertPath string `json:"caCertPath,omitempty"`
 
 	// discovery specifies the options for the kubelet to use during the TLS Bootstrap process
@@ -478,6 +505,7 @@ type JoinConfiguration struct {
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:items:MaxLength=256
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during
@@ -509,6 +537,7 @@ type Discovery struct {
 	// If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
 	// If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	TLSBootstrapToken string `json:"tlsBootstrapToken,omitempty"`
 
 	// timeout modifies the discovery timeout
@@ -520,10 +549,12 @@ type Discovery struct {
 type BootstrapTokenDiscovery struct {
 	// token is a token used to validate cluster information
 	// fetched from the control-plane.
+	// +kubebuilder:validation:MaxLength=512
 	Token string `json:"token"`
 
 	// apiServerEndpoint is an IP or domain name to the API server from which info will be fetched.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	APIServerEndpoint string `json:"apiServerEndpoint,omitempty"`
 
 	// caCertHashes specifies a set of public key pins to verify
@@ -536,6 +567,7 @@ type BootstrapTokenDiscovery struct {
 	// openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=512
 	CACertHashes []string `json:"caCertHashes,omitempty"`
 
 	// unsafeSkipCAVerification allows token-based discovery
@@ -548,6 +580,7 @@ type BootstrapTokenDiscovery struct {
 // FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
 type FileDiscovery struct {
 	// kubeConfigPath is used to specify the actual file path or URL to the kubeconfig file from which to load cluster information
+	// +kubebuilder:validation:MaxLength=512
 	KubeConfigPath string `json:"kubeConfigPath"`
 
 	// kubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
@@ -584,10 +617,12 @@ type KubeConfigCluster struct {
 	// Defaults to https:// + Cluster.Spec.ControlPlaneEndpoint.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	Server string `json:"server,omitempty"`
 
 	// tlsServerName is used to check server certificate. If TLSServerName is empty, the hostname used to contact the server is used.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	TLSServerName string `json:"tlsServerName,omitempty"`
 
 	// insecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
@@ -599,6 +634,7 @@ type KubeConfigCluster struct {
 	// Defaults to the Cluster's CA certificate if empty.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=51200
 	CertificateAuthorityData []byte `json:"certificateAuthorityData,omitempty"`
 
 	// proxyURL is the URL to the proxy to be used for all requests made by this
@@ -612,6 +648,7 @@ type KubeConfigCluster struct {
 	// attach, port forward).
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	ProxyURL string `json:"proxyURL,omitempty"`
 }
 
@@ -634,6 +671,7 @@ type KubeConfigUser struct {
 // KubeConfigAuthProvider holds the configuration for a specified auth provider.
 type KubeConfigAuthProvider struct {
 	// name is the name of the authentication plugin.
+	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// config holds the parameters for the authentication plugin.
@@ -648,11 +686,13 @@ type KubeConfigAuthProvider struct {
 // and output format.
 type KubeConfigAuthExec struct {
 	// command to execute.
+	// +kubebuilder:validation:MaxLength=1024
 	Command string `json:"command"`
 
 	// args is the arguments to pass to the command when executing it.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=512
 	Args []string `json:"args,omitempty"`
 
 	// env defines additional environment variables to expose to the process. These
@@ -666,6 +706,7 @@ type KubeConfigAuthExec struct {
 	// the same encoding version as the input.
 	// Defaults to client.authentication.k8s.io/v1 if not set.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// provideClusterInfo determines whether or not to provide cluster information,
@@ -681,8 +722,10 @@ type KubeConfigAuthExec struct {
 // credential plugin.
 type KubeConfigAuthExecEnv struct {
 	// name of the environment variable
+	// +kubebuilder:validation:MaxLength=512
 	Name string `json:"name"`
 	// value of the environment variable
+	// +kubebuilder:validation:MaxLength=512
 	Value string `json:"value"`
 }
 
@@ -690,11 +733,14 @@ type KubeConfigAuthExecEnv struct {
 // host.
 type HostPathMount struct {
 	// name of the volume inside the pod template.
+	// +kubebuilder:validation:MaxLength=512
 	Name string `json:"name"`
 	// hostPath is the path in the host that will be mounted inside
 	// the pod.
+	// +kubebuilder:validation:MaxLength=512
 	HostPath string `json:"hostPath"`
 	// mountPath is the path inside the pod where hostPath will be mounted.
+	// +kubebuilder:validation:MaxLength=512
 	MountPath string `json:"mountPath"`
 	// readOnly controls write access to the volume
 	// +optional
@@ -774,6 +820,7 @@ type Patches struct {
 	// specifies additional files to be created on the machine, either with content inline or
 	// by referencing a secret.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	Directory string `json:"directory,omitempty"`
 }
 

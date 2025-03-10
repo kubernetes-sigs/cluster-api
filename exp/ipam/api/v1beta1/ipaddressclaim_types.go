@@ -27,6 +27,7 @@ import (
 type IPAddressClaimSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +optional
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// poolRef is a reference to the pool from which an IP address should be created.

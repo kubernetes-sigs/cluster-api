@@ -355,7 +355,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -880,7 +879,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -2304,7 +2302,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref common.R
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -3132,7 +3129,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref common.
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -3432,7 +3428,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -3879,7 +3874,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{

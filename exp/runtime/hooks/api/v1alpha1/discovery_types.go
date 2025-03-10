@@ -44,6 +44,7 @@ type DiscoveryResponse struct {
 	// handlers defines the current ExtensionHandlers supported by an Extension.
 	// +listType=map
 	// +listMapKey=name
+	// +optional
 	Handlers []ExtensionHandler `json:"handlers"`
 }
 
@@ -51,26 +52,32 @@ type DiscoveryResponse struct {
 // the hook it supports.
 type ExtensionHandler struct {
 	// name is the name of the ExtensionHandler.
+	// +required
 	Name string `json:"name"`
 
 	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
+	// +required
 	RequestHook GroupVersionHook `json:"requestHook"`
 
 	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
 	// This is defaulted to 10 if left undefined.
-	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+	// +optional
+	TimeoutSeconds *int32 `json:"timeoutSeconds"`
 
 	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// This is defaulted to FailurePolicyFail if not defined.
+	// +optional
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
 }
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
 	// apiVersion is the group and version of the Hook
+	// +required
 	APIVersion string `json:"apiVersion"`
 
 	// hook is the name of the hook
+	// +required
 	Hook string `json:"hook"`
 }
 

@@ -774,6 +774,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the name of the cluster.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -781,6 +782,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
 							Description: "namespace is the namespace of the cluster.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -805,6 +807,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 						},
 					},
 				},
+				Required: []string{"name", "namespace"},
 			},
 		},
 		Dependencies: []string{
@@ -859,11 +862,13 @@ func schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref common.Referen
 					"ipFamily": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ipFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.\n\nDeprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"ipFamily"},
 			},
 		},
 	}
@@ -879,6 +884,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.Refere
 					"version": {
 						SchemaProps: spec.SchemaProps{
 							Description: "version is the Kubernetes version of the Cluster. NOTE: Please note that this version might temporarily differ from the version of the ControlPlane or workers while an upgrade process is being orchestrated.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -886,11 +892,13 @@ func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.Refere
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class is the name of the ClusterClass of the Cluster.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"version", "class"},
 			},
 		},
 	}
@@ -1075,11 +1083,13 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateInfrastructure
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name of the infrastructureRef.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -1181,7 +1191,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"status", "message", "variables"},
+				Required: []string{"status", "message"},
 			},
 		},
 		Dependencies: []string{
@@ -1277,7 +1287,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"status", "message", "handlers"},
+				Required: []string{"status", "message"},
 			},
 		},
 		Dependencies: []string{
@@ -1396,7 +1406,6 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"variables", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -1447,7 +1456,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"uid", "holderReference", "object", "variables"},
+				Required: []string{"uid", "holderReference", "object"},
 			},
 		},
 		Dependencies: []string{
@@ -1508,7 +1517,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"status", "message", "items"},
+				Required: []string{"status", "message"},
 			},
 		},
 		Dependencies: []string{
@@ -1669,11 +1678,13 @@ func schema_runtime_hooks_api_v1alpha1_MachineBootstrapConfigRefBuiltins(ref com
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name of the bootstrap.configRef.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -1689,6 +1700,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 					"version": {
 						SchemaProps: spec.SchemaProps{
 							Description: "version is the Kubernetes version of the MachineDeployment, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachineDeployment machines while an upgrade process is being orchestrated.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1702,6 +1714,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class is the class name of the MachineDeployment, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1709,6 +1722,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the name of the MachineDeployment, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1716,6 +1730,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 					"topologyName": {
 						SchemaProps: spec.SchemaProps{
 							Description: "topologyName is the topology name of the MachineDeployment, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1740,6 +1755,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 						},
 					},
 				},
+				Required: []string{"version", "class", "name", "topologyName"},
 			},
 		},
 		Dependencies: []string{
@@ -1757,11 +1773,13 @@ func schema_runtime_hooks_api_v1alpha1_MachineInfrastructureRefBuiltins(ref comm
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name of the infrastructureRef.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -1777,6 +1795,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 					"version": {
 						SchemaProps: spec.SchemaProps{
 							Description: "version is the Kubernetes version of the MachinePool, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachinePool machines while an upgrade process is being orchestrated.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1790,6 +1809,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class is the class name of the MachinePool, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1797,6 +1817,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the name of the MachinePool, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1804,6 +1825,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 					"topologyName": {
 						SchemaProps: spec.SchemaProps{
 							Description: "topologyName is the topology name of the MachinePool, to which the current template belongs to.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1828,6 +1850,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 						},
 					},
 				},
+				Required: []string{"version", "class", "name", "topologyName"},
 			},
 		},
 		Dependencies: []string{
@@ -1900,7 +1923,6 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"variables", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -1943,7 +1965,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 						},
 					},
 				},
-				Required: []string{"holderReference", "object", "variables"},
+				Required: []string{"holderReference", "object"},
 			},
 		},
 		Dependencies: []string{

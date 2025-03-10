@@ -122,12 +122,14 @@ type ClusterClassSpec struct {
 	// variables defines the variables which can be configured
 	// in the Cluster topology and are then used in patches.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterClassVariable `json:"variables,omitempty"`
 
 	// patches defines the patches which are applied to customize
 	// referenced templates of a ClusterClass.
 	// Note: Patches will be applied in the order of the array.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	Patches []ClusterClassPatch `json:"patches,omitempty"`
 }
 
@@ -235,6 +237,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
+	// +kubebuilder:validation:MaxItems=100
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
 	// machinePools is a list of machine pool classes that can be used to create
@@ -242,6 +245,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
+	// +kubebuilder:validation:MaxItems=100
 	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
 
@@ -356,6 +360,7 @@ type MachineHealthCheckClass struct {
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
 	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
@@ -415,6 +420,7 @@ type MachinePoolClass struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
 	// namingStrategy allows changing the naming pattern used when creating the MachinePool.
@@ -586,6 +592,7 @@ type JSONSchemaProps struct {
 	// required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	Required []string `json:"required,omitempty"`
 
 	// items specifies fields of an array.
@@ -667,6 +674,7 @@ type JSONSchemaProps struct {
 	// enum is the list of valid values of the variable.
 	// NOTE: Can be set for all types.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Enum []apiextensionsv1.JSON `json:"enum,omitempty"`
 
 	// default is the default value of the variable.
@@ -678,6 +686,7 @@ type JSONSchemaProps struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=rule
+	// +kubebuilder:validation:MaxItems=100
 	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
 
 	// x-metadata is the metadata of a variable or a nested field within a variable.
@@ -879,6 +888,7 @@ type ClusterClassPatch struct {
 	// Note: Patches will be applied in the order of the array.
 	// Note: Exactly one of Definitions or External must be set.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Definitions []PatchDefinition `json:"definitions,omitempty"`
 
 	// external defines an external patch.
@@ -895,6 +905,7 @@ type PatchDefinition struct {
 	// jsonPatches defines the patches which should be applied on the templates
 	// matching the selector.
 	// Note: Patches will be applied in the order of the array.
+	// +kubebuilder:validation:MaxItems=100
 	JSONPatches []JSONPatch `json:"jsonPatches"`
 }
 
@@ -944,6 +955,7 @@ type PatchSelectorMatch struct {
 type PatchSelectorMatchMachineDeploymentClass struct {
 	// names selects templates by class names.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Names []string `json:"names,omitempty"`
 }
 
@@ -952,6 +964,7 @@ type PatchSelectorMatchMachineDeploymentClass struct {
 type PatchSelectorMatchMachinePoolClass struct {
 	// names selects templates by class names.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Names []string `json:"names,omitempty"`
 }
 
@@ -1035,6 +1048,7 @@ type LocalObjectTemplate struct {
 type ClusterClassStatus struct {
 	// variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
 	// +optional
+	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterClassStatusVariable `json:"variables,omitempty"`
 
 	// conditions defines current observed state of the ClusterClass.
@@ -1072,6 +1086,7 @@ type ClusterClassStatusVariable struct {
 	DefinitionsConflict bool `json:"definitionsConflict"`
 
 	// definitions is a list of definitions for a variable.
+	// +kubebuilder:validation:MaxItems=100
 	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`
 }
 

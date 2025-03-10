@@ -814,6 +814,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
+                        maxItems: 100
                         type: array
                     required:
                     - cidrBlocks
@@ -829,6 +830,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
+                        maxItems: 100
                         type: array
                     required:
                     - cidrBlocks
@@ -1088,6 +1090,7 @@ spec:
                               - timeout
                               - type
                               type: object
+                            maxItems: 100
                             type: array
                           unhealthyRange:
                             description: |-
@@ -1230,6 +1233,7 @@ spec:
                               - name
                               - value
                               type: object
+                            maxItems: 1000
                             type: array
                             x-kubernetes-list-map-keys:
                             - name
@@ -1277,6 +1281,7 @@ spec:
                       - name
                       - value
                       type: object
+                    maxItems: 1000
                     type: array
                     x-kubernetes-list-map-keys:
                     - name
@@ -1430,6 +1435,7 @@ spec:
                                     - timeout
                                     - type
                                     type: object
+                                  maxItems: 100
                                   type: array
                                 unhealthyRange:
                                   description: |-
@@ -1677,6 +1683,7 @@ spec:
                                     - name
                                     - value
                                     type: object
+                                  maxItems: 1000
                                   type: array
                                   x-kubernetes-list-map-keys:
                                   - name
@@ -1686,6 +1693,7 @@ spec:
                           - class
                           - name
                           type: object
+                        maxItems: 2000
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
@@ -1710,6 +1718,7 @@ spec:
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               items:
                                 type: string
+                              maxItems: 100
                               type: array
                             metadata:
                               description: |-
@@ -1810,6 +1819,7 @@ spec:
                                     - name
                                     - value
                                     type: object
+                                  maxItems: 1000
                                   type: array
                                   x-kubernetes-list-map-keys:
                                   - name
@@ -1819,6 +1829,7 @@ spec:
                           - class
                           - name
                           type: object
+                        maxItems: 2000
                         type: array
                         x-kubernetes-list-map-keys:
                         - name

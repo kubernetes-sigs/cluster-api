@@ -802,6 +802,7 @@ spec:
                   - timeout
                   - type
                   type: object
+                maxItems: 100
                 type: array
               unhealthyRange:
                 description: |-
@@ -897,6 +898,7 @@ spec:
                   health check is watching
                 items:
                   type: string
+                maxItems: 10000
                 type: array
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified

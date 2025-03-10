@@ -462,6 +462,7 @@ spec:
                   - kind
                   - name
                   type: object
+                maxItems: 100
                 type: array
               strategy:
                 description: strategy is the strategy to be used during applying resources.

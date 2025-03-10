@@ -1063,6 +1063,7 @@ spec:
                   should be attached to.
                 items:
                   type: string
+                maxItems: 100
                 type: array
               minReadySeconds:
                 description: |-
@@ -1078,6 +1079,7 @@ spec:
                   This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
                 items:
                   type: string
+                maxItems: 10000
                 type: array
               replicas:
                 description: |-
@@ -1444,6 +1446,7 @@ spec:
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
+                maxItems: 10000
                 type: array
               observedGeneration:
                 description: observedGeneration is the latest generation observed

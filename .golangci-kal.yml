@@ -74,8 +74,23 @@ issues:
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
-  - path: "api/v1alpha1/*|api/v1alpha3/*|api/v1beta1/*"
+  - path: "api/v1alpha1/*|api/v1alpha3/*"
     text: "maxlength"
+    linters:
+      - kal
+  - path: "api/v1beta1/*"
+    text: "must have a maximum length, add (kubebuilder:validation:MaxLength|kubebuilder:validation:items:MaxLength) marker"
+    linters:
+      - kal
+  # controller-gen does not allow to add MaxItems to Schemaless fields
+  - path: "api/v1beta1/*"
+    text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
+    linters:
+      - kal
+  # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
+  # This exclude will  be removed once https://github.com/JoelSpeed/kal/issues/38 is resolved.
+  - path: "api/v1beta1/*"
+    text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
       - kal
   - path: "api/v1alpha1/*|api/v1beta1/*"

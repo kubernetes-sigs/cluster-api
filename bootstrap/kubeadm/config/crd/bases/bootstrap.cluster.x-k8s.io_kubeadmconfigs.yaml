@@ -2052,6 +2052,7 @@ spec:
                           for the API Server signing cert.
                         items:
                           type: string
+                        maxItems: 100
                         type: array
                       extraArgs:
                         additionalProperties:
@@ -2181,6 +2182,7 @@ spec:
                           required:
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
@@ -2213,6 +2215,7 @@ spec:
                           - mountPath
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                       timeoutForControlPlane:
                         description: timeoutForControlPlane controls the timeout that
@@ -2381,6 +2384,7 @@ spec:
                           required:
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
@@ -2413,6 +2417,7 @@ spec:
                           - mountPath
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                     type: object
                   dns:
@@ -2454,6 +2459,7 @@ spec:
                             description: endpoints of etcd members. Required for ExternalEtcd.
                             items:
                               type: string
+                            maxItems: 50
                             type: array
                           keyFile:
                             description: |-
@@ -2606,6 +2612,7 @@ spec:
                               required:
                               - name
                               type: object
+                            maxItems: 100
                             type: array
                           imageRepository:
                             description: |-
@@ -2622,12 +2629,14 @@ spec:
                               Names for the etcd peer signing cert.
                             items:
                               type: string
+                            maxItems: 100
                             type: array
                           serverCertSANs:
                             description: serverCertSANs sets extra Subject Alternative
                               Names for the etcd server signing cert.
                             items:
                               type: string
+                            maxItems: 100
                             type: array
                         type: object
                     type: object
@@ -2817,6 +2826,7 @@ spec:
                           required:
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
@@ -2849,6 +2859,7 @@ spec:
                           - mountPath
                           - name
                           type: object
+                        maxItems: 100
                         type: array
                     type: object
                 type: object
@@ -2870,6 +2881,7 @@ spec:
                             command for creating the file system.
                           items:
                             type: string
+                          maxItems: 100
                           type: array
                         filesystem:
                           description: filesystem specifies the file system type.
@@ -2898,6 +2910,7 @@ spec:
                       - filesystem
                       - label
                       type: object
+                    maxItems: 100
                     type: array
                   partitions:
                     description: partitions specifies the list of the partitions to
@@ -2929,6 +2942,7 @@ spec:
                       - device
                       - layout
                       type: object
+                    maxItems: 100
                     type: array
                 type: object
               files:
@@ -2990,6 +3004,7 @@ spec:
                   required:
                   - path
                   type: object
+                maxItems: 200
                 type: array
               format:
                 description: format specifies the output format of the bootstrap data
@@ -3052,6 +3067,7 @@ spec:
                             used for authentication
                           items:
                             type: string
+                          maxItems: 100
                           type: array
                         token:
                           description: |-
@@ -3069,10 +3085,12 @@ spec:
                             for establishing bidirectional trust, but that can be changed here.
                           items:
                             type: string
+                          maxItems: 100
                           type: array
                       required:
                       - token
                       type: object
+                    maxItems: 100
                     type: array
                   kind:
                     description: |-
@@ -3118,6 +3136,7 @@ spec:
                           errors to be ignored when the current node is registered.
                         items:
                           type: string
+                        maxItems: 50
                         type: array
                       imagePullPolicy:
                         description: |-
@@ -3185,6 +3204,7 @@ spec:
                           - effect
                           - key
                           type: object
+                        maxItems: 100
                         type: array
                     type: object
                   patches:
@@ -3213,6 +3233,7 @@ spec:
                       This option takes effect only on Kubernetes >=1.22.0.
                     items:
                       type: string
+                    maxItems: 50
                     type: array
                 type: object
               joinConfiguration:
@@ -3278,6 +3299,7 @@ spec:
                               openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
                             items:
                               type: string
+                            maxItems: 100
                             type: array
                           token:
                             description: |-
@@ -3387,6 +3409,7 @@ spec:
                                           to the command when executing it.
                                         items:
                                           type: string
+                                        maxItems: 100
                                         type: array
                                       command:
                                         description: command to execute.
@@ -3413,6 +3436,7 @@ spec:
                                           - name
                                           - value
                                           type: object
+                                        maxItems: 100
                                         type: array
                                       provideClusterInfo:
                                         description: |-
@@ -3471,6 +3495,7 @@ spec:
                           errors to be ignored when the current node is registered.
                         items:
                           type: string
+                        maxItems: 50
                         type: array
                       imagePullPolicy:
                         description: |-
@@ -3538,6 +3563,7 @@ spec:
                           - effect
                           - key
                           type: object
+                        maxItems: 100
                         type: array
                     type: object
                   patches:
@@ -3566,6 +3592,7 @@ spec:
                       This option takes effect only on Kubernetes >=1.22.0.
                     items:
                       type: string
+                    maxItems: 50
                     type: array
                 type: object
               mounts:
@@ -3575,6 +3602,7 @@ spec:
                   items:
                     type: string
                   type: array
+                maxItems: 100
                 type: array
               ntp:
                 description: ntp specifies NTP configuration
@@ -3586,6 +3614,7 @@ spec:
                     description: servers specifies which NTP servers to use
                     items:
                       type: string
+                    maxItems: 100
                     type: array
                 type: object
               postKubeadmCommands:
@@ -3593,12 +3622,14 @@ spec:
                   kubeadm runs
                 items:
                   type: string
+                maxItems: 1000
                 type: array
               preKubeadmCommands:
                 description: preKubeadmCommands specifies extra commands to run before
                   kubeadm runs
                 items:
                   type: string
+                maxItems: 1000
                 type: array
               useExperimentalRetryJoin:
                 description: |-
@@ -3681,6 +3712,7 @@ spec:
                         keys for the user
                       items:
                         type: string
+                      maxItems: 100
                       type: array
                     sudo:
                       description: sudo specifies a sudo role for the user
@@ -3688,6 +3720,7 @@ spec:
                   required:
                   - name
                   type: object
+                maxItems: 100
                 type: array
               verbosity:
                 description: |-

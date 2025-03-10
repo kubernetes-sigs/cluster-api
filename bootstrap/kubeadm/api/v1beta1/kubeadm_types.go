@@ -38,6 +38,7 @@ type InitConfiguration struct {
 	// bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	BootstrapTokens []BootstrapToken `json:"bootstrapTokens,omitempty"`
 
 	// nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
@@ -59,6 +60,7 @@ type InitConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
+	// +kubebuilder:validation:MaxItems=50
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during
@@ -156,12 +158,14 @@ type ControlPlaneComponent struct {
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
 	// extraEnvs is an extra set of environment variables to pass to the control plane component.
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
 
@@ -171,6 +175,7 @@ type APIServer struct {
 
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	CertSANs []string `json:"certSANs,omitempty"`
 
 	// timeoutForControlPlane controls the timeout that we use for API server to appear
@@ -245,6 +250,7 @@ type NodeRegistrationOptions struct {
 	// it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
 	// empty slice, i.e. `taints: []` in the YAML file. This field is solely used for Node registration.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
 	// kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
@@ -255,6 +261,7 @@ type NodeRegistrationOptions struct {
 
 	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
 	// +optional
+	// +kubebuilder:validation:MaxItems=50
 	IgnorePreflightErrors []string `json:"ignorePreflightErrors,omitempty"`
 
 	// imagePullPolicy specifies the policy for image pulling
@@ -361,10 +368,12 @@ type BootstrapToken struct {
 	// usages describes the ways in which this token can be used. Can by default be used
 	// for establishing bidirectional trust, but that can be changed here.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Usages []string `json:"usages,omitempty"`
 	// groups specifies the extra groups that this token will authenticate as when/if
 	// used for authentication
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Groups []string `json:"groups,omitempty"`
 }
 
@@ -401,13 +410,17 @@ type LocalEtcd struct {
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	ServerCertSANs []string `json:"serverCertSANs,omitempty"`
+
 	// peerCertSANs sets extra Subject Alternative Names for the etcd peer signing cert.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	PeerCertSANs []string `json:"peerCertSANs,omitempty"`
 }
 
@@ -415,6 +428,7 @@ type LocalEtcd struct {
 // Kubeadm has no knowledge of where certificate files live and they must be supplied.
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
+	// +kubebuilder:validation:MaxItems=50
 	Endpoints []string `json:"endpoints"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
@@ -463,6 +477,7 @@ type JoinConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
+	// +kubebuilder:validation:MaxItems=50
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during
@@ -520,6 +535,7 @@ type BootstrapTokenDiscovery struct {
 	// ASN.1. These hashes can be calculated using, for example, OpenSSL:
 	// openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	CACertHashes []string `json:"caCertHashes,omitempty"`
 
 	// unsafeSkipCAVerification allows token-based discovery
@@ -636,12 +652,14 @@ type KubeConfigAuthExec struct {
 
 	// args is the arguments to pass to the command when executing it.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Args []string `json:"args,omitempty"`
 
 	// env defines additional environment variables to expose to the process. These
 	// are unioned with the host's environment, as well as variables client-go uses
 	// to pass argument to the plugin.
 	// +optional
+	// +kubebuilder:validation:MaxItems=100
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 
 	// apiVersion is preferred input version of the ExecInfo. The returned ExecCredentials MUST use

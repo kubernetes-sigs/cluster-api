@@ -182,6 +182,13 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
         }
     ```
 
+- `KubeadmConfig.BootCommands` specifies a list of commands to be executed very early in the boot process
+
+    ```yaml
+    bootCommands:
+      - [ cloud-init-per, once, mymkfs, mkfs, /dev/vdb ]
+    ```
+
 - `KubeadmConfig.PreKubeadmCommands` specifies a list of commands to be executed before `kubeadm init/join`
 
     ```yaml

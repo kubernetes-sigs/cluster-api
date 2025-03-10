@@ -29,7 +29,7 @@ import (
 )
 
 // RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
-// +kubebuilder:validation:MaxLength=50
+// +kubebuilder:validation:Enum=RollingUpdate
 type RolloutStrategyType string
 
 const (

@@ -1300,6 +1300,7 @@ spec:
                   version:
                     description: version is the Kubernetes version of the cluster.
                     maxLength: 256
+                    minLength: 1
                     type: string
                   workers:
                     description: |-
@@ -1320,6 +1321,7 @@ spec:
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             failureDomain:
                               description: |-
@@ -1730,6 +1732,7 @@ spec:
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             failureDomains:
                               description: |-
@@ -1883,7 +1886,7 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
-                      maxLength: 2048
+                      maxLength: 10240
                       type: string
                     reason:
                       description: |-
@@ -1897,7 +1900,7 @@ spec:
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
-                      maxLength: 8
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1970,10 +1973,14 @@ spec:
                 format: int64
                 type: integer
               phase:
-                description: |-
-                  phase represents the current phase of cluster actuation.
-                  E.g. Pending, Running, Terminating, Failed etc.
-                maxLength: 50
+                description: phase represents the current phase of cluster actuation.
+                enum:
+                - Pending
+                - Provisioning
+                - Provisioned
+                - Deleting
+                - Failed
+                - Unknown
                 type: string
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified

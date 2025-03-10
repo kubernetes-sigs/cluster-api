@@ -555,6 +555,7 @@ type Topology struct {
 	ClassNamespace string `json:"classNamespace,omitempty"`
 
 	// version is the Kubernetes version of the cluster.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Version string `json:"version"`
 
@@ -672,6 +673,7 @@ type MachineDeploymentTopology struct {
 	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
@@ -778,6 +780,7 @@ type MachinePoolTopology struct {
 	// class is the name of the MachinePoolClass used to create the pool of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
@@ -960,9 +963,8 @@ type ClusterStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	// +kubebuilder:validation:MaxLength=50
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Deleting;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// infrastructureReady is the state of the infrastructure provider.

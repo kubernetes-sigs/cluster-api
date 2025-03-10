@@ -713,7 +713,7 @@ spec:
                           The templating mechanism provides the following arguments:
                           * `.cluster.name`: The name of the cluster object.
                           * `.random`: A random alphanumeric string, without vowels, of length 5.
-                        maxLength: 512
+                        maxLength: 1024
                         type: string
                     type: object
                   nodeDeletionTimeout:
@@ -897,7 +897,7 @@ spec:
                       The templating mechanism provides the following arguments:
                       * `.cluster.name`: The name of the cluster object.
                       * `.random`: A random alphanumeric string, without vowels, of length 5.
-                    maxLength: 512
+                    maxLength: 1024
                     type: string
                 type: object
               patches:
@@ -930,7 +930,10 @@ spec:
                                   description: |-
                                     op defines the operation of the patch.
                                     Note: Only `add`, `replace` and `remove` are supported.
-                                  maxLength: 8
+                                  enum:
+                                  - add
+                                  - replace
+                                  - remove
                                   type: string
                                 path:
                                   description: |-
@@ -1046,7 +1049,7 @@ spec:
                     description:
                       description: description is a human-readable description of
                         this patch.
-                      maxLength: 512
+                      maxLength: 1024
                       type: string
                     enabledIf:
                       description: |-
@@ -1305,7 +1308,13 @@ spec:
                               description: |-
                                 type is the type of the variable.
                                 Valid values are: object, array, string, integer, number or boolean.
-                              maxLength: 16
+                              enum:
+                              - object
+                              - array
+                              - string
+                              - integer
+                              - number
+                              - boolean
                               type: string
                             uniqueItems:
                               description: |-
@@ -1374,7 +1383,7 @@ spec:
                                       messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                       Example:
                                       "x must be less than max ("+string(self.max)+")"
-                                    maxLength: 512
+                                    maxLength: 1024
                                     type: string
                                   reason:
                                     default: FieldValueInvalid
@@ -1450,7 +1459,7 @@ spec:
                                       rules by default are applied only on UPDATE
                                       requests and are\nskipped if an old value could
                                       not be found."
-                                    maxLength: 512
+                                    maxLength: 4096
                                     type: string
                                 required:
                                 - rule
@@ -1667,7 +1676,7 @@ spec:
                                 * `.cluster.name`: The name of the cluster object.
                                 * `.random`: A random alphanumeric string, without vowels, of length 5.
                                 * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).
-                              maxLength: 512
+                              maxLength: 1024
                               type: string
                           type: object
                         nodeDeletionTimeout:
@@ -2023,7 +2032,7 @@ spec:
                                 * `.cluster.name`: The name of the cluster object.
                                 * `.random`: A random alphanumeric string, without vowels, of length 5.
                                 * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).
-                              maxLength: 512
+                              maxLength: 1024
                               type: string
                           type: object
                         nodeDeletionTimeout:
@@ -2216,7 +2225,7 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
-                      maxLength: 2048
+                      maxLength: 10240
                       type: string
                     reason:
                       description: |-
@@ -2230,7 +2239,7 @@ spec:
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
-                      maxLength: 8
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -2540,7 +2549,13 @@ spec:
                                     description: |-
                                       type is the type of the variable.
                                       Valid values are: object, array, string, integer, number or boolean.
-                                    maxLength: 16
+                                    enum:
+                                    - object
+                                    - array
+                                    - string
+                                    - integer
+                                    - number
+                                    - boolean
                                     type: string
                                   uniqueItems:
                                     description: |-
@@ -2609,7 +2624,7 @@ spec:
                                             messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                             Example:
                                             "x must be less than max ("+string(self.max)+")"
-                                          maxLength: 512
+                                          maxLength: 1024
                                           type: string
                                         reason:
                                           default: FieldValueInvalid
@@ -2694,7 +2709,7 @@ spec:
                                             rules by default are applied only on UPDATE
                                             requests and are\nskipped if an old value
                                             could not be found."
-                                          maxLength: 512
+                                          maxLength: 4096
                                           type: string
                                       required:
                                       - rule

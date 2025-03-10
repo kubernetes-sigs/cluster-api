@@ -1042,7 +1042,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 					},
 					"phase": {
 						SchemaProps: spec.SchemaProps{
-							Description: "phase represents the current phase of cluster actuation. E.g. Pending, Running, Terminating, Failed etc.",
+							Description: "phase represents the current phase of cluster actuation.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4259,7 +4259,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 					},
 					"phase": {
 						SchemaProps: spec.SchemaProps{
-							Description: "phase represents the current phase of machine actuation. E.g. Pending, Running, Terminating, Failed etc.",
+							Description: "phase represents the current phase of machine actuation.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

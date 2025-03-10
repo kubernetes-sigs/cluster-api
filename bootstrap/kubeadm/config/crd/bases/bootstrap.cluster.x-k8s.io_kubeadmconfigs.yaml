@@ -2051,7 +2051,7 @@ spec:
                         description: certSANs sets extra Subject Alternative Names
                           for the API Server signing cert.
                         items:
-                          maxLength: 512
+                          maxLength: 253
                           type: string
                         maxItems: 100
                         type: array
@@ -2647,7 +2647,7 @@ spec:
                             description: peerCertSANs sets extra Subject Alternative
                               Names for the etcd peer signing cert.
                             items:
-                              maxLength: 512
+                              maxLength: 253
                               type: string
                             maxItems: 100
                             type: array
@@ -2655,7 +2655,7 @@ spec:
                             description: serverCertSANs sets extra Subject Alternative
                               Names for the etcd server signing cert.
                             items:
-                              maxLength: 512
+                              maxLength: 253
                               type: string
                             maxItems: 100
                             type: array
@@ -2973,7 +2973,9 @@ spec:
                             tableType specifies the tupe of partition table. The following are supported:
                             'mbr': default and setups a MS-DOS partition table
                             'gpt': setups a GPT partition table
-                          maxLength: 3
+                          enum:
+                          - mbr
+                          - gpt
                           type: string
                       required:
                       - device
@@ -3199,7 +3201,6 @@ spec:
                         - Always
                         - IfNotPresent
                         - Never
-                        maxLength: 16
                         type: string
                       imagePullSerial:
                         description: |-
@@ -3401,7 +3402,7 @@ spec:
 
                                       Defaults to the Cluster's CA certificate if empty.
                                     format: byte
-                                    maxLength: 4096
+                                    maxLength: 51200
                                     type: string
                                   insecureSkipTLSVerify:
                                     description: insecureSkipTLSVerify skips the validity
@@ -3581,7 +3582,6 @@ spec:
                         - Always
                         - IfNotPresent
                         - Never
-                        maxLength: 16
                         type: string
                       imagePullSerial:
                         description: |-
@@ -3841,7 +3841,7 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
-                      maxLength: 2048
+                      maxLength: 10240
                       type: string
                     reason:
                       description: |-
@@ -3855,7 +3855,7 @@ spec:
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
-                      maxLength: 8
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.

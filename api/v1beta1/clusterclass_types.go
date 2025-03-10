@@ -214,7 +214,7 @@ type ControlPlaneClassNamingStrategy struct {
 	// * `.cluster.name`: The name of the cluster object.
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// +optional
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
 
@@ -228,7 +228,7 @@ type InfrastructureNamingStrategy struct {
 	// * `.cluster.name`: The name of the cluster object.
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// +optional
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
 
@@ -354,7 +354,7 @@ type MachineDeploymentClassNamingStrategy struct {
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).
 	// +optional
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
 
@@ -491,7 +491,7 @@ type MachinePoolClassNamingStrategy struct {
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).
 	// +optional
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
 
@@ -568,7 +568,7 @@ type JSONSchemaProps struct {
 	// type is the type of the variable.
 	// Valid values are: object, array, string, integer, number or boolean.
 	// +optional
-	// +kubebuilder:validation:MaxLength=16
+	// +kubebuilder:validation:Enum=object;array;string;integer;number;boolean
 	Type string `json:"type,omitempty"`
 
 	// properties specifies fields of an object.
@@ -824,7 +824,7 @@ type ValidationRule struct {
 	// skipped if an old value could not be found.
 	//
 	// +required
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=4096
 	Rule string `json:"rule"`
 	// message represents the message displayed when validation fails. The message is required if the Rule contains
 	// line breaks. The message must not contain line breaks.
@@ -843,7 +843,7 @@ type ValidationRule struct {
 	// Example:
 	// "x must be less than max ("+string(self.max)+")"
 	// +optional
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	MessageExpression string `json:"messageExpression,omitempty"`
 	// reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
 	// The currently supported reasons are: "FieldValueInvalid", "FieldValueForbidden", "FieldValueRequired", "FieldValueDuplicate".
@@ -894,7 +894,7 @@ type ClusterClassPatch struct {
 	Name string `json:"name"`
 
 	// description is a human-readable description of this patch.
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=1024
 	Description string `json:"description,omitempty"`
 
 	// enabledIf is a Go template to be used to calculate if a patch should be enabled.
@@ -998,7 +998,7 @@ type PatchSelectorMatchMachinePoolClass struct {
 type JSONPatch struct {
 	// op defines the operation of the patch.
 	// Note: Only `add`, `replace` and `remove` are supported.
-	// +kubebuilder:validation:MaxLength=8
+	// +kubebuilder:validation:Enum=add;replace;remove
 	Op string `json:"op"`
 
 	// path defines the path of the patch.

@@ -60,7 +60,6 @@ spec:
             properties:
               address:
                 description: address is the IP address.
-                maxLength: 256
                 type: string
               claimRef:
                 description: claimRef is a reference to the claim this IPAddress was
@@ -80,7 +79,6 @@ spec:
               gateway:
                 description: gateway is the network gateway of the network the address
                   is from.
-                maxLength: 256
                 type: string
               poolRef:
                 description: poolRef is a reference to the pool that this IPAddress

@@ -606,17 +606,23 @@ type ControlPlaneTopology struct {
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
 	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
@@ -697,17 +703,23 @@ type MachineDeploymentTopology struct {
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
 	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
@@ -789,17 +801,23 @@ type MachinePoolTopology struct {
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
 	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the MachinePool
 	// hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
+	// +kubebuilder:validation:Pattern="^(([1-9][0-9]*(\\.[0-9]+)?|0?\\.[0-9]+)(ns|us|µs|ms|s|m|h))+$"
+	// +kubebuilder:validation:Type:=string
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 

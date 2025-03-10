@@ -218,10 +218,7 @@ const (
 
 	// MachineSetPreflightCheckKubeadmVersionSkew is the name of the preflight check
 	// that verifies if the machine being created or remediated for the MachineSet conforms to the kubeadm version
-	// skew policy that requires the machine to be at the same version as the control plane.
-	// Note: This is a stopgap while the root cause of the problem is fixed in kubeadm; this check will become
-	// a no-op when this check will be available in kubeadm, and then eventually be dropped when all the
-	// supported Kuberenetes/kubeadm versions have implemented the fix.
+	// skew policy that requires the machine to be at the same minor version as the control plane.
 	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster),
 	// the ControlPlane has a version, the MachineSet has a version and the MachineSet uses the Kubeadm bootstrap
 	// provider.
@@ -229,16 +226,27 @@ const (
 
 	// MachineSetPreflightCheckKubernetesVersionSkew is the name of the preflight check that verifies
 	// if the machines being created or remediated for the MachineSet conform to the Kubernetes version skew policy
-	// that requires the machines to be at a version that is not more than 2 minor lower than the ControlPlane version.
+	// that requires the machines to be at a version that is not more than 2 (< v1.28) or 3 (>= v1.28) minor
+	// lower than the ControlPlane version.
 	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster),
 	// the ControlPlane has a version and the MachineSet has a version.
 	MachineSetPreflightCheckKubernetesVersionSkew MachineSetPreflightCheck = "KubernetesVersionSkew"
 
 	// MachineSetPreflightCheckControlPlaneIsStable is the name of the preflight check
 	// that verifies if the control plane is not provisioning and not upgrading.
+	// For Clusters with a managed topology it also checks if a control plane upgrade is pending.
 	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster)
 	// and the ControlPlane has a version.
 	MachineSetPreflightCheckControlPlaneIsStable MachineSetPreflightCheck = "ControlPlaneIsStable"
+
+	// MachineSetPreflightCheckControlPlaneVersionSkew is the name of the preflight check
+	// that verifies if the machine being created or remediated for the MachineSet has exactly the same version
+	// as the control plane.
+	// The idea behind this check is that it doesn't make sense to create a Machine with an old version, if we already
+	// know based on the control plane version that the Machine has to be replaced soon.
+	// The preflight check is only run if the Cluster has a managed topology, a ControlPlane is used (controlPlaneRef
+	// must exist in the Cluster), the ControlPlane has a version and the MachineSet has a version.
+	MachineSetPreflightCheckControlPlaneVersionSkew MachineSetPreflightCheck = "ControlPlaneVersionSkew"
 )
 
 // NodeOutdatedRevisionTaint can be added to Nodes at rolling updates in general triggered by updating MachineDeployment

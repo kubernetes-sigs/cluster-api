@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1711,7 +1712,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
-			Client: fakeClient,
+			Client:          fakeClient,
+			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
 		}
 		s := &scope{
 			cluster:    cluster,
@@ -2324,7 +2326,8 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		r := &Reconciler{
-			Client: fakeClient,
+			Client:          fakeClient,
+			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
 		}
 		s := &scope{
 			cluster:    cluster,

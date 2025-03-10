@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -2743,4 +2744,97 @@ func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, 
 	c := conditions.Get(config, t)
 	g.Expect(c).ToNot(BeNil())
 	g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
+}
+
+func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
+	// Setup work for an initialized cluster
+	clusterName := "my-cluster"
+	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
+	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+	cluster.Status.InfrastructureReady = true
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: "example.com",
+		Port: 6443,
+	}
+
+	machine := builder.Machine(metav1.NamespaceDefault, "my-machine").
+		WithVersion("v1.19.1").
+		WithClusterName(cluster.Name).
+		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "").Unstructured()).
+		Build()
+
+	kubeadmConfig := newKubeadmConfig(metav1.NamespaceDefault, "kubeadmconfig")
+
+	tests := []struct {
+		name    string
+		config  *bootstrapv1.KubeadmConfig
+		machine *clusterv1.Machine
+	}{
+		{
+			name:    "conditions should be true again after reconciling",
+			config:  kubeadmConfig.DeepCopy(),
+			machine: machine.DeepCopy(),
+		},
+		{
+			name:   "conditions should be true again after status got emptied out",
+			config: kubeadmConfig.DeepCopy(),
+			machine: func() *clusterv1.Machine {
+				m := machine.DeepCopy()
+				m.Spec.Bootstrap.DataSecretName = ptr.To("foo")
+				return m
+			}(),
+		},
+		{
+			name: "conditions should be true after upgrading to v1beta2",
+			config: func() *bootstrapv1.KubeadmConfig {
+				c := kubeadmConfig.DeepCopy()
+				c.Status.Ready = true
+				return c
+			}(),
+			machine: machine.DeepCopy(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			cluster := cluster.DeepCopy()
+			tt.config.SetOwnerReferences([]metav1.OwnerReference{{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
+				Name:       tt.machine.Name,
+			}})
+
+			objects := []client.Object{cluster, tt.machine, tt.config}
+			objects = append(objects, createSecrets(t, cluster, tt.config)...)
+
+			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
+
+			r := &KubeadmConfigReconciler{
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
+			}
+
+			key := client.ObjectKey{Namespace: tt.config.Namespace, Name: tt.config.Name}
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			newConfig := &bootstrapv1.KubeadmConfig{}
+			g.Expect(myclient.Get(ctx, key, newConfig)).To(Succeed())
+
+			for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyV1Beta2Condition, bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition, bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition} {
+				condition := v1beta2conditions.Get(newConfig, conditionType)
+				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(condition.Message).To(BeEmpty())
+			}
+			for _, conditionType := range []string{clusterv1.PausedV1Beta2Condition} {
+				condition := v1beta2conditions.Get(newConfig, conditionType)
+				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
+				g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(condition.Message).To(BeEmpty())
+			}
+		})
+	}
 }

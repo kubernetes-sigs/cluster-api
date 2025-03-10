@@ -312,9 +312,30 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 			Status: metav1.ConditionTrue,
 			Reason: bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Reason,
 		})
+		v1beta2conditions.Set(scope.Config, metav1.Condition{
+			Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
+		})
 		return ctrl.Result{}, nil
 	// Status is ready means a config has been generated.
+	// This also solves the upgrade scenario to a version which includes v1beta2 to ensure v1beta2 conditions are properly set.
 	case config.Status.Ready:
+		// Based on existing code paths status.Ready is only true if status.dataSecretName is set
+		// So we can assume that the DataSecret is available.
+		conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
+		v1beta2conditions.Set(scope.Config, metav1.Condition{
+			Type:   bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Reason,
+		})
+		// Same applies for the CertificatesAvailable, which must have been the case to generate
+		// the DataSecret.
+		v1beta2conditions.Set(scope.Config, metav1.Condition{
+			Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
+		})
 		if config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil {
 			if !configOwner.HasNodeRefs() {
 				// If the BootstrapToken has been generated for a join but the config owner has no nodeRefs,

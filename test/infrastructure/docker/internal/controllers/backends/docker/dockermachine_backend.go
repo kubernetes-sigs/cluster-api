@@ -126,6 +126,26 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 				Status: metav1.ConditionTrue,
 				Reason: infrav1.DevMachineDockerContainerProvisionedV1Beta2Reason,
 			})
+			// In case of upgrades the v1beta2 condition for BootstrapExecSucceeded does not exist.
+			// In this case recover the information from the existing v1beta1 condition, because we do not know if
+			// all commands succeeded.
+			if !v1beta2conditions.Has(dockerMachine, infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition) {
+				condition := conditions.Get(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+				if condition == nil || condition.Status == corev1.ConditionTrue {
+					v1beta2conditions.Set(dockerMachine, metav1.Condition{
+						Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
+						Status: metav1.ConditionTrue,
+						Reason: infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason,
+					})
+				} else {
+					v1beta2conditions.Set(dockerMachine, metav1.Condition{
+						Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
+						Status:  metav1.ConditionFalse,
+						Message: condition.Message,
+						Reason:  infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
+					})
+				}
+			}
 
 			// Setting machine address is required after move, because status.Address field is not retained during move.
 			if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {

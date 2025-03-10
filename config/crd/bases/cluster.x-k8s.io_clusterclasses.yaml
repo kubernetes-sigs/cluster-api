@@ -946,7 +946,7 @@ spec:
                               - op
                               - path
                               type: object
-                            maxItems: 1000
+                            maxItems: 100
                             type: array
                           selector:
                             description: selector defines on which templates the patch
@@ -982,7 +982,7 @@ spec:
                                           names.
                                         items:
                                           type: string
-                                        maxItems: 1000
+                                        maxItems: 100
                                         type: array
                                     type: object
                                   machinePoolClass:
@@ -995,7 +995,7 @@ spec:
                                           names.
                                         items:
                                           type: string
-                                        maxItems: 1000
+                                        maxItems: 100
                                         type: array
                                     type: object
                                 type: object
@@ -1008,7 +1008,7 @@ spec:
                         - jsonPatches
                         - selector
                         type: object
-                      maxItems: 1000
+                      maxItems: 100
                       type: array
                     description:
                       description: description is a human-readable description of
@@ -1905,7 +1905,7 @@ spec:
                       - class
                       - template
                       type: object
-                    maxItems: 1000
+                    maxItems: 100
                     type: array
                     x-kubernetes-list-map-keys:
                     - class
@@ -1932,7 +1932,7 @@ spec:
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
                           items:
                             type: string
-                          maxItems: 1000
+                          maxItems: 100
                           type: array
                         minReadySeconds:
                           description: |-
@@ -2122,7 +2122,7 @@ spec:
                       - class
                       - template
                       type: object
-                    maxItems: 1000
+                    maxItems: 100
                     type: array
                     x-kubernetes-list-map-keys:
                     - class

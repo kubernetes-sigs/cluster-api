@@ -803,7 +803,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
-                        maxItems: 1000
+                        maxItems: 100
                         type: array
                     required:
                     - cidrBlocks
@@ -819,7 +819,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           type: string
-                        maxItems: 1000
+                        maxItems: 100
                         type: array
                     required:
                     - cidrBlocks
@@ -1660,7 +1660,7 @@ spec:
                           - class
                           - name
                           type: object
-                        maxItems: 10000
+                        maxItems: 2000
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
@@ -1685,7 +1685,7 @@ spec:
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               items:
                                 type: string
-                              maxItems: 1000
+                              maxItems: 100
                               type: array
                             metadata:
                               description: |-
@@ -1796,7 +1796,7 @@ spec:
                           - class
                           - name
                           type: object
-                        maxItems: 10000
+                        maxItems: 2000
                         type: array
                         x-kubernetes-list-map-keys:
                         - name

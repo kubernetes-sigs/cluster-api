@@ -1634,7 +1634,7 @@ spec:
                                           for ExternalEtcd.
                                         items:
                                           type: string
-                                        maxItems: 100
+                                        maxItems: 50
                                         type: array
                                       keyFile:
                                         description: |-
@@ -2207,7 +2207,7 @@ spec:
                               required:
                               - path
                               type: object
-                            maxItems: 1000
+                            maxItems: 200
                             type: array
                           format:
                             description: format specifies the output format of the
@@ -2343,7 +2343,7 @@ spec:
                                       the current node is registered.
                                     items:
                                       type: string
-                                    maxItems: 100
+                                    maxItems: 50
                                     type: array
                                   imagePullPolicy:
                                     description: |-
@@ -2440,7 +2440,7 @@ spec:
                                   This option takes effect only on Kubernetes >=1.22.0.
                                 items:
                                   type: string
-                                maxItems: 100
+                                maxItems: 50
                                 type: array
                             type: object
                           joinConfiguration:
@@ -2711,7 +2711,7 @@ spec:
                                       the current node is registered.
                                     items:
                                       type: string
-                                    maxItems: 100
+                                    maxItems: 50
                                     type: array
                                   imagePullPolicy:
                                     description: |-
@@ -2808,7 +2808,7 @@ spec:
                                   This option takes effect only on Kubernetes >=1.22.0.
                                 items:
                                   type: string
-                                maxItems: 100
+                                maxItems: 50
                                 type: array
                             type: object
                           mounts:

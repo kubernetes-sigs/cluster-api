@@ -625,14 +625,14 @@ type WorkersTopology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:MaxItems=2000
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 
 	// machinePools is a list of machine pools in the cluster.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:MaxItems=2000
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
 }
 
@@ -761,7 +761,7 @@ type MachinePoolTopology struct {
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
@@ -885,7 +885,7 @@ type ClusterNetwork struct {
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 

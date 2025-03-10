@@ -65,7 +65,7 @@ type KubeadmConfigSpec struct {
 
 	// files specifies extra files to be passed to user_data upon creation.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=200
 	Files []File `json:"files,omitempty"`
 
 	// diskSetup specifies options for the creation of partition tables and file systems on devices.

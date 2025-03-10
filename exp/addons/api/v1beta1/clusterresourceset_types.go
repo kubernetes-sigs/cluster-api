@@ -63,7 +63,7 @@ type ClusterResourceSetSpec struct {
 
 	// resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	Resources []ResourceRef `json:"resources,omitempty"`
 
 	// strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.

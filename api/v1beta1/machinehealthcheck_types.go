@@ -166,7 +166,7 @@ type MachineHealthCheckStatus struct {
 
 	// targets shows the current list of machines the machine health check is watching
 	// +optional
-	// +kubebuilder:validation:MaxItems=100000
+	// +kubebuilder:validation:MaxItems=10000
 	Targets []string `json:"targets,omitempty"`
 
 	// conditions defines current service state of the MachineHealthCheck.

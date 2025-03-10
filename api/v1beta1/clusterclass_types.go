@@ -237,7 +237,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
 	// machinePools is a list of machine pool classes that can be used to create
@@ -245,7 +245,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
 
@@ -420,7 +420,7 @@ type MachinePoolClass struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
 	// namingStrategy allows changing the naming pattern used when creating the MachinePool.
@@ -888,7 +888,7 @@ type ClusterClassPatch struct {
 	// Note: Patches will be applied in the order of the array.
 	// Note: Exactly one of Definitions or External must be set.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	Definitions []PatchDefinition `json:"definitions,omitempty"`
 
 	// external defines an external patch.
@@ -905,7 +905,7 @@ type PatchDefinition struct {
 	// jsonPatches defines the patches which should be applied on the templates
 	// matching the selector.
 	// Note: Patches will be applied in the order of the array.
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	JSONPatches []JSONPatch `json:"jsonPatches"`
 }
 
@@ -955,7 +955,7 @@ type PatchSelectorMatch struct {
 type PatchSelectorMatchMachineDeploymentClass struct {
 	// names selects templates by class names.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	Names []string `json:"names,omitempty"`
 }
 
@@ -964,7 +964,7 @@ type PatchSelectorMatchMachineDeploymentClass struct {
 type PatchSelectorMatchMachinePoolClass struct {
 	// names selects templates by class names.
 	// +optional
-	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MaxItems=100
 	Names []string `json:"names,omitempty"`
 }
 

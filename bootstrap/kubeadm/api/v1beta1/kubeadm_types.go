@@ -60,7 +60,7 @@ type InitConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
-	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:MaxItems=50
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during
@@ -261,7 +261,7 @@ type NodeRegistrationOptions struct {
 
 	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
 	// +optional
-	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:MaxItems=50
 	IgnorePreflightErrors []string `json:"ignorePreflightErrors,omitempty"`
 
 	// imagePullPolicy specifies the policy for image pulling
@@ -428,7 +428,7 @@ type LocalEtcd struct {
 // Kubeadm has no knowledge of where certificate files live and they must be supplied.
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
-	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:MaxItems=50
 	Endpoints []string `json:"endpoints"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
@@ -477,7 +477,7 @@ type JoinConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
-	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:MaxItems=50
 	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// patches contains options related to applying patches to components deployed by kubeadm during

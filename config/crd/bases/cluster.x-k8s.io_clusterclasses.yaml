@@ -611,6 +611,7 @@ spec:
                           Eg. "[3-5]" - This means that remediation will be allowed only when:
                           (a) there are at least 3 unhealthy machines (and)
                           (b) there are at most 5 unhealthy machines
+                        maxLength: 32
                         pattern: ^\[[0-9]+-[0-9]+\]$
                         type: string
                     type: object
@@ -712,6 +713,7 @@ spec:
                           The templating mechanism provides the following arguments:
                           * `.cluster.name`: The name of the cluster object.
                           * `.random`: A random alphanumeric string, without vowels, of length 5.
+                        maxLength: 512
                         type: string
                     type: object
                   nodeDeletionTimeout:
@@ -895,6 +897,7 @@ spec:
                       The templating mechanism provides the following arguments:
                       * `.cluster.name`: The name of the cluster object.
                       * `.random`: A random alphanumeric string, without vowels, of length 5.
+                    maxLength: 512
                     type: string
                 type: object
               patches:
@@ -927,6 +930,7 @@ spec:
                                   description: |-
                                     op defines the operation of the patch.
                                     Note: Only `add`, `replace` and `remove` are supported.
+                                  maxLength: 8
                                   type: string
                                 path:
                                   description: |-
@@ -935,6 +939,7 @@ spec:
                                     Note: For now the only allowed array modifications are `append` and `prepend`, i.e.:
                                     * for op: `add`: only index 0 (prepend) and - (append) are allowed
                                     * for op: `replace` or `remove`: no indexes are allowed
+                                  maxLength: 512
                                   type: string
                                 value:
                                   description: |-
@@ -957,11 +962,13 @@ spec:
                                         template is the Go template to be used to calculate the value.
                                         A template can reference variables defined in .spec.variables and builtin variables.
                                         Note: The template must evaluate to a valid YAML or JSON value.
+                                      maxLength: 10240
                                       type: string
                                     variable:
                                       description: |-
                                         variable is the variable to be used as value.
                                         Variable can be one of the variables defined in .spec.variables or a builtin variable.
+                                      maxLength: 256
                                       type: string
                                   type: object
                               required:
@@ -976,9 +983,11 @@ spec:
                             properties:
                               apiVersion:
                                 description: apiVersion filters templates by apiVersion.
+                                maxLength: 512
                                 type: string
                               kind:
                                 description: kind filters templates by kind.
+                                maxLength: 256
                                 type: string
                               matchResources:
                                 description: matchResources selects templates based
@@ -1003,6 +1012,7 @@ spec:
                                         description: names selects templates by class
                                           names.
                                         items:
+                                          maxLength: 256
                                           type: string
                                         maxItems: 100
                                         type: array
@@ -1016,6 +1026,7 @@ spec:
                                         description: names selects templates by class
                                           names.
                                         items:
+                                          maxLength: 256
                                           type: string
                                         maxItems: 100
                                         type: array
@@ -1035,6 +1046,7 @@ spec:
                     description:
                       description: description is a human-readable description of
                         this patch.
+                      maxLength: 512
                       type: string
                     enabledIf:
                       description: |-
@@ -1043,6 +1055,7 @@ spec:
                         The patch will be enabled if the template evaluates to `true`, otherwise it will
                         be disabled.
                         If EnabledIf is not set, the patch will be enabled per default.
+                      maxLength: 256
                       type: string
                     external:
                       description: |-
@@ -1052,10 +1065,12 @@ spec:
                         discoverVariablesExtension:
                           description: discoverVariablesExtension references an extension
                             which is called to discover variables.
+                          maxLength: 512
                           type: string
                         generateExtension:
                           description: generateExtension references an extension which
                             is called to generate patches.
+                          maxLength: 512
                           type: string
                         settings:
                           additionalProperties:
@@ -1068,10 +1083,12 @@ spec:
                         validateExtension:
                           description: validateExtension references an extension which
                             is called to validate the topology.
+                          maxLength: 512
                           type: string
                       type: object
                     name:
                       description: name of the patch.
+                      maxLength: 256
                       type: string
                   required:
                   - name
@@ -1113,6 +1130,7 @@ spec:
                       type: object
                     name:
                       description: name of the variable.
+                      maxLength: 256
                       type: string
                     required:
                       description: |-
@@ -1158,6 +1176,7 @@ spec:
                             description:
                               description: description is a human-readable description
                                 of this variable.
+                              maxLength: 512
                               type: string
                             enum:
                               description: |-
@@ -1186,6 +1205,7 @@ spec:
                                 For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
                                 https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
                                 NOTE: Can only be set if type is string.
+                              maxLength: 32
                               type: string
                             items:
                               description: |-
@@ -1262,6 +1282,7 @@ spec:
                               description: |-
                                 pattern is the regex which a string variable must match.
                                 NOTE: Can only be set if type is string.
+                              maxLength: 512
                               type: string
                             properties:
                               description: |-
@@ -1276,6 +1297,7 @@ spec:
                                 required specifies which fields of an object are required.
                                 NOTE: Can only be set if type is object.
                               items:
+                                maxLength: 256
                                 type: string
                               maxItems: 1000
                               type: array
@@ -1283,6 +1305,7 @@ spec:
                               description: |-
                                 type is the type of the variable.
                                 Valid values are: object, array, string, integer, number or boolean.
+                              maxLength: 16
                               type: string
                             uniqueItems:
                               description: |-
@@ -1330,6 +1353,7 @@ spec:
                                       Numeric index of array is not supported.
                                       For field name which contains special characters, use `['specialName']` to refer the field name.
                                       e.g. for attribute `foo.34$` appears in a list `testList`, the fieldPath could be set to `.testList['foo.34$']`
+                                    maxLength: 512
                                     type: string
                                   message:
                                     description: |-
@@ -1337,6 +1361,7 @@ spec:
                                       line breaks. The message must not contain line breaks.
                                       If unset, the message is "failed rule: {Rule}".
                                       e.g. "must be a URL with the host matching spec.host"
+                                    maxLength: 512
                                     type: string
                                   messageExpression:
                                     description: |-
@@ -1349,6 +1374,7 @@ spec:
                                       messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                       Example:
                                       "x must be less than max ("+string(self.max)+")"
+                                    maxLength: 512
                                     type: string
                                   reason:
                                     default: FieldValueInvalid
@@ -1424,6 +1450,7 @@ spec:
                                       rules by default are applied only on UPDATE
                                       requests and are\nskipped if an old value could
                                       not be found."
+                                    maxLength: 512
                                     type: string
                                 required:
                                 - rule
@@ -1485,12 +1512,14 @@ spec:
                             class denotes a type of worker node present in the cluster,
                             this name MUST be unique within a ClusterClass and can be referenced
                             in the Cluster to create a managed MachineDeployment.
+                          maxLength: 256
                           type: string
                         failureDomain:
                           description: |-
                             failureDomain is the failure domain the machines will be created in.
                             Must match a key in the FailureDomains map stored on the cluster object.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                          maxLength: 256
                           type: string
                         machineHealthCheck:
                           description: machineHealthCheck defines a MachineHealthCheck
@@ -1611,6 +1640,7 @@ spec:
                                 Eg. "[3-5]" - This means that remediation will be allowed only when:
                                 (a) there are at least 3 unhealthy machines (and)
                                 (b) there are at most 5 unhealthy machines
+                              maxLength: 32
                               pattern: ^\[[0-9]+-[0-9]+\]$
                               type: string
                           type: object
@@ -1637,6 +1667,7 @@ spec:
                                 * `.cluster.name`: The name of the cluster object.
                                 * `.random`: A random alphanumeric string, without vowels, of length 5.
                                 * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).
+                              maxLength: 512
                               type: string
                           type: object
                         nodeDeletionTimeout:
@@ -1957,6 +1988,7 @@ spec:
                             class denotes a type of machine pool present in the cluster,
                             this name MUST be unique within a ClusterClass and can be referenced
                             in the Cluster to create a managed MachinePool.
+                          maxLength: 256
                           type: string
                         failureDomains:
                           description: |-
@@ -1964,6 +1996,7 @@ spec:
                             Must match a key in the FailureDomains map stored on the cluster object.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
                           items:
+                            maxLength: 256
                             type: string
                           maxItems: 100
                           type: array
@@ -1990,6 +2023,7 @@ spec:
                                 * `.cluster.name`: The name of the cluster object.
                                 * `.random`: A random alphanumeric string, without vowels, of length 5.
                                 * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).
+                              maxLength: 512
                               type: string
                           type: object
                         nodeDeletionTimeout:
@@ -2182,18 +2216,21 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 2048
                       type: string
                     reason:
                       description: |-
                         reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 8
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -2203,6 +2240,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -2302,6 +2341,7 @@ spec:
                               from specifies the origin of the variable definition.
                               This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
                               for variables discovered from a DiscoverVariables runtime extensions.
+                            maxLength: 256
                             type: string
                           metadata:
                             description: |-
@@ -2371,6 +2411,7 @@ spec:
                                   description:
                                     description: description is a human-readable description
                                       of this variable.
+                                    maxLength: 512
                                     type: string
                                   enum:
                                     description: |-
@@ -2399,6 +2440,7 @@ spec:
                                       For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
                                       https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
                                       NOTE: Can only be set if type is string.
+                                    maxLength: 32
                                     type: string
                                   items:
                                     description: |-
@@ -2475,6 +2517,7 @@ spec:
                                     description: |-
                                       pattern is the regex which a string variable must match.
                                       NOTE: Can only be set if type is string.
+                                    maxLength: 512
                                     type: string
                                   properties:
                                     description: |-
@@ -2489,6 +2532,7 @@ spec:
                                       required specifies which fields of an object are required.
                                       NOTE: Can only be set if type is object.
                                     items:
+                                      maxLength: 256
                                       type: string
                                     maxItems: 1000
                                     type: array
@@ -2496,6 +2540,7 @@ spec:
                                     description: |-
                                       type is the type of the variable.
                                       Valid values are: object, array, string, integer, number or boolean.
+                                    maxLength: 16
                                     type: string
                                   uniqueItems:
                                     description: |-
@@ -2543,6 +2588,7 @@ spec:
                                             Numeric index of array is not supported.
                                             For field name which contains special characters, use `['specialName']` to refer the field name.
                                             e.g. for attribute `foo.34$` appears in a list `testList`, the fieldPath could be set to `.testList['foo.34$']`
+                                          maxLength: 512
                                           type: string
                                         message:
                                           description: |-
@@ -2550,6 +2596,7 @@ spec:
                                             line breaks. The message must not contain line breaks.
                                             If unset, the message is "failed rule: {Rule}".
                                             e.g. "must be a URL with the host matching spec.host"
+                                          maxLength: 512
                                           type: string
                                         messageExpression:
                                           description: |-
@@ -2562,6 +2609,7 @@ spec:
                                             messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                             Example:
                                             "x must be less than max ("+string(self.max)+")"
+                                          maxLength: 512
                                           type: string
                                         reason:
                                           default: FieldValueInvalid
@@ -2646,6 +2694,7 @@ spec:
                                             rules by default are applied only on UPDATE
                                             requests and are\nskipped if an old value
                                             could not be found."
+                                          maxLength: 512
                                           type: string
                                       required:
                                       - rule
@@ -2693,6 +2742,7 @@ spec:
                       type: boolean
                     name:
                       description: name is the name of the variable.
+                      maxLength: 256
                       type: string
                   required:
                   - definitions

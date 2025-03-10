@@ -1122,6 +1122,7 @@ spec:
               clusterName:
                 description: clusterName is the name of the Cluster this object belongs
                   to.
+                maxLength: 63
                 minLength: 1
                 type: string
               machineNamingStrategy:
@@ -1440,17 +1441,20 @@ spec:
                             description: |-
                               dataSecretName is the name of the secret that stores the bootstrap data script.
                               If nil, the Machine should remain in the Pending state.
+                            maxLength: 253
                             type: string
                         type: object
                       clusterName:
                         description: clusterName is the name of the Cluster this object
                           belongs to.
+                        maxLength: 63
                         minLength: 1
                         type: string
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
+                        maxLength: 256
                         type: string
                       infrastructureRef:
                         description: |-
@@ -1526,6 +1530,7 @@ spec:
                           and then a comparison is done to find out unregistered machines and are marked for delete.
                           This field will be set by the actuators and consumed by higher level entities like autoscaler that will
                           be interfacing with cluster-api as generic provider.
+                        maxLength: 253
                         type: string
                       readinessGates:
                         description: |-
@@ -1579,6 +1584,7 @@ spec:
                         description: |-
                           version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
+                        maxLength: 256
                         type: string
                     required:
                     - bootstrap
@@ -1617,18 +1623,21 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 2048
                       type: string
                     reason:
                       description: |-
                         reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 8
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1638,6 +1647,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -1653,6 +1664,7 @@ spec:
               phase:
                 description: phase represents the current phase of a MachineDeployment
                   (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                maxLength: 50
                 type: string
               readyReplicas:
                 description: readyReplicas is the total number of ready machines targeted
@@ -1670,6 +1682,7 @@ spec:
                   selector is the same as the label selector but in the string format to avoid introspection
                   by clients. The string will be in the same format as the query-param syntax.
                   More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+                maxLength: 4096
                 type: string
               unavailableReplicas:
                 description: |-

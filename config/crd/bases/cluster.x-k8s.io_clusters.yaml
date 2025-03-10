@@ -813,6 +813,7 @@ spec:
                       cidrBlocks:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
+                          maxLength: 256
                           type: string
                         maxItems: 100
                         type: array
@@ -821,6 +822,7 @@ spec:
                     type: object
                   serviceDomain:
                     description: serviceDomain is the domain name for services.
+                    maxLength: 253
                     type: string
                   services:
                     description: services is the network ranges from which service
@@ -829,6 +831,7 @@ spec:
                       cidrBlocks:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
+                          maxLength: 256
                           type: string
                         maxItems: 100
                         type: array
@@ -842,6 +845,7 @@ spec:
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
                     description: port is the port on which the API server is serving.
@@ -955,6 +959,8 @@ spec:
                   class:
                     description: class is the name of the ClusterClass object to create
                       the topology.
+                    maxLength: 253
+                    minLength: 1
                     type: string
                   classNamespace:
                     description: |-
@@ -1100,6 +1106,7 @@ spec:
                               Eg. "[3-5]" - This means that remediation will be allowed only when:
                               (a) there are at least 3 unhealthy machines (and)
                               (b) there are at most 5 unhealthy machines
+                            maxLength: 32
                             pattern: ^\[[0-9]+-[0-9]+\]$
                             type: string
                         type: object
@@ -1215,9 +1222,11 @@ spec:
                                     definitionFrom specifies where the definition of this Variable is from.
 
                                     Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+                                  maxLength: 256
                                   type: string
                                 name:
                                   description: name of the variable.
+                                  maxLength: 256
                                   type: string
                                 value:
                                   description: |-
@@ -1263,9 +1272,11 @@ spec:
                             definitionFrom specifies where the definition of this Variable is from.
 
                             Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+                          maxLength: 256
                           type: string
                         name:
                           description: name of the variable.
+                          maxLength: 256
                           type: string
                         value:
                           description: |-
@@ -1288,6 +1299,7 @@ spec:
                     x-kubernetes-list-type: map
                   version:
                     description: version is the Kubernetes version of the cluster.
+                    maxLength: 256
                     type: string
                   workers:
                     description: |-
@@ -1307,11 +1319,13 @@ spec:
                                 class is the name of the MachineDeploymentClass used to create the set of worker nodes.
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
+                              maxLength: 256
                               type: string
                             failureDomain:
                               description: |-
                                 failureDomain is the failure domain the machines will be created in.
                                 Must match a key in the FailureDomains map stored on the cluster object.
+                              maxLength: 256
                               type: string
                             machineHealthCheck:
                               description: |-
@@ -1445,6 +1459,7 @@ spec:
                                     Eg. "[3-5]" - This means that remediation will be allowed only when:
                                     (a) there are at least 3 unhealthy machines (and)
                                     (b) there are at most 5 unhealthy machines
+                                  maxLength: 32
                                   pattern: ^\[[0-9]+-[0-9]+\]$
                                   type: string
                               type: object
@@ -1486,6 +1501,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachineDeployment's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
+                              maxLength: 256
                               type: string
                             nodeDeletionTimeout:
                               description: |-
@@ -1665,9 +1681,11 @@ spec:
                                           definitionFrom specifies where the definition of this Variable is from.
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+                                        maxLength: 256
                                         type: string
                                       name:
                                         description: name of the variable.
+                                        maxLength: 256
                                         type: string
                                       value:
                                         description: |-
@@ -1711,12 +1729,14 @@ spec:
                                 class is the name of the MachinePoolClass used to create the pool of worker nodes.
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
+                              maxLength: 256
                               type: string
                             failureDomains:
                               description: |-
                                 failureDomains is the list of failure domains the machine pool will be created in.
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               items:
+                                maxLength: 256
                                 type: string
                               maxItems: 100
                               type: array
@@ -1758,6 +1778,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachinePool's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
+                              maxLength: 256
                               type: string
                             nodeDeletionTimeout:
                               description: |-
@@ -1801,9 +1822,11 @@ spec:
                                           definitionFrom specifies where the definition of this Variable is from.
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+                                        maxLength: 256
                                         type: string
                                       name:
                                         description: name of the variable.
+                                        maxLength: 256
                                         type: string
                                       value:
                                         description: |-
@@ -1860,18 +1883,21 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 2048
                       type: string
                     reason:
                       description: |-
                         reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 8
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1881,6 +1907,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -1922,6 +1950,7 @@ spec:
                   state, and will be set to a descriptive error message.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                maxLength: 10240
                 type: string
               failureReason:
                 description: |-
@@ -1944,6 +1973,7 @@ spec:
                 description: |-
                   phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
+                maxLength: 50
                 type: string
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified

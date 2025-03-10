@@ -33,6 +33,7 @@ type ResourceBinding struct {
 	// hash is the hash of a resource's data. This can be used to decide if a resource is changed.
 	// For "ApplyOnce" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	Hash string `json:"hash,omitempty"`
 
 	// lastAppliedTime identifies when this resource was last applied to the cluster.
@@ -48,6 +49,7 @@ type ResourceBinding struct {
 // ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
 type ResourceSetBinding struct {
 	// clusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.
+	// +kubebuilder:validation:MaxLength=253
 	ClusterResourceSetName string `json:"clusterResourceSetName"`
 
 	// resources is a list of resources that the ClusterResourceSet has.
@@ -192,8 +194,9 @@ type ClusterResourceSetBindingSpec struct {
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 
 	// clusterName is the name of the Cluster this binding applies to.
-	// Note: this field mandatory in v1beta2.
+	// Note: this field mandatory in v1beta2 (let's add MinLength=1 with v1beta2).
 	// +optional
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName,omitempty"`
 }
 

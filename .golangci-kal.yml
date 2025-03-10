@@ -25,6 +25,7 @@ linters-settings:
           - "nofloats" # Ensure floats are not used.
           - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
           - "statussubresource" # All root objects that have a `status` field should have a status subresource.
+          - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
 
           # Per discussion in July 2024, we are keeping phase fields for now.
           # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
@@ -32,7 +33,6 @@ linters-settings:
           # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
           
           # Linters below this line are disabled, pending conversation on how and when to enable them.
-          # - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
           disable:
           - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
         lintersConfig:
@@ -85,5 +85,14 @@ issues:
   # We follow the current CustomResourceDefinition field's json tag pattern.
   - path: "api/v1beta1/*"
     text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
+    linters:
+      - kal
+  # The following rules are disabled until we migrate to the new API.
+  - path: "bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
+    text: "field Token is marked as required, should not be a pointer"
+    linters:
+      - kal
+  - path: "api/v1beta1/clusterclass_types.go"
+    text: "field Ref is marked as required, should not be a pointer"
     linters:
       - kal

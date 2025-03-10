@@ -746,7 +746,7 @@ type Partition struct {
 	// 'mbr': default and setups a MS-DOS partition table
 	// 'gpt': setups a GPT partition table
 	// +optional
-	// +kubebuilder:validation:MaxLength=3
+	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType *string `json:"tableType,omitempty"`
 }
 

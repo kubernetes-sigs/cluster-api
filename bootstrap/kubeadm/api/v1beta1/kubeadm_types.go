@@ -182,7 +182,7 @@ type APIServer struct {
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:items:MaxLength=512
+	// +kubebuilder:validation:items:MaxLength=253
 	CertSANs []string `json:"certSANs,omitempty"`
 
 	// timeoutForControlPlane controls the timeout that we use for API server to appear
@@ -285,7 +285,6 @@ type NodeRegistrationOptions struct {
 	// with Kubernetes version equal to 1.22 and later.
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +optional
-	// +kubebuilder:validation:MaxLength=16
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
 	// imagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
@@ -439,13 +438,13 @@ type LocalEtcd struct {
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:items:MaxLength=512
+	// +kubebuilder:validation:items:MaxLength=253
 	ServerCertSANs []string `json:"serverCertSANs,omitempty"`
 
 	// peerCertSANs sets extra Subject Alternative Names for the etcd peer signing cert.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:items:MaxLength=512
+	// +kubebuilder:validation:items:MaxLength=253
 	PeerCertSANs []string `json:"peerCertSANs,omitempty"`
 }
 
@@ -644,7 +643,7 @@ type KubeConfigCluster struct {
 	// Defaults to the Cluster's CA certificate if empty.
 	//
 	// +optional
-	// +kubebuilder:validation:MaxLength=4096
+	// +kubebuilder:validation:MaxLength=51200
 	CertificateAuthorityData []byte `json:"certificateAuthorityData,omitempty"`
 
 	// proxyURL is the URL to the proxy to be used for all requests made by this

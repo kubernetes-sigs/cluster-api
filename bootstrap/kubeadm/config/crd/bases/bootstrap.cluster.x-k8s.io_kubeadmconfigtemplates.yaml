@@ -1998,7 +1998,7 @@ spec:
                                 description: certSANs sets extra Subject Alternative
                                   Names for the API Server signing cert.
                                 items:
-                                  maxLength: 512
+                                  maxLength: 253
                                   type: string
                                 maxItems: 100
                                 type: array
@@ -2612,7 +2612,7 @@ spec:
                                     description: peerCertSANs sets extra Subject Alternative
                                       Names for the etcd peer signing cert.
                                     items:
-                                      maxLength: 512
+                                      maxLength: 253
                                       type: string
                                     maxItems: 100
                                     type: array
@@ -2621,7 +2621,7 @@ spec:
                                       Alternative Names for the etcd server signing
                                       cert.
                                     items:
-                                      maxLength: 512
+                                      maxLength: 253
                                       type: string
                                     maxItems: 100
                                     type: array
@@ -2949,7 +2949,9 @@ spec:
                                     tableType specifies the tupe of partition table. The following are supported:
                                     'mbr': default and setups a MS-DOS partition table
                                     'gpt': setups a GPT partition table
-                                  maxLength: 3
+                                  enum:
+                                  - mbr
+                                  - gpt
                                   type: string
                               required:
                               - device
@@ -3180,7 +3182,6 @@ spec:
                                 - Always
                                 - IfNotPresent
                                 - Never
-                                maxLength: 16
                                 type: string
                               imagePullSerial:
                                 description: |-
@@ -3384,7 +3385,7 @@ spec:
 
                                               Defaults to the Cluster's CA certificate if empty.
                                             format: byte
-                                            maxLength: 4096
+                                            maxLength: 51200
                                             type: string
                                           insecureSkipTLSVerify:
                                             description: insecureSkipTLSVerify skips
@@ -3570,7 +3571,6 @@ spec:
                                 - Always
                                 - IfNotPresent
                                 - Never
-                                maxLength: 16
                                 type: string
                               imagePullSerial:
                                 description: |-

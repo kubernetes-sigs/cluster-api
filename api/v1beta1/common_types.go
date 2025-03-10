@@ -278,7 +278,7 @@ var (
 )
 
 // MachineAddressType describes a valid MachineAddress type.
-// +kubebuilder:validation:MaxLength=16
+// +kubebuilder:validation:Enum=Hostname;ExternalIP;InternalIP;ExternalDNS;InternalDNS
 type MachineAddressType string
 
 // Define the MachineAddressType constants.

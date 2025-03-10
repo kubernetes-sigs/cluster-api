@@ -409,7 +409,7 @@ type MachineSpec struct {
 	// This field will be set by the actuators and consumed by higher level entities like autoscaler that will
 	// be interfacing with cluster-api as generic provider.
 	// +optional
-	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:MaxLength=512
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
@@ -555,9 +555,8 @@ type MachineStatus struct {
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// phase represents the current phase of machine actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	// +kubebuilder:validation:MaxLength=50
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Deleting;Deleted;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
@@ -663,6 +662,7 @@ type Bootstrap struct {
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 }

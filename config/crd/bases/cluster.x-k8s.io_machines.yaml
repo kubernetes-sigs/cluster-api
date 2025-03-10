@@ -940,6 +940,7 @@ spec:
                       dataSecretName is the name of the secret that stores the bootstrap data script.
                       If nil, the Machine should remain in the Pending state.
                     maxLength: 253
+                    minLength: 1
                     type: string
                 type: object
               clusterName:
@@ -1028,7 +1029,7 @@ spec:
                   and then a comparison is done to find out unregistered machines and are marked for delete.
                   This field will be set by the actuators and consumed by higher level entities like autoscaler that will
                   be interfacing with cluster-api as generic provider.
-                maxLength: 253
+                maxLength: 512
                 type: string
               readinessGates:
                 description: |-
@@ -1107,7 +1108,12 @@ spec:
                     type:
                       description: type is the machine address type, one of Hostname,
                         ExternalIP, InternalIP, ExternalDNS or InternalDNS.
-                      maxLength: 16
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
                       type: string
                   required:
                   - address
@@ -1140,7 +1146,7 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
-                      maxLength: 2048
+                      maxLength: 10240
                       type: string
                     reason:
                       description: |-
@@ -1154,7 +1160,7 @@ spec:
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
-                      maxLength: 8
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1352,10 +1358,16 @@ spec:
                 format: int64
                 type: integer
               phase:
-                description: |-
-                  phase represents the current phase of machine actuation.
-                  E.g. Pending, Running, Terminating, Failed etc.
-                maxLength: 50
+                description: phase represents the current phase of machine actuation.
+                enum:
+                - Pending
+                - Provisioning
+                - Provisioned
+                - Running
+                - Deleting
+                - Deleted
+                - Failed
+                - Unknown
                 type: string
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified

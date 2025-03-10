@@ -59,7 +59,7 @@ type MachinePoolSpec struct {
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
-	// +kubebuilder:validation:items:MaxLength=253
+	// +kubebuilder:validation:items:MaxLength=512
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// failureDomains is the list of failure domains this MachinePool should be attached to.
@@ -121,9 +121,8 @@ type MachinePoolStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	// +kubebuilder:validation:MaxLength=50
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;ScalingUp;ScalingDown;Scaling;Deleting;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// bootstrapReady is the state of the bootstrap provider.

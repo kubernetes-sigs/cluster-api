@@ -136,7 +136,7 @@ spec:
                               description: |-
                                 message is a human readable message indicating details about the transition.
                                 This field may be empty.
-                              maxLength: 2048
+                              maxLength: 10240
                               type: string
                             reason:
                               description: |-
@@ -150,7 +150,7 @@ spec:
                                 severity provides an explicit classification of Reason code, so the users or machines can immediately
                                 understand the current situation and act accordingly.
                                 The Severity field MUST be set only when Status=False.
-                              maxLength: 8
+                              maxLength: 32
                               type: string
                             status:
                               description: status of the condition, one of True, False,

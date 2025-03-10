@@ -493,7 +493,7 @@ type MachineDeploymentStatus struct {
 
 	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
-	// +kubebuilder:validation:MaxLength=50
+	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// conditions defines current service state of the MachineDeployment.

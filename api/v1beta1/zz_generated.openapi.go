@@ -45,6 +45,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterControlPlaneStatus":                schema_sigsk8sio_cluster_api_api_v1beta1_ClusterControlPlaneStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterList":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterNetwork":                           schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSet":                       schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSet(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBinding":                schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBinding(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBindingList":            schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBindingList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBindingSpec":            schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBindingSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetList":                   schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetSpec":                   schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetStatus":                 schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetV1Beta2Status":          schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetV1Beta2Status(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus":                            schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterV1Beta2Status":                     schema_sigsk8sio_cluster_api_api_v1beta1_ClusterV1Beta2Status(ref),
@@ -114,6 +122,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatchMachineDeploymentClass": schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatchMachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatchMachinePoolClass":       schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatchMachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.RemediationStrategy":                      schema_sigsk8sio_cluster_api_api_v1beta1_RemediationStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ResourceBinding":                          schema_sigsk8sio_cluster_api_api_v1beta1_ResourceBinding(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ResourceRef":                              schema_sigsk8sio_cluster_api_api_v1beta1_ResourceRef(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ResourceSetBinding":                       schema_sigsk8sio_cluster_api_api_v1beta1_ResourceSetBinding(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.Topology":                                 schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition":                       schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ValidationRule":                           schema_sigsk8sio_cluster_api_api_v1beta1_ValidationRule(ref),
@@ -926,6 +937,350 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref common.Referenc
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSet is the Schema for the clusterresourcesets API. For advanced use cases an add-on provider should be used instead.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetSpec", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetStatus"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetBinding lists all matching ClusterResourceSets with the cluster it belongs to.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBindingSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBindingSpec"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetBindingList contains a list of ClusterResourceSetBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBinding"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetBinding"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"bindings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bindings is a list of ClusterResourceSets and their resources.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("sigs.k8s.io/cluster-api/api/v1beta1.ResourceSetBinding"),
+									},
+								},
+							},
+						},
+					},
+					"clusterName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterName is the name of the Cluster this binding applies to. Note: this field mandatory in v1beta2.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta1.ResourceSetBinding"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetList contains a list of ClusterResourceSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSet"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSet"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetSpec defines the desired state of ClusterResourceSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterSelector is the label selector for Clusters. The Clusters that are selected by this will be the ones affected by this ClusterResourceSet. It must match the Cluster labels. This field is immutable. Label selector cannot be empty.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ResourceRef"),
+									},
+								},
+							},
+						},
+					},
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"clusterSelector"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/v1beta1.ResourceRef"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetStatus defines the observed state of ClusterResourceSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration reflects the generation of the most recently observed ClusterResourceSet.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions defines current state of the ClusterResourceSet.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"v1beta2": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta2 groups all the fields that will be added or modified in ClusterResourceSet's status with the V1Beta2 version.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetV1Beta2Status"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterResourceSetV1Beta2Status", "sigs.k8s.io/cluster-api/api/v1beta1.Condition"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterResourceSetV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterResourceSetV1Beta2Status groups all the fields that will be added or modified in ClusterResourceSet with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a ClusterResourceSet's current state. Known condition types are ResourceSetApplied, Deleting.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
 	}
 }
 
@@ -4658,6 +5013,127 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_RemediationStrategy(ref common.Ref
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ResourceBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceBinding shows the status of a resource that belongs to a ClusterResourceSet matched by the owner cluster of the ClusterResourceSetBinding object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the resource that is in the same namespace with ClusterResourceSet object.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind of the resource. Supported kinds are: Secrets and ConfigMaps.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"hash": {
+						SchemaProps: spec.SchemaProps{
+							Description: "hash is the hash of a resource's data. This can be used to decide if a resource is changed. For \"ApplyOnce\" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastAppliedTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastAppliedTime identifies when this resource was last applied to the cluster.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"applied": {
+						SchemaProps: spec.SchemaProps{
+							Description: "applied is to track if a resource is applied to the cluster or not.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "kind", "applied"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ResourceRef(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceRef specifies a resource.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the resource that is in the same namespace with ClusterResourceSet object.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind of the resource. Supported kinds are: Secrets and ConfigMaps.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "kind"},
+			},
+		},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ResourceSetBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clusterResourceSetName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resources is a list of resources that the ClusterResourceSet has.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ResourceBinding"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"clusterResourceSetName"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta1.ResourceBinding"},
 	}
 }
 

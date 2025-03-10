@@ -63,6 +63,15 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:   &clusterv1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
+
+	t.Run("for ClusterResourceSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &clusterv1.ClusterResourceSet{},
+		Spoke: &ClusterResourceSet{},
+	}))
+	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &clusterv1.ClusterResourceSetBinding{},
+		Spoke: &ClusterResourceSetBinding{},
+	}))
 }
 
 func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

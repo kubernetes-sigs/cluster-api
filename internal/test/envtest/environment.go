@@ -61,8 +61,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
@@ -111,7 +109,6 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(addonsv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(runtimev1.AddToScheme(scheme.Scheme))
@@ -359,10 +356,10 @@ func newEnvironment(managerCacheOptions cache.Options, uncachedObjs ...client.Ob
 	if err := (&controlplanewebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&addonswebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
-	if err := (&addonswebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for ClusterResourceSetBinding: %+v", err)
 	}
 	if err := (&expapiwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {

@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 // GetClusterResourceSetsInput is the input for GetClusterResourceSets.
@@ -38,13 +37,13 @@ type GetClusterResourceSetsInput struct {
 }
 
 // GetClusterResourceSets returns all ClusterResourceSet objects in a namespace.
-func GetClusterResourceSets(ctx context.Context, input GetClusterResourceSetsInput) []*addonsv1.ClusterResourceSet {
-	crsList := &addonsv1.ClusterResourceSetList{}
+func GetClusterResourceSets(ctx context.Context, input GetClusterResourceSetsInput) []*clusterv1.ClusterResourceSet {
+	crsList := &clusterv1.ClusterResourceSetList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, crsList, client.InNamespace(input.Namespace))
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list ClusterResourceSet objects for namespace %s", input.Namespace)
 
-	clusterResourceSets := make([]*addonsv1.ClusterResourceSet, len(crsList.Items))
+	clusterResourceSets := make([]*clusterv1.ClusterResourceSet, len(crsList.Items))
 	for i := range crsList.Items {
 		clusterResourceSets[i] = &crsList.Items[i]
 	}
@@ -59,8 +58,8 @@ type GetClusterResourceSetBindingByClusterInput struct {
 }
 
 // GetClusterResourceSetBindingByCluster returns the ClusterResourceBinding objects for a cluster.
-func GetClusterResourceSetBindingByCluster(ctx context.Context, input GetClusterResourceSetBindingByClusterInput) *addonsv1.ClusterResourceSetBinding {
-	binding := &addonsv1.ClusterResourceSetBinding{}
+func GetClusterResourceSetBindingByCluster(ctx context.Context, input GetClusterResourceSetBindingByClusterInput) *clusterv1.ClusterResourceSetBinding {
+	binding := &clusterv1.ClusterResourceSetBinding{}
 	Eventually(func() error {
 		return input.Getter.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, binding)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list ClusterResourceSetBinding objects for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
@@ -81,7 +80,7 @@ func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input Disc
 
 	mgmtClient := input.ClusterProxy.GetClient()
 	fmt.Fprintln(GinkgoWriter, "Discovering cluster resource set resources")
-	var clusterResourceSets []*addonsv1.ClusterResourceSet
+	var clusterResourceSets []*clusterv1.ClusterResourceSet
 	Eventually(func() bool {
 		clusterResourceSets = GetClusterResourceSets(ctx, GetClusterResourceSetsInput{
 			Lister:    mgmtClient,
@@ -112,7 +111,7 @@ func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input Disc
 type WaitForClusterResourceSetToApplyResourcesInput struct {
 	ClusterProxy       ClusterProxy
 	Cluster            *clusterv1.Cluster
-	ClusterResourceSet *addonsv1.ClusterResourceSet
+	ClusterResourceSet *clusterv1.ClusterResourceSet
 }
 
 // WaitForClusterResourceSetToApplyResources wait until all ClusterResourceSet resources are created in the matching cluster.
@@ -124,23 +123,23 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 
 	fmt.Fprintln(GinkgoWriter, "Waiting until the binding is created for the workload cluster")
 	Eventually(func() bool {
-		binding := &addonsv1.ClusterResourceSetBinding{}
+		binding := &clusterv1.ClusterResourceSetBinding{}
 		err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: input.Cluster.Name, Namespace: input.Cluster.Namespace}, binding)
 		return err == nil
 	}, intervals...).Should(BeTrue())
 
 	fmt.Fprintln(GinkgoWriter, "Waiting until the resource is created in the workload cluster")
 	Eventually(func() bool {
-		binding := &addonsv1.ClusterResourceSetBinding{}
+		binding := &clusterv1.ClusterResourceSetBinding{}
 		Expect(input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: input.Cluster.Name, Namespace: input.Cluster.Namespace}, binding)).To(Succeed())
 
 		for _, resource := range input.ClusterResourceSet.Spec.Resources {
 			var configSource client.Object
 
 			switch resource.Kind {
-			case string(addonsv1.SecretClusterResourceSetResourceKind):
+			case string(clusterv1.SecretClusterResourceSetResourceKind):
 				configSource = &corev1.Secret{}
-			case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
+			case string(clusterv1.ConfigMapClusterResourceSetResourceKind):
 				configSource = &corev1.ConfigMap{}
 			}
 
@@ -162,8 +161,8 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 }
 
 func getResourceSetBindingForClusterResourceSet(
-	clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet,
-) *addonsv1.ResourceSetBinding {
+	clusterResourceSetBinding *clusterv1.ClusterResourceSetBinding, clusterResourceSet *clusterv1.ClusterResourceSet,
+) *clusterv1.ResourceSetBinding {
 	if clusterResourceSetBinding == nil || clusterResourceSet == nil {
 		return nil
 	}

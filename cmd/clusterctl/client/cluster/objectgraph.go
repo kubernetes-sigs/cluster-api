@@ -39,7 +39,6 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 )
 
@@ -164,8 +163,8 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 	}
 
 	// If the node is a ClusterResourceSetBinding capture the name of the cluster it is referencing to.
-	if n.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
-		binding := &addonsv1.ClusterResourceSetBinding{}
+	if n.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+		binding := &clusterv1.ClusterResourceSetBinding{}
 		if err := localScheme.Convert(obj, binding, nil); err != nil {
 			return errors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
 		}
@@ -368,7 +367,7 @@ func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 			if crd.Spec.Group == clusterv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterClass" {
 				forceMoveHierarchy = true
 			}
-			if crd.Spec.Group == addonsv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterResourceSet" {
+			if crd.Spec.Group == clusterv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterResourceSet" {
 				forceMoveHierarchy = true
 			}
 			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel]; ok {
@@ -637,7 +636,7 @@ func (o *objectGraph) getClusterClasses() []*node {
 func (o *objectGraph) getClusterResourceSetBinding() []*node {
 	crs := []*node{}
 	for _, node := range o.uidToNode {
-		if node.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+		if node.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
 			crs = append(crs, node)
 		}
 	}
@@ -668,7 +667,7 @@ func (o *objectGraph) getNodes() []*node {
 func (o *objectGraph) getCRSs() []*node {
 	clusters := []*node{}
 	for _, node := range o.uidToNode {
-		if node.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSet").GroupKind() {
+		if node.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("ClusterResourceSet").GroupKind() {
 			clusters = append(clusters, node)
 		}
 	}

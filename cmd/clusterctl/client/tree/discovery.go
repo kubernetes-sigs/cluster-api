@@ -27,7 +27,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -191,7 +190,7 @@ func addClusterResourceSetsToObjectTree(ctx context.Context, c client.Client, cl
 				Kind:       "ClusterResourceSet",
 				Namespace:  cluster.Namespace,
 				Name:       binding.ClusterResourceSetName,
-				APIVersion: addonsv1.GroupVersion.String(),
+				APIVersion: crsv1.GroupVersion.String(),
 			})
 			tree.Add(resourceSetGroup, resourceSetRefObject)
 		}
@@ -304,19 +303,19 @@ func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, workers *
 	}
 }
 
-func getResourceSetBindingInCluster(ctx context.Context, c client.Client, namespace string, name string) (*addonsv1.ClusterResourceSetBinding, error) {
+func getResourceSetBindingInCluster(ctx context.Context, c client.Client, namespace string, name string) (*clusterv1.ClusterResourceSetBinding, error) {
 	if name == "" {
 		return nil, nil
 	}
 
-	resourceSetBinding := &addonsv1.ClusterResourceSetBinding{}
+	resourceSetBinding := &clusterv1.ClusterResourceSetBinding{}
 	resourceSetBindingKey := client.ObjectKey{Namespace: namespace, Name: name}
 	if err := c.Get(ctx, resourceSetBindingKey, resourceSetBinding); err != nil {
 		return nil, err
 	}
 	resourceSetBinding.TypeMeta = metav1.TypeMeta{
 		Kind:       "ClusterResourceSetBinding",
-		APIVersion: addonsv1.GroupVersion.String(),
+		APIVersion: clusterv1.GroupVersion.String(),
 	}
 
 	return resourceSetBinding, nil

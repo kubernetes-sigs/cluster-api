@@ -2379,6 +2379,10 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							ConditionType: "MyAvailabilityGate",
 						},
+						{
+							ConditionType: "MyAvailabilityGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
+						},
 					},
 				},
 				Status: clusterv1.ClusterStatus{
@@ -2415,6 +2419,12 @@ func TestSetAvailableCondition(t *testing.T) {
 								Reason:  "SomeReason",
 								Message: "Some message",
 							},
+							{
+								Type:    "MyAvailabilityGateWithNegativePolarity",
+								Status:  metav1.ConditionTrue,
+								Reason:  "SomeReason",
+								Message: "Some other message",
+							},
 						},
 					},
 				},
@@ -2429,10 +2439,11 @@ func TestSetAvailableCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
-				Message: "* MyAvailabilityGate: Some message",
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Message: "* MyAvailabilityGate: Some message\n" +
+					"* MyAvailabilityGateWithNegativePolarity: Some other message",
 			},
 		},
 		{
@@ -2476,6 +2487,12 @@ func TestSetAvailableCondition(t *testing.T) {
 								Reason:  "SomeReason",
 								Message: "Some message",
 							},
+							{
+								Type:    "MyClusterClassAvailabilityGateWithNegativePolarity",
+								Status:  metav1.ConditionTrue,
+								Reason:  "SomeReason",
+								Message: "Some other message",
+							},
 						},
 					},
 				},
@@ -2486,14 +2503,19 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							ConditionType: "MyClusterClassAvailabilityGate",
 						},
+						{
+							ConditionType: "MyClusterClassAvailabilityGateWithNegativePolarity",
+							Polarity:      clusterv1.NegativePolarityCondition,
+						},
 					},
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
-				Message: "* MyClusterClassAvailabilityGate: Some message",
+				Type:   clusterv1.ClusterAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Message: "* MyClusterClassAvailabilityGate: Some message\n" +
+					"* MyClusterClassAvailabilityGateWithNegativePolarity: Some other message",
 			},
 		},
 		{

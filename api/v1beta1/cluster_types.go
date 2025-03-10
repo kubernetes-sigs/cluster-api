@@ -504,9 +504,22 @@ type ClusterSpec struct {
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
 }
 
+// ConditionPolarity defines the polarity for a metav1.Condition.
+type ConditionPolarity string
+
+const (
+	// PositivePolarityCondition describe a condition with positive polarity, a condition
+	// where the normal state is True. e.g. NetworkReady.
+	PositivePolarityCondition ConditionPolarity = "Positive"
+
+	// NegativePolarityCondition describe a condition with negative polarity, a condition
+	// where the normal state is False. e.g. MemoryPressure.
+	NegativePolarityCondition ConditionPolarity = "Negative"
+)
+
 // ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
 type ClusterAvailabilityGate struct {
-	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+	// conditionType refers to a condition with matching type in the Cluster's condition list.
 	// If the conditions doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
 	// +required
@@ -514,6 +527,15 @@ type ClusterAvailabilityGate struct {
 	// +kubebuilder:validation:MaxLength=316
 	// +kubebuilder:validation:MinLength=1
 	ConditionType string `json:"conditionType"`
+
+	// polarity of the conditionType specified in this availabilityGate.
+	// Valid values are Positive, Negative and omitted.
+	// When omitted, the default behaviour will be Positive.
+	// A positive polarity means that the condition should report a true status under normal conditions.
+	// A negative polarity means that the condition should report a false status under normal conditions.
+	// +kubebuilder:validation:Enum=Positive;Negative
+	// +optional
+	Polarity ConditionPolarity `json:"polarity,omitempty"`
 }
 
 // Topology encapsulates the information of the managed resources.

@@ -17,12 +17,8 @@ limitations under the License.
 package crdmigrator
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -31,7 +27,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
@@ -485,7 +479,7 @@ func installCRDs(ctx context.Context, c client.Client, crdPath string) error {
 	}
 
 	// Read the CRD YAMLs into options.CRDs.
-	if err := readCRDFiles(&installOpts); err != nil {
+	if err := envtest.ReadCRDFiles(&installOpts); err != nil {
 		return fmt.Errorf("unable to read CRD files: %w", err)
 	}
 
@@ -535,136 +529,4 @@ type noopWebhookServer struct {
 
 func (s *noopWebhookServer) Start(_ context.Context) error {
 	return nil // Do nothing.
-}
-
-// TODO(sbueringer): The following will be dropped once we adopt: https://github.com/kubernetes-sigs/controller-runtime/pull/3129
-
-// readCRDFiles reads the directories of CRDs in options.Paths and adds the CRD structs to options.CRDs.
-func readCRDFiles(options *envtest.CRDInstallOptions) error {
-	if len(options.Paths) > 0 {
-		crdList, err := renderCRDs(options)
-		if err != nil {
-			return err
-		}
-
-		options.CRDs = append(options.CRDs, crdList...)
-	}
-	return nil
-}
-
-// renderCRDs iterate through options.Paths and extract all CRD files.
-func renderCRDs(options *envtest.CRDInstallOptions) ([]*apiextensionsv1.CustomResourceDefinition, error) {
-	type GVKN struct {
-		GVK  schema.GroupVersionKind
-		Name string
-	}
-
-	crds := map[GVKN]*apiextensionsv1.CustomResourceDefinition{}
-
-	for _, path := range options.Paths {
-		var (
-			err      error
-			info     os.FileInfo
-			files    []string
-			filePath = path
-		)
-
-		// Return the error if ErrorIfPathMissing exists
-		if info, err = os.Stat(path); os.IsNotExist(err) {
-			if options.ErrorIfPathMissing {
-				return nil, err
-			}
-			continue
-		}
-
-		if !info.IsDir() {
-			filePath, files = filepath.Dir(path), []string{info.Name()}
-		} else {
-			entries, err := os.ReadDir(path)
-			if err != nil {
-				return nil, err
-			}
-			for _, e := range entries {
-				files = append(files, e.Name())
-			}
-		}
-
-		crdList, err := readCRDs(filePath, files)
-		if err != nil {
-			return nil, err
-		}
-
-		for i, crd := range crdList {
-			gvkn := GVKN{GVK: crd.GroupVersionKind(), Name: crd.GetName()}
-			// We always use the CRD definition that we found last.
-			crds[gvkn] = crdList[i]
-		}
-	}
-
-	// Converting map to a list to return
-	res := []*apiextensionsv1.CustomResourceDefinition{}
-	for _, obj := range crds {
-		res = append(res, obj)
-	}
-	return res, nil
-}
-
-// readCRDs reads the CRDs from files and Unmarshals them into structs.
-func readCRDs(basePath string, files []string) ([]*apiextensionsv1.CustomResourceDefinition, error) {
-	var crds []*apiextensionsv1.CustomResourceDefinition
-
-	// White list the file extensions that may contain CRDs
-	crdExts := sets.NewString(".json", ".yaml", ".yml")
-
-	for _, file := range files {
-		// Only parse allowlisted file types
-		if !crdExts.Has(filepath.Ext(file)) {
-			continue
-		}
-
-		// Unmarshal CRDs from file into structs
-		docs, err := readDocuments(filepath.Join(basePath, file))
-		if err != nil {
-			return nil, err
-		}
-
-		for _, doc := range docs {
-			crd := &apiextensionsv1.CustomResourceDefinition{}
-			if err = yaml.Unmarshal(doc, crd); err != nil {
-				return nil, err
-			}
-
-			if crd.Kind != "CustomResourceDefinition" || crd.Spec.Names.Kind == "" || crd.Spec.Group == "" {
-				continue
-			}
-			crds = append(crds, crd)
-		}
-	}
-	return crds, nil
-}
-
-// readDocuments reads documents from file.
-func readDocuments(fp string) ([][]byte, error) {
-	b, err := os.ReadFile(fp) //nolint:gosec // No security issue here
-	if err != nil {
-		return nil, err
-	}
-
-	docs := [][]byte{}
-	reader := yaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(b)))
-	for {
-		// Read document
-		doc, err := reader.Read()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return nil, err
-		}
-
-		docs = append(docs, doc)
-	}
-
-	return docs, nil
 }

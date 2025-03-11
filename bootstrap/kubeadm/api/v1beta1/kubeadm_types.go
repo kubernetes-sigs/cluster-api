@@ -452,9 +452,9 @@ type LocalEtcd struct {
 // Kubeadm has no knowledge of where certificate files live and they must be supplied.
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
-	// +kubebuilder:validation:MaxItems=50
 	// +required
-	// +kubebuilder:validation:items:MaxLength=256
+	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:items:MaxLength=512
 	Endpoints []string `json:"endpoints"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.

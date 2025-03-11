@@ -144,7 +144,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
 		"Number of kubeadm configs to process simultaneously")
 
-	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
 		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,

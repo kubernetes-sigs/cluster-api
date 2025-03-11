@@ -21,10 +21,12 @@ import (
 	"regexp"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
@@ -94,6 +96,8 @@ type MachineSetReconciler struct {
 	APIReader    client.Reader
 	ClusterCache clustercache.ClusterCache
 
+	PreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck]
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
@@ -103,6 +107,7 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		ClusterCache:     r.ClusterCache,
+		PreflightChecks:  r.PreflightChecks,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

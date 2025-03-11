@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -128,6 +129,7 @@ var (
 	machinePoolConcurrency        int
 	clusterResourceSetConcurrency int
 	machineHealthCheckConcurrency int
+	machineSetPreflightChecks     []string
 	skipCRDMigrationPhases        []string
 	additionalSyncMachineLabels   []string
 )
@@ -226,7 +228,14 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 10,
 		"Number of machine health checks to process simultaneously")
 
-	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+	fs.StringSliceVar(&machineSetPreflightChecks, "machineset-preflight-checks", []string{
+		string(clusterv1.MachineSetPreflightCheckAll)},
+		"List of MachineSet preflight checks that should be run. Per default all of them are enabled."+
+			"Set this flag to only enable a subset of them. The MachineSet preflight checks can be then also disabled"+
+			"on MachineSets via the 'machineset.cluster.x-k8s.io/skip-preflight-checks' annotation."+
+			"Valid values are: All or a list of KubeadmVersionSkew, KubernetesVersionSkew, ControlPlaneIsStable, ControlPlaneVersionSkew")
+
+	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
 		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
@@ -259,7 +268,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	fs.StringArrayVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
+	fs.StringSliceVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
 		"List of regexes to select the additional set of labels to sync from the Machine to the Node. A label will be synced as long as it matches at least one of the regexes.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
@@ -641,10 +650,30 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
+	machineSetPreflightChecksSet := sets.Set[clusterv1.MachineSetPreflightCheck]{}
+	supportedMachineSetPreflightChecks := sets.New[clusterv1.MachineSetPreflightCheck](
+		clusterv1.MachineSetPreflightCheckAll,
+		clusterv1.MachineSetPreflightCheckKubeadmVersionSkew,
+		clusterv1.MachineSetPreflightCheckKubernetesVersionSkew,
+		clusterv1.MachineSetPreflightCheckControlPlaneIsStable,
+		clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew,
+	)
+	for _, c := range machineSetPreflightChecks {
+		if c == "" {
+			continue
+		}
+		preflightCheck := clusterv1.MachineSetPreflightCheck(c)
+		if !supportedMachineSetPreflightChecks.Has(preflightCheck) {
+			setupLog.Error(err, "Unable to create controller: invalid preflight check configured via --machineset-preflight-checks", "controller", "MachineSet")
+			os.Exit(1)
+		}
+		machineSetPreflightChecksSet.Insert(preflightCheck)
+	}
 	if err := (&controllers.MachineSetReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
 		ClusterCache:     clusterCache,
+		PreflightChecks:  machineSetPreflightChecksSet,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "MachineSet")

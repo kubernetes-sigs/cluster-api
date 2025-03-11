@@ -228,14 +228,14 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 10,
 		"Number of machine health checks to process simultaneously")
 
-	fs.StringArrayVar(&machineSetPreflightChecks, "machineset-preflight-checks", []string{
+	fs.StringSliceVar(&machineSetPreflightChecks, "machineset-preflight-checks", []string{
 		string(clusterv1.MachineSetPreflightCheckAll)},
 		"List of MachineSet preflight checks that should be run. Per default all of them are enabled."+
 			"Set this flag to only enable a subset of them. The MachineSet preflight checks can be then also disabled"+
 			"on MachineSets via the 'machineset.cluster.x-k8s.io/skip-preflight-checks' annotation."+
-			"Valid values are: All, KubeadmVersionSkew, KubernetesVersionSkew, ControlPlaneIsStable, ControlPlaneVersionSkew")
+			"Valid values are: All or a list of KubeadmVersionSkew, KubernetesVersionSkew, ControlPlaneIsStable, ControlPlaneVersionSkew")
 
-	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+	fs.StringSliceVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
 		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
@@ -268,7 +268,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	fs.StringArrayVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
+	fs.StringSliceVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
 		"List of regexes to select the additional set of labels to sync from the Machine to the Node. A label will be synced as long as it matches at least one of the regexes.")
 
 	flags.AddManagerOptions(fs, &managerOptions)

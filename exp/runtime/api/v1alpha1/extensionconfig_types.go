@@ -27,6 +27,7 @@ import (
 // ExtensionConfigSpec defines the desired state of ExtensionConfig.
 type ExtensionConfigSpec struct {
 	// clientConfig defines how to communicate with the Extension server.
+	// +required
 	ClientConfig ClientConfig `json:"clientConfig"`
 
 	// namespaceSelector decides whether to call the hook for an object based
@@ -80,9 +81,11 @@ type ClientConfig struct {
 // ServiceReference holds a reference to a Kubernetes Service of an Extension server.
 type ServiceReference struct {
 	// namespace is the namespace of the service.
+	// +required
 	Namespace string `json:"namespace"`
 
 	// name is the name of the service.
+	// +required
 	Name string `json:"name"`
 
 	// path is an optional URL path and if present may be any string permissible in
@@ -133,9 +136,11 @@ type ExtensionConfigV1Beta2Status struct {
 // ExtensionHandler specifies the details of a handler for a particular runtime hook registered by an Extension server.
 type ExtensionHandler struct {
 	// name is the unique name of the ExtensionHandler.
+	// +required
 	Name string `json:"name"`
 
 	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
+	// +required
 	RequestHook GroupVersionHook `json:"requestHook"`
 
 	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
@@ -152,9 +157,11 @@ type ExtensionHandler struct {
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
 	// apiVersion is the group and version of the Hook.
+	// +required
 	APIVersion string `json:"apiVersion"`
 
 	// hook is the name of the hook.
+	// +required
 	Hook string `json:"hook"`
 }
 
@@ -186,12 +193,15 @@ type ExtensionConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of the ExtensionConfig.
+	// +optional
 	Spec ExtensionConfigSpec `json:"spec,omitempty"`
 
 	// status is the current state of the ExtensionConfig
+	// +optional
 	Status ExtensionConfigStatus `json:"status,omitempty"`
 }
 
@@ -228,6 +238,7 @@ type ExtensionConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ExtensionConfigs.
 	Items []ExtensionConfig `json:"items"`

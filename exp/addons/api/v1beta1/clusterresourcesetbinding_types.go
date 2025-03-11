@@ -40,6 +40,7 @@ type ResourceBinding struct {
 	LastAppliedTime *metav1.Time `json:"lastAppliedTime,omitempty"`
 
 	// applied is to track if a resource is applied to the cluster or not.
+	// +required
 	Applied bool `json:"applied"`
 }
 
@@ -48,6 +49,7 @@ type ResourceBinding struct {
 // ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
 type ResourceSetBinding struct {
 	// clusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.
+	// +required
 	ClusterResourceSetName string `json:"clusterResourceSetName"`
 
 	// resources is a list of resources that the ClusterResourceSet has.
@@ -177,8 +179,10 @@ type ClusterResourceSetBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec is the desired state of ClusterResourceSetBinding.
+	// +optional
 	Spec ClusterResourceSetBindingSpec `json:"spec,omitempty"`
 }
 
@@ -206,6 +210,7 @@ type ClusterResourceSetBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ClusterResourceSetBindings.
 	Items []ClusterResourceSetBinding `json:"items"`

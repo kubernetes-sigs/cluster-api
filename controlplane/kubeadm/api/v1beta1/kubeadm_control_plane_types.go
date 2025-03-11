@@ -90,14 +90,17 @@ type KubeadmControlPlaneSpec struct {
 	// Please use a newer patch version with the new registry instead. The default registries of kubeadm are:
 	//   * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
 	//   * k8s.gcr.io (old registry): all older versions
+	// +required
 	Version string `json:"version"`
 
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
+	// +required
 	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate"`
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
+	// +required
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// rolloutBefore is a field to indicate a rollout should be performed
@@ -140,6 +143,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
+	// +required
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
@@ -392,13 +396,16 @@ type KubeadmControlPlaneV1Beta2Status struct {
 // more remediations than expected might happen.
 type LastRemediationStatus struct {
 	// machine is the machine name of the latest machine being remediated.
+	// +required
 	Machine string `json:"machine"`
 
 	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	// +required
 	Timestamp metav1.Time `json:"timestamp"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
+	// +required
 	RetryCount int32 `json:"retryCount"`
 }
 
@@ -423,11 +430,14 @@ type KubeadmControlPlane struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlane.
+	// +optional
 	Spec KubeadmControlPlaneSpec `json:"spec,omitempty"`
 	// status is the observed state of KubeadmControlPlane.
+	// +optional
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
 }
 
@@ -464,6 +474,7 @@ type KubeadmControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of KubeadmControlPlanes.
 	Items []KubeadmControlPlane `json:"items"`

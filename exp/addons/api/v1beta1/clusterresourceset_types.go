@@ -59,6 +59,7 @@ type ClusterResourceSetSpec struct {
 	// selected by this will be the ones affected by this ClusterResourceSet.
 	// It must match the Cluster labels. This field is immutable.
 	// Label selector cannot be empty.
+	// +required
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 
 	// resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
@@ -87,10 +88,12 @@ const (
 type ResourceRef struct {
 	// name of the resource that is in the same namespace with ClusterResourceSet object.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	Name string `json:"name"`
 
 	// kind of the resource. Supported kinds are: Secrets and ConfigMaps.
 	// +kubebuilder:validation:Enum=Secret;ConfigMap
+	// +required
 	Kind string `json:"kind"`
 }
 
@@ -180,11 +183,14 @@ type ClusterResourceSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ClusterResourceSet.
+	// +optional
 	Spec ClusterResourceSetSpec `json:"spec,omitempty"`
 	// status is the observed state of ClusterResourceSet.
+	// +optional
 	Status ClusterResourceSetStatus `json:"status,omitempty"`
 }
 
@@ -195,6 +201,7 @@ type ClusterResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ClusterResourceSets.
 	Items []ClusterResourceSet `json:"items"`

@@ -53,9 +53,11 @@ var (
 type MachineHealthCheckSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	ClusterName string `json:"clusterName"`
 
 	// selector is a label selector to match machines whose health will be exercised
+	// +required
 	Selector metav1.LabelSelector `json:"selector"`
 
 	// unhealthyConditions contains a list of the conditions that determine
@@ -124,17 +126,20 @@ type UnhealthyCondition struct {
 	// type of Node condition
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	Type corev1.NodeConditionType `json:"type"`
 
 	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	Status corev1.ConditionStatus `json:"status"`
 
 	// timeout is the duration that a node must be in a given status for,
 	// after which the node is considered unhealthy.
 	// For example, with a value of "1h", the node must match the status
 	// for at least 1 hour before being considered unhealthy.
+	// +required
 	Timeout metav1.Duration `json:"timeout"`
 }
 
@@ -207,12 +212,15 @@ type MachineHealthCheck struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of machine health check policy
+	// +optional
 	Spec MachineHealthCheckSpec `json:"spec,omitempty"`
 
 	// status is the most recently observed status of MachineHealthCheck resource
+	// +optional
 	Status MachineHealthCheckStatus `json:"status,omitempty"`
 }
 
@@ -249,6 +257,7 @@ type MachineHealthCheckList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of MachineHealthChecks.
 	Items []MachineHealthCheck `json:"items"`

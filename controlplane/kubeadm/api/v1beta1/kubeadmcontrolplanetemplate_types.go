@@ -26,6 +26,7 @@ import (
 // KubeadmControlPlaneTemplateSpec defines the desired state of KubeadmControlPlaneTemplate.
 type KubeadmControlPlaneTemplateSpec struct {
 	// template defines the desired state of KubeadmControlPlaneTemplate.
+	// +required
 	Template KubeadmControlPlaneTemplateResource `json:"template"`
 }
 
@@ -39,9 +40,11 @@ type KubeadmControlPlaneTemplate struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlaneTemplate.
+	// +optional
 	Spec KubeadmControlPlaneTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -52,6 +55,7 @@ type KubeadmControlPlaneTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of KubeadmControlPlaneTemplates.
 	Items []KubeadmControlPlaneTemplate `json:"items"`
@@ -69,6 +73,7 @@ type KubeadmControlPlaneTemplateResource struct {
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlaneTemplateResource.
+	// +required
 	Spec KubeadmControlPlaneTemplateResourceSpec `json:"spec"`
 }
 
@@ -85,6 +90,7 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
+	// +required
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// rolloutBefore is a field to indicate a rollout should be performed

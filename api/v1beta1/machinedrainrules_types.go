@@ -227,7 +227,6 @@ type MachineDrainRuleList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	// items contains the items of the MachineDrainRuleList.
-	// +required
 	Items []MachineDrainRule `json:"items"`
 }
 

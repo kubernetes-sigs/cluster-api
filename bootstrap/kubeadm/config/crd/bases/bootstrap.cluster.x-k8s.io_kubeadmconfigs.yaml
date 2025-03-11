@@ -2472,7 +2472,7 @@ spec:
                           endpoints:
                             description: endpoints of etcd members. Required for ExternalEtcd.
                             items:
-                              maxLength: 256
+                              maxLength: 512
                               type: string
                             maxItems: 50
                             type: array

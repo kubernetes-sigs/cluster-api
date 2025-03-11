@@ -505,6 +505,7 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 				},
 			},
 			Settings: map[string]string{
+				"extensionConfigName":          name,
 				"defaultAllHandlersToBlocking": strconv.FormatBool(defaultAllHandlersToBlocking),
 			},
 		},

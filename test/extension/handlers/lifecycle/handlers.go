@@ -179,7 +179,7 @@ func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *
 func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}
-	configMapName := fmt.Sprintf("%s-test-extension-hookresponses", cluster.Name)
+	configMapName := fmt.Sprintf("%s-%s-test-extension-hookresponses", cluster.Name, settings["extensionConfigName"])
 	if err := m.client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
 		if apierrors.IsNotFound(err) {
 			// A ConfigMap of responses does not exist. Create one now.

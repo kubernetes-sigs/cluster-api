@@ -930,9 +930,9 @@ type ClusterNetwork struct {
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
-	// +kubebuilder:validation:MaxItems=100
 	// +required
-	// +kubebuilder:validation:items:MaxLength=256
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MaxLength=43
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 

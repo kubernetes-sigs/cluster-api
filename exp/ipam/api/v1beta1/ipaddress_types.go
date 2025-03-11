@@ -33,7 +33,7 @@ type IPAddressSpec struct {
 
 	// address is the IP address.
 	// +required
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=39
 	Address string `json:"address"`
 
 	// prefix is the prefix of the address.
@@ -42,7 +42,7 @@ type IPAddressSpec struct {
 
 	// gateway is the network gateway of the network the address is from.
 	// +optional
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=39
 	Gateway string `json:"gateway,omitempty"`
 }
 

@@ -813,7 +813,7 @@ spec:
                       cidrBlocks:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
-                          maxLength: 256
+                          maxLength: 43
                           type: string
                         maxItems: 100
                         type: array
@@ -831,7 +831,7 @@ spec:
                       cidrBlocks:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
-                          maxLength: 256
+                          maxLength: 43
                           type: string
                         maxItems: 100
                         type: array

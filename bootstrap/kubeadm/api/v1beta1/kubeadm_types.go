@@ -234,7 +234,7 @@ type ClusterStatus struct {
 type APIEndpoint struct {
 	// advertiseAddress sets the IP address for the API server to advertise.
 	// +optional
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=39
 	AdvertiseAddress string `json:"advertiseAddress,omitempty"`
 
 	// bindPort sets the secure port for the API Server to bind to.

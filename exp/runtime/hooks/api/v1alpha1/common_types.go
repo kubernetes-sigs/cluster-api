@@ -71,10 +71,12 @@ type RetryResponseObject interface {
 // interface is satisfied.
 type CommonResponse struct {
 	// status of the call. One of "Success" or "Failure".
+	// +required
 	Status ResponseStatus `json:"status"`
 
 	// message is a human-readable description of the status of the call.
-	Message string `json:"message"`
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // SetMessage sets the Message field for the CommonResponse.
@@ -119,6 +121,7 @@ type CommonRetryResponse struct {
 
 	// retryAfterSeconds when set to a non-zero value signifies that the hook
 	// will be called again at a future time.
+	// +required
 	RetryAfterSeconds int32 `json:"retryAfterSeconds"`
 }
 

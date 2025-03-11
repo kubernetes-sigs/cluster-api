@@ -26,6 +26,7 @@ import (
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
 type IPAddressClaimSpec struct {
 	// poolRef is a reference to the pool from which an IP address should be created.
+	// +required
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 }
 
@@ -52,11 +53,14 @@ type IPAddressClaim struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of IPAddressClaim.
+	// +optional
 	Spec IPAddressClaimSpec `json:"spec,omitempty"`
 	// status is the observed state of IPAddressClaim.
+	// +optional
 	Status IPAddressClaimStatus `json:"status,omitempty"`
 }
 
@@ -77,6 +81,7 @@ type IPAddressClaimList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of IPAddressClaims.
 	Items []IPAddressClaim `json:"items"`

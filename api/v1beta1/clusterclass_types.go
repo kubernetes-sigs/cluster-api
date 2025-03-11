@@ -75,11 +75,14 @@ type ClusterClass struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ClusterClass.
+	// +optional
 	Spec ClusterClassSpec `json:"spec,omitempty"`
 	// status is the observed state of ClusterClass.
+	// +optional
 	Status ClusterClassStatus `json:"status,omitempty"`
 }
 
@@ -255,10 +258,12 @@ type MachineDeploymentClass struct {
 	// class denotes a type of worker node present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachineDeployment.
+	// +required
 	Class string `json:"class"`
 
 	// template is a local struct containing a collection of templates for creation of
 	// MachineDeployment objects representing a set of worker nodes.
+	// +required
 	Template MachineDeploymentClassTemplate `json:"template"`
 
 	// machineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
@@ -300,6 +305,7 @@ type MachineDeploymentClass struct {
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -319,6 +325,7 @@ type MachineDeploymentClass struct {
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 }
 
@@ -332,10 +339,12 @@ type MachineDeploymentClassTemplate struct {
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
+	// +required
 	Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
+	// +required
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
@@ -410,10 +419,12 @@ type MachinePoolClass struct {
 	// class denotes a type of machine pool present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachinePool.
+	// +required
 	Class string `json:"class"`
 
 	// template is a local struct containing a collection of templates for creation of
 	// MachinePools objects representing a pool of worker nodes.
+	// +required
 	Template MachinePoolClassTemplate `json:"template"`
 
 	// failureDomains is the list of failure domains the MachinePool should be attached to.
@@ -452,6 +463,7 @@ type MachinePoolClass struct {
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
+	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 }
 
@@ -465,10 +477,12 @@ type MachinePoolClassTemplate struct {
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
+	// +required
 	Bootstrap LocalObjectTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of the MachinePool.
+	// +required
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
@@ -495,12 +509,14 @@ func (m MachineHealthCheckClass) IsZero() bool {
 // be configured in the Cluster topology and used in patches.
 type ClusterClassVariable struct {
 	// name of the variable.
+	// +required
 	Name string `json:"name"`
 
 	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
+	// +required
 	Required bool `json:"required"`
 
 	// metadata is the metadata of a variable.
@@ -513,6 +529,7 @@ type ClusterClassVariable struct {
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
 	// schema defines the schema of the variable.
+	// +required
 	Schema VariableSchema `json:"schema"`
 }
 
@@ -539,6 +556,7 @@ type VariableSchema struct {
 	// openAPIV3Schema defines the schema of a variable via OpenAPI v3
 	// schema. The schema is a subset of the schema used in
 	// Kubernetes CRDs.
+	// +required
 	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
 }
 
@@ -549,9 +567,11 @@ type VariableSchema struct {
 // which are not supported in CAPI have been removed.
 type JSONSchemaProps struct {
 	// description is a human-readable description of this variable.
+	// +optional
 	Description string `json:"description,omitempty"`
 
 	// example is an example for this variable.
+	// +optional
 	Example *apiextensionsv1.JSON `json:"example,omitempty"`
 
 	// type is the type of the variable.
@@ -871,9 +891,11 @@ const (
 // ClusterClassPatch defines a patch which is applied to customize the referenced templates.
 type ClusterClassPatch struct {
 	// name of the patch.
+	// +required
 	Name string `json:"name"`
 
 	// description is a human-readable description of this patch.
+	// +optional
 	Description string `json:"description,omitempty"`
 
 	// enabledIf is a Go template to be used to calculate if a patch should be enabled.
@@ -900,12 +922,14 @@ type ClusterClassPatch struct {
 // PatchDefinition defines a patch which is applied to customize the referenced templates.
 type PatchDefinition struct {
 	// selector defines on which templates the patch should be applied.
+	// +required
 	Selector PatchSelector `json:"selector"`
 
 	// jsonPatches defines the patches which should be applied on the templates
 	// matching the selector.
 	// Note: Patches will be applied in the order of the array.
 	// +kubebuilder:validation:MaxItems=100
+	// +required
 	JSONPatches []JSONPatch `json:"jsonPatches"`
 }
 
@@ -916,12 +940,15 @@ type PatchDefinition struct {
 // Note: The results of selection based on the individual fields are ANDed.
 type PatchSelector struct {
 	// apiVersion filters templates by apiVersion.
+	// +required
 	APIVersion string `json:"apiVersion"`
 
 	// kind filters templates by kind.
+	// +required
 	Kind string `json:"kind"`
 
 	// matchResources selects templates based on where they are referenced.
+	// +required
 	MatchResources PatchSelectorMatch `json:"matchResources"`
 }
 
@@ -972,6 +999,7 @@ type PatchSelectorMatchMachinePoolClass struct {
 type JSONPatch struct {
 	// op defines the operation of the patch.
 	// Note: Only `add`, `replace` and `remove` are supported.
+	// +required
 	Op string `json:"op"`
 
 	// path defines the path of the patch.
@@ -979,6 +1007,7 @@ type JSONPatch struct {
 	// Note: For now the only allowed array modifications are `append` and `prepend`, i.e.:
 	// * for op: `add`: only index 0 (prepend) and - (append) are allowed
 	// * for op: `replace` or `remove`: no indexes are allowed
+	// +required
 	Path string `json:"path"`
 
 	// value defines the value of the patch.
@@ -1039,6 +1068,7 @@ type ExternalPatchDefinition struct {
 type LocalObjectTemplate struct {
 	// ref is a required reference to a custom resource
 	// offered by a provider.
+	// +required
 	Ref *corev1.ObjectReference `json:"ref"`
 }
 
@@ -1079,6 +1109,7 @@ type ClusterClassV1Beta2Status struct {
 // ClusterClassStatusVariable defines a variable which appears in the status of a ClusterClass.
 type ClusterClassStatusVariable struct {
 	// name is the name of the variable.
+	// +required
 	Name string `json:"name"`
 
 	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
@@ -1087,6 +1118,7 @@ type ClusterClassStatusVariable struct {
 
 	// definitions is a list of definitions for a variable.
 	// +kubebuilder:validation:MaxItems=100
+	// +required
 	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`
 }
 
@@ -1095,12 +1127,14 @@ type ClusterClassStatusVariableDefinition struct {
 	// from specifies the origin of the variable definition.
 	// This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
 	// for variables discovered from a DiscoverVariables runtime extensions.
+	// +required
 	From string `json:"from"`
 
 	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
+	// +required
 	Required bool `json:"required"`
 
 	// metadata is the metadata of a variable.
@@ -1113,6 +1147,7 @@ type ClusterClassStatusVariableDefinition struct {
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
 	// schema defines the schema of the variable.
+	// +required
 	Schema VariableSchema `json:"schema"`
 }
 
@@ -1151,6 +1186,7 @@ type ClusterClassList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ClusterClasses.
 	Items []ClusterClass `json:"items"`

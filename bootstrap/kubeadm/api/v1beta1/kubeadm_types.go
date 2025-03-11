@@ -217,6 +217,7 @@ type ClusterStatus struct {
 
 	// apiEndpoints currently available in the cluster, one for each control plane/api server instance.
 	// The key of the map is the IP of the host's default interface
+	// +optional
 	APIEndpoints map[string]APIEndpoint `json:"apiEndpoints"`
 }
 
@@ -352,6 +353,7 @@ type Networking struct {
 type BootstrapToken struct {
 	// token is used for establishing bidirectional trust between nodes and control-planes.
 	// Used for joining nodes in the cluster.
+	// +required
 	Token *BootstrapTokenString `json:"token"`
 	// description sets a human-friendly message why this token exists and what it's used
 	// for, so other administrators can know its purpose.
@@ -429,18 +431,22 @@ type LocalEtcd struct {
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
 	// +kubebuilder:validation:MaxItems=50
+	// +required
 	Endpoints []string `json:"endpoints"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +required
 	CAFile string `json:"caFile"`
 
 	// certFile is an SSL certification file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +required
 	CertFile string `json:"certFile"`
 
 	// keyFile is an SSL key file used to secure etcd communication.
 	// Required if using a TLS connection.
+	// +required
 	KeyFile string `json:"keyFile"`
 }
 
@@ -520,6 +526,7 @@ type Discovery struct {
 type BootstrapTokenDiscovery struct {
 	// token is a token used to validate cluster information
 	// fetched from the control-plane.
+	// +required
 	Token string `json:"token"`
 
 	// apiServerEndpoint is an IP or domain name to the API server from which info will be fetched.
@@ -548,6 +555,7 @@ type BootstrapTokenDiscovery struct {
 // FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
 type FileDiscovery struct {
 	// kubeConfigPath is used to specify the actual file path or URL to the kubeconfig file from which to load cluster information
+	// +required
 	KubeConfigPath string `json:"kubeConfigPath"`
 
 	// kubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
@@ -572,6 +580,7 @@ type FileDiscoveryKubeConfig struct {
 
 	// user contains information that describes identity information.
 	// This is used to tell the kubernetes cluster who you are.
+	// +required
 	User KubeConfigUser `json:"user"`
 }
 
@@ -634,6 +643,7 @@ type KubeConfigUser struct {
 // KubeConfigAuthProvider holds the configuration for a specified auth provider.
 type KubeConfigAuthProvider struct {
 	// name is the name of the authentication plugin.
+	// +required
 	Name string `json:"name"`
 
 	// config holds the parameters for the authentication plugin.
@@ -648,6 +658,7 @@ type KubeConfigAuthProvider struct {
 // and output format.
 type KubeConfigAuthExec struct {
 	// command to execute.
+	// +required
 	Command string `json:"command"`
 
 	// args is the arguments to pass to the command when executing it.
@@ -681,8 +692,10 @@ type KubeConfigAuthExec struct {
 // credential plugin.
 type KubeConfigAuthExecEnv struct {
 	// name of the environment variable
+	// +required
 	Name string `json:"name"`
 	// value of the environment variable
+	// +required
 	Value string `json:"value"`
 }
 
@@ -690,11 +703,14 @@ type KubeConfigAuthExecEnv struct {
 // host.
 type HostPathMount struct {
 	// name of the volume inside the pod template.
+	// +required
 	Name string `json:"name"`
 	// hostPath is the path in the host that will be mounted inside
 	// the pod.
+	// +required
 	HostPath string `json:"hostPath"`
 	// mountPath is the path inside the pod where hostPath will be mounted.
+	// +required
 	MountPath string `json:"mountPath"`
 	// readOnly controls write access to the volume
 	// +optional

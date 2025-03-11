@@ -167,13 +167,12 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref common.Re
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"status", "message"},
+				Required: []string{"status"},
 			},
 		},
 	}
@@ -265,13 +264,12 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref 
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"status", "message"},
+				Required: []string{"status"},
 			},
 		},
 	}
@@ -371,7 +369,6 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -385,7 +382,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 						},
 					},
 				},
-				Required: []string{"status", "message", "retryAfterSeconds"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -477,7 +474,6 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref common.Re
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -491,7 +487,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref common.Re
 						},
 					},
 				},
-				Required: []string{"status", "message", "retryAfterSeconds"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -583,7 +579,6 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -597,7 +592,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 						},
 					},
 				},
-				Required: []string{"status", "message", "retryAfterSeconds"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -705,7 +700,6 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -719,7 +713,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 						},
 					},
 				},
-				Required: []string{"status", "message", "retryAfterSeconds"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -944,13 +938,12 @@ func schema_runtime_hooks_api_v1alpha1_CommonResponse(ref common.ReferenceCallba
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"status", "message"},
+				Required: []string{"status"},
 			},
 		},
 	}
@@ -975,7 +968,6 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -989,7 +981,7 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"status", "message", "retryAfterSeconds"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -1161,7 +1153,6 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1181,7 +1172,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"status", "message", "variables"},
+				Required: []string{"status"},
 			},
 		},
 		Dependencies: []string{
@@ -1249,7 +1240,6 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1277,7 +1267,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"status", "message", "handlers"},
+				Required: []string{"status"},
 			},
 		},
 		Dependencies: []string{
@@ -1396,7 +1386,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"variables", "items"},
+				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -1447,7 +1437,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"uid", "holderReference", "object", "variables"},
+				Required: []string{"uid", "holderReference", "object"},
 			},
 		},
 		Dependencies: []string{
@@ -1488,7 +1478,6 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1508,7 +1497,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"status", "message", "items"},
+				Required: []string{"status"},
 			},
 		},
 		Dependencies: []string{
@@ -1900,7 +1889,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"variables", "items"},
+				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -1943,7 +1932,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 						},
 					},
 				},
-				Required: []string{"holderReference", "object", "variables"},
+				Required: []string{"holderReference", "object"},
 			},
 		},
 		Dependencies: []string{
@@ -1984,13 +1973,12 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref common.Refer
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "message is a human-readable description of the status of the call.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"status", "message"},
+				Required: []string{"status"},
 			},
 		},
 	}

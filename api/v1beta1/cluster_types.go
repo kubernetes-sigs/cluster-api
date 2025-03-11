@@ -541,6 +541,7 @@ type ClusterAvailabilityGate struct {
 // Topology encapsulates the information of the managed resources.
 type Topology struct {
 	// class is the name of the ClusterClass object to create the topology.
+	// +required
 	Class string `json:"class"`
 
 	// classNamespace is the namespace of the ClusterClass object to create the topology.
@@ -553,6 +554,7 @@ type Topology struct {
 	ClassNamespace string `json:"classNamespace,omitempty"`
 
 	// version is the Kubernetes version of the cluster.
+	// +required
 	Version string `json:"version"`
 
 	// rolloutAfter performs a rollout of the entire cluster one component at a time,
@@ -669,12 +671,14 @@ type MachineDeploymentTopology struct {
 	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
+	// +required
 	Class string `json:"class"`
 
 	// name is the unique identifier for this MachineDeploymentTopology.
 	// The value is used with other unique identifiers to create a MachineDeployment's Name
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
+	// +required
 	Name string `json:"name"`
 
 	// failureDomain is the failure domain the machines will be created in.
@@ -772,12 +776,14 @@ type MachinePoolTopology struct {
 	// class is the name of the MachinePoolClass used to create the pool of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
+	// +required
 	Class string `json:"class"`
 
 	// name is the unique identifier for this MachinePoolTopology.
 	// The value is used with other unique identifiers to create a MachinePool's Name
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
+	// +required
 	Name string `json:"name"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.
@@ -826,6 +832,7 @@ type MachinePoolTopology struct {
 // Variable definition in the ClusterClass `status` variables.
 type ClusterVariable struct {
 	// name of the variable.
+	// +required
 	Name string `json:"name"`
 
 	// definitionFrom specifies where the definition of this Variable is from.
@@ -842,6 +849,7 @@ type ClusterVariable struct {
 	// hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools,
 	// i.e. it is not possible to have no type field.
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
+	// +required
 	Value apiextensionsv1.JSON `json:"value"`
 }
 
@@ -908,6 +916,7 @@ type ClusterNetwork struct {
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
 	// +kubebuilder:validation:MaxItems=100
+	// +required
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
@@ -1073,9 +1082,11 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
+	// +required
 	Host string `json:"host"`
 
 	// port is the port on which the API server is serving.
+	// +required
 	Port int32 `json:"port"`
 }
 
@@ -1110,11 +1121,14 @@ type Cluster struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Cluster.
+	// +optional
 	Spec ClusterSpec `json:"spec,omitempty"`
 	// status is the observed state of Cluster.
+	// +optional
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
@@ -1248,6 +1262,7 @@ type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of Clusters.
 	Items []Cluster `json:"items"`

@@ -378,14 +378,17 @@ const (
 type MachineSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	ClusterName string `json:"clusterName"`
 
 	// bootstrap is a reference to a local struct which encapsulates
 	// fields to configure the Machine’s bootstrapping mechanism.
+	// +required
 	Bootstrap Bootstrap `json:"bootstrap"`
 
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
+	// +required
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
 	// version defines the desired Kubernetes version.
@@ -675,11 +678,14 @@ type Machine struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Machine.
+	// +optional
 	Spec MachineSpec `json:"spec,omitempty"`
 	// status is the observed state of Machine.
+	// +optional
 	Status MachineStatus `json:"status,omitempty"`
 }
 
@@ -716,6 +722,7 @@ type MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of Machines.
 	Items []Machine `json:"items"`

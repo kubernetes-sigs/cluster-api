@@ -66,7 +66,7 @@ func NewExtensionHandlers(client client.Client) *ExtensionHandlers {
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterCreate(ctx context.Context, request *runtimehooksv1.BeforeClusterCreateRequest, response *runtimehooksv1.BeforeClusterCreateResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("BeforeClusterCreate is called")
 
 	settings := request.GetSettings()
@@ -88,7 +88,7 @@ func (m *ExtensionHandlers) DoBeforeClusterCreate(ctx context.Context, request *
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("BeforeClusterUpgrade is called")
 
 	settings := request.GetSettings()
@@ -111,7 +111,7 @@ func (m *ExtensionHandlers) DoBeforeClusterUpgrade(ctx context.Context, request 
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, request *runtimehooksv1.AfterControlPlaneInitializedRequest, response *runtimehooksv1.AfterControlPlaneInitializedResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("AfterControlPlaneInitialized is called")
 
 	settings := request.GetSettings()
@@ -134,7 +134,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, 
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.AfterControlPlaneUpgradeRequest, response *runtimehooksv1.AfterControlPlaneUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("AfterControlPlaneUpgrade is called")
 
 	settings := request.GetSettings()
@@ -157,7 +157,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneUpgrade(ctx context.Context, requ
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoAfterClusterUpgrade(ctx context.Context, request *runtimehooksv1.AfterClusterUpgradeRequest, response *runtimehooksv1.AfterClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("AfterClusterUpgrade is called")
 
 	settings := request.GetSettings()
@@ -180,7 +180,7 @@ func (m *ExtensionHandlers) DoAfterClusterUpgrade(ctx context.Context, request *
 // NOTE: custom RuntimeExtension, must implement the body of this func according to the specific use case.
 func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KObj(&request.Cluster))
-	ctrl.LoggerInto(ctx, log)
+	ctx = ctrl.LoggerInto(ctx, log)
 	log.Info("BeforeClusterDelete is called")
 
 	settings := request.GetSettings()

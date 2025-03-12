@@ -61,11 +61,9 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	}
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: input.Name,
+			Name:   input.Name,
+			Labels: input.Labels,
 		},
-	}
-	if input.Labels != nil {
-		ns.Labels = input.Labels
 	}
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {

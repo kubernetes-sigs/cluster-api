@@ -5,6 +5,8 @@ metadata:
     runtime.cluster.x-k8s.io/inject-ca-from-secret: test-extension-system/test-extension-webhook-service-cert
   name: test-extension
 spec:
+  settings:
+    extensionConfigName: test-extension
   clientConfig:
     service:
       name: test-extension-webhook-service

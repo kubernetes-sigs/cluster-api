@@ -219,6 +219,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			ClientSet:           input.BootstrapClusterProxy.GetClientSet(),
 			Name:                specName,
 			LogFolder:           filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+			Labels:              map[string]string{"e2e-test": specName},
 			IgnoreAlreadyExists: true,
 		})
 
@@ -287,8 +288,21 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			if !deployClusterInSeparateNamespaces {
 				namespaces = append(namespaces, namespace.Name)
 			}
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...)
+			if deployClusterInSeparateNamespaces {
+				extensionConfig.Spec.NamespaceSelector = &metav1.LabelSelector{
+					// Note: we are limiting the test extension to be used by the namespace where the test is run.
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "e2e-test",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{specName},
+						},
+					},
+				}
+			}
 			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-				extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...))).
+				extensionConfig)).
 				To(Succeed(), "Failed to create the ExtensionConfig")
 		}
 
@@ -390,7 +404,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name,
 					deployClusterInSeparateNamespaces, useCrossNamespaceClusterClass,
 					baseClusterClassYAML, baseClusterTemplateYAML, creator, input.PostScaleClusterNamespaceCreated,
-					additionalClusterClassCount, input.ClusterClassName)
+					additionalClusterClassCount, input.ClusterClassName, specName)
 			},
 		})
 		if err != nil {
@@ -646,7 +660,7 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy) clusterCreator {
 
 type PostScaleClusterNamespaceCreated func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, clusterClassYAML []byte, clusterTemplateYAML []byte) ([]byte, []byte)
 
-func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces, enableCrossNamespaceClusterClass bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator, postScaleClusterNamespaceCreated PostScaleClusterNamespaceCreated, additionalClusterClasses int64, clusterClassName string) {
+func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces, enableCrossNamespaceClusterClass bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator, postScaleClusterNamespaceCreated PostScaleClusterNamespaceCreated, additionalClusterClasses int64, clusterClassName, specName string) {
 	defer wg.Done()
 
 	for {
@@ -688,6 +702,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 						Creator:             clusterProxy.GetClient(),
 						Name:                namespaceName,
 						IgnoreAlreadyExists: true,
+						Labels:              map[string]string{"e2e-test": specName},
 					}, "40s", "10s")
 				}
 

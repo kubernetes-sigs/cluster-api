@@ -43,6 +43,7 @@ import (
 type CreateNamespaceInput struct {
 	Creator Creator
 	Name    string
+	Labels  map[string]string
 
 	// IgnoreAlreadyExists if set to true will ignore the "AlreadyExists" error if the function
 	// is trying to create a namespace that already exists.
@@ -58,10 +59,10 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	if input.Name == "" {
 		input.Name = fmt.Sprintf("test-%s", util.RandomString(6))
 	}
-
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: input.Name,
+			Name:   input.Name,
+			Labels: input.Labels,
 		},
 	}
 	log.Logf("Creating namespace %s", input.Name)
@@ -183,6 +184,7 @@ type CreateNamespaceAndWatchEventsInput struct {
 	ClientSet *kubernetes.Clientset
 	Name      string
 	LogFolder string
+	Labels    map[string]string
 
 	// IgnoreAlreadyExists if set to true will ignore the "AlreadyExists" error if the function
 	// is trying to create a namespace that already exists.
@@ -198,7 +200,7 @@ func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAnd
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. input.Name can't be empty when calling ClientSet")
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
 
-	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name, IgnoreAlreadyExists: input.IgnoreAlreadyExists}, "40s", "10s")
+	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name, IgnoreAlreadyExists: input.IgnoreAlreadyExists, Labels: input.Labels}, "40s", "10s")
 	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)
 
 	log.Logf("Creating event watcher for namespace %q", input.Name)

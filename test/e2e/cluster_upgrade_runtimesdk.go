@@ -51,8 +51,8 @@ import (
 
 var hookResponsesConfigMapNameSuffix = "test-extension-hookresponses"
 
-func hookResponsesConfigMapName(clusterName string) string {
-	return fmt.Sprintf("%s-%s", clusterName, hookResponsesConfigMapNameSuffix)
+func hookResponsesConfigMapName(clusterName, extensionConfigName string) string {
+	return fmt.Sprintf("%s-%s-%s", clusterName, extensionConfigName, hookResponsesConfigMapNameSuffix)
 }
 
 // ClusterUpgradeWithRuntimeSDKSpecInput is the input for clusterUpgradeWithRuntimeSDKSpec.
@@ -229,6 +229,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				beforeClusterCreateTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
+					input.ExtensionConfigName,
 					input.E2EConfig.GetIntervals(specName, "wait-cluster"))
 			},
 			PostMachinesProvisioned: func() {
@@ -295,17 +296,20 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				beforeClusterUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
+					input.ExtensionConfigName,
 					input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
 					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 			},
 			PreWaitForWorkersToBeUpgraded: func() {
 				machineSetPreflightChecksTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
-					clusterRef)
+					clusterRef,
+					input.ExtensionConfigName)
 
 				afterControlPlaneUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
+					input.ExtensionConfigName,
 					input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeTo),
 					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 			},
@@ -329,11 +333,11 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
 		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder)
 
-		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.ExtensionConfigName, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
 
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
-		Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, map[string]string{
+		Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.ExtensionConfigName, map[string]string{
 			"BeforeClusterCreate":          "Status: Success, RetryAfterSeconds: 0",
 			"BeforeClusterUpgrade":         "Status: Success, RetryAfterSeconds: 0",
 			"BeforeClusterDelete":          "Status: Success, RetryAfterSeconds: 0",
@@ -388,11 +392,11 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 // should be blocked by the AfterControlPlaneUpgrade hook.
 // Test the MachineSet preflight checks by scaling up the MachineDeployment. The creation on the new Machine
 // should be blocked because the preflight checks should not pass (kubeadm version skew preflight check should fail).
-func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, clusterRef types.NamespacedName) {
+func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, clusterRef types.NamespacedName, extensionConfigName string) {
 	// Verify that the hook is called and the topology reconciliation is blocked.
 	hookName := "AfterControlPlaneUpgrade"
 	Eventually(func() error {
-		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, clusterRef, []string{hookName}); err != nil {
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, clusterRef, extensionConfigName, []string{hookName}); err != nil {
 			return err
 		}
 
@@ -505,6 +509,7 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 				},
 			},
 			Settings: map[string]string{
+				"extensionConfigName":          name,
 				"defaultAllHandlersToBlocking": strconv.FormatBool(defaultAllHandlersToBlocking),
 			},
 		},
@@ -526,12 +531,12 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 
 // Check that each hook in hooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
 // If the provided hooks have both keys and values check that the values match those in the hook response configmap.
-func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster types.NamespacedName, expectedHookResponses map[string]string) error {
-	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster)
+func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, expectedHookResponses map[string]string) error {
+	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster, extensionConfigName)
 	for hookName, expectedResponse := range expectedHookResponses {
 		actualResponse, ok := responseData[hookName+"-actualResponseStatus"]
 		if !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name)))
+			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
 		}
 		if expectedResponse != "" && expectedResponse != actualResponse {
 			return errors.Errorf("hook %s was expected to be %s in configMap got %s", hookName, expectedResponse, actualResponse)
@@ -541,29 +546,29 @@ func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster t
 }
 
 // Check that each hook in expectedHooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
-func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, cluster types.NamespacedName, expectedHooks []string) error {
-	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster)
+func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, expectedHooks []string) error {
+	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster, extensionConfigName)
 	for _, hookName := range expectedHooks {
 		if _, ok := responseData[hookName+"-actualResponseStatus"]; !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name)))
+			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(cluster.Namespace, hookResponsesConfigMapName(cluster.Name, extensionConfigName)))
 		}
 	}
 	return nil
 }
 
-func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client, cluster types.NamespacedName) map[string]string {
+func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string) map[string]string {
 	configMap := &corev1.ConfigMap{}
 	Eventually(func() error {
-		return c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: hookResponsesConfigMapName(cluster.Name)}, configMap)
+		return c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: hookResponsesConfigMapName(cluster.Name, extensionConfigName)}, configMap)
 	}).Should(Succeed(), "Failed to get the hook response configmap")
 	return configMap.Data
 }
 
 // beforeClusterCreateTestHandler calls runtimeHookTestHandler with a blockedCondition function which returns false if
 // the Cluster has entered ClusterPhaseProvisioned.
-func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
+func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, intervals []interface{}) {
 	hookName := "BeforeClusterCreate"
-	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
+	runtimeHookTestHandler(ctx, c, cluster, hookName, extensionConfigName, true, func() bool {
 		blocked := true
 		// This hook should block the Cluster from entering the "Provisioned" state.
 		cluster := framework.GetClusterByName(ctx,
@@ -638,9 +643,9 @@ func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Clie
 
 // beforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
 // any of the machines in the control plane has been updated to the target Kubernetes version.
-func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, toVersion string, intervals []interface{}) {
+func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, toVersion string, intervals []interface{}) {
 	hookName := "BeforeClusterUpgrade"
-	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
+	runtimeHookTestHandler(ctx, c, cluster, hookName, extensionConfigName, true, func() bool {
 		var blocked = true
 
 		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
@@ -656,9 +661,9 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 
 // afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
 // MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
-func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, version string, intervals []interface{}) {
+func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, version string, intervals []interface{}) {
 	hookName := "AfterControlPlaneUpgrade"
-	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
+	runtimeHookTestHandler(ctx, c, cluster, hookName, extensionConfigName, true, func() bool {
 		var blocked = true
 
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
@@ -675,9 +680,9 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 
 // beforeClusterDeleteHandler calls runtimeHookTestHandler with a blocking function which returns false if the Cluster
 // can not be found in the API server.
-func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
+func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, extensionConfigName string, intervals []interface{}) {
 	hookName := "BeforeClusterDelete"
-	runtimeHookTestHandler(ctx, c, cluster, hookName, false, func() bool {
+	runtimeHookTestHandler(ctx, c, cluster, hookName, extensionConfigName, false, func() bool {
 		var blocked = true
 
 		// If the Cluster is not found it has been deleted and the hook is unblocked.
@@ -696,12 +701,12 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster ty
 //
 // Note: runtimeHookTestHandler assumes that the hook passed to it is currently returning a blocking response.
 // Updating the response to be non-blocking happens inline in the function.
-func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, hookName string, withTopologyReconciledCondition bool, blockingCondition func() bool, intervals []interface{}) {
+func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, hookName, extensionConfigName string, withTopologyReconciledCondition bool, blockingCondition func() bool, intervals []interface{}) {
 	log.Logf("Blocking with %s hook for 60 seconds after the hook has been called for the first time", hookName)
 
 	// Check that the LifecycleHook has been called at least once and - when required - that the TopologyReconciled condition is a Failure.
 	Eventually(func() error {
-		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, []string{hookName}); err != nil {
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, []string{hookName}); err != nil {
 			return err
 		}
 
@@ -726,7 +731,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.
 	// Patch the ConfigMap to set the hook response to "Success".
 	Byf("Setting %s response to Status:Success to unblock the reconciliation", hookName)
 
-	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: hookResponsesConfigMapName(cluster.Name), Namespace: cluster.Namespace}}
+	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: hookResponsesConfigMapName(cluster.Name, extensionConfigName), Namespace: cluster.Namespace}}
 	Eventually(func() error {
 		return c.Get(ctx, util.ObjectKey(configMap), configMap)
 	}).Should(Succeed(), "Failed to get ConfigMap %s", klog.KObj(configMap))

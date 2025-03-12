@@ -501,7 +501,7 @@ If implementing the pause behavior, providers SHOULD surface the paused status o
 
 ### InfraMachineTemplate: support cluster autoscaling from zero
 
-As described in the enhancement [Opt-in Autoscaling from Zero][Opt-in Autoscaling from Zero], providers may implement a capacity field in machine templates to inform the cluster autoscaler about the resources available on that machine type.
+As described in the enhancement [Opt-in Autoscaling from Zero][Opt-in Autoscaling from Zero], providers may implement the `capacity` and `nodeInfo` fields in machine templates to inform the cluster autoscaler about the resources available on that machine type, the architecture, and the operating system it runs.
 
 Building on the `FooMachineTemplate` example from above, this shows the addition of a status and capacity field:
 
@@ -524,10 +524,40 @@ type FooMachineTemplateStatus struct {
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
 	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+	// +optional
+	NodeInfo NodeInfo `json:"nodeInfo,omitempty,omitzero"`
 }
+
+// Architecture represents the CPU architecture of the node.
+// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+// +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
+// +enum
+type Architecture string
+
+// Example architecture constants defined for better readability and maintainability.
+const (
+    ArchitectureAmd64 Architecture = "amd64"
+    ArchitectureArm64 Architecture = "arm64"
+    ArchitectureS390x Architecture = "s390x"
+    ArchitecturePpc64le Architecture = "ppc64le"
+)
+
+// NodeInfo contains information about the node's architecture and operating system.
+// +kubebuilder:validation:MinProperties=1
+type NodeInfo struct {
+    // architecture is the CPU architecture of the node. 
+    // Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+    // +optional
+    Architecture Architecture `json:"architecture,omitempty"`
+    // operatingSystem is a string representing the operating system of the node.
+    // This may be a string like 'linux' or 'windows'.
+    // +optional
+    OperatingSystem string `json:"operatingSystem,omitempty"`
+}
+
 ```
 
-When rendered to a manifest, the machine template status capacity field representing an instance with 500 megabytes of RAM, 1 CPU core, and 1 NVidia GPU would look like this:
+When rendered to a manifest, the machine template status capacity field representing an amd64 linux instance with 500 megabytes of RAM, 1 CPU core, and 1 NVidia GPU should look like this:
 
 ```
 status:
@@ -535,7 +565,17 @@ status:
     memory: 500mb
     cpu: "1"
     nvidia.com/gpu: "1"
+   nodeInfo:
+    architecture: amd64
+    operatingSystem: linux
 ```
+
+If the information in the `nodeInfo` field is not available, the result of the autoscaling from zero operation will depend
+on the cluster autoscaler implementation. For example, the Cluster API implementation of the Kubernetes Cluster Autoscaler 
+will assume the host is running either the architecture set in the `CAPI_SCALE_ZERO_DEFAULT_ARCH` environment variable of
+the cluster autoscaler pod environment, or the amd64 architecture and Linux operating system as default values.
+
+See [autoscaling](../../../tasks/automated-machine-management/autoscaling.md).
 
 ## Typical InfraMachine reconciliation workflow
 

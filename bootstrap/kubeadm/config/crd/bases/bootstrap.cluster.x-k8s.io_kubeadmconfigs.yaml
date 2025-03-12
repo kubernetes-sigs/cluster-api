@@ -3776,7 +3776,7 @@ spec:
                 description: postKubeadmCommands specifies extra commands to run after
                   kubeadm runs
                 items:
-                  maxLength: 4096
+                  maxLength: 10240
                   minLength: 1
                   type: string
                 maxItems: 1000
@@ -3785,7 +3785,7 @@ spec:
                 description: preKubeadmCommands specifies extra commands to run before
                   kubeadm runs
                 items:
-                  maxLength: 4096
+                  maxLength: 10240
                   minLength: 1
                   type: string
                 maxItems: 1000

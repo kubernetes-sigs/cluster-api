@@ -589,7 +589,7 @@ type JSONSchemaProps struct {
 	// description is a human-readable description of this variable.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=4096
 	Description string `json:"description,omitempty"`
 
 	// example is an example for this variable.

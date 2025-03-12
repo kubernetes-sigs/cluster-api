@@ -81,14 +81,14 @@ type KubeadmConfigSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=4096
+	// +kubebuilder:validation:items:MaxLength=10240
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
 
 	// postKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=4096
+	// +kubebuilder:validation:items:MaxLength=10240
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
 
 	// users specifies extra users to add

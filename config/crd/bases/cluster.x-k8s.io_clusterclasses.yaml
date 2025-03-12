@@ -1196,7 +1196,7 @@ spec:
                             description:
                               description: description is a human-readable description
                                 of this variable.
-                              maxLength: 512
+                              maxLength: 4096
                               minLength: 1
                               type: string
                             enum:
@@ -2455,7 +2455,7 @@ spec:
                                   description:
                                     description: description is a human-readable description
                                       of this variable.
-                                    maxLength: 512
+                                    maxLength: 4096
                                     minLength: 1
                                     type: string
                                   enum:

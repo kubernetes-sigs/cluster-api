@@ -208,6 +208,8 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates;devmachinetemplates,verbs=get;list;watch;patch;update
 
 func main() {
+	setupLog.Info(fmt.Sprintf("Version: %+v", version.Get().String()))
+
 	if _, err := os.ReadDir("/tmp/"); err != nil {
 		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)

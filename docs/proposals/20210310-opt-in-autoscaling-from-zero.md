@@ -107,8 +107,8 @@ node group. But, during a scale from zero situation (ie when a node group has ze
 autoscaler needs to acquire this information from the infrastructure provider.
 
 An optional status field is proposed on the Infrastructure Machine Template which will be populated
-by infrastructure providers to contain the CPU, memory, and GPU capacities for machines described by that
-template. The cluster autoscaler will then utilize this information by reading the appropriate
+by infrastructure providers to contain the CPU, CPU architecture, memory, and GPU capacities for machines
+described by that template. The cluster autoscaler will then utilize this information by reading the appropriate
 infrastructure reference from the resource it is scaling (MachineSet or MachineDeployment).
 
 A user may override the field in the associated infrastructure template by applying annotations to the
@@ -160,6 +160,10 @@ the template.  Internally, this field will be represented by a Go `map` type uti
 for the keys and `k8s.io/apimachinery/pkg/api/resource.Quantity` as the values (similar to how resource
 limits and requests are handled for pods).
 
+Additionally, the status field could contain information about the node, such as the architecture and 
+operating system. This information is not required for the autoscaler to function, but it can be useful in 
+scenarios where the autoscaler needs to make decisions for clusters with heterogeneous node groups in architecture, OS, or both.
+
 It is worth mentioning that the Infrastructure Machine Templates are not usually reconciled by themselves.
 Each infrastructure provider will be responsible for determining the best implementation for adding the
 status field based on the information available on their platform.
@@ -175,6 +179,7 @@ const (
 // DockerMachineTemplateStatus defines the observed state of a DockerMachineTemplate
 type DockerMachineTemplateStatus struct {
     Capacity corev1.ResourceList `json:"capacity,omitempty"`
+    NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
 }
 
 // DockerMachineTemplate is the Schema for the dockermachinetemplates API.
@@ -186,7 +191,7 @@ type DockerMachineTemplate struct {
     Status DockerMachineTemplateStatus `json:"status,omitempty"`
 }
 ```
-_Note: the `ResourceList` and `ResourceName` referenced are from k8s.io/api/core/v1`_
+_Note: the `ResourceList`, `ResourceName` and `NodeSystemInfo` referenced are from k8s.io/api/core/v1`_
 
 When used as a manifest, it would look like this:
 
@@ -204,7 +209,15 @@ status:
     memory: 500mb
     cpu: "1"
     nvidia.com/gpu: "1"
+  nodeInfo:
+    architecture: arm64
+    operatingSystem: linux
 ```
+
+The information stored in the `status.nodeInfo` field is rendered as labels for the node object that is created within
+the node group by the cluster autoscaler and fed into the cluster autoscaler's scheduler simulator `framework.NodeInfo` struct. 
+In particular, the `architecture` and `operatingSystem` fields are used to determine the simulated node's labels 
+`kubernetes.io/arch` and `kubernetes.io/os`. This logic will be implemented in the cluster autoscaler's ClusterAPI cloud provider code.
 
 #### MachineSet and MachineDeployment Annotations
 
@@ -229,6 +242,8 @@ metadata:
       capacity.cluster-autoscaler.kubernetes.io/memory: "500mb"
       capacity.cluster-autoscaler.kubernetes.io/cpu: "1"
       capacity.cluster-autoscaler.kubernetes.io/ephemeral-disk: "100Gi"
+      node-info.cluster-autoscaler.kubernetes.io/cpu-architecture: "arm64"
+      node-info.cluster-autoscaler.kubernetes.io/os: "linux"
 ```
 _Note: the annotations will be defined in the cluster autoscaler, not in cluster-api._
 
@@ -245,6 +260,8 @@ metadata:
     capacity.cluster-autoscaler.kubernetes.io/labels: "key1=value1,key2=value2"
     capacity.cluster-autoscaler.kubernetes.io/taints: "key1=value1:NoSchedule,key2=value2:NoExecute"
 ```
+
+If the `capacity.cluster-autoscaler.kubernetes.io/labels` annotation specifies a label that would otherwise be generated from the `capacity` or `node-info` annotations, the autoscaler will use the label defined in `capacity.cluster-autoscaler.kubernetes.io/labels`, overriding any labels produced by processing the other annotations.
 
 ### Security Model
 

@@ -24,6 +24,7 @@ import (
 // ANCHOR: ConditionSeverity
 
 // ConditionSeverity expresses the severity of a Condition Type failing.
+// +kubebuilder:validation:MaxLength=32
 type ConditionSeverity string
 
 const (
@@ -45,6 +46,8 @@ const (
 // ANCHOR: ConditionType
 
 // ConditionType is a valid value for Condition.Type.
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=256
 type ConditionType string
 
 // ANCHOR_END: ConditionType
@@ -79,11 +82,15 @@ type Condition struct {
 	// The specific API may choose whether or not this field is considered a guaranteed API.
 	// This field may be empty.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Reason string `json:"reason,omitempty"`
 
 	// message is a human readable message indicating details about the transition.
 	// This field may be empty.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
 	Message string `json:"message,omitempty"`
 }
 

@@ -278,6 +278,7 @@ var (
 )
 
 // MachineAddressType describes a valid MachineAddress type.
+// +kubebuilder:validation:Enum=Hostname;ExternalIP;InternalIP;ExternalDNS;InternalDNS
 type MachineAddressType string
 
 // Define the MachineAddressType constants.
@@ -297,6 +298,8 @@ type MachineAddress struct {
 
 	// address is the machine address.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Address string `json:"address"`
 }
 

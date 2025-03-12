@@ -56,6 +56,8 @@ spec:
                     description: caBundle is a PEM encoded CA bundle which will be
                       used to validate the Extension server's server certificate.
                     format: byte
+                    maxLength: 51200
+                    minLength: 1
                     type: string
                   service:
                     description: |-
@@ -66,14 +68,20 @@ spec:
                     properties:
                       name:
                         description: name is the name of the service.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                       namespace:
                         description: namespace is the namespace of the service.
+                        maxLength: 63
+                        minLength: 1
                         type: string
                       path:
                         description: |-
                           path is an optional URL path and if present may be any string permissible in
                           a URL. If a path is set it will be used as prefix to the hook-specific path.
+                        maxLength: 512
+                        minLength: 1
                         type: string
                       port:
                         description: |-
@@ -103,6 +111,8 @@ spec:
                       Attempting to use a user or basic auth e.g. "user:password@" is not
                       allowed. Fragments ("#...") and query parameters ("?...") are not
                       allowed either.
+                    maxLength: 512
+                    minLength: 1
                     type: string
                 type: object
               namespaceSelector:
@@ -185,18 +195,23 @@ spec:
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
                         reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -206,6 +221,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -224,9 +241,14 @@ spec:
                       description: |-
                         failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
                         Defaults to Fail if not set.
+                      enum:
+                      - Ignore
+                      - Fail
                       type: string
                     name:
                       description: name is the unique name of the ExtensionHandler.
+                      maxLength: 512
+                      minLength: 1
                       type: string
                     requestHook:
                       description: requestHook defines the versioned runtime hook
@@ -235,9 +257,13 @@ spec:
                         apiVersion:
                           description: apiVersion is the group and version of the
                             Hook.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         hook:
                           description: hook is the name of the hook.
+                          maxLength: 256
+                          minLength: 1
                           type: string
                       required:
                       - apiVersion
@@ -253,6 +279,7 @@ spec:
                   - name
                   - requestHook
                   type: object
+                maxItems: 512
                 type: array
                 x-kubernetes-list-map-keys:
                 - name

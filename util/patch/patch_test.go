@@ -320,7 +320,7 @@ func TestPatchHelper(t *testing.T) {
 				obj.Spec.Paused = true
 				obj.Spec.ControlPlaneEndpoint.Host = "test://endpoint"
 				obj.Spec.ControlPlaneEndpoint.Port = 8443
-				obj.Status.Phase = "custom-phase"
+				obj.Status.Phase = "Provisioning"
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")

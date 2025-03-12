@@ -40,8 +40,9 @@ const (
 // MachineSetSpec defines the desired state of MachineSet.
 type MachineSetSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 
 	// replicas is the number of desired replicas.
@@ -286,6 +287,8 @@ type MachineSetStatus struct {
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
 	Selector string `json:"selector,omitempty"`
 
 	// replicas is the most recently observed number of replicas.
@@ -346,6 +349,8 @@ type MachineSetStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// conditions defines current service state of the MachineSet.

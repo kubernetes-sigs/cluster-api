@@ -524,8 +524,8 @@ type ClusterAvailabilityGate struct {
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
 	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
-	// +kubebuilder:validation:MaxLength=316
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=316
 	ConditionType string `json:"conditionType"`
 
 	// polarity of the conditionType specified in this availabilityGate.
@@ -542,6 +542,8 @@ type ClusterAvailabilityGate struct {
 type Topology struct {
 	// class is the name of the ClusterClass object to create the topology.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Class string `json:"class"`
 
 	// classNamespace is the namespace of the ClusterClass object to create the topology.
@@ -555,6 +557,8 @@ type Topology struct {
 
 	// version is the Kubernetes version of the cluster.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Version string `json:"version"`
 
 	// rolloutAfter performs a rollout of the entire cluster one component at a time,
@@ -672,6 +676,8 @@ type MachineDeploymentTopology struct {
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
 	// name is the unique identifier for this MachineDeploymentTopology.
@@ -679,11 +685,15 @@ type MachineDeploymentTopology struct {
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
 	// replicas is the number of worker nodes belonging to this set.
@@ -777,6 +787,8 @@ type MachinePoolTopology struct {
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
 	// name is the unique identifier for this MachinePoolTopology.
@@ -784,12 +796,16 @@ type MachinePoolTopology struct {
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
@@ -833,6 +849,8 @@ type MachinePoolTopology struct {
 type ClusterVariable struct {
 	// name of the variable.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// definitionFrom specifies where the definition of this Variable is from.
@@ -840,6 +858,7 @@ type ClusterVariable struct {
 	// Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	DefinitionFrom string `json:"definitionFrom,omitempty"`
 
 	// value of the variable.
@@ -905,6 +924,8 @@ type ClusterNetwork struct {
 
 	// serviceDomain is the domain name for services.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
@@ -915,8 +936,10 @@ type ClusterNetwork struct {
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
-	// +kubebuilder:validation:MaxItems=100
 	// +required
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=43
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
@@ -952,11 +975,13 @@ type ClusterStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Deleting;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// infrastructureReady is the state of the infrastructure provider.
@@ -1082,7 +1107,9 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
+	// TODO: Can't set MinLength=1 for now, because this struct is not always used in pointer fields so today we have cases where host is set to an empty string.
 	// +required
+	// +kubebuilder:validation:MaxLength=512
 	Host string `json:"host"`
 
 	// port is the port on which the API server is serving.

@@ -63,6 +63,8 @@ type ClientConfig struct {
 	// allowed either.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	URL *string `json:"url,omitempty"`
 
 	// service is a reference to the Kubernetes service for the Extension server.
@@ -75,6 +77,8 @@ type ClientConfig struct {
 
 	// caBundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=51200
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
@@ -82,15 +86,21 @@ type ClientConfig struct {
 type ServiceReference struct {
 	// namespace is the namespace of the service.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	Namespace string `json:"namespace"`
 
 	// name is the name of the service.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 
 	// path is an optional URL path and if present may be any string permissible in
 	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Path *string `json:"path,omitempty"`
 
 	// port is the port on the service that's hosting the Extension server.
@@ -110,6 +120,7 @@ type ExtensionConfigStatus struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=512
 	Handlers []ExtensionHandler `json:"handlers,omitempty"`
 
 	// conditions define the current service state of the ExtensionConfig.
@@ -137,6 +148,8 @@ type ExtensionConfigV1Beta2Status struct {
 type ExtensionHandler struct {
 	// name is the unique name of the ExtensionHandler.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Name string `json:"name"`
 
 	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
@@ -151,6 +164,7 @@ type ExtensionHandler struct {
 	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// Defaults to Fail if not set.
 	// +optional
+	// +kubebuilder:validation:Enum=Ignore;Fail
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
 }
 
@@ -158,10 +172,14 @@ type ExtensionHandler struct {
 type GroupVersionHook struct {
 	// apiVersion is the group and version of the Hook.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	APIVersion string `json:"apiVersion"`
 
 	// hook is the name of the hook.
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Hook string `json:"hook"`
 }
 

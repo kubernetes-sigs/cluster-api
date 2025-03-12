@@ -241,8 +241,9 @@ const (
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 
 	// replicas is the number of desired machines.
@@ -441,6 +442,7 @@ type MachineNamingStrategy struct {
 	// without vowels, of length 5. This variable is required part of the
 	// template. If not provided, validation will fail.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
 }
@@ -457,6 +459,8 @@ type MachineDeploymentStatus struct {
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
 	Selector string `json:"selector,omitempty"`
 
 	// replicas is the total number of non-terminated machines targeted by this deployment
@@ -491,6 +495,7 @@ type MachineDeploymentStatus struct {
 
 	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
+	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// conditions defines current service state of the MachineDeployment.

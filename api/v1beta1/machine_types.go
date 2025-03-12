@@ -377,8 +377,9 @@ const (
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 
 	// bootstrap is a reference to a local struct which encapsulates
@@ -394,6 +395,8 @@ type MachineSpec struct {
 	// version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 
 	// providerID is the identification ID of the machine provided by the provider.
@@ -407,11 +410,15 @@ type MachineSpec struct {
 	// This field will be set by the actuators and consumed by higher level entities like autoscaler that will
 	// be interfacing with cluster-api as generic provider.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
 	// The minimum number of seconds for which a Machine should be ready before considering it available.
@@ -467,8 +474,8 @@ type MachineReadinessGate struct {
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
 	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
-	// +kubebuilder:validation:MaxLength=316
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=316
 	ConditionType string `json:"conditionType"`
 
 	// polarity of the conditionType specified in this readinessGate.
@@ -542,6 +549,8 @@ type MachineStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// addresses is a list of addresses assigned to the machine.
@@ -550,8 +559,8 @@ type MachineStatus struct {
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// phase represents the current phase of machine actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Deleting;Deleted;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
@@ -657,6 +666,8 @@ type Bootstrap struct {
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 }
 

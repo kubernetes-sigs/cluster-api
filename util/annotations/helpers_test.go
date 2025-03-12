@@ -39,7 +39,6 @@ func TestAddAnnotations(t *testing.T) {
 		input    map[string]string
 		expected map[string]string
 		changed  bool
-		keys     []string
 	}{
 		{
 			name: "should return false if no changes are made",
@@ -59,7 +58,6 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "bar",
 			},
 			changed: false,
-			keys:    []string{},
 		},
 		{
 			name: "should do nothing if no annotations are provided",
@@ -77,7 +75,6 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "bar",
 			},
 			changed: false,
-			keys:    []string{},
 		},
 		{
 			name: "should do nothing if no annotations are provided and have been nil before",
@@ -91,7 +88,6 @@ func TestAddAnnotations(t *testing.T) {
 			input:    map[string]string{},
 			expected: nil,
 			changed:  false,
-			keys:     []string{},
 		},
 		{
 			name: "should return true if annotations are added",
@@ -114,7 +110,6 @@ func TestAddAnnotations(t *testing.T) {
 				"buzz":   "blah",
 			},
 			changed: true,
-			keys:    []string{"thing1", "buzz"},
 		},
 		{
 			name: "should return true if annotations are changed",
@@ -134,7 +129,6 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
-			keys:    []string{"foo"},
 		},
 		{
 			name: "should return true if annotations are changed and have been nil before",
@@ -152,7 +146,6 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
-			keys:    []string{"foo"},
 		},
 		{
 			name: "should add annotations to an empty unstructured",
@@ -164,7 +157,6 @@ func TestAddAnnotations(t *testing.T) {
 				"foo": "buzz",
 			},
 			changed: true,
-			keys:    []string{"foo"},
 		},
 		{
 			name: "should add annotations to a non empty unstructured",
@@ -187,16 +179,14 @@ func TestAddAnnotations(t *testing.T) {
 				"buzz":   "blah",
 			},
 			changed: true,
-			keys:    []string{"thing1", "buzz"},
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(*testing.T) {
-			res, changedKeys := AddAnnotations(tc.obj, tc.input)
+			res := AddAnnotations(tc.obj, tc.input)
 			g.Expect(res).To(Equal(tc.changed))
 			g.Expect(tc.obj.GetAnnotations()).To(Equal(tc.expected))
-			g.Expect(changedKeys).To(ContainElements(tc.keys))
 		})
 	}
 }

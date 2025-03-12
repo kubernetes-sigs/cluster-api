@@ -254,8 +254,8 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	newNode := node.DeepCopy()
 
 	// Adds the annotations from the Machine.
-	// NOTE: in order to handle deletion we are tracking the annotations set from the Machine in an annotation.
-	// At the next reconcile we are going to use this for deleting annotations previously set by the Machine, but
+	// NOTE: in order to handle deletion we are tracking the annotations set from the Machine in an annotation
+	// at the next reconcile we are going to use this for deleting annotations previously set by the Machine, but
 	// not present anymore. Annotations not set from machines should be always preserved.
 	if newNode.Annotations == nil {
 		newNode.Annotations = make(map[string]string)
@@ -267,8 +267,16 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	}
 	// append well known names
 	annotationsFromPreviousReconcile = append(annotationsFromPreviousReconcile, CommonNodeAnnotations...)
-	// Adds the annotations CAPI sets on the node and computes the changes.
-	hasAnnotationChanges, annotationsFromCurrentReconcile := annotations.AddAnnotations(newNode, newAnnotations)
+
+	annotationsFromCurrentReconcile := []string{}
+	for k, v := range newAnnotations {
+		if cur, ok := newNode.Annotations[k]; !ok || cur != v {
+			newNode.Annotations[k] = v
+			hasAnnotationChanges = true
+		}
+		annotationsFromCurrentReconcile = append(annotationsFromCurrentReconcile, k)
+	}
+
 	// Make sure any annotations that were in the previous reconcile but aren't in the current set are removed.
 	for _, k := range annotationsFromPreviousReconcile {
 		// Don't include the annotation used to track other annotations
@@ -308,23 +316,25 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		}
 	}
 
-	// drop the well known annotations before setting AnnotationsFromMachineAnnotation
-	newAnnotationsFromCurrentReconcile := []string{}
+	// drop the well known annotations before setting the value of AnnotationsFromMachineAnnotation so we're not double-accounting
+	// our own metadata
+	finalAnnotationsFromCurrentReconcile := []string{}
 	for _, entry := range annotationsFromCurrentReconcile {
-		if !slices.Contains(CommonNodeAnnotations, entry) {
-			newAnnotationsFromCurrentReconcile = append(newAnnotationsFromCurrentReconcile, entry)
+		if slices.Contains(CommonNodeAnnotations, entry) {
+			continue
 		}
+		finalAnnotationsFromCurrentReconcile = append(finalAnnotationsFromCurrentReconcile, entry)
 	}
 
 	// Sort entries so that comparisons in tests are determinate
-	slices.Sort(newAnnotationsFromCurrentReconcile)
+	slices.Sort(finalAnnotationsFromCurrentReconcile)
 	slices.Sort(labelsFromCurrentReconcile)
 
-	newAnnotationsFromMachine := strings.Join(newAnnotationsFromCurrentReconcile, ",")
+	finalAnnotationsFromMachine := strings.Join(finalAnnotationsFromCurrentReconcile, ",")
 	newLabelsFromMachine := strings.Join(labelsFromCurrentReconcile, ",")
 
 	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: newLabelsFromMachine})
-	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: newAnnotationsFromMachine})
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: finalAnnotationsFromMachine})
 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)

@@ -59,7 +59,7 @@ Template labels and annotations continuously propagate to new and existing Machi
 - `.spec.template.metadata.annotations` => `Machine.annotations`, `InfraMachine.annotations`, `BootstrapConfig.annotations`
 
 ## Machine
-Top-level labels that meet a specific criteria are propagated to the Node labels and top-level annotatation are not propagated.
+Top-level labels and annotations that meet a specific criteria are propagated to the Node labels and annotations.
 - `.labels.[label-meets-criteria]` => `Node.labels`
 - `.annotations.[annotation-meets-criteria]` => `Node.annotations`
 

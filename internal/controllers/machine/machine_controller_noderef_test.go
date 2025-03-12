@@ -1210,6 +1210,122 @@ func TestPatchNode(t *testing.T) {
 	}
 }
 
+// TestMultiplePatchNode verifies that node metadata behaves as expected through at least two reconciliations.
+func TestMultiplePatchNode(t *testing.T) {
+	clusterName := "test-cluster"
+	labels := map[string]string{}
+
+	testCases := []struct {
+		name                      string
+		oldNode                   *corev1.Node
+		newAnnotations            map[string]string
+		expectedLabels            map[string]string
+		firstExpectedAnnotations  map[string]string
+		secondExpectedAnnotations map[string]string
+	}{
+		{
+			name: "Managed annotations should not be in the tracking annotation when machine is synced to node multiple times",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
+					Annotations: map[string]string{},
+				},
+			},
+			newAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:      "foo",
+				clusterv1.ClusterNamespaceAnnotation: "bar",
+				clusterv1.MachineAnnotation:          "baz",
+			},
+			firstExpectedAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:            "foo",
+				clusterv1.ClusterNamespaceAnnotation:       "bar",
+				clusterv1.MachineAnnotation:                "baz",
+				clusterv1.AnnotationsFromMachineAnnotation: "",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+			},
+			secondExpectedAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:            "foo",
+				clusterv1.ClusterNamespaceAnnotation:       "bar",
+				clusterv1.MachineAnnotation:                "baz",
+				clusterv1.AnnotationsFromMachineAnnotation: "",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+			},
+		},
+		{
+			name: "User-managed annotations should be tracked through reconciles",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
+					Annotations: map[string]string{},
+				},
+			},
+			newAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:      "foo",
+				clusterv1.ClusterNamespaceAnnotation: "bar",
+				clusterv1.MachineAnnotation:          "baz",
+				"node.cluster.x-k8s.io/keep-this":    "foo",
+			},
+			firstExpectedAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:            "foo",
+				clusterv1.ClusterNamespaceAnnotation:       "bar",
+				clusterv1.MachineAnnotation:                "baz",
+				clusterv1.AnnotationsFromMachineAnnotation: "node.cluster.x-k8s.io/keep-this",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+				"node.cluster.x-k8s.io/keep-this":          "foo",
+			},
+			secondExpectedAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:            "foo",
+				clusterv1.ClusterNamespaceAnnotation:       "bar",
+				clusterv1.MachineAnnotation:                "baz",
+				clusterv1.AnnotationsFromMachineAnnotation: "node.cluster.x-k8s.io/keep-this",
+				clusterv1.LabelsFromMachineAnnotation:      "",
+				"node.cluster.x-k8s.io/keep-this":          "foo",
+			},
+		},
+	}
+
+	r := Reconciler{
+		Client: env,
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			oldNode := tc.oldNode.DeepCopy()
+			machine := newFakeMachine(metav1.NamespaceDefault, clusterName)
+
+			g.Expect(env.CreateAndWait(ctx, oldNode)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
+			t.Cleanup(func() {
+				_ = env.CleanupAndWait(ctx, oldNode, machine)
+			})
+
+			err := r.patchNode(ctx, env, oldNode, labels, tc.newAnnotations, machine)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			newNode := &corev1.Node{}
+
+			g.Eventually(func(g Gomega) {
+				newNode = &corev1.Node{}
+				err = env.Get(ctx, client.ObjectKeyFromObject(oldNode), newNode)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				g.Expect(newNode.Annotations).To(Equal(tc.firstExpectedAnnotations))
+			}, 10*time.Second).Should(Succeed())
+
+			// Re-reconcile with the same metadata
+			err = r.patchNode(ctx, env, newNode, labels, tc.newAnnotations, machine)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Eventually(func(g Gomega) {
+				gotNode := &corev1.Node{}
+				err = env.Get(ctx, client.ObjectKeyFromObject(oldNode), gotNode)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				g.Expect(gotNode.Annotations).To(Equal(tc.secondExpectedAnnotations))
+			}, 10*time.Second).Should(Succeed())
+		})
+	}
+}
 func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
 	return clusterv1.MachineSpec{
 		ClusterName: clusterName,

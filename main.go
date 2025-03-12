@@ -278,6 +278,8 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedrainrules,verbs=get;list;watch;patch;update
 
 func main() {
+	setupLog.Info(fmt.Sprintf("Version: %+v", version.Get().String()))
+
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)

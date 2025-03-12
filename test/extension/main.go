@@ -23,6 +23,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	goruntime "runtime"
 	"time"
@@ -165,6 +166,8 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
+	setupLog.Info(fmt.Sprintf("Version: %+v", version.Get().String()))
+
 	// Initialize and parse command line flags.
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)

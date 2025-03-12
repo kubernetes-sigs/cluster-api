@@ -59,12 +59,14 @@ type MachinePoolSpec struct {
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// failureDomains is the list of failure domains this MachinePool should be attached to.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
@@ -117,6 +119,7 @@ type MachinePoolStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 

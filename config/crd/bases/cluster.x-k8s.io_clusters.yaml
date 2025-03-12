@@ -814,6 +814,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           maxLength: 43
+                          minLength: 1
                           type: string
                         maxItems: 100
                         type: array
@@ -823,6 +824,7 @@ spec:
                   serviceDomain:
                     description: serviceDomain is the domain name for services.
                     maxLength: 253
+                    minLength: 1
                     type: string
                   services:
                     description: services is the network ranges from which service
@@ -832,6 +834,7 @@ spec:
                         description: cidrBlocks is a list of CIDR blocks.
                         items:
                           maxLength: 43
+                          minLength: 1
                           type: string
                         maxItems: 100
                         type: array
@@ -1107,6 +1110,7 @@ spec:
                               (a) there are at least 3 unhealthy machines (and)
                               (b) there are at most 5 unhealthy machines
                             maxLength: 32
+                            minLength: 1
                             pattern: ^\[[0-9]+-[0-9]+\]$
                             type: string
                         type: object
@@ -1227,6 +1231,7 @@ spec:
                                 name:
                                   description: name of the variable.
                                   maxLength: 256
+                                  minLength: 1
                                   type: string
                                 value:
                                   description: |-
@@ -1277,6 +1282,7 @@ spec:
                         name:
                           description: name of the variable.
                           maxLength: 256
+                          minLength: 1
                           type: string
                         value:
                           description: |-
@@ -1328,6 +1334,7 @@ spec:
                                 failureDomain is the failure domain the machines will be created in.
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             machineHealthCheck:
                               description: |-
@@ -1462,6 +1469,7 @@ spec:
                                     (a) there are at least 3 unhealthy machines (and)
                                     (b) there are at most 5 unhealthy machines
                                   maxLength: 32
+                                  minLength: 1
                                   pattern: ^\[[0-9]+-[0-9]+\]$
                                   type: string
                               type: object
@@ -1504,6 +1512,7 @@ spec:
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             nodeDeletionTimeout:
                               description: |-
@@ -1688,6 +1697,7 @@ spec:
                                       name:
                                         description: name of the variable.
                                         maxLength: 256
+                                        minLength: 1
                                         type: string
                                       value:
                                         description: |-
@@ -1740,6 +1750,7 @@ spec:
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               items:
                                 maxLength: 256
+                                minLength: 1
                                 type: string
                               maxItems: 100
                               type: array
@@ -1782,6 +1793,7 @@ spec:
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             nodeDeletionTimeout:
                               description: |-
@@ -1830,6 +1842,7 @@ spec:
                                       name:
                                         description: name of the variable.
                                         maxLength: 256
+                                        minLength: 1
                                         type: string
                                       value:
                                         description: |-
@@ -1887,6 +1900,7 @@ spec:
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
                       maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
@@ -1894,6 +1908,7 @@ spec:
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
@@ -1954,6 +1969,7 @@ spec:
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
+                minLength: 1
                 type: string
               failureReason:
                 description: |-

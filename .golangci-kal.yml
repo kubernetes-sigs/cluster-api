@@ -74,7 +74,8 @@ issues:
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
-  - path: "api/v1alpha1/*|api/v1alpha3/*"
+  # clusterctl and Runtime Hooks can be fixed once we bump their apiVersion.
+  - path: "cmd/clusterctl/api/v1alpha3|exp/runtime/hooks/api/v1alpha1"
     text: "maxlength"
     linters:
       - kal
@@ -85,7 +86,7 @@ issues:
       - kal
   # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
   # This exclude will  be removed once https://github.com/JoelSpeed/kal/issues/38 is resolved.
-  - path: "api/v1beta1/*"
+  - path: "api/v1beta1/*|api/v1alpha1/*"
     text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
       - kal

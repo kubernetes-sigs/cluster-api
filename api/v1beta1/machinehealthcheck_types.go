@@ -89,6 +89,7 @@ type MachineHealthCheckSpec struct {
 	//
 	// +optional
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
@@ -174,6 +175,7 @@ type MachineHealthCheckStatus struct {
 	// targets shows the current list of machines the machine health check is watching
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
 	Targets []string `json:"targets,omitempty"`
 

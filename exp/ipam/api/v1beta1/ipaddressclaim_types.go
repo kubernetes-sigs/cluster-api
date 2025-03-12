@@ -27,6 +27,7 @@ import (
 type IPAddressClaimSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName,omitempty"`
 

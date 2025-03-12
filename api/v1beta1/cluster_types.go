@@ -524,8 +524,8 @@ type ClusterAvailabilityGate struct {
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
 	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
-	// +kubebuilder:validation:MaxLength=316
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=316
 	ConditionType string `json:"conditionType"`
 
 	// polarity of the conditionType specified in this availabilityGate.
@@ -685,12 +685,14 @@ type MachineDeploymentTopology struct {
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
@@ -794,6 +796,7 @@ type MachinePoolTopology struct {
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
@@ -801,6 +804,7 @@ type MachinePoolTopology struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
@@ -845,6 +849,7 @@ type MachinePoolTopology struct {
 type ClusterVariable struct {
 	// name of the variable.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
@@ -919,6 +924,7 @@ type ClusterNetwork struct {
 
 	// serviceDomain is the domain name for services.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
@@ -932,6 +938,7 @@ type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
 	// +required
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=43
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
@@ -968,6 +975,7 @@ type ClusterStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
@@ -1099,6 +1107,7 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
+	// TODO: Can't set MinLength=1 for now, because this struct is not always used in pointer fields so today we have cases where host is set to an empty string.
 	// +required
 	// +kubebuilder:validation:MaxLength=512
 	Host string `json:"host"`

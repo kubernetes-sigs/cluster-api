@@ -1149,6 +1149,7 @@ spec:
                       without vowels, of length 5. This variable is required part of the
                       template. If not provided, validation will fail.
                     maxLength: 256
+                    minLength: 1
                     type: string
                 type: object
               minReadySeconds:
@@ -1456,6 +1457,7 @@ spec:
                           failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
                         maxLength: 256
+                        minLength: 1
                         type: string
                       infrastructureRef:
                         description: |-
@@ -1532,6 +1534,7 @@ spec:
                           This field will be set by the actuators and consumed by higher level entities like autoscaler that will
                           be interfacing with cluster-api as generic provider.
                         maxLength: 512
+                        minLength: 1
                         type: string
                       readinessGates:
                         description: |-
@@ -1586,6 +1589,7 @@ spec:
                           version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
                         maxLength: 256
+                        minLength: 1
                         type: string
                     required:
                     - bootstrap
@@ -1625,6 +1629,7 @@ spec:
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
                       maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
@@ -1632,6 +1637,7 @@ spec:
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
@@ -1689,6 +1695,7 @@ spec:
                   by clients. The string will be in the same format as the query-param syntax.
                   More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
                 maxLength: 4096
+                minLength: 1
                 type: string
               unavailableReplicas:
                 description: |-

@@ -92,6 +92,7 @@ type KubeadmControlPlaneSpec struct {
 	//   * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
 	//   * k8s.gcr.io (old registry): all older versions
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Version string `json:"version"`
 
@@ -274,6 +275,7 @@ type MachineNamingStrategy struct {
 	// The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required
 	// part of the template. If not provided, validation will fail.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
 }
@@ -286,6 +288,7 @@ type KubeadmControlPlaneStatus struct {
 	// describe.. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=4096
 	Selector string `json:"selector,omitempty"`
 
@@ -297,6 +300,7 @@ type KubeadmControlPlaneStatus struct {
 	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 
@@ -351,6 +355,7 @@ type KubeadmControlPlaneStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
@@ -402,6 +407,7 @@ type KubeadmControlPlaneV1Beta2Status struct {
 type LastRemediationStatus struct {
 	// machine is the machine name of the latest machine being remediated.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	Machine string `json:"machine"`
 

@@ -240,6 +240,7 @@ spec:
                       description: clusterResourceSetName is the name of the ClusterResourceSet
                         that is applied to the owner cluster of the binding.
                       maxLength: 253
+                      minLength: 1
                       type: string
                     resources:
                       description: resources is a list of resources that the ClusterResourceSet
@@ -258,6 +259,7 @@ spec:
                               hash is the hash of a resource's data. This can be used to decide if a resource is changed.
                               For "ApplyOnce" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.
                             maxLength: 256
+                            minLength: 1
                             type: string
                           kind:
                             description: 'kind of the resource. Supported kinds are:
@@ -292,8 +294,9 @@ spec:
               clusterName:
                 description: |-
                   clusterName is the name of the Cluster this binding applies to.
-                  Note: this field mandatory in v1beta2 (let's add MinLength=1 with v1beta2).
+                  Note: this field mandatory in v1beta2.
                 maxLength: 63
+                minLength: 1
                 type: string
             type: object
         type: object

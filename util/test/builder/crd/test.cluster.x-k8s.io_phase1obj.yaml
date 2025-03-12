@@ -69,6 +69,7 @@ spec:
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
                       maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
@@ -76,6 +77,7 @@ spec:
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-

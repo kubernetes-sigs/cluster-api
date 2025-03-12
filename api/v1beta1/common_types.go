@@ -298,6 +298,7 @@ type MachineAddress struct {
 
 	// address is the machine address.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Address string `json:"address"`
 }

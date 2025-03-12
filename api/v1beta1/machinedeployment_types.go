@@ -442,6 +442,7 @@ type MachineNamingStrategy struct {
 	// without vowels, of length 5. This variable is required part of the
 	// template. If not provided, validation will fail.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
 }
@@ -458,6 +459,7 @@ type MachineDeploymentStatus struct {
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=4096
 	Selector string `json:"selector,omitempty"`
 

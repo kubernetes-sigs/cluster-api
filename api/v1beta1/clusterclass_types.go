@@ -217,6 +217,7 @@ type ControlPlaneClassNamingStrategy struct {
 	// * `.cluster.name`: The name of the cluster object.
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
@@ -231,6 +232,7 @@ type InfrastructureNamingStrategy struct {
 	// * `.cluster.name`: The name of the cluster object.
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
@@ -261,6 +263,7 @@ type MachineDeploymentClass struct {
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachineDeployment.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
@@ -277,6 +280,7 @@ type MachineDeploymentClass struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
@@ -363,6 +367,7 @@ type MachineDeploymentClassNamingStrategy struct {
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
@@ -391,6 +396,7 @@ type MachineHealthCheckClass struct {
 	// (b) there are at most 5 unhealthy machines
 	// +optional
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
@@ -426,6 +432,7 @@ type MachinePoolClass struct {
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachinePool.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
@@ -439,6 +446,7 @@ type MachinePoolClass struct {
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
@@ -505,6 +513,7 @@ type MachinePoolClassNamingStrategy struct {
 	// * `.random`: A random alphanumeric string, without vowels, of length 5.
 	// * `.machinePool.topologyName`: The name of the MachinePool topology (Cluster.spec.topology.workers.machinePools[].name).
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template *string `json:"template,omitempty"`
 }
@@ -519,6 +528,7 @@ func (m MachineHealthCheckClass) IsZero() bool {
 type ClusterClassVariable struct {
 	// name of the variable.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
@@ -578,6 +588,7 @@ type VariableSchema struct {
 type JSONSchemaProps struct {
 	// description is a human-readable description of this variable.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Description string `json:"description,omitempty"`
 
@@ -625,6 +636,7 @@ type JSONSchemaProps struct {
 	// NOTE: Can only be set if type is object.
 	// +optional
 	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	Required []string `json:"required,omitempty"`
 
@@ -657,6 +669,7 @@ type JSONSchemaProps struct {
 	// https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
 	// NOTE: Can only be set if type is string.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
 	Format string `json:"format,omitempty"`
 
@@ -673,6 +686,7 @@ type JSONSchemaProps struct {
 	// pattern is the regex which a string variable must match.
 	// NOTE: Can only be set if type is string.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Pattern string `json:"pattern,omitempty"`
 
@@ -844,6 +858,7 @@ type ValidationRule struct {
 	// skipped if an old value could not be found.
 	//
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=4096
 	Rule string `json:"rule"`
 	// message represents the message displayed when validation fails. The message is required if the Rule contains
@@ -851,6 +866,7 @@ type ValidationRule struct {
 	// If unset, the message is "failed rule: {Rule}".
 	// e.g. "must be a URL with the host matching spec.host"
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Message string `json:"message,omitempty"`
 	// messageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
@@ -863,6 +879,7 @@ type ValidationRule struct {
 	// Example:
 	// "x must be less than max ("+string(self.max)+")"
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	MessageExpression string `json:"messageExpression,omitempty"`
 	// reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
@@ -884,6 +901,7 @@ type ValidationRule struct {
 	// For field name which contains special characters, use `['specialName']` to refer the field name.
 	// e.g. for attribute `foo.34$` appears in a list `testList`, the fieldPath could be set to `.testList['foo.34$']`
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	FieldPath string `json:"fieldPath,omitempty"`
 }
@@ -911,11 +929,13 @@ const (
 type ClusterClassPatch struct {
 	// name of the patch.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
 	// description is a human-readable description of this patch.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Description string `json:"description,omitempty"`
 
@@ -925,6 +945,7 @@ type ClusterClassPatch struct {
 	// be disabled.
 	// If EnabledIf is not set, the patch will be enabled per default.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	EnabledIf *string `json:"enabledIf,omitempty"`
 
@@ -963,11 +984,13 @@ type PatchDefinition struct {
 type PatchSelector struct {
 	// apiVersion filters templates by apiVersion.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	APIVersion string `json:"apiVersion"`
 
 	// kind filters templates by kind.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Kind string `json:"kind"`
 
@@ -1007,6 +1030,7 @@ type PatchSelectorMatchMachineDeploymentClass struct {
 	// names selects templates by class names.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	Names []string `json:"names,omitempty"`
 }
@@ -1017,6 +1041,7 @@ type PatchSelectorMatchMachinePoolClass struct {
 	// names selects templates by class names.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	Names []string `json:"names,omitempty"`
 }
@@ -1035,6 +1060,7 @@ type JSONPatch struct {
 	// * for op: `add`: only index 0 (prepend) and - (append) are allowed
 	// * for op: `replace` or `remove`: no indexes are allowed
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Path string `json:"path"`
 
@@ -1061,6 +1087,7 @@ type JSONPatchValue struct {
 	// variable is the variable to be used as value.
 	// Variable can be one of the variables defined in .spec.variables or a builtin variable.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Variable *string `json:"variable,omitempty"`
 
@@ -1068,6 +1095,7 @@ type JSONPatchValue struct {
 	// A template can reference variables defined in .spec.variables and builtin variables.
 	// Note: The template must evaluate to a valid YAML or JSON value.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	Template *string `json:"template,omitempty"`
 }
@@ -1077,16 +1105,19 @@ type JSONPatchValue struct {
 type ExternalPatchDefinition struct {
 	// generateExtension references an extension which is called to generate patches.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	GenerateExtension *string `json:"generateExtension,omitempty"`
 
 	// validateExtension references an extension which is called to validate the topology.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	ValidateExtension *string `json:"validateExtension,omitempty"`
 
 	// discoverVariablesExtension references an extension which is called to discover variables.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"`
 
@@ -1143,6 +1174,7 @@ type ClusterClassV1Beta2Status struct {
 type ClusterClassStatusVariable struct {
 	// name is the name of the variable.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
@@ -1162,6 +1194,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
 	// for variables discovered from a DiscoverVariables runtime extensions.
 	// +required
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	From string `json:"from"`
 

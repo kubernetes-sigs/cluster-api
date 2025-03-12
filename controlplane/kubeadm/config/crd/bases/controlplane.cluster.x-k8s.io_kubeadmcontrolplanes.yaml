@@ -2523,6 +2523,7 @@ spec:
                               for the API Server signing cert.
                             items:
                               maxLength: 253
+                              minLength: 1
                               type: string
                             maxItems: 100
                             type: array
@@ -2670,15 +2671,18 @@ spec:
                                     hostPath is the path in the host that will be mounted inside
                                     the pod.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 mountPath:
                                   description: mountPath is the path inside the pod
                                     where hostPath will be mounted.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 name:
                                   description: name of the volume inside the pod template.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 pathType:
                                   description: pathType is the type of the HostPath.
@@ -2711,10 +2715,12 @@ spec:
                           certificatesDir specifies where to store or look for all required certificates.
                           NB: if not provided, this will default to `/etc/kubernetes/pki`
                         maxLength: 512
+                        minLength: 1
                         type: string
                       clusterName:
                         description: clusterName is the cluster name
                         maxLength: 63
+                        minLength: 1
                         type: string
                       controlPlaneEndpoint:
                         description: |-
@@ -2731,6 +2737,7 @@ spec:
                           could be used for assigning a stable DNS to the control plane.
                           NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
                         maxLength: 512
+                        minLength: 1
                         type: string
                       controllerManager:
                         description: controllerManager contains extra settings for
@@ -2880,15 +2887,18 @@ spec:
                                     hostPath is the path in the host that will be mounted inside
                                     the pod.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 mountPath:
                                   description: mountPath is the path inside the pod
                                     where hostPath will be mounted.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 name:
                                   description: name of the volume inside the pod template.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 pathType:
                                   description: pathType is the type of the HostPath.
@@ -2914,12 +2924,14 @@ spec:
                               imageRepository sets the container registry to pull images from.
                               if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                             maxLength: 512
+                            minLength: 1
                             type: string
                           imageTag:
                             description: |-
                               imageTag allows to specify a tag for the image.
                               In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                             maxLength: 256
+                            minLength: 1
                             type: string
                         type: object
                       etcd:
@@ -2937,18 +2949,21 @@ spec:
                                   caFile is an SSL Certificate Authority file used to secure etcd communication.
                                   Required if using a TLS connection.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               certFile:
                                 description: |-
                                   certFile is an SSL certification file used to secure etcd communication.
                                   Required if using a TLS connection.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               endpoints:
                                 description: endpoints of etcd members. Required for
                                   ExternalEtcd.
                                 items:
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 maxItems: 50
                                 type: array
@@ -2957,6 +2972,7 @@ spec:
                                   keyFile is an SSL key file used to secure etcd communication.
                                   Required if using a TLS connection.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                             required:
                             - caFile
@@ -2974,6 +2990,7 @@ spec:
                                   dataDir is the directory etcd will place its data.
                                   Defaults to "/var/lib/etcd".
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               extraArgs:
                                 additionalProperties:
@@ -3115,18 +3132,21 @@ spec:
                                   imageRepository sets the container registry to pull images from.
                                   if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               imageTag:
                                 description: |-
                                   imageTag allows to specify a tag for the image.
                                   In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                                 maxLength: 256
+                                minLength: 1
                                 type: string
                               peerCertSANs:
                                 description: peerCertSANs sets extra Subject Alternative
                                   Names for the etcd peer signing cert.
                                 items:
                                   maxLength: 253
+                                  minLength: 1
                                   type: string
                                 maxItems: 100
                                 type: array
@@ -3135,6 +3155,7 @@ spec:
                                   Names for the etcd server signing cert.
                                 items:
                                   maxLength: 253
+                                  minLength: 1
                                   type: string
                                 maxItems: 100
                                 type: array
@@ -3159,6 +3180,7 @@ spec:
                            `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components
                             and for kube-proxy, while `registry.k8s.io` will be used for all the other images.
                         maxLength: 512
+                        minLength: 1
                         type: string
                       kind:
                         description: |-
@@ -3173,6 +3195,7 @@ spec:
                           kubernetesVersion is the target version of the control plane.
                           NB: This value defaults to the Machine object spec.version
                         maxLength: 256
+                        minLength: 1
                         type: string
                       networking:
                         description: |-
@@ -3183,6 +3206,7 @@ spec:
                             description: dnsDomain is the dns domain used by k8s services.
                               Defaults to "cluster.local".
                             maxLength: 253
+                            minLength: 1
                             type: string
                           podSubnet:
                             description: |-
@@ -3190,6 +3214,7 @@ spec:
                               If unset, the API server will not allocate CIDR ranges for every node.
                               Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
                             maxLength: 1024
+                            minLength: 1
                             type: string
                           serviceSubnet:
                             description: |-
@@ -3197,6 +3222,7 @@ spec:
                               Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
                               to "10.96.0.0/12" if that's unset.
                             maxLength: 1024
+                            minLength: 1
                             type: string
                         type: object
                       scheduler:
@@ -3347,15 +3373,18 @@ spec:
                                     hostPath is the path in the host that will be mounted inside
                                     the pod.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 mountPath:
                                   description: mountPath is the path inside the pod
                                     where hostPath will be mounted.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 name:
                                   description: name of the volume inside the pod template.
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 pathType:
                                   description: pathType is the type of the HostPath.
@@ -3386,23 +3415,27 @@ spec:
                             device:
                               description: device specifies the device name
                               maxLength: 256
+                              minLength: 1
                               type: string
                             extraOpts:
                               description: extraOpts defined extra options to add
                                 to the command for creating the file system.
                               items:
                                 maxLength: 256
+                                minLength: 1
                                 type: string
                               maxItems: 100
                               type: array
                             filesystem:
                               description: filesystem specifies the file system type.
                               maxLength: 128
+                              minLength: 1
                               type: string
                             label:
                               description: label specifies the file system label to
                                 be used. If set to None, no label is used.
                               maxLength: 512
+                              minLength: 1
                               type: string
                             overwrite:
                               description: |-
@@ -3415,12 +3448,14 @@ spec:
                                 "none", and <NUM>, where NUM is the actual partition
                                 number.'
                               maxLength: 128
+                              minLength: 1
                               type: string
                             replaceFS:
                               description: |-
                                 replaceFS is a special directive, used for Microsoft Azure that instructs cloud-init to replace a file system of <FS_TYPE>.
                                 NOTE: unless you define a label, this requires the use of the 'any' partition directive.
                               maxLength: 128
+                              minLength: 1
                               type: string
                           required:
                           - device
@@ -3439,6 +3474,7 @@ spec:
                             device:
                               description: device is the name of the device.
                               maxLength: 256
+                              minLength: 1
                               type: string
                             layout:
                               description: |-
@@ -3481,6 +3517,7 @@ spec:
                         content:
                           description: content is the actual content of the file.
                           maxLength: 10240
+                          minLength: 1
                           type: string
                         contentFrom:
                           description: contentFrom is a referenced source of content
@@ -3494,11 +3531,13 @@ spec:
                                   description: key is the key in the secret's data
                                     map for this value.
                                   maxLength: 256
+                                  minLength: 1
                                   type: string
                                 name:
                                   description: name of the secret in the KubeadmBootstrapConfig's
                                     namespace to use.
                                   maxLength: 253
+                                  minLength: 1
                                   type: string
                               required:
                               - key
@@ -3519,16 +3558,19 @@ spec:
                           description: owner specifies the ownership of the file,
                             e.g. "root:root".
                           maxLength: 256
+                          minLength: 1
                           type: string
                         path:
                           description: path specifies the full path on disk where
                             to store the file.
                           maxLength: 512
+                          minLength: 1
                           type: string
                         permissions:
                           description: permissions specifies the permissions to assign
                             to the file, e.g. "0640".
                           maxLength: 16
+                          minLength: 1
                           type: string
                       required:
                       - path
@@ -3555,6 +3597,7 @@ spec:
 
                               The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
                             maxLength: 10240
+                            minLength: 1
                             type: string
                           strict:
                             description: strict controls if AdditionalConfig should
@@ -3586,6 +3629,7 @@ spec:
                                 description sets a human-friendly message why this token exists and what it's used
                                 for, so other administrators can know its purpose.
                               maxLength: 512
+                              minLength: 1
                               type: string
                             expires:
                               description: |-
@@ -3599,6 +3643,7 @@ spec:
                                 used for authentication
                               items:
                                 maxLength: 256
+                                minLength: 1
                                 type: string
                               maxItems: 100
                               type: array
@@ -3618,6 +3663,7 @@ spec:
                                 for establishing bidirectional trust, but that can be changed here.
                               items:
                                 maxLength: 256
+                                minLength: 1
                                 type: string
                               maxItems: 100
                               type: array
@@ -3647,6 +3693,7 @@ spec:
                             description: advertiseAddress sets the IP address for
                               the API server to advertise.
                             maxLength: 39
+                            minLength: 1
                             type: string
                           bindPort:
                             description: |-
@@ -3666,6 +3713,7 @@ spec:
                               info. This information will be annotated to the Node
                               API object, for later re-use
                             maxLength: 512
+                            minLength: 1
                             type: string
                           ignorePreflightErrors:
                             description: ignorePreflightErrors provides a slice of
@@ -3673,6 +3721,7 @@ spec:
                               is registered.
                             items:
                               maxLength: 512
+                              minLength: 1
                               type: string
                             maxItems: 50
                             type: array
@@ -3708,6 +3757,7 @@ spec:
                               This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                               Defaults to the hostname of the node if not provided.
                             maxLength: 253
+                            minLength: 1
                             type: string
                           taints:
                             description: |-
@@ -3764,6 +3814,7 @@ spec:
                               specifies additional files to be created on the machine, either with content inline or
                               by referencing a secret.
                             maxLength: 512
+                            minLength: 1
                             type: string
                         type: object
                       skipPhases:
@@ -3773,6 +3824,7 @@ spec:
                           This option takes effect only on Kubernetes >=1.22.0.
                         items:
                           maxLength: 256
+                          minLength: 1
                           type: string
                         maxItems: 50
                         type: array
@@ -3794,6 +3846,7 @@ spec:
                           secure comunications between node and control-plane.
                           Defaults to "/etc/kubernetes/pki/ca.crt".
                         maxLength: 512
+                        minLength: 1
                         type: string
                       controlPlane:
                         description: |-
@@ -3808,6 +3861,7 @@ spec:
                                 description: advertiseAddress sets the IP address
                                   for the API server to advertise.
                                 maxLength: 39
+                                minLength: 1
                                 type: string
                               bindPort:
                                 description: |-
@@ -3830,6 +3884,7 @@ spec:
                                 description: apiServerEndpoint is an IP or domain
                                   name to the API server from which info will be fetched.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               caCertHashes:
                                 description: |-
@@ -3843,6 +3898,7 @@ spec:
                                   openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
                                 items:
                                   maxLength: 512
+                                  minLength: 1
                                   type: string
                                 maxItems: 100
                                 type: array
@@ -3851,6 +3907,7 @@ spec:
                                   token is a token used to validate cluster information
                                   fetched from the control-plane.
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                               unsafeSkipCAVerification:
                                 description: |-
@@ -3889,6 +3946,7 @@ spec:
                                           Defaults to the Cluster's CA certificate if empty.
                                         format: byte
                                         maxLength: 51200
+                                        minLength: 1
                                         type: string
                                       insecureSkipTLSVerify:
                                         description: insecureSkipTLSVerify skips the
@@ -3907,6 +3965,7 @@ spec:
                                           socks5 proxying does not currently support spdy streaming endpoints (exec,
                                           attach, port forward).
                                         maxLength: 512
+                                        minLength: 1
                                         type: string
                                       server:
                                         description: |-
@@ -3914,6 +3973,7 @@ spec:
 
                                           Defaults to https:// + Cluster.Spec.ControlPlaneEndpoint.
                                         maxLength: 512
+                                        minLength: 1
                                         type: string
                                       tlsServerName:
                                         description: tlsServerName is used to check
@@ -3921,6 +3981,7 @@ spec:
                                           empty, the hostname used to contact the
                                           server is used.
                                         maxLength: 512
+                                        minLength: 1
                                         type: string
                                     type: object
                                   user:
@@ -3943,6 +4004,7 @@ spec:
                                             description: name is the name of the authentication
                                               plugin.
                                             maxLength: 256
+                                            minLength: 1
                                             type: string
                                         required:
                                         - name
@@ -3958,18 +4020,21 @@ spec:
                                               the same encoding version as the input.
                                               Defaults to client.authentication.k8s.io/v1 if not set.
                                             maxLength: 512
+                                            minLength: 1
                                             type: string
                                           args:
                                             description: args is the arguments to
                                               pass to the command when executing it.
                                             items:
                                               maxLength: 512
+                                              minLength: 1
                                               type: string
                                             maxItems: 100
                                             type: array
                                           command:
                                             description: command to execute.
                                             maxLength: 1024
+                                            minLength: 1
                                             type: string
                                           env:
                                             description: |-
@@ -3985,11 +4050,13 @@ spec:
                                                   description: name of the environment
                                                     variable
                                                   maxLength: 512
+                                                  minLength: 1
                                                   type: string
                                                 value:
                                                   description: value of the environment
                                                     variable
                                                   maxLength: 512
+                                                  minLength: 1
                                                   type: string
                                               required:
                                               - name
@@ -4017,6 +4084,7 @@ spec:
                                   actual file path or URL to the kubeconfig file from
                                   which to load cluster information
                                 maxLength: 512
+                                minLength: 1
                                 type: string
                             required:
                             - kubeConfigPath
@@ -4030,6 +4098,7 @@ spec:
                               If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
                               If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
                             maxLength: 512
+                            minLength: 1
                             type: string
                         type: object
                       kind:
@@ -4051,6 +4120,7 @@ spec:
                               info. This information will be annotated to the Node
                               API object, for later re-use
                             maxLength: 512
+                            minLength: 1
                             type: string
                           ignorePreflightErrors:
                             description: ignorePreflightErrors provides a slice of
@@ -4058,6 +4128,7 @@ spec:
                               is registered.
                             items:
                               maxLength: 512
+                              minLength: 1
                               type: string
                             maxItems: 50
                             type: array
@@ -4093,6 +4164,7 @@ spec:
                               This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                               Defaults to the hostname of the node if not provided.
                             maxLength: 253
+                            minLength: 1
                             type: string
                           taints:
                             description: |-
@@ -4149,6 +4221,7 @@ spec:
                               specifies additional files to be created on the machine, either with content inline or
                               by referencing a secret.
                             maxLength: 512
+                            minLength: 1
                             type: string
                         type: object
                       skipPhases:
@@ -4158,6 +4231,7 @@ spec:
                           This option takes effect only on Kubernetes >=1.22.0.
                         items:
                           maxLength: 256
+                          minLength: 1
                           type: string
                         maxItems: 50
                         type: array
@@ -4169,6 +4243,7 @@ spec:
                         in cloud-init.
                       items:
                         maxLength: 512
+                        minLength: 1
                         type: string
                       type: array
                     maxItems: 100
@@ -4183,6 +4258,7 @@ spec:
                         description: servers specifies which NTP servers to use
                         items:
                           maxLength: 512
+                          minLength: 1
                           type: string
                         maxItems: 100
                         type: array
@@ -4192,6 +4268,7 @@ spec:
                       after kubeadm runs
                     items:
                       maxLength: 4096
+                      minLength: 1
                       type: string
                     maxItems: 1000
                     type: array
@@ -4200,6 +4277,7 @@ spec:
                       before kubeadm runs
                     items:
                       maxLength: 4096
+                      minLength: 1
                       type: string
                     maxItems: 1000
                     type: array
@@ -4228,16 +4306,19 @@ spec:
                         gecos:
                           description: gecos specifies the gecos to use for the user
                           maxLength: 256
+                          minLength: 1
                           type: string
                         groups:
                           description: groups specifies the additional groups for
                             the user
                           maxLength: 256
+                          minLength: 1
                           type: string
                         homeDir:
                           description: homeDir specifies the home directory to use
                             for the user
                           maxLength: 256
+                          minLength: 1
                           type: string
                         inactive:
                           description: inactive specifies whether to mark the user
@@ -4250,11 +4331,13 @@ spec:
                         name:
                           description: name specifies the user name
                           maxLength: 256
+                          minLength: 1
                           type: string
                         passwd:
                           description: passwd specifies a hashed password for the
                             user
                           maxLength: 256
+                          minLength: 1
                           type: string
                         passwdFrom:
                           description: passwdFrom is a referenced source of passwd
@@ -4268,11 +4351,13 @@ spec:
                                   description: key is the key in the secret's data
                                     map for this value.
                                   maxLength: 256
+                                  minLength: 1
                                   type: string
                                 name:
                                   description: name of the secret in the KubeadmBootstrapConfig's
                                     namespace to use.
                                   maxLength: 253
+                                  minLength: 1
                                   type: string
                               required:
                               - key
@@ -4285,22 +4370,26 @@ spec:
                           description: primaryGroup specifies the primary group for
                             the user
                           maxLength: 256
+                          minLength: 1
                           type: string
                         shell:
                           description: shell specifies the user's shell
                           maxLength: 256
+                          minLength: 1
                           type: string
                         sshAuthorizedKeys:
                           description: sshAuthorizedKeys specifies a list of ssh authorized
                             keys for the user
                           items:
                             maxLength: 2048
+                            minLength: 1
                             type: string
                           maxItems: 100
                           type: array
                         sudo:
                           description: sudo specifies a sudo role for the user
                           maxLength: 256
+                          minLength: 1
                           type: string
                       required:
                       - name
@@ -4332,6 +4421,7 @@ spec:
                       The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5. This variable is required
                       part of the template. If not provided, validation will fail.
                     maxLength: 256
+                    minLength: 1
                     type: string
                 type: object
               machineTemplate:
@@ -4593,6 +4683,7 @@ spec:
                     * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
                     * k8s.gcr.io (old registry): all older versions
                 maxLength: 256
+                minLength: 1
                 type: string
             required:
             - kubeadmConfigSpec
@@ -4620,6 +4711,7 @@ spec:
                         message is a human readable message indicating details about the transition.
                         This field may be empty.
                       maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
@@ -4627,6 +4719,7 @@ spec:
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
                       maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
@@ -4659,6 +4752,7 @@ spec:
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
+                minLength: 1
                 type: string
               failureReason:
                 description: |-
@@ -4683,6 +4777,7 @@ spec:
                     description: machine is the machine name of the latest machine
                       being remediated.
                     maxLength: 253
+                    minLength: 1
                     type: string
                   retryCount:
                     description: |-
@@ -4732,6 +4827,7 @@ spec:
                   describe.. The string will be in the same format as the query-param syntax.
                   More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
                 maxLength: 4096
+                minLength: 1
                 type: string
               unavailableReplicas:
                 description: |-
@@ -4843,6 +4939,7 @@ spec:
                   version represents the minimum Kubernetes version for the control plane machines
                   in the cluster.
                 maxLength: 256
+                minLength: 1
                 type: string
             type: object
         type: object

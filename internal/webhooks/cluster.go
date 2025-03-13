@@ -209,7 +209,17 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 			)
 		}
 	}
+
 	specPath := field.NewPath("spec")
+	if newCluster.Spec.InfrastructureRef == nil && oldCluster != nil && oldCluster.Spec.InfrastructureRef != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				specPath.Child("infrastructureRef"),
+				"cannot be removed",
+			),
+		)
+	}
 	if newCluster.Spec.InfrastructureRef != nil && newCluster.Spec.InfrastructureRef.Namespace != newCluster.Namespace {
 		allErrs = append(
 			allErrs,
@@ -221,6 +231,15 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		)
 	}
 
+	if newCluster.Spec.ControlPlaneRef == nil && oldCluster != nil && oldCluster.Spec.ControlPlaneRef != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				specPath.Child("controlPlaneRef"),
+				"cannot be removed",
+			),
+		)
+	}
 	if newCluster.Spec.ControlPlaneRef != nil && newCluster.Spec.ControlPlaneRef.Namespace != newCluster.Namespace {
 		allErrs = append(
 			allErrs,

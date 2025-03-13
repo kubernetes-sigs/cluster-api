@@ -55,7 +55,7 @@ func SetupSpecNamespace(ctx context.Context, specName string, clusterProxy Clust
 }
 
 // DumpAllResourcesAndLogs dumps all the resources in the spec namespace and the workload cluster.
-func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cluster *clusterv1.Cluster) {
+func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, clusterctlConfigPath, artifactFolder string, namespace *corev1.Namespace, cluster *clusterv1.Cluster) {
 	byf("Dumping logs from the %q workload cluster", cluster.Name)
 
 	// Dump all the logs from the workload cluster.
@@ -65,9 +65,11 @@ func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, art
 
 	// Dump all Cluster API related resources to artifacts.
 	DumpAllResources(ctx, DumpAllResourcesInput{
-		Lister:    clusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
+		Lister:               clusterProxy.GetClient(),
+		KubeConfigPath:       clusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: clusterctlConfigPath,
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
 
 	// If the cluster still exists, dump pods and nodes of the workload cluster.
@@ -96,9 +98,9 @@ func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, art
 }
 
 // DumpSpecResourcesAndCleanup dumps all the resources in the spec namespace and cleans up the spec namespace.
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
+func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy ClusterProxy, clusterctlConfigPath, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
 	// Dump all the resources in the spec namespace and the workload cluster.
-	DumpAllResourcesAndLogs(ctx, clusterProxy, artifactFolder, namespace, cluster)
+	DumpAllResourcesAndLogs(ctx, clusterProxy, clusterctlConfigPath, artifactFolder, namespace, cluster)
 
 	if !skipCleanup {
 		byf("Deleting cluster %s", klog.KObj(cluster))
@@ -106,9 +108,10 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
 		DeleteAllClustersAndWait(ctx, DeleteAllClustersAndWaitInput{
-			Client:         clusterProxy.GetClient(),
-			Namespace:      namespace.Name,
-			ArtifactFolder: artifactFolder,
+			ClusterProxy:         clusterProxy,
+			ClusterctlConfigPath: clusterctlConfigPath,
+			Namespace:            namespace.Name,
+			ArtifactFolder:       artifactFolder,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		byf("Deleting namespace used for hosting the %q test spec", specName)

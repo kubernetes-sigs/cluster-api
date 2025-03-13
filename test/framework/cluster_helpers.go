@@ -17,8 +17,10 @@ limitations under the License.
 package framework
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -29,6 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	cmdtree "sigs.k8s.io/cluster-api/internal/util/tree"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
@@ -162,14 +166,20 @@ func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 
 // WaitForClusterDeletedInput is the input for WaitForClusterDeleted.
 type WaitForClusterDeletedInput struct {
-	Client  client.Client
-	Cluster *clusterv1.Cluster
+	ClusterProxy         ClusterProxy
+	ClusterctlConfigPath string
+	Cluster              *clusterv1.Cluster
 	// ArtifactFolder, if set, clusters will be dumped if deletion times out
 	ArtifactFolder string
 }
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForClusterDeleted")
+	Expect(input.ClusterProxy).NotTo(BeNil(), "input.ClusterProxy is required for WaitForClusterDeleted")
+	Expect(input.ClusterctlConfigPath).NotTo(BeEmpty(), "input.ClusterctlConfigPath is required for WaitForClusterDeleted")
+	Expect(input.Cluster).NotTo(BeNil(), "input.Cluster is required for WaitForClusterDeleted")
+
 	Byf("Waiting for cluster %s to be deleted", klog.KObj(input.Cluster))
 	// Note: dumpArtifactsOnDeletionTimeout is passed in as a func so it gets only executed if and after the Eventually failed.
 	Eventually(func() bool {
@@ -178,24 +188,26 @@ func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput
 			Namespace: input.Cluster.GetNamespace(),
 			Name:      input.Cluster.GetName(),
 		}
-		return apierrors.IsNotFound(input.Client.Get(ctx, key, cluster))
+		return apierrors.IsNotFound(input.ClusterProxy.GetClient().Get(ctx, key, cluster))
 	}, intervals...).Should(BeTrue(), func() string {
-		return dumpArtifactsOnDeletionTimeout(ctx, input.Client, input.Cluster, input.ArtifactFolder)
+		return dumpArtifactsOnDeletionTimeout(ctx, input.ClusterProxy, input.Cluster, input.ClusterctlConfigPath, input.ArtifactFolder)
 	})
 }
 
-func dumpArtifactsOnDeletionTimeout(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, artifactFolder string) string {
+func dumpArtifactsOnDeletionTimeout(ctx context.Context, clusterProxy ClusterProxy, cluster *clusterv1.Cluster, clusterctlConfigPath, artifactFolder string) string {
 	if artifactFolder != "" {
 		// Dump all Cluster API related resources to artifacts.
 		DumpAllResources(ctx, DumpAllResourcesInput{
-			Lister:    c,
-			Namespace: cluster.Namespace,
-			LogPath:   filepath.Join(artifactFolder, "clusters-afterDeletionTimedOut", cluster.Name, "resources"),
+			Lister:               clusterProxy.GetClient(),
+			KubeConfigPath:       clusterProxy.GetKubeconfigPath(),
+			ClusterctlConfigPath: clusterctlConfigPath,
+			Namespace:            cluster.Namespace,
+			LogPath:              filepath.Join(artifactFolder, "clusters-afterDeletionTimedOut", cluster.Name, "resources"),
 		})
 	}
 
 	// Try to get more details about why Cluster deletion timed out.
-	if err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster); err == nil {
+	if err := clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster); err == nil {
 		if c := v1beta2conditions.Get(cluster, clusterv1.MachineDeletingV1Beta2Condition); c != nil {
 			return fmt.Sprintf("waiting for cluster deletion timed out:\ncondition: %s\nmessage: %s", c.Type, c.Message)
 		}
@@ -240,8 +252,9 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 
 // DeleteClusterAndWaitInput is the input type for DeleteClusterAndWait.
 type DeleteClusterAndWaitInput struct {
-	Client  client.Client
-	Cluster *clusterv1.Cluster
+	ClusterProxy         ClusterProxy
+	ClusterctlConfigPath string
+	Cluster              *clusterv1.Cluster
 	// ArtifactFolder, if set, clusters will be dumped if deletion times out
 	ArtifactFolder string
 }
@@ -249,22 +262,23 @@ type DeleteClusterAndWaitInput struct {
 // DeleteClusterAndWait deletes a cluster object and waits for it to be gone.
 func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteClusterAndWait")
-	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteClusterAndWait")
-	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DeleteClusterAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DeleteClusterAndWait")
+	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DeleteClusterAndWait")
+	Expect(input.Cluster).ToNot(BeEmpty(), "Invalid argument. input.Cluster can't be empty when calling DeleteClusterAndWait")
 
 	DeleteCluster(ctx, DeleteClusterInput{
-		Deleter: input.Client,
+		Deleter: input.ClusterProxy.GetClient(),
 		Cluster: input.Cluster,
 	})
 
 	log.Logf("Waiting for the Cluster object to be deleted")
 	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput(input), intervals...)
 
-	//TODO: consider if to move in another func (what if there are more than one cluster?)
+	// TODO: consider if to move in another func (what if there are more than one cluster?)
 	log.Logf("Check for all the Cluster API resources being deleted")
 	Eventually(func() []*unstructured.Unstructured {
 		return GetCAPIResources(ctx, GetCAPIResourcesInput{
-			Lister:    input.Client,
+			Lister:    input.ClusterProxy.GetClient(),
 			Namespace: input.Cluster.Namespace,
 		})
 	}, retryableOperationTimeout, retryableOperationInterval).Should(BeEmpty(), "There are still Cluster API resources in the %q namespace", input.Cluster.Namespace)
@@ -272,8 +286,9 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 
 // DeleteAllClustersAndWaitInput is the input type for DeleteAllClustersAndWait.
 type DeleteAllClustersAndWaitInput struct {
-	Client    client.Client
-	Namespace string
+	ClusterProxy         ClusterProxy
+	ClusterctlConfigPath string
+	Namespace            string
 	// ArtifactFolder, if set, clusters will be dumped if deletion times out
 	ArtifactFolder string
 }
@@ -281,17 +296,18 @@ type DeleteAllClustersAndWaitInput struct {
 // DeleteAllClustersAndWait deletes a cluster object and waits for it to be gone.
 func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteAllClustersAndWait")
-	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteAllClustersAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DeleteAllClustersAndWait")
+	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DeleteAllClustersAndWait")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling DeleteAllClustersAndWait")
 
 	clusters := GetAllClustersByNamespace(ctx, GetAllClustersByNamespaceInput{
-		Lister:    input.Client,
+		Lister:    input.ClusterProxy.GetClient(),
 		Namespace: input.Namespace,
 	})
 
 	for _, c := range clusters {
 		DeleteCluster(ctx, DeleteClusterInput{
-			Deleter: input.Client,
+			Deleter: input.ClusterProxy.GetClient(),
 			Cluster: c,
 		})
 	}
@@ -299,9 +315,10 @@ func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWai
 	for _, c := range clusters {
 		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
 		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
-			Client:         input.Client,
-			Cluster:        c,
-			ArtifactFolder: input.ArtifactFolder,
+			ClusterProxy:         input.ClusterProxy,
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			Cluster:              c,
+			ArtifactFolder:       input.ArtifactFolder,
 		}, intervals...)
 	}
 }
@@ -313,5 +330,88 @@ func byClusterOptions(name, namespace string) []client.ListOption {
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel: name,
 		},
+	}
+}
+
+type DescribeClusterInput struct {
+	ClusterctlConfigPath string
+	LogFolder            string
+	KubeConfigPath       string
+	Namespace            string
+	Name                 string
+}
+
+func DescribeCluster(ctx context.Context, input DescribeClusterInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DescribeCluster")
+	Expect(input.KubeConfigPath).ToNot(BeEmpty(), "Invalid argument. input.KubeConfigPath can't be empty when calling DescribeCluster")
+	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DescribeCluster")
+	Expect(input.LogFolder).ToNot(BeEmpty(), "Invalid argument. input.LogFolder can't be empty when calling DescribeCluster")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be nil when calling DescribeCluster")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be nil when calling DescribeCluster")
+
+	log.Logf("clusterctl describe cluster %s --show-conditions=all --show-machinesets=true --grouping=false --echo=true --v1beta2", input.Name)
+
+	clusterctlClient, err := clusterctlclient.New(ctx, input.ClusterctlConfigPath)
+	Expect(err).ToNot(HaveOccurred(), "Failed to create the clusterctl client library")
+
+	tree, err := clusterctlClient.DescribeCluster(ctx, clusterctlclient.DescribeClusterOptions{
+		Kubeconfig: clusterctlclient.Kubeconfig{
+			Path:    input.KubeConfigPath,
+			Context: "",
+		},
+		Namespace:               input.Namespace,
+		ClusterName:             input.Name,
+		ShowOtherConditions:     "all",
+		ShowClusterResourceSets: false,
+		ShowTemplates:           false,
+		ShowMachineSets:         true,
+		AddTemplateVirtualNode:  true,
+		Echo:                    true,
+		Grouping:                false,
+		V1Beta2:                 true,
+	})
+	Expect(err).ToNot(HaveOccurred(), "Failed to run clusterctl describe")
+
+	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Failed to create log folder %s", input.LogFolder)
+
+	f, err := os.Create(filepath.Join(input.LogFolder, fmt.Sprintf("clusterctl-describe-cluster-%s.txt", input.Name)))
+	Expect(err).ToNot(HaveOccurred(), "Failed to create a file for saving clusterctl describe output")
+
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+	cmdtree.PrintObjectTreeV1Beta2(tree, w)
+	Expect(w.Flush()).To(Succeed(), "Failed to save clusterctl describe output")
+}
+
+type DescribeAllClusterInput struct {
+	Lister               Lister
+	KubeConfigPath       string
+	ClusterctlConfigPath string
+	LogFolder            string
+	Namespace            string
+}
+
+func DescribeAllCluster(ctx context.Context, input DescribeAllClusterInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DescribeAllCluster")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DescribeAllCluster")
+	Expect(input.KubeConfigPath).ToNot(BeEmpty(), "Invalid argument. input.KubeConfigPath can't be empty when calling DescribeAllCluster")
+	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DescribeAllCluster")
+	Expect(input.LogFolder).ToNot(BeEmpty(), "Invalid argument. input.LogFolder can't be empty when calling DescribeAllCluster")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be nil when calling DescribeAllCluster")
+
+	clusters := &clusterv1.ClusterList{}
+	Eventually(func() error {
+		return input.Lister.List(ctx, clusters, client.InNamespace(input.Namespace))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
+
+	for _, c := range clusters.Items {
+		DescribeCluster(ctx, DescribeClusterInput{
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			LogFolder:            input.LogFolder,
+			KubeConfigPath:       input.KubeConfigPath,
+			Namespace:            c.Namespace,
+			Name:                 c.Name,
+		})
 	}
 }

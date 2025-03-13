@@ -185,7 +185,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		if input.DeployClusterClassInSeparateNamespace && !input.SkipCleanup {
 			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
 				Deleter: input.BootstrapClusterProxy.GetClient(),

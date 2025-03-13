@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/controllers/clusterresourcesetbinding"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -105,14 +106,14 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		reconciler := ClusterResourceSetReconciler{
+		reconciler := Reconciler{
 			Client:       mgr.GetClient(),
 			ClusterCache: clusterCache,
 		}
 		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 10}, partialSecretCache); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
 		}
-		bindingReconciler := ClusterResourceSetBindingReconciler{
+		bindingReconciler := clusterresourcesetbinding.Reconciler{
 			Client: mgr.GetClient(),
 		}
 		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 10}); err != nil {

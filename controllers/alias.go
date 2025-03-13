@@ -33,6 +33,7 @@ import (
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
 	clusterclasscontroller "sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
 	"sigs.k8s.io/cluster-api/internal/controllers/clusterresourceset"
+	"sigs.k8s.io/cluster-api/internal/controllers/clusterresourcesetbinding"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
 	machinedeploymentcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinedeployment"
 	machinehealthcheckcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinehealthcheck"
@@ -255,7 +256,7 @@ type ClusterResourceSetReconciler struct {
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
-	return (&clusterresourceset.ClusterResourceSetReconciler{
+	return (&clusterresourceset.Reconciler{
 		Client:           r.Client,
 		ClusterCache:     r.ClusterCache,
 		WatchFilterValue: r.WatchFilterValue,
@@ -271,7 +272,7 @@ type ClusterResourceSetBindingReconciler struct {
 }
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return (&clusterresourceset.ClusterResourceSetBindingReconciler{
+	return (&clusterresourcesetbinding.Reconciler{
 		Client:           r.Client,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)

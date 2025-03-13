@@ -32,7 +32,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -108,7 +107,7 @@ func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.
 }
 
 // getOrCreateClusterResourceSetBinding retrieves ClusterResourceSetBinding resource owned by the cluster or create a new one if not found.
-func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (*addonsv1.ClusterResourceSetBinding, error) {
+func (r *Reconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (*addonsv1.ClusterResourceSetBinding, error) {
 	clusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
@@ -221,27 +220,6 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	}
 
 	return dataList, nil
-}
-
-func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
-	for _, ref := range obj.GetOwnerReferences() {
-		if ref.Kind != "Cluster" {
-			continue
-		}
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to find cluster name in ownerRefs")
-		}
-
-		if gv.Group != clusterv1.GroupVersion.Group {
-			continue
-		}
-		if ref.Name == "" {
-			return "", errors.New("failed to find cluster name in ownerRefs: ref name is empty")
-		}
-		return ref.Name, nil
-	}
-	return "", errors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
 }
 
 // ensureKubernetesServiceCreated ensures that the Service for Kubernetes API Server has been created.

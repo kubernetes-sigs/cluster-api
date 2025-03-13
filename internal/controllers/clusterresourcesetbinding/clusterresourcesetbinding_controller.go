@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterresourceset
+package clusterresourcesetbinding
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,15 +41,15 @@ import (
 
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 
-// ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object.
-type ClusterResourceSetBindingReconciler struct {
+// Reconciler reconciles a ClusterResourceSetBinding object.
+type Reconciler struct {
 	Client client.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 
-func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil {
 		return errors.New("Client must not be nil")
 	}
@@ -71,7 +72,7 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 	return nil
 }
 
-func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the ClusterResourceSetBinding instance.
@@ -113,7 +114,7 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req
 }
 
 // clusterToClusterResourceSetBinding is mapper function that maps clusters to ClusterResourceSetBinding.
-func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding(_ context.Context, o client.Object) []ctrl.Request {
+func (r *Reconciler) clusterToClusterResourceSetBinding(_ context.Context, o client.Object) []ctrl.Request {
 	return []reconcile.Request{
 		{
 			NamespacedName: client.ObjectKey{
@@ -127,7 +128,7 @@ func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding
 // updateClusterReference updates how the ClusterResourceSetBinding references the Cluster.
 // Before 1.4 cluster name was stored as an ownerReference. This function migrates the cluster name to the spec.clusterName and removes the Cluster OwnerReference.
 // Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
-func (r *ClusterResourceSetBindingReconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
+func (r *Reconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
 	patchHelper, err := patch.NewHelper(binding, r.Client)
 	if err != nil {
 		return err
@@ -153,4 +154,25 @@ func (r *ClusterResourceSetBindingReconciler) updateClusterReference(ctx context
 	})
 
 	return patchHelper.Patch(ctx, binding)
+}
+
+func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to find cluster name in ownerRefs")
+		}
+
+		if gv.Group != clusterv1.GroupVersion.Group {
+			continue
+		}
+		if ref.Name == "" {
+			return "", errors.New("failed to find cluster name in ownerRefs: ref name is empty")
+		}
+		return ref.Name, nil
+	}
+	return "", errors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
 }

@@ -55,6 +55,7 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 		}
 	}
 
+	dst.BootCommands = restored.BootCommands
 	dst.Ignition = restored.Ignition
 
 	if restored.ClusterConfiguration != nil {

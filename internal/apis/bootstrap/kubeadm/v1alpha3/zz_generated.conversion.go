@@ -517,6 +517,7 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *v1b
 	}
 	out.DiskSetup = (*DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))
+	// WARNING: in.BootCommands requires manual conversion: does not exist in peer-type
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	if in.Users != nil {

@@ -60,7 +60,7 @@ Managing labels on Kubernetes nodes has been a long standing [issue](https://git
 The following challenges have been identified through various iterations:
 
 - Define how labels and annotations propagate from Machine to Node.
-- Define how labels propagate from ClusterClass to KubeadmControlPlane/MachineDeployments/Machine Pools, and ultimately to Machines.
+- Define how labels and annotations propagate from ClusterClass to KubeadmControlPlane/MachineDeployments/Machine Pools, and ultimately to Machines.
 - Define how to prevent that label and annotation propagation triggers unnecessary rollouts.
 
 With the "divide and conquer" principle in mind this proposal aims to address the first point only, while the remaining points are going to be addressed in separated, complementary efforts.
@@ -68,8 +68,8 @@ With the "divide and conquer" principle in mind this proposal aims to address th
 ### Goals
 
 - Support label sync from Machine to the linked Kubernetes node, limited to `node-role.kubernetes.io/` prefix and the `node-restriction.kubernetes.io` domain.
-- Support syncing labels from Machine to the linked Kubernetes node for the Cluster API owned `node.cluster.x-k8s.io` domain.
-- Support a flag to sync additional user configured labels from the Machine to the Node.
+- Support syncing labels and annotations from Machine to the linked Kubernetes node for the Cluster API owned `node.cluster.x-k8s.io` domain for both.
+- Support a flag to sync additional user configured labels and annotations from the Machine to the Node.
 
 ### Non-Goals
 
@@ -131,7 +131,7 @@ The following is a list of the default annotations that would always be applied 
 Additionally, the `node.cluster.x-k8s.io` domain is owned by Cluster API, and will always be synced.
 
 
-#### Synchronization of CAPI Labels and Annotatioins
+#### Synchronization of CAPI Labels and Annotations
 
 The synchronization of labels and annotations between a Machine object and its linked Node is limited to the domains and prefixes described in the section above.
 

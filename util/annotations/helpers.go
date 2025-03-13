@@ -89,7 +89,7 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 	return hasChanged
 }
 
-// GetManagedAnnotations filters out and returns the CAPI-managed annotations for a Machine, including option user-specified regexes.
+// GetManagedAnnotations filters out and returns the CAPI-managed annotations for a Machine, with an optional list of regex patterns for user-specified annotations.
 func GetManagedAnnotations(m *clusterv1.Machine, additionalSyncMachineAnnotations ...*regexp.Regexp) map[string]string {
 	// Always sync CAPI's bookkeeping annotations
 	managedAnnotations := map[string]string{

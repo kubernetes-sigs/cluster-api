@@ -69,8 +69,10 @@ func TestAggregate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:          "Error if negative polarity conditions are misconfigured",
-			conditions:    [][]metav1.Condition{},
+			name: "Error if negative polarity conditions are misconfigured",
+			conditions: [][]metav1.Condition{
+				{{Type: clusterv1.ScalingUpV1Beta2Condition, Status: metav1.ConditionTrue, Reason: "Reason-1", Message: "Message-1"}},
+			},
 			conditionType: clusterv1.ScalingUpV1Beta2Condition,
 			options:       []AggregateOption{NegativePolarityConditionTypes{"foo"}}, // NegativePolarityConditionTypes if set must equal source condition
 			want:          nil,

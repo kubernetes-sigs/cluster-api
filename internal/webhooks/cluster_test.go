@@ -1613,6 +1613,26 @@ func TestClusterValidation(t *testing.T) {
 			in:        builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").Build(),
 			expectErr: true,
 		},
+		{
+			name: "error when controlPlaneRef gets unset",
+			in: builder.Cluster("fooNamespace", "cluster1").
+				Build(),
+			old: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "error when infrastructureRef gets unset",
+			in: builder.Cluster("fooNamespace", "cluster1").
+				Build(),
+			old: builder.Cluster("fooNamespace", "cluster1").
+				WithInfrastructureCluster(
+					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
+				Build(),
+			expectErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

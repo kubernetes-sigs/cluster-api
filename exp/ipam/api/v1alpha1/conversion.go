@@ -22,6 +22,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
@@ -67,6 +68,14 @@ func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	// Manually restore data.
+	restored := &ipamv1.IPAddressClaim{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -90,6 +99,11 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.ObjectMeta.Labels[clusterv1.ClusterNameLabel] = src.Spec.ClusterName
 	}
 
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -107,4 +121,8 @@ func (dst *IPAddressClaimList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipamv1.IPAddressClaimSpec, to *IPAddressClaimSpec, scope apiconversion.Scope) error {
 	return autoConvert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from, to, scope)
+}
+
+func Convert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apiconversion.Scope) error {
+	return autoConvert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from, to, scope)
 }

@@ -159,7 +159,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, cluster); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper.
+	patchHelper, err := patch.NewHelper(cluster, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, cluster); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -171,12 +177,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		if err := r.Client.Get(ctx, cluster.GetClassKey(), s.clusterClass); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterClass %s", cluster.GetClassKey())
 		}
-	}
-
-	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(cluster, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	defer func() {
@@ -272,6 +272,7 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 			clusterv1.InfrastructureReadyCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 			clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 			clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,

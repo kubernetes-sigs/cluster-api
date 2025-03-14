@@ -121,17 +121,17 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, devCluster); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
-	backendReconciler := r.backendReconcilerFactory(ctx, devCluster)
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(devCluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, devCluster); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
+	}
+
+	backendReconciler := r.backendReconcilerFactory(ctx, devCluster)
 
 	// If the selected backend has to perform specific tasks when restarting, do it!
 	if restarter, ok := backendReconciler.(backends.DevClusterBackendHotRestarter); ok {

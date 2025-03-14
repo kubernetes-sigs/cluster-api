@@ -219,7 +219,6 @@ type ClusterResourceSetBindingList struct {
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// items is the list of ClusterResourceSetBindings.
-	// +required
 	Items []ClusterResourceSetBinding `json:"items"`
 }
 

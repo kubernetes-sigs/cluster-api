@@ -61,8 +61,8 @@ var ErrSecretTypeNotSupported = errors.New("unsupported secret type")
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=clusterresourcesets/status;clusterresourcesets/finalizers,verbs=get;update;patch
 
-// ClusterResourceSetReconciler reconciles a ClusterResourceSet object.
-type ClusterResourceSetReconciler struct {
+// Reconciler reconciles a ClusterResourceSet object.
+type Reconciler struct {
 	Client       client.Client
 	ClusterCache clustercache.ClusterCache
 
@@ -70,7 +70,7 @@ type ClusterResourceSetReconciler struct {
 	WatchFilterValue string
 }
 
-func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
 	if r.Client == nil || r.ClusterCache == nil {
 		return errors.New("Client and ClusterCache must not be nil")
 	}
@@ -122,7 +122,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 	return nil
 }
 
-func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the ClusterResourceSet instance.
@@ -214,7 +214,7 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // reconcileDelete removes the deleted ClusterResourceSet from all the ClusterResourceSetBindings it is added to.
-func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.Cluster, crs *addonsv1.ClusterResourceSet) error {
+func (r *Reconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.Cluster, crs *addonsv1.ClusterResourceSet) error {
 	for _, cluster := range clusters {
 		log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 
@@ -260,7 +260,7 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 }
 
 // getClustersByClusterResourceSetSelector fetches Clusters matched by the ClusterResourceSet's label selector that are in the same namespace as the ClusterResourceSet object.
-func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet) ([]*clusterv1.Cluster, error) {
+func (r *Reconciler) getClustersByClusterResourceSetSelector(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet) ([]*clusterv1.Cluster, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	clusterList := &clusterv1.ClusterList{}
@@ -296,7 +296,7 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 // In Reconcile strategy, resources are re-applied to a particular cluster when their definition changes. The hash in ClusterResourceSetBinding is used to check
 // if a resource has changed or not.
 // TODO: If a resource already exists in the cluster but not applied by ClusterResourceSet, the resource will be updated ?
-func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (rerr error) {
+func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (rerr error) {
 	log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -466,7 +466,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 // getResource retrieves the requested resource and convert it to unstructured type.
 // Unsupported resource kinds are not denied by validation webhook, hence no need to check here.
 // Only supports Secrets/Configmaps as resource types and allow using resources in the same namespace with the cluster.
-func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resourceRef addonsv1.ResourceRef, namespace string) (*unstructured.Unstructured, error) {
+func (r *Reconciler) getResource(ctx context.Context, resourceRef addonsv1.ResourceRef, namespace string) (*unstructured.Unstructured, error) {
 	resourceName := types.NamespacedName{Name: resourceRef.Name, Namespace: namespace}
 
 	var resourceInterface interface{}
@@ -500,7 +500,7 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 }
 
 // ensureResourceOwnerRef adds the ClusterResourceSet as a OwnerReference to the resource.
-func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
+func (r *Reconciler) ensureResourceOwnerRef(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
 	obj := resource.DeepCopy()
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
@@ -517,7 +517,7 @@ func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Contex
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *Reconciler) clusterToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	cluster, ok := o.(*clusterv1.Cluster)

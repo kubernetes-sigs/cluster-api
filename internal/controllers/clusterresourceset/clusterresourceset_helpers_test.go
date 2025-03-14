@@ -80,7 +80,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 	c := fake.NewClientBuilder().
 		WithObjects(testClusterResourceSetBinding).
 		Build()
-	r := &ClusterResourceSetReconciler{
+	r := &Reconciler{
 		Client: c,
 	}
 

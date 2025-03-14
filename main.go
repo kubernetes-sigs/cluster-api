@@ -77,7 +77,6 @@ import (
 	expv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
-	crscontrollers "sigs.k8s.io/cluster-api/internal/controllers/clusterresourceset"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
@@ -702,7 +701,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}
 
 	if feature.Gates.Enabled(feature.ClusterResourceSet) {
-		if err := (&crscontrollers.ClusterResourceSetReconciler{
+		if err := (&controllers.ClusterResourceSetReconciler{
 			Client:           mgr.GetClient(),
 			ClusterCache:     clusterCache,
 			WatchFilterValue: watchFilterValue,
@@ -710,7 +709,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}
-		if err := (&crscontrollers.ClusterResourceSetBindingReconciler{
+		if err := (&controllers.ClusterResourceSetBindingReconciler{
 			Client:           mgr.GetClient(),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {

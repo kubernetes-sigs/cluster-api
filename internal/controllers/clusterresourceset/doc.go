@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package clusterresourceset implements experimental addon controllers.
+// Package clusterresourceset implements the ClusterResourceSet controller.
 package clusterresourceset

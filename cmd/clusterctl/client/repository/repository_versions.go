@@ -110,7 +110,7 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 	}
 
 	if len(versionCandidates) == 0 {
-		return "", errors.New("failed to find releases tagged with a valid semantic version number")
+		return "", errors.New("failed to find releases tagged with a valid semantic version number (metadata.yaml up-to-date?)")
 	}
 
 	// Sort parsed versions by semantic version order.
@@ -149,5 +149,5 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 	}
 
 	// If we reached this point, it means we didn't find any release.
-	return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	return "", errors.New("failed to find releases tagged with a valid semantic version number (metadata.yaml up-to-date?)")
 }

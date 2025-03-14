@@ -146,13 +146,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, deployment); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(deployment, r.Client)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, deployment); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -215,6 +215,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 			clusterv1.MachineDeploymentAvailableCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,

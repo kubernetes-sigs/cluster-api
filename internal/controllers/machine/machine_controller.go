@@ -221,7 +221,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, m); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(m, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, m); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -238,12 +244,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	s := &scope{
 		cluster: cluster,
 		machine: m,
-	}
-
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(m, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	defer func() {
@@ -315,6 +315,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.DrainingSucceededCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			clusterv1.MachineAvailableV1Beta2Condition,
 			clusterv1.MachineReadyV1Beta2Condition,
 			clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,

@@ -160,7 +160,13 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, devMachine); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(devMachine, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, devMachine); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -182,11 +188,6 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	backendReconciler := r.backendReconcilerFactory(ctx, devMachine)
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(devMachine, r)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 	// Always attempt to Patch the DevMachine object and status after each reconciliation.
 	defer func() {
 		if err := backendReconciler.PatchDevMachine(ctx, patchHelper, devMachine, util.IsControlPlaneMachine(machine)); err != nil {

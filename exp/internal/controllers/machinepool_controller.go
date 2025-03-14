@@ -179,13 +179,13 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, mp); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(mp, r.Client)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, mp); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 

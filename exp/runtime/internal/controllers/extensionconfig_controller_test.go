@@ -180,19 +180,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 			return nil
 		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())
 
-		// Reconcile the extension and assert discovery has succeeded  (the first reconcile updates observedGeneration in the Paused condition).
-		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Wait until the ExtensionConfig in the cache has the up-to-date Paused condition so the next Reconcile can do discovery.
-		g.Eventually(func(g Gomega) {
-			conf := &runtimev1.ExtensionConfig{}
-			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), conf)).To(Succeed())
-			pausedCondition := v1beta2conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
-			g.Expect(pausedCondition).ToNot(BeNil())
-			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
-		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
-
+		// Reconcile the extension and assert discovery has succeeded.
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
 

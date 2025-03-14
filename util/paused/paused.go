@@ -41,7 +41,7 @@ type ConditionSetter interface {
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
+func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
 	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedV1Beta2Condition)
 
@@ -49,13 +49,26 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 
 	log := ctrl.LoggerFrom(ctx)
 
-	// Return early if the paused condition did not change.
-	if oldCondition != nil && v1beta2conditions.HasSameState(oldCondition, &newCondition) {
-		if isPaused {
-			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
+	if oldCondition != nil {
+		// Return early if the paused condition did not change at all.
+		if v1beta2conditions.HasSameState(oldCondition, &newCondition) {
+			if isPaused {
+				log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
+			}
+			return isPaused, false, nil
 		}
-		return isPaused, false, nil
+
+		// Set condition and return early if only observed generation changed.
+		if v1beta2conditions.HasSameStateExceptObservedGeneration(oldCondition, &newCondition) {
+			v1beta2conditions.Set(obj, newCondition)
+			if isPaused {
+				log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
+			}
+			return isPaused, false, nil
+		}
 	}
+
+	// Once we get here either the Paused condition is currently not set or one of Status, Reason or Message changed.
 
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {

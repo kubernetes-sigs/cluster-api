@@ -207,7 +207,13 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, config); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper.
+	patchHelper, err := patch.NewHelper(config, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, config); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -216,12 +222,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		Config:      config,
 		ConfigOwner: configOwner,
 		Cluster:     cluster,
-	}
-
-	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(config, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
@@ -261,6 +261,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				bootstrapv1.CertificatesAvailableCondition,
 			}},
 			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.PausedV1Beta2Condition,
 				bootstrapv1.KubeadmConfigReadyV1Beta2Condition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,

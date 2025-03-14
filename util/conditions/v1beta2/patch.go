@@ -243,3 +243,12 @@ func HasSameState(i, j *metav1.Condition) bool {
 		i.Reason == j.Reason &&
 		i.Message == j.Message
 }
+
+// HasSameStateExceptObservedGeneration returns true if a condition has the same state of another; state is defined
+// by the union of following fields: Type, Status, Reason and Message (it excludes ObservedGeneration and LastTransitionTime).
+func HasSameStateExceptObservedGeneration(i, j *metav1.Condition) bool {
+	return i.Type == j.Type &&
+		i.Status == j.Status &&
+		i.Reason == j.Reason &&
+		i.Message == j.Message
+}

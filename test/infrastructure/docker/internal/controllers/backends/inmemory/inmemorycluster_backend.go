@@ -160,5 +160,11 @@ func (r *ClusterBackendReconciler) PatchDevCluster(ctx context.Context, patchHel
 		return errors.New("InMemoryBackendReconciler can't be called for DevClusters without an InMemory backend")
 	}
 
-	return patchHelper.Patch(ctx, inMemoryCluster)
+	return patchHelper.Patch(
+		ctx,
+		inMemoryCluster,
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
+		}},
+	)
 }

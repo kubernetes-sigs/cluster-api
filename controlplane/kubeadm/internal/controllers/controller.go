@@ -189,15 +189,15 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, kcp); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
 		log.Error(err, "Failed to configure the patch helper")
 		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, kcp); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the control plane scope; this includes also checking for orphan machines and
@@ -337,6 +337,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.CertificatesAvailableCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,

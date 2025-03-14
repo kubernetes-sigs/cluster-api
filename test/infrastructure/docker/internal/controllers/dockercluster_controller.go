@@ -88,13 +88,13 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerCluster); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerCluster); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -187,6 +187,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 			infrav1.LoadBalancerAvailableCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevClusterReadyV1Beta2Condition,
 			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		}},

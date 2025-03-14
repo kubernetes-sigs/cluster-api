@@ -331,7 +331,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		}
 
 		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
-		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder)
+		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, input.ClusterctlConfigPath, namespace.Name, clusterName, input.ArtifactFolder)
 
 		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.ExtensionConfigName, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
 
@@ -351,7 +351,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 	AfterEach(func() {
 		// Dump all the resources in the spec namespace and the workload cluster.
-		framework.DumpAllResourcesAndLogs(ctx, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, clusterResources.Cluster)
+		framework.DumpAllResourcesAndLogs(ctx, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, clusterResources.Cluster)
 
 		if !input.SkipCleanup {
 			// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
@@ -364,9 +364,10 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 			// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 			// instead of DeleteClusterAndWait
 			framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-				Client:         input.BootstrapClusterProxy.GetClient(),
-				Namespace:      namespace.Name,
-				ArtifactFolder: input.ArtifactFolder,
+				ClusterProxy:         input.BootstrapClusterProxy,
+				ClusterctlConfigPath: input.ClusterctlConfigPath,
+				Namespace:            namespace.Name,
+				ArtifactFolder:       input.ArtifactFolder,
 			}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 
 			Byf("Deleting namespace used for hosting the %q test spec", specName)
@@ -754,7 +755,7 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 		strings.Contains(conditions.GetMessage(cluster, clusterv1.TopologyReconciledCondition), hookName)
 }
 
-func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, namespace, clusterName, artifactFolder string) {
+func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, clusterctlConfigPath, namespace, clusterName, artifactFolder string) {
 	By("Deleting the workload cluster")
 
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
@@ -768,9 +769,11 @@ func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, nam
 
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    proxy.GetClient(),
-		Namespace: namespace,
-		LogPath:   filepath.Join(artifactFolder, "clusters-beforeClusterDelete", proxy.GetName(), "resources")})
+		Lister:               proxy.GetClient(),
+		KubeConfigPath:       proxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: clusterctlConfigPath,
+		Namespace:            namespace,
+		LogPath:              filepath.Join(artifactFolder, "clusters-beforeClusterDelete", proxy.GetName(), "resources")})
 
 	By("Deleting the workload cluster")
 	framework.DeleteCluster(ctx, framework.DeleteClusterInput{

@@ -484,7 +484,8 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 					inputChan,
 					resultChan,
 					wg,
-					input.BootstrapClusterProxy.GetClient(),
+					input.BootstrapClusterProxy,
+					input.ClusterctlConfigPath,
 					namespace.Name,
 					deployClusterInSeparateNamespaces,
 					input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...,
@@ -757,7 +758,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 	}
 }
 
-func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, c client.Client, defaultNamespace string, deployClusterInSeparateNamespaces bool, intervals ...interface{}) {
+func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, clusterProxy framework.ClusterProxy, clusterctlConfigPath string, defaultNamespace string, deployClusterInSeparateNamespaces bool, intervals ...interface{}) {
 	defer wg.Done()
 
 	for {
@@ -797,19 +798,20 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 					},
 				}
 				framework.DeleteCluster(ctx, framework.DeleteClusterInput{
-					Deleter: c,
+					Deleter: clusterProxy.GetClient(),
 					Cluster: cluster,
 				})
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-					Client:  c,
-					Cluster: cluster,
+					ClusterProxy:         clusterProxy,
+					ClusterctlConfigPath: clusterctlConfigPath,
+					Cluster:              cluster,
 				}, intervals...)
 
 				// Note: We only delete the namespace in this case because in the case where all clusters are deployed
 				// to the same namespace deleting the Namespace will lead to deleting all clusters.
 				if deployClusterInSeparateNamespaces {
 					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-						Deleter: c,
+						Deleter: clusterProxy.GetClient(),
 						Name:    namespaceName,
 					})
 				}

@@ -281,6 +281,6 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
-		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

@@ -276,7 +276,7 @@ def build_docker_image(image, context, binary_name, additional_docker_build_comm
             command = (
                 "set -ex\n" +
                 "podman build -t $EXPECTED_REF --build-arg binary_name=%s --target tilt %s\n" +
-                "podman push --format=docker $EXPECTED_REF\n"
+                "podman push --tls-verify=false --format=docker $EXPECTED_REF\n"
             ) % (binary_name, shlex.quote(bin_context)),
             deps = [bin_context],
             skips_local_docker = True,

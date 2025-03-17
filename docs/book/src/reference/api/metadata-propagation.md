@@ -69,3 +69,8 @@ Labels that meet at least one of the following criteria are always propagated to
 - Belongs to `node.cluster.x-k8s.io` domain.
 
 In addition, any labels that match at least one of the regexes provided by the `--additional-sync-machine-labels` flag on the manager will be synced from the Machine to the Node.
+
+Annotations that meet at least one of the following criteria are always propagated to the Node:
+- Belongs to `node.cluster.x-k8s.io` domain
+
+In addition, any annotations that match at least one of the regexes provided by the `--additional-sync-machine-annotations` flag on the manager will be synced from the Machine to the Node.

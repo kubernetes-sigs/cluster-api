@@ -348,7 +348,7 @@ func TestGetManagedAnnotations(t *testing.T) {
 			managedAnnotations:               defaultAnnotations,
 		},
 		{
-			name: "sync additional defined labels",
+			name: "sync additional defined annotations",
 			additionalSyncMachineAnnotations: []*regexp.Regexp{
 				exampleRegex,
 			},
@@ -356,7 +356,7 @@ func TestGetManagedAnnotations(t *testing.T) {
 			managedAnnotations: defaultAndRegexAnnotations,
 		},
 		{
-			name: "sync all labels",
+			name: "sync all annotations",
 			additionalSyncMachineAnnotations: []*regexp.Regexp{
 				regexp.MustCompile(`.*`),
 			},

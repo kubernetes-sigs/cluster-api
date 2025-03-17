@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'CHANGELOG/*.md'
-  
+
 permissions:
   contents: write # Allow to push a tag, create a release branch and publish a draft release.
 
@@ -16,7 +16,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.release-version.outputs.release_version }}
     steps:
-      - name: Checkout code 
+      - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # tag=v4.2.2
         with:
           fetch-depth: 0
@@ -43,7 +43,8 @@ jobs:
             done
       - name: Determine the release branch to use
         run: |
-            if [[ $RELEASE_VERSION =~ beta ]] || [[ $RELEASE_VERSION =~ alpha ]]; then
+            # Use the release branch for all v1.10 releases
+            if [[ ! $RELEASE_VERSION =~ ^v1\.10 ]] && [[ $RELEASE_VERSION =~ beta ]] || [[ $RELEASE_VERSION =~ alpha ]]; then
               export RELEASE_BRANCH=main
               echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
               echo "This is a beta or alpha release, will use release branch $RELEASE_BRANCH"

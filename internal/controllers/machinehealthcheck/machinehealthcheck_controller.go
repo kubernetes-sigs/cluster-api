@@ -132,8 +132,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineHealthCheck instance
-	m := &clusterv1.MachineHealthCheck{}
-	if err := r.Client.Get(ctx, req.NamespacedName, m); err != nil {
+	mhc := &clusterv1.MachineHealthCheck{}
+	if err := r.Client.Get(ctx, req.NamespacedName, mhc); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -144,22 +144,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("Cluster", klog.KRef(m.Namespace, m.Spec.ClusterName))
+	log = log.WithValues("Cluster", klog.KRef(mhc.Namespace, mhc.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, mhc.Namespace, mhc.Spec.ClusterName)
 	if err != nil {
 		log.Error(err, "Failed to fetch Cluster for MachineHealthCheck")
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, m); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(mhc, r.Client)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(m, r.Client)
-	if err != nil {
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, mhc); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -171,24 +171,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				clusterv1.RemediationAllowedCondition,
 			}},
 			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.PausedV1Beta2Condition,
 				clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
 			}},
 		}
 		if reterr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
-		if err := patchHelper.Patch(ctx, m, patchOpts...); err != nil {
+		if err := patchHelper.Patch(ctx, mhc, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 
 	// Reconcile labels.
-	if m.Labels == nil {
-		m.Labels = make(map[string]string)
+	if mhc.Labels == nil {
+		mhc.Labels = make(map[string]string)
 	}
-	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
+	mhc.Labels[clusterv1.ClusterNameLabel] = mhc.Spec.ClusterName
 
-	return r.reconcile(ctx, log, cluster, m)
+	return r.reconcile(ctx, log, cluster, mhc)
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {

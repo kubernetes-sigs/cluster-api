@@ -114,7 +114,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, clusterClass); err != nil || isPaused || conditionChanged {
+	patchHelper, err := patch.NewHelper(clusterClass, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, clusterClass); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -126,11 +131,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		clusterClass: clusterClass,
 	}
 
-	patchHelper, err := patch.NewHelper(clusterClass, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	defer func() {
 		updateStatus(ctx, s)
 
@@ -140,6 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 				clusterv1.ClusterClassVariablesReconciledCondition,
 			}},
 			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				clusterv1.PausedV1Beta2Condition,
 				clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 				clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 			}},

@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -52,8 +53,9 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	// Object case 1: unpaused
 	obj := &builder.Phase1Obj{ObjectMeta: metav1.ObjectMeta{
-		Name:      "some-object",
-		Namespace: "default",
+		Name:       "some-object",
+		Namespace:  "default",
+		Generation: 1,
 	}}
 
 	// Object case 2: paused
@@ -61,34 +63,39 @@ func TestEnsurePausedCondition(t *testing.T) {
 	pausedObj.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: ""})
 
 	tests := []struct {
-		name         string
-		cluster      *clusterv1.Cluster
-		object       ConditionSetter
-		wantIsPaused bool
+		name                             string
+		cluster                          *clusterv1.Cluster
+		object                           ConditionSetter
+		wantIsPaused                     bool
+		wantRequeueAfterGenerationChange bool
 	}{
 		{
-			name:         "unpaused cluster and unpaused object",
-			cluster:      normalCluster.DeepCopy(),
-			object:       obj.DeepCopy(),
-			wantIsPaused: false,
+			name:                             "unpaused cluster and unpaused object",
+			cluster:                          normalCluster.DeepCopy(),
+			object:                           obj.DeepCopy(),
+			wantIsPaused:                     false,
+			wantRequeueAfterGenerationChange: false, // We don't want a requeue in this case to avoid additional reconciles.
 		},
 		{
-			name:         "paused cluster and unpaused object",
-			cluster:      pausedCluster.DeepCopy(),
-			object:       obj.DeepCopy(),
-			wantIsPaused: true,
+			name:                             "paused cluster and unpaused object",
+			cluster:                          pausedCluster.DeepCopy(),
+			object:                           obj.DeepCopy(),
+			wantIsPaused:                     true,
+			wantRequeueAfterGenerationChange: true,
 		},
 		{
-			name:         "unpaused cluster and paused object",
-			cluster:      normalCluster.DeepCopy(),
-			object:       pausedObj.DeepCopy(),
-			wantIsPaused: true,
+			name:                             "unpaused cluster and paused object",
+			cluster:                          normalCluster.DeepCopy(),
+			object:                           pausedObj.DeepCopy(),
+			wantIsPaused:                     true,
+			wantRequeueAfterGenerationChange: true,
 		},
 		{
-			name:         "paused cluster and paused object",
-			cluster:      pausedCluster.DeepCopy(),
-			object:       pausedObj.DeepCopy(),
-			wantIsPaused: true,
+			name:                             "paused cluster and paused object",
+			cluster:                          pausedCluster.DeepCopy(),
+			object:                           pausedObj.DeepCopy(),
+			wantIsPaused:                     true,
+			wantRequeueAfterGenerationChange: true,
 		},
 	}
 	for _, tt := range tests {
@@ -102,16 +109,41 @@ func TestEnsurePausedCondition(t *testing.T) {
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(tt.object), tt.object)).To(Succeed())
 
 			// The first run should set the condition.
-			gotIsPaused, gotConditionChanged, err := EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
+			gotIsPaused, gotRequeue, err := EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(gotConditionChanged).To(BeTrue(), "The first reconcile should set the Paused condition")
+			g.Expect(gotRequeue).To(BeTrue(), "The first reconcile should return requeue=true because it set the Paused condition")
 			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
+			assertCondition(g, tt.object, tt.wantIsPaused)
 
 			// The second reconcile should be a no-op.
-			gotIsPaused, gotConditionChanged, err = EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
+			gotIsPaused, gotRequeue, err = EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(gotConditionChanged).To(BeFalse(), "The second reconcile should not change the Paused condition")
+			g.Expect(gotRequeue).To(BeFalse(), "The second reconcile should return requeue=false as the Paused condition was not changed")
 			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
+			assertCondition(g, tt.object, tt.wantIsPaused)
+
+			// The third reconcile reconciles a generation change, condition should be updated and requeue=true
+			// should only be returned if the object is paused.
+			tt.object.SetGeneration(tt.object.GetGeneration() + 1)
+			gotIsPaused, gotRequeue, err = EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotRequeue).To(Equal(tt.wantRequeueAfterGenerationChange))
+			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
+			assertCondition(g, tt.object, tt.wantIsPaused)
 		})
+	}
+}
+
+func assertCondition(g Gomega, object ConditionSetter, wantIsPaused bool) {
+	condition := v1beta2conditions.Get(object, clusterv1.PausedV1Beta2Condition)
+	g.Expect(condition.ObservedGeneration).To(Equal(object.GetGeneration()))
+	if wantIsPaused {
+		g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+		g.Expect(condition.Reason).To(Equal(clusterv1.PausedV1Beta2Reason))
+		g.Expect(condition.Message).ToNot(BeEmpty())
+	} else {
+		g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+		g.Expect(condition.Reason).To(Equal(clusterv1.NotPausedV1Beta2Reason))
+		g.Expect(condition.Message).To(BeEmpty())
 	}
 }

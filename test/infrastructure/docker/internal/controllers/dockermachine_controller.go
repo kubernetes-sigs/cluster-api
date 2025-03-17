@@ -128,19 +128,19 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log = log.WithValues("DockerCluster", klog.KObj(dockerCluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerMachine); err != nil || isPaused || conditionChanged {
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(dockerMachine, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerMachine); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
 	if cluster.Spec.InfrastructureRef == nil {
 		log.Info("Cluster infrastructureRef is not available yet")
 		return ctrl.Result{}, nil
-	}
-
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(dockerMachine, r)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	devCluster := dockerClusterToDevCluster(dockerCluster)
@@ -285,6 +285,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 			infrav1.BootstrapExecSucceededCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,

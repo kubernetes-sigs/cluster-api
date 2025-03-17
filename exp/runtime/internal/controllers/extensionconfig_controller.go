@@ -132,7 +132,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, extensionConfig); err != nil || isPaused || conditionChanged {
+	// Copy to avoid modifying the original extensionConfig.
+	original := extensionConfig.DeepCopy()
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, extensionConfig); err != nil || isPaused || requeue {
 		return ctrl.Result{}, err
 	}
 
@@ -140,9 +143,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !extensionConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extensionConfig)
 	}
-
-	// Copy to avoid modifying the original extensionConfig.
-	original := extensionConfig.DeepCopy()
 
 	// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
 	if err := reconcileCABundle(ctx, r.Client, extensionConfig); err != nil {
@@ -183,6 +183,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 			runtimev1.RuntimeExtensionDiscoveredCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 		}},
 	)

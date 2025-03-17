@@ -202,6 +202,7 @@ func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHel
 			infrav1.LoadBalancerAvailableCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevClusterReadyV1Beta2Condition,
 			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		}},

@@ -24,6 +24,8 @@ spec:
           Cluster.topology.controlPlane.label.node.cluster.x-k8s.io: "Cluster.topology.controlPlane.nodeLabelValue"
         annotations:
           Cluster.topology.controlPlane.annotation: "Cluster.topology.controlPlane.annotationValue"
+          # Note: this annotation is propagated to Nodes.
+          Cluster.topology.controlPlane.annotation.node.cluster.x-k8s.io: "Cluster.topology.controlPlane.nodeAnnotationValue"
       nodeDeletionTimeout: "30s"
       nodeVolumeDetachTimeout: "5m"
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
@@ -38,6 +40,8 @@ spec:
             Cluster.topology.machineDeployment.label.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeLabelValue"
           annotations:
             Cluster.topology.machineDeployment.annotation: "Cluster.topology.machineDeployment.annotationValue"
+            # Note: this annotation is propagated to Nodes. Shortened due to name length limitations
+            Cluster.topology.md.annotation.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeAnnotationValue"
         nodeDeletionTimeout: "30s"
         nodeVolumeDetachTimeout: "5m"
         minReadySeconds: 5

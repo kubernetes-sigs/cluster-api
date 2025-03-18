@@ -809,7 +809,7 @@ func TestClient_CallExtension(t *testing.T) {
 
 			// Call again with caching.
 			serverCallCount = 0
-			cache := cache.New[runtimeclient.CallExtensionCacheEntry]()
+			cache := cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL)
 			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
 				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 			if tt.wantErr {

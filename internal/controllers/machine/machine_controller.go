@@ -184,7 +184,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: r.predicateLog,
 	}
-	r.reconcileDeleteCache = cache.New[cache.ReconcileEntry]()
+	r.reconcileDeleteCache = cache.New[cache.ReconcileEntry](cache.DefaultTTL)
 	return nil
 }
 

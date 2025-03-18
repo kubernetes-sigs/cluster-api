@@ -253,6 +253,12 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 	s.infraMachine = obj
 
+	// early set Spec.ProviderID.
+	var providerID string
+	if err := util.UnstructuredUnmarshalField(s.infraMachine, &providerID, "spec", "providerID"); err == nil && providerID != "" {
+		m.Spec.ProviderID = ptr.To(providerID)
+	}
+
 	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(s.infraMachine)
 	if err != nil {
@@ -283,7 +289,6 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.
-	var providerID string
 	if err := util.UnstructuredUnmarshalField(s.infraMachine, &providerID, "spec", "providerID"); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if providerID == "" {

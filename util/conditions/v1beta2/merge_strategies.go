@@ -51,6 +51,19 @@ func (o ConditionOwnerInfo) String() string {
 	return fmt.Sprintf("%s %s", o.Kind, o.Name)
 }
 
+// MergeOperation defines merge operations.
+type MergeOperation string
+
+const (
+	// SummaryMergeOperation defines a merge operation of type Summary.
+	// Summary should merge different conditions from the same object.
+	SummaryMergeOperation MergeOperation = "Summary"
+
+	// AggregateMergeOperation defines a merge operation of type Aggregate.
+	// Aggregate should merge the same condition across many objects.
+	AggregateMergeOperation MergeOperation = "Aggregate"
+)
+
 // MergeStrategy defines a strategy used to merge conditions during the aggregate or summary operation.
 type MergeStrategy interface {
 	// Merge passed in conditions.
@@ -59,7 +72,7 @@ type MergeStrategy interface {
 	// Conditions passed in must be of the given conditionTypes (other condition types must be discarded).
 	//
 	// The list of conditionTypes has an implicit order; it is up to the implementation of merge to use this info or not.
-	Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error)
+	Merge(operation MergeOperation, conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error)
 }
 
 // DefaultMergeStrategyOption is some configuration that modifies the DefaultMergeStrategy behaviour.
@@ -199,7 +212,7 @@ type defaultMergeStrategy struct {
 // - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
 // - unknown: conditions with status unknown.
 // - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
-func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
+func (d *defaultMergeStrategy) Merge(operation MergeOperation, conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
 	if len(conditions) == 0 {
 		return "", "", "", errors.New("can't merge an empty list of conditions")
 	}
@@ -207,15 +220,6 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	if d.getPriorityFunc == nil {
 		return "", "", "", errors.New("can't merge without a getPriority func")
 	}
-
-	// Infer which operation is calling this func, so it is possible to use different strategies for computing the message for the target condition.
-	// - When merge should consider a single condition type, we can assume this func is called within an aggregate operation
-	//   (Aggregate should merge the same condition across many objects)
-	isAggregateOperation := len(conditionTypes) == 1
-
-	// - Otherwise we can assume this func is called within a summary operation
-	//   (Summary should merge different conditions from the same object)
-	isSummaryOperation := !isAggregateOperation
 
 	// sortConditions the relevance defined by the users (the order of condition types), LastTransition time (older first).
 	sortConditions(conditions, conditionTypes)
@@ -265,7 +269,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	//
 	// When including messages from conditions, they are sorted by issue/unknown and by the implicit order of condition types
 	// provided by the user (it is considered as order of relevance).
-	if isSummaryOperation {
+	if operation == SummaryMergeOperation {
 		message = summaryMessage(conditions, d, status)
 	}
 
@@ -291,7 +295,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	//
 	// e.g. ...; 2 more Objects with issues; 1 more Objects with unknown status
 	//
-	if isAggregateOperation {
+	if operation == AggregateMergeOperation {
 		n := 3
 		messages := []string{}
 

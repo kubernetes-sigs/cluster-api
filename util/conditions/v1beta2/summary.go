@@ -137,7 +137,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		return nil, errors.New("summary can't be performed when the list of conditions to be summarized is empty")
 	}
 
-	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, summarizeOpt.conditionTypes)
+	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(SummaryMergeOperation, conditionsInScope, summarizeOpt.conditionTypes)
 	if err != nil {
 		return nil, err
 	}

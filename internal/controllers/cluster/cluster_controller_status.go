@@ -1025,7 +1025,7 @@ type clusterConditionCustomMergeStrategy struct {
 	negativePolarityConditionTypes []string
 }
 
-func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
+func (c clusterConditionCustomMergeStrategy) Merge(operation v1beta2conditions.MergeOperation, conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
 	return v1beta2conditions.DefaultMergeStrategy(v1beta2conditions.GetPriorityFunc(
 		func(condition metav1.Condition) v1beta2conditions.MergePriority {
 			// While cluster is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
@@ -1050,7 +1050,7 @@ func (c clusterConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 			clusterv1.ClusterAvailableUnknownV1Beta2Reason,
 			clusterv1.ClusterAvailableV1Beta2Reason,
 		)),
-	).Merge(conditions, conditionTypes)
+	).Merge(operation, conditions, conditionTypes)
 }
 
 func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {

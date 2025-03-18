@@ -374,6 +374,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		Kind:    crd.Spec.Names.Kind,
 	}
 
+	errs := []error{}
 	for _, obj := range customResourceObjects {
 		e := objectEntry{
 			Kind:      gvk.Kind,
@@ -406,10 +407,15 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.
 		if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
-			return errors.Wrapf(err, "failed to migrate storage version of %s %s", gvk.Kind, klog.KObj(u))
+			errs = append(errs, errors.Wrap(err, klog.KObj(u).String()))
+			continue
 		}
 
 		r.storageVersionMigrationCache.Add(e)
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to migrate storage version of %s objects", gvk.Kind)
 	}
 
 	return nil
@@ -431,6 +437,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 		}
 	}
 
+	errs := []error{}
 	for _, obj := range customResourceObjects {
 		if len(obj.GetManagedFields()) == 0 {
 			continue
@@ -512,8 +519,13 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 			// Note: We always have to return the conflict error directly (instead of an aggregate) so retry on conflict works.
 			return err
 		}); err != nil {
-			return errors.Wrapf(kerrors.NewAggregate([]error{err, getErr}), "failed to cleanup managedFields of %s %s", crd.Spec.Names.Kind, klog.KObj(obj))
+			errs = append(errs, errors.Wrap(kerrors.NewAggregate([]error{err, getErr}), klog.KObj(obj).String()))
+			continue
 		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to cleanup managedFields of %s objects", crd.Spec.Names.Kind)
 	}
 
 	return nil

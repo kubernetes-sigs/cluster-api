@@ -1,4 +1,4 @@
-# kindnetd networking manifest
+# source: https://github.com/kubernetes-sigs/kind/blob/v0.27.0/pkg/build/nodeimage/const_cni.go#L28
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6,19 +6,29 @@ metadata:
   name: kindnet
 rules:
   - apiGroups:
-      - ""
+    - policy
     resources:
-      - nodes
+    - podsecuritypolicies
     verbs:
-      - list
-      - watch
-      - patch
+    - use
+    resourceNames:
+    - kindnet
   - apiGroups:
       - ""
     resources:
-      - configmaps
+      - nodes
+      - pods
+      - namespaces
     verbs:
-      - get
+      - list
+      - watch
+  - apiGroups:
+     - "networking.k8s.io"
+    resources:
+      - networkpolicies
+    verbs:
+      - list
+      - watch
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -29,9 +39,9 @@ roleRef:
   kind: ClusterRole
   name: kindnet
 subjects:
-  - kind: ServiceAccount
-    name: kindnet
-    namespace: kube-system
+- kind: ServiceAccount
+  name: kindnet
+  namespace: kube-system
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -60,55 +70,52 @@ spec:
         k8s-app: kindnet
     spec:
       hostNetwork: true
+      nodeSelector:
+        kubernetes.io/os: linux
       tolerations:
-        - operator: Exists
-          effect: NoSchedule
+      - operator: Exists
       serviceAccountName: kindnet
       containers:
-        - name: kindnet-cni
-          image: kindest/kindnetd:v20230511-dc714da8
-          env:
-            - name: HOST_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            # We're using the dualstack CIDRs here. The order doesn't matter for kindnet as the loops are run concurrently.
-            # REF: https://github.com/kubernetes-sigs/kind/blob/3dbeb894e3092a336ab4278d3823e73a1d66aff7/images/kindnetd/cmd/kindnetd/main.go#L149-L175
-            - name: POD_SUBNET
-              value: '${DOCKER_POD_CIDRS},${DOCKER_POD_IPV6_CIDRS}'
-          volumeMounts:
-            - name: cni-cfg
-              mountPath: /etc/cni/net.d
-            - name: xtables-lock
-              mountPath: /run/xtables.lock
-              readOnly: false
-            - name: lib-modules
-              mountPath: /lib/modules
-              readOnly: true
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "50Mi"
-            limits:
-              cpu: "100m"
-              memory: "50Mi"
-          securityContext:
-            privileged: false
-            capabilities:
-              add: ["NET_RAW", "NET_ADMIN"]
+      - name: kindnet-cni
+        # Needs to be kept in sync with DOCKER_PRELOAD_IMAGES in test/e2e/config/docker.yaml for caching purposes.
+        image: kindest/kindnetd:v20250214-acbabc1a
+        env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        # We're using the dualstack CIDRs here. The order doesn't matter for kindnet as the loops are run concurrently.
+        # REF: https://github.com/kubernetes-sigs/kind/blob/3dbeb894e3092a336ab4278d3823e73a1d66aff7/images/kindnetd/cmd/kindnetd/main.go#L149-L175
+        - name: POD_SUBNET
+          value: '${DOCKER_POD_CIDRS},${DOCKER_POD_IPV6_CIDRS}'
+        volumeMounts:
+        - name: cni-cfg
+          mountPath: /etc/cni/net.d
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+          readOnly: false
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        securityContext:
+          privileged: false
+          capabilities:
+            add: ["NET_RAW", "NET_ADMIN"]
       volumes:
-        - name: cni-bin
-          hostPath:
-            path: /opt/cni/bin
-            type: DirectoryOrCreate
         - name: cni-cfg
           hostPath:
             path: /etc/cni/net.d
-            type: DirectoryOrCreate
         - name: xtables-lock
           hostPath:
             path: /run/xtables.lock

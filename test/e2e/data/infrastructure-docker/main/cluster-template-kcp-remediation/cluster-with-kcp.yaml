@@ -37,7 +37,8 @@ metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
   template:
-    spec: {}
+    spec:
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 # KubeadmControlPlane referenced by the Cluster
 kind: KubeadmControlPlane

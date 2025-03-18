@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -164,7 +165,7 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 		r.configByCRDName[contract.CalculateCRDName(gvk.Group, gvk.Kind)] = cfg
 	}
 
-	r.storageVersionMigrationCache = cache.New[objectEntry]()
+	r.storageVersionMigrationCache = cache.New[objectEntry](1 * time.Hour)
 	return nil
 }
 
@@ -385,6 +386,9 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		}
 
 		if _, alreadyMigrated := r.storageVersionMigrationCache.Has(e.Key()); alreadyMigrated {
+			// Refresh the cache entry, so that we don't try to migrate the storage version for CRs that were
+			// already migrated successfully in cases where storage migrations failed for a subset of the CRs.
+			r.storageVersionMigrationCache.Add(e)
 			continue
 		}
 

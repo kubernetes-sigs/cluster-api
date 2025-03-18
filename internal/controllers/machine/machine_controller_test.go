@@ -827,8 +827,6 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
-	time := metav1.Now()
-
 	testCluster := clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
@@ -922,7 +920,7 @@ func TestReconcileRequest(t *testing.T) {
 						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer},
-					DeletionTimestamp: &time,
+					DeletionTimestamp: ptr.To(metav1.Now()),
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
@@ -958,7 +956,7 @@ func TestReconcileRequest(t *testing.T) {
 				Client:               clientFake,
 				ClusterCache:         clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				recorder:             record.NewFakeRecorder(10),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
+				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1314,7 +1312,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	mr := &Reconciler{
 		Client:               c,
 		ClusterCache:         clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
-		reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
+		reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1709,7 +1707,7 @@ func TestDrainNode(t *testing.T) {
 			r := &Reconciler{
 				Client:               c,
 				ClusterCache:         clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
+				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			testMachine.Status.NodeRef = &corev1.ObjectReference{
@@ -1840,7 +1838,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 		WithObjects(remoteObjs...).
 		Build()
 
-	reconcileDeleteCache := cache.New[cache.ReconcileEntry]()
+	reconcileDeleteCache := cache.New[cache.ReconcileEntry](cache.DefaultTTL)
 	r := &Reconciler{
 		Client:               c,
 		ClusterCache:         clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
@@ -2498,7 +2496,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			r := &Reconciler{
 				Client:               fakeClient,
 				ClusterCache:         clustercache.NewFakeClusterCache(remoteFakeClient, client.ObjectKeyFromObject(testCluster)),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
+				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			testMachine.Status.NodeRef = &corev1.ObjectReference{
@@ -3335,7 +3333,7 @@ func TestNodeDeletion(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
+				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			cluster := testCluster.DeepCopy()
@@ -3469,7 +3467,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](),
+				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			s := &scope{

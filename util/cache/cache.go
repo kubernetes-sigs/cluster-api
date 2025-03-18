@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	// ttl is the duration for which we keep entries in the cache.
-	ttl = 10 * time.Minute
+	// DefaultTTL is the duration for which we keep entries in the cache.
+	DefaultTTL = 10 * time.Minute
 
 	// expirationInterval is the interval in which we will remove expired entries
 	// from the cache.
@@ -52,7 +52,8 @@ type Cache[E Entry] interface {
 }
 
 // New creates a new cache.
-func New[E Entry]() Cache[E] {
+// ttl is the duration for which we keep entries in the cache.
+func New[E Entry](ttl time.Duration) Cache[E] {
 	r := &cache[E]{
 		Store: kcache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add objects of type E to the cache, so it's safe to cast to E.

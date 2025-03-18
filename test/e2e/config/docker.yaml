@@ -327,6 +327,8 @@ variables:
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   DOCKER_SERVICE_IPV6_CIDRS: "fd00:100:64::/108"
   DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
+  # Needs to be kept in sync the CNI file referenced below for caching purposes.
+  DOCKER_PRELOAD_IMAGES: "[kindest/kindnetd:v20250214-acbabc1a]"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-workload-workload.yaml"

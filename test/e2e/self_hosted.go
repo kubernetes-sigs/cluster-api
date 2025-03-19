@@ -165,6 +165,9 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// controller images into the nodes.
 		if hasDockerInfrastructureProvider {
 			images := []string{}
+			if preloadList := strings.TrimSuffix(strings.TrimPrefix(clusterctlVariables["DOCKER_PRELOAD_IMAGES"], "["), "]"); preloadList != "" {
+				images = strings.Split(preloadList, ",")
+			}
 			for _, image := range input.E2EConfig.Images {
 				images = append(images, fmt.Sprintf("%q", image.Name))
 			}

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -101,6 +102,12 @@ type ByObjectConfig struct {
 	// Note: If this is enabled, we will use the corresponding Go type of the object for Get & List calls to avoid
 	// creating additional informers for UnstructuredList/PartialObjectMetadataList.
 	UseCache bool
+
+	// UseStatusForStorageVersionMigration configures if the storage version migration for this CRD should
+	// be triggered via the status endpoint instead of an update on the CRs directly (which is the default).
+	// As mutating and validating webhooks are usually not configured on the status subresource this can help to
+	// avoid mutating & validation webhook errors that would block the no-op updates and thus the storage migration.
+	UseStatusForStorageVersionMigration bool
 }
 
 func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, controllerOptions controller.Options) error {
@@ -164,7 +171,7 @@ func (r *CRDMigrator) setup(scheme *runtime.Scheme) error {
 		r.configByCRDName[contract.CalculateCRDName(gvk.Group, gvk.Kind)] = cfg
 	}
 
-	r.storageVersionMigrationCache = cache.New[objectEntry]()
+	r.storageVersionMigrationCache = cache.New[objectEntry](1 * time.Hour)
 	return nil
 }
 
@@ -230,7 +237,7 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 
 	// If phase should be run and .status.storedVersions != [storageVersion], run storage version migration.
 	if r.crdMigrationPhasesToRun.Has(StorageVersionMigrationPhase) && storageVersionMigrationRequired(crd, storageVersion) {
-		if err := r.reconcileStorageVersionMigration(ctx, crd, customResourceObjects, storageVersion); err != nil {
+		if err := r.reconcileStorageVersionMigration(ctx, crd, migrationConfig, customResourceObjects, storageVersion); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -252,18 +259,13 @@ func (r *CRDMigrator) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 }
 
 func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string, error) {
-	var storageVersion string
 	for _, v := range crd.Spec.Versions {
 		if v.Storage {
-			storageVersion = v.Name
-			break
+			return v.Name, nil
 		}
 	}
-	if storageVersion == "" {
-		return "", errors.Errorf("could not find storage version for CustomResourceDefinition %s", crd.Name)
-	}
 
-	return storageVersion, nil
+	return "", errors.Errorf("could not find storage version for CustomResourceDefinition %s", crd.Name)
 }
 
 func storageVersionMigrationRequired(crd *apiextensionsv1.CustomResourceDefinition, storageVersion string) bool {
@@ -360,7 +362,7 @@ func listObjectsFromAPIReader(ctx context.Context, c client.Reader, objectList c
 	return objs, nil
 }
 
-func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd *apiextensionsv1.CustomResourceDefinition, customResourceObjects []client.Object, storageVersion string) error {
+func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd *apiextensionsv1.CustomResourceDefinition, migrationConfig ByObjectConfig, customResourceObjects []client.Object, storageVersion string) error {
 	if len(customResourceObjects) == 0 {
 		return nil
 	}
@@ -374,6 +376,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		Kind:    crd.Spec.Names.Kind,
 	}
 
+	errs := []error{}
 	for _, obj := range customResourceObjects {
 		e := objectEntry{
 			Kind:      gvk.Kind,
@@ -384,6 +387,9 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		}
 
 		if _, alreadyMigrated := r.storageVersionMigrationCache.Has(e.Key()); alreadyMigrated {
+			// Refresh the cache entry, so that we don't try to migrate the storage version for CRs that were
+			// already migrated successfully in cases where storage migrations failed for a subset of the CRs.
+			r.storageVersionMigrationCache.Add(e)
 			continue
 		}
 
@@ -402,14 +408,24 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		u.SetResourceVersion(obj.GetResourceVersion())
 
 		log.V(4).Info("Migrating to new storage version", gvk.Kind, klog.KObj(u))
-		err := r.Client.Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+		var err error
+		if migrationConfig.UseStatusForStorageVersionMigration {
+			err = r.Client.Status().Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+		} else {
+			err = r.Client.Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+		}
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.
 		if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
-			return errors.Wrapf(err, "failed to migrate storage version of %s %s", gvk.Kind, klog.KObj(u))
+			errs = append(errs, errors.Wrap(err, klog.KObj(u).String()))
+			continue
 		}
 
 		r.storageVersionMigrationCache.Add(e)
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to migrate storage version of %s objects", gvk.Kind)
 	}
 
 	return nil
@@ -431,6 +447,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 		}
 	}
 
+	errs := []error{}
 	for _, obj := range customResourceObjects {
 		if len(obj.GetManagedFields()) == 0 {
 			continue
@@ -512,8 +529,13 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 			// Note: We always have to return the conflict error directly (instead of an aggregate) so retry on conflict works.
 			return err
 		}); err != nil {
-			return errors.Wrapf(kerrors.NewAggregate([]error{err, getErr}), "failed to cleanup managedFields of %s %s", crd.Spec.Names.Kind, klog.KObj(obj))
+			errs = append(errs, errors.Wrap(kerrors.NewAggregate([]error{err, getErr}), klog.KObj(obj).String()))
+			continue
 		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to cleanup managedFields of %s objects", crd.Spec.Names.Kind)
 	}
 
 	return nil

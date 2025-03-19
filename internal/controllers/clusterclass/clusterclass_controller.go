@@ -100,7 +100,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.discoverVariablesCache = cache.New[runtimeclient.CallExtensionCacheEntry]()
+	r.discoverVariablesCache = cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL)
 	return nil
 }
 

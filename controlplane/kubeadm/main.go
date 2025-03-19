@@ -408,7 +408,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		// Note: The kubebuilder RBAC markers above has to be kept in sync
 		// with the CRDs that should be migrated by this provider.
 		Config: map[client.Object]crdmigrator.ByObjectConfig{
-			&controlplanev1.KubeadmControlPlane{}:         {UseCache: true},
+			&controlplanev1.KubeadmControlPlane{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
 			&controlplanev1.KubeadmControlPlaneTemplate{}: {UseCache: false},
 		},
 		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a

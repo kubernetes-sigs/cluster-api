@@ -383,13 +383,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Note: The kubebuilder RBAC markers above has to be kept in sync
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
-		&infrav1.DockerCluster{}:         {UseCache: true},
+		&infrav1.DockerCluster{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&infrav1.DockerClusterTemplate{}: {UseCache: false},
-		&infrav1.DockerMachine{}:         {UseCache: true},
+		&infrav1.DockerMachine{}:         {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&infrav1.DockerMachineTemplate{}: {UseCache: false},
-		&infrav1.DevCluster{}:            {UseCache: true},
+		&infrav1.DevCluster{}:            {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&infrav1.DevClusterTemplate{}:    {UseCache: false},
-		&infrav1.DevMachine{}:            {UseCache: true},
+		&infrav1.DevMachine{}:            {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&infrav1.DevMachineTemplate{}:    {UseCache: false},
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {

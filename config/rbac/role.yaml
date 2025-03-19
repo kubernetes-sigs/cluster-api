@@ -160,6 +160,13 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
   - runtime.cluster.x-k8s.io
   resources:
   - extensionconfigs

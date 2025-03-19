@@ -63,43 +63,63 @@ func TestReconcile(t *testing.T) {
 	crdObjectKey := client.ObjectKey{Name: crdName}
 
 	tests := []struct {
-		name                   string
-		skipCRDMigrationPhases []Phase
-		useCache               bool
+		name                                string
+		skipCRDMigrationPhases              []Phase
+		useCache                            bool
+		useStatusForStorageVersionMigration bool
 	}{
 		{
-			name:                   "run both StorageVersionMigration and CleanupManagedFields with cache",
-			skipCRDMigrationPhases: nil,
-			useCache:               true,
+			name:                                "run both StorageVersionMigration and CleanupManagedFields with cache",
+			skipCRDMigrationPhases:              nil,
+			useCache:                            true,
+			useStatusForStorageVersionMigration: false,
 		},
 		{
-			name:                   "run both StorageVersionMigration and CleanupManagedFields without cache",
-			skipCRDMigrationPhases: nil,
-			useCache:               false,
+			name:                                "run both StorageVersionMigration and CleanupManagedFields without cache",
+			skipCRDMigrationPhases:              nil,
+			useCache:                            false,
+			useStatusForStorageVersionMigration: false,
 		},
 		{
-			name:                   "run only CleanupManagedFields with cache",
-			skipCRDMigrationPhases: []Phase{StorageVersionMigrationPhase},
-			useCache:               true,
+			name:                                "run both StorageVersionMigration and CleanupManagedFields with cache (using status)",
+			skipCRDMigrationPhases:              nil,
+			useCache:                            true,
+			useStatusForStorageVersionMigration: true,
 		},
 		{
-			name:                   "run only CleanupManagedFields without cache",
-			skipCRDMigrationPhases: []Phase{StorageVersionMigrationPhase},
-			useCache:               false,
+			name:                                "run both StorageVersionMigration and CleanupManagedFields without cache (using status)",
+			skipCRDMigrationPhases:              nil,
+			useCache:                            false,
+			useStatusForStorageVersionMigration: true,
 		},
 		{
-			name:                   "run only StorageVersionMigration with cache",
-			skipCRDMigrationPhases: []Phase{CleanupManagedFieldsPhase},
-			useCache:               true,
+			name:                                "run only CleanupManagedFields with cache",
+			skipCRDMigrationPhases:              []Phase{StorageVersionMigrationPhase},
+			useCache:                            true,
+			useStatusForStorageVersionMigration: false,
 		},
 		{
-			name:                   "run only StorageVersionMigration without cache",
-			skipCRDMigrationPhases: []Phase{CleanupManagedFieldsPhase},
-			useCache:               false,
+			name:                                "run only CleanupManagedFields without cache",
+			skipCRDMigrationPhases:              []Phase{StorageVersionMigrationPhase},
+			useCache:                            false,
+			useStatusForStorageVersionMigration: false,
 		},
 		{
-			name:                   "skip all",
-			skipCRDMigrationPhases: []Phase{StorageVersionMigrationPhase, CleanupManagedFieldsPhase},
+			name:                                "run only StorageVersionMigration with cache",
+			skipCRDMigrationPhases:              []Phase{CleanupManagedFieldsPhase},
+			useCache:                            true,
+			useStatusForStorageVersionMigration: false,
+		},
+		{
+			name:                                "run only StorageVersionMigration without cache",
+			skipCRDMigrationPhases:              []Phase{CleanupManagedFieldsPhase},
+			useCache:                            false,
+			useStatusForStorageVersionMigration: false,
+		},
+		{
+			name:                                "skip all",
+			skipCRDMigrationPhases:              []Phase{StorageVersionMigrationPhase, CleanupManagedFieldsPhase},
+			useStatusForStorageVersionMigration: false,
 		},
 	}
 	for _, tt := range tests {
@@ -127,19 +147,19 @@ func TestReconcile(t *testing.T) {
 			// Create manager for all steps.
 			skipCRDMigrationPhases := sets.Set[Phase]{}.Insert(tt.skipCRDMigrationPhases...)
 			managerT1, err := createManagerWithCRDMigrator(tt.skipCRDMigrationPhases, map[client.Object]ByObjectConfig{
-				&t1v1beta1.TestCluster{}: {UseCache: tt.useCache},
+				&t1v1beta1.TestCluster{}: {UseCache: tt.useCache, UseStatusForStorageVersionMigration: tt.useStatusForStorageVersionMigration},
 			}, t1v1beta1.AddToScheme)
 			g.Expect(err).ToNot(HaveOccurred())
 			managerT2, err := createManagerWithCRDMigrator(tt.skipCRDMigrationPhases, map[client.Object]ByObjectConfig{
-				&t2v1beta2.TestCluster{}: {UseCache: tt.useCache},
+				&t2v1beta2.TestCluster{}: {UseCache: tt.useCache, UseStatusForStorageVersionMigration: tt.useStatusForStorageVersionMigration},
 			}, t2v1beta2.AddToScheme)
 			g.Expect(err).ToNot(HaveOccurred())
 			managerT3, err := createManagerWithCRDMigrator(tt.skipCRDMigrationPhases, map[client.Object]ByObjectConfig{
-				&t3v1beta2.TestCluster{}: {UseCache: tt.useCache},
+				&t3v1beta2.TestCluster{}: {UseCache: tt.useCache, UseStatusForStorageVersionMigration: tt.useStatusForStorageVersionMigration},
 			}, t3v1beta2.AddToScheme)
 			g.Expect(err).ToNot(HaveOccurred())
 			managerT4, err := createManagerWithCRDMigrator(tt.skipCRDMigrationPhases, map[client.Object]ByObjectConfig{
-				&t4v1beta2.TestCluster{}: {UseCache: tt.useCache},
+				&t4v1beta2.TestCluster{}: {UseCache: tt.useCache, UseStatusForStorageVersionMigration: tt.useStatusForStorageVersionMigration},
 			}, t4v1beta2.AddToScheme)
 			g.Expect(err).ToNot(HaveOccurred())
 

@@ -286,6 +286,7 @@ func InitFlags(fs *pflag.FlagSet) {
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=clusterclasses.cluster.x-k8s.io;clusterresourcesetbindings.addons.cluster.x-k8s.io;clusterresourcesets.addons.cluster.x-k8s.io;clusters.cluster.x-k8s.io;extensionconfigs.runtime.cluster.x-k8s.io;ipaddressclaims.ipam.cluster.x-k8s.io;ipaddresses.ipam.cluster.x-k8s.io;machinedeployments.cluster.x-k8s.io;machinedrainrules.cluster.x-k8s.io;machinehealthchecks.cluster.x-k8s.io;machinepools.cluster.x-k8s.io;machines.cluster.x-k8s.io;machinesets.cluster.x-k8s.io
 // ADD CR RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses;ipaddressclaims,verbs=get;list;watch;patch;update
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims/status,verbs=patch;update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedrainrules,verbs=get;list;watch;patch;update
 
 func main() {
@@ -491,24 +492,24 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	// with the CRDs that should be migrated by this provider.
 	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
 		&addonsv1.ClusterResourceSetBinding{}: {UseCache: true},
-		&addonsv1.ClusterResourceSet{}:        {UseCache: true},
-		&clusterv1.Cluster{}:                  {UseCache: true},
-		&clusterv1.MachineDeployment{}:        {UseCache: true},
+		&addonsv1.ClusterResourceSet{}:        {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&clusterv1.Cluster{}:                  {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&clusterv1.MachineDeployment{}:        {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&clusterv1.MachineDrainRule{}:         {UseCache: true},
-		&clusterv1.MachineHealthCheck{}:       {UseCache: true},
-		&clusterv1.Machine{}:                  {UseCache: true},
-		&clusterv1.MachineSet{}:               {UseCache: true},
+		&clusterv1.MachineHealthCheck{}:       {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&clusterv1.Machine{}:                  {UseCache: true, UseStatusForStorageVersionMigration: true},
+		&clusterv1.MachineSet{}:               {UseCache: true, UseStatusForStorageVersionMigration: true},
 		&ipamv1.IPAddress{}:                   {UseCache: false},
-		&ipamv1.IPAddressClaim{}:              {UseCache: false},
+		&ipamv1.IPAddressClaim{}:              {UseCache: false, UseStatusForStorageVersionMigration: true},
 	}
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: true}
+		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 	}
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: true}
+		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		crdMigratorConfig[&expv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
+		crdMigratorConfig[&expv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 	}
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {

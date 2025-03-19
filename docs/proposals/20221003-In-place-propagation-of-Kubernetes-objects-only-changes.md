@@ -137,11 +137,11 @@ As a cluster admin/user, I would like to set autoscaler labels for MachineDeploy
 
 The following schema represent how metadata propagation works today (also documented in [book](https://cluster-api.sigs.k8s.io/developer/architecture/controllers/metadata-propagation.html)).
 
-![Figure 1](./images/in-place-propagation/current-state.png)
+![Figure 1](./images/in-place-propagation/current-state.jpg)
 
 With this proposal we are suggesting to improve metadata propagation as described in the following schema:
 
-![Figure 2](./images/in-place-propagation/proposed-changes.png)
+![Figure 2](./images/in-place-propagation/proposed-changes.jpg)
 
 Following paragraphs provide more details about the proposed changes.
 
@@ -333,7 +333,7 @@ it was decided to implement only the few, most critical changes to propagation r
 
 Nevertheless we are documenting optional changes dropped from the scope of this iteration for future reference.
 
-![Figure 3](./images/in-place-propagation/optional-changes.png)
+![Figure 3](./images/in-place-propagation/optional-changes.jpg)
 
 Optional changes:
 

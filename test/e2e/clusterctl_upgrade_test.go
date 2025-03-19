@@ -224,8 +224,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>cur
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.31.0",
-			WorkloadKubernetesVersion:   "v1.31.0",
+			InitWithKubernetesVersion:   "v1.31.6",
+			WorkloadKubernetesVersion:   "v1.31.6",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -265,8 +265,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.32.0",
-			WorkloadKubernetesVersion:   "v1.32.0",
+			InitWithKubernetesVersion:   "v1.32.2",
+			WorkloadKubernetesVersion:   "v1.32.2",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -300,8 +300,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
-			InitWithKubernetesVersion:   "v1.32.0", // NOTE: use v1.33 as soon as it is GA
-			WorkloadKubernetesVersion:   "v1.32.0", // NOTE: use v1.33 as soon as it is GA
+			InitWithKubernetesVersion:   "v1.32.2", // NOTE: use v1.33 as soon as it is GA
+			WorkloadKubernetesVersion:   "v1.32.2", // NOTE: use v1.33 as soon as it is GA
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -339,7 +339,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version.
 			InitWithKubernetesVersion:   initKubernetesVersion,
-			WorkloadKubernetesVersion:   "v1.32.0", // NOTE: use v1.33 as soon as it is GA
+			WorkloadKubernetesVersion:   "v1.32.2", // NOTE: use v1.33 as soon as it is GA
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,

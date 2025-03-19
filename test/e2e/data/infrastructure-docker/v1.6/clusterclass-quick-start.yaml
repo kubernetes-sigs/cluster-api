@@ -564,6 +564,7 @@ spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -584,6 +585,7 @@ spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachinePoolTemplate
@@ -605,6 +607,7 @@ spec:
         extraMounts:
         - containerPath: "/var/run/docker.sock"
           hostPath: "/var/run/docker.sock"
+        preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

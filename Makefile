@@ -625,7 +625,10 @@ generate-metrics-config: $(CONTROLLER_GEN) ## Generate ./config/metrics/crd-metr
 		paths=./api/... \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/api/... \
-		paths=./exp/api/...
+		paths=./exp/api/... \
+		paths=./exp/ipam/api/... \
+		paths=./exp/runtime/api/... \
+		paths=./test/infrastructure/docker/api/...
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files

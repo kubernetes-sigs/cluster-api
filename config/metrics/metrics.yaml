@@ -38,8 +38,8 @@ spec:
           valueFrom:
           - status
         type: StateSet
-      help: The v1beta2 condition of a clusterresourceset.
-      name: status_condition_v1beta2
+      help: The condition of a clusterresourceset.
+      name: status_condition
     - each:
         gauge:
           labelsFromPath:
@@ -55,8 +55,8 @@ spec:
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The v1beta2 condition's last transition time of a clusterresourceset.
-      name: status_condition_v1beta2_last_transition_time
+      help: The condition's last transition time of a clusterresourceset.
+      name: status_condition_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -140,6 +140,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -156,48 +157,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a kubeadmconfig.
+      help: The condition's last transition time of a kubeadmconfig.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a kubeadmconfig.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a kubeadmconfig.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -300,6 +266,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -316,48 +283,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a cluster.
+      help: The condition's last transition time of a cluster.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a cluster.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a cluster.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         stateSet:
           labelName: phase
@@ -454,6 +386,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -470,48 +403,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a clusterclass.
+      help: The condition's last transition time of a clusterclass.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a clusterclass.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a clusterclass.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -665,6 +563,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -681,48 +580,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a machine.
+      help: The condition's last transition time of a machine.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a machine.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a machine.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         info:
           labelsFromPath:
@@ -911,6 +775,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -927,48 +792,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a machinedeployment.
+      help: The condition's last transition time of a machinedeployment.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a machinedeployment.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a machinedeployment.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         stateSet:
           labelName: phase
@@ -1117,6 +947,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -1133,48 +964,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a machinehealthcheck.
+      help: The condition's last transition time of a machinehealthcheck.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a machinehealthcheck.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a machinehealthcheck.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         gauge:
           nilIsZero: true
@@ -1330,6 +1126,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -1346,48 +1143,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a machinepool.
+      help: The condition's last transition time of a machinepool.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a machinepool.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a machinepool.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         stateSet:
           labelName: phase
@@ -1564,6 +1326,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -1580,48 +1343,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a machineset.
+      help: The condition's last transition time of a machineset.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a machineset.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a machineset.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         gauge:
           nilIsZero: true
@@ -1769,6 +1497,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -1785,48 +1514,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a kubeadmcontrolplane.
+      help: The condition's last transition time of a kubeadmcontrolplane.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a kubeadmcontrolplane.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a kubeadmcontrolplane.
-      name: status_condition_v1beta2_last_transition_time
     - each:
         gauge:
           nilIsZero: true
@@ -1901,6 +1595,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -1917,48 +1612,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
       help: The condition's last transition time of a devcluster.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a devcluster.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a devcluster.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -1993,6 +1653,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -2009,48 +1670,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a devmachine.
+      help: The condition's last transition time of a devmachine.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a devmachine.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a devmachine.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -2085,6 +1711,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -2101,48 +1728,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a dockercluster.
+      help: The condition's last transition time of a dockercluster.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a dockercluster.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a dockercluster.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -2177,6 +1769,7 @@ spec:
           - Unknown
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - status
@@ -2193,48 +1786,13 @@ spec:
           nilIsZero: false
           path:
           - status
+          - v1beta2
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The condition last transition time of a dockermachine.
+      help: The condition's last transition time of a dockermachine.
       name: status_condition_last_transition_time
-    - each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - "True"
-          - "False"
-          - Unknown
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-      help: The v1beta2 condition of a dockermachine.
-      name: status_condition_v1beta2
-    - each:
-        gauge:
-          labelsFromPath:
-            status:
-            - status
-            type:
-            - type
-          nilIsZero: false
-          path:
-          - status
-          - v1beta2
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-      help: The v1beta2 condition's last transition time of a dockermachine.
-      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -2274,8 +1832,8 @@ spec:
           valueFrom:
           - status
         type: StateSet
-      help: The v1beta2 condition of a ipaddressclaim.
-      name: status_condition_v1beta2
+      help: The condition of a ipaddressclaim.
+      name: status_condition
     - each:
         gauge:
           labelsFromPath:
@@ -2291,8 +1849,8 @@ spec:
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The v1beta2 condition's last transition time of a ipaddressclaim.
-      name: status_condition_v1beta2_last_transition_time
+      help: The condition's last transition time of a ipaddressclaim.
+      name: status_condition_last_transition_time
     resourcePlural: ""
   - errorLogV: 0
     groupVersionKind:
@@ -2328,8 +1886,8 @@ spec:
           valueFrom:
           - status
         type: StateSet
-      help: The v1beta2 condition of a extensionconfig.
-      name: status_condition_v1beta2
+      help: The condition of a extensionconfig.
+      name: status_condition
     - each:
         gauge:
           labelsFromPath:
@@ -2345,6 +1903,6 @@ spec:
           valueFrom:
           - lastTransitionTime
         type: Gauge
-      help: The v1beta2 condition's last transition time of a extensionconfig.
-      name: status_condition_v1beta2_last_transition_time
+      help: The condition's last transition time of a extensionconfig.
+      name: status_condition_last_transition_time
     resourcePlural: ""

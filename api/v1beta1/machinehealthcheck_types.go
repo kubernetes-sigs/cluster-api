@@ -184,8 +184,6 @@ type MachineHealthCheckStatus struct {
 
 	// conditions defines current service state of the MachineHealthCheck.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
-	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a machinehealthcheck.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachineHealthCheck's status with the V1Beta2 version.
@@ -202,8 +200,8 @@ type MachineHealthCheckV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
-	// +Metrics:stateset:name="status_condition_v1beta2",help="The v1beta2 condition of a machinehealthcheck.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
-	// +Metrics:gauge:name="status_condition_v1beta2_last_transition_time",help="The v1beta2 condition's last transition time of a machinehealthcheck.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machinehealthcheck.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 

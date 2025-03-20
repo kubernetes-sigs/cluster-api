@@ -1000,8 +1000,6 @@ type ClusterStatus struct {
 
 	// conditions defines current service state of the cluster.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a cluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
-	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a cluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
@@ -1024,8 +1022,8 @@ type ClusterV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
-	// +Metrics:stateset:name="status_condition_v1beta2",help="The v1beta2 condition of a cluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
-	// +Metrics:gauge:name="status_condition_v1beta2_last_transition_time",help="The v1beta2 condition's last transition time of a cluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
+	// +Metrics:stateset:name="status_condition",help="The condition of a cluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a cluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// controlPlane groups all the observations about Cluster's ControlPlane current state.

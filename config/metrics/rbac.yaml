@@ -7,6 +7,14 @@ metadata:
   name: manager-metrics-role
 rules:
 - apiGroups:
+  - addons.cluster.x-k8s.io
+  resources:
+  - clusterresourcesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - bootstrap.cluster.x-k8s.io
   resources:
   - kubeadmconfigs
@@ -32,6 +40,33 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - kubeadmcontrolplanes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - devclusters
+  - devmachines
+  - dockerclusters
+  - dockermachines
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - runtime.cluster.x-k8s.io
+  resources:
+  - extensionconfigs
   verbs:
   - get
   - list

@@ -6,6 +6,60 @@ spec:
   resources:
   - errorLogV: 0
     groupVersionKind:
+      group: addons.cluster.x-k8s.io
+      kind: ClusterResourceSet
+      version: v1beta1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_clusterresourceset
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a clusterresourceset.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a clusterresourceset.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
       group: bootstrap.cluster.x-k8s.io
       kind: KubeadmConfig
       version: v1beta1
@@ -1813,4 +1867,484 @@ spec:
         type: Gauge
       help: The number of updated replicas per kubeadmcontrolplane.
       name: status_replicas_updated
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: DevCluster
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_devcluster
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a devcluster.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition's last transition time of a devcluster.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a devcluster.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a devcluster.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: DevMachine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_devmachine
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a devmachine.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a devmachine.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a devmachine.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a devmachine.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: DockerCluster
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_dockercluster
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a dockercluster.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a dockercluster.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a dockercluster.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a dockercluster.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: DockerMachine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_dockermachine
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a dockermachine.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a dockermachine.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a dockermachine.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a dockermachine.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: ipam.cluster.x-k8s.io
+      kind: IPAddressClaim
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_ipaddressclaim
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a ipaddressclaim.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a ipaddressclaim.
+      name: status_condition_v1beta2_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: runtime.cluster.x-k8s.io
+      kind: ExtensionConfig
+      version: v1alpha1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_extensionconfig
+    metrics:
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The v1beta2 condition of a extensionconfig.
+      name: status_condition_v1beta2
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - v1beta2
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The v1beta2 condition's last transition time of a extensionconfig.
+      name: status_condition_v1beta2_last_transition_time
     resourcePlural: ""

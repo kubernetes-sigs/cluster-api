@@ -42,7 +42,8 @@ const (
 	IPFamily                        = "IP_FAMILY"
 )
 
-var releaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@v%s"
+var stableReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@v%s"
+var latestReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@latest-v%s"
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
@@ -72,6 +73,12 @@ func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message stri
 
 // GetStableReleaseOfMinor returns latest stable version of minorRelease.
 func GetStableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
-	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
+	releaseMarker := fmt.Sprintf(stableReleaseMarkerPrefix, minorRelease)
+	return clusterctl.ResolveRelease(ctx, releaseMarker)
+}
+
+// GetLatestReleaseOfMinor returns latest version of minorRelease.
+func GetLatestReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
+	releaseMarker := fmt.Sprintf(latestReleaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }

@@ -141,6 +141,8 @@ type ClusterResourceSetV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition_v1beta2",help="The v1beta2 condition of a clusterresourceset.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_v1beta2_last_transition_time",help="The v1beta2 condition's last transition time of a clusterresourceset.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 

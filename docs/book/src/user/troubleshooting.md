@@ -1,5 +1,20 @@
 # Troubleshooting
 
+<!-- TOC -->
+* [Troubleshooting](#troubleshooting)
+  * [Troubleshooting Quick Start with Docker (CAPD)](#troubleshooting-quick-start-with-docker-capd)
+  * [Node bootstrap failures when using CABPK with cloud-init](#node-bootstrap-failures-when-using-cabpk-with-cloud-init)
+  * [Labeling nodes with reserved labels such as `node-role.kubernetes.io` fails with kubeadm error during bootstrap](#labeling-nodes-with-reserved-labels-such-as-node-rolekubernetesio-fails-with-kubeadm-error-during-bootstrap)
+  * [Cluster API with Docker - common issues with docker -](#cluster-api-with-docker---common-issues-with-docker---)
+  * [Cluster API with Docker  - "too many open files"](#cluster-api-with-docker---too-many-open-files)
+    * [MacOS and Docker Desktop -  "too many open files"](#macos-and-docker-desktop---too-many-open-files)
+  * [Failed clusterctl init - 'failed to get cert-manager object'](#failed-clusterctl-init---failed-to-get-cert-manager-object)
+  * [Failed clusterctl upgrade apply - 'failed to update cert-manager component'](#failed-clusterctl-upgrade-apply---failed-to-update-cert-manager-component)
+  * [Clusterctl failing to start providers due to outdated image overrides](#clusterctl-failing-to-start-providers-due-to-outdated-image-overrides)
+  * [Managed Cluster and co-authored slices](#managed-cluster-and-co-authored-slices)
+  * [Failed to removed fields from lists using Server Side Apply](#failed-to-removed-fields-from-lists-using-server-side-apply)
+<!-- TOC -->
+
 ## Troubleshooting Quick Start with Docker (CAPD)
 
 <aside class="note warning">
@@ -59,8 +74,6 @@ Exiting PID 1...
 
 To resolve this specific error please read [Cluster API with Docker  - "too many open files"](#cluster-api-with-docker----too-many-open-files).
 
-
-
 ## Node bootstrap failures when using CABPK with cloud-init
 
 Failures during Node bootstrapping can have a lot of different causes. For example, Cluster API resources might be
@@ -102,7 +115,7 @@ kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath=
 kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
 ```
 
-## Cluster API with Docker
+## Cluster API with Docker - common issues with docker - 
 
 When provisioning workload clusters using Cluster API with the Docker infrastructure provider,
 provisioning might be stuck:
@@ -235,3 +248,24 @@ In cases the slice is instead co-authored (templates provide some info, the infr
 fills in other info) this can lead to infinite reconcile.
 
 A solution to this problem is being investigated, but in the meantime you should avoid co-authored slices.
+
+## Failed to removed fields from lists using Server Side Apply
+
+The Cluster API projects is continuously improving its API, including improving the support for Server Side Apply, 
+which allows for a more granular ownership of list items. 
+
+However, when transitioning from atomic lists to map lists, there are edge cases not supported
+and this can lead to a SSA patches failing to remove an item in a list.
+
+Note: the issue only occurs in a very specific scenario, most of the users are not affected
+(e.g. client-side apply or "continuous" SSA with GitOps tools works as expected)
+
+Example of fields transitioned from atomic lists to map lists are e.g.
+
+- `cluster.spec.topology.variables`
+- `cluster.spec.topology.workers.machineDeployments`
+
+In case you face this issue, please use kubectl edit or kubectl apply with client-side apply
+to remove the item from the list; after the item is removed everything should work as expected.
+
+See [comment](https://github.com/kubernetes-sigs/cluster-api/issues/11857#issuecomment-2740339933) for more details.

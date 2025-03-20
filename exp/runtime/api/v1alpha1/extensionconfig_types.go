@@ -209,6 +209,10 @@ const (
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ExtensionConfig"
 
 // ExtensionConfig is the Schema for the ExtensionConfig API.
+// +Metrics:gvk:namePrefix="capi_extensionconfig"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 type ExtensionConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

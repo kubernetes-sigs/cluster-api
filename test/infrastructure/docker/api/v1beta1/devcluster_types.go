@@ -120,6 +120,8 @@ type DevClusterStatus struct {
 
 	// conditions defines current service state of the DevCluster.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a devcluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a devcluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in DevCluster's status with the V1Beta2 version.
@@ -148,6 +150,11 @@ type DevClusterV1Beta2Status struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the DevCluster"
 
 // DevCluster is the schema for the dev cluster infrastructure API.
+// +Metrics:gvk:namePrefix="capi_devcluster"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
 type DevCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

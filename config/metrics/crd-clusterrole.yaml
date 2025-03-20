@@ -7,15 +7,31 @@ metadata:
     kube-state-metrics/aggregate-to-manager: "true"
 rules:
 - apiGroups:
+  - addons.cluster.x-k8s.io
+  resources:
+  - clusterresourcesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - kubeadmconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusterclasses
   - clusters
   - machinedeployments
-  - machinepools
-  - machinesets
-  - machines
   - machinehealthchecks
+  - machinepools
+  - machines
+  - machinesets
   verbs:
   - get
   - list
@@ -29,9 +45,28 @@ rules:
   - list
   - watch
 - apiGroups:
-  - bootstrap.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - kubeadmconfigs
+  - devclusters
+  - devmachines
+  - dockerclusters
+  - dockermachines
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - runtime.cluster.x-k8s.io
+  resources:
+  - extensionconfigs
   verbs:
   - get
   - list

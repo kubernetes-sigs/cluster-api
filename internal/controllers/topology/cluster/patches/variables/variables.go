@@ -60,6 +60,12 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 			},
 		},
 	}
+	if cluster.Labels != nil || cluster.Annotations != nil {
+		builtin.Cluster.Metadata = &clusterv1.ObjectMeta{
+			Labels:      cluster.Labels,
+			Annotations: cluster.Annotations,
+		}
+	}
 	if cluster.Spec.ClusterNetwork != nil {
 		clusterNetworkIPFamily, _ := cluster.GetIPFamily()
 		builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{

@@ -55,6 +55,10 @@ type ClusterBuiltins struct {
 	// +optional
 	UID types.UID `json:"uid,omitempty"`
 
+	// metadata is the metadata set on the Cluster object.
+	// +optional
+	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
 	// topology represents the cluster topology variables.
 	// +optional
 	Topology *ClusterTopologyBuiltins `json:"topology,omitempty"`

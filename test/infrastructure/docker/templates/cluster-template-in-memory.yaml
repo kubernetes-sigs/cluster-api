@@ -21,8 +21,3 @@ spec:
         - class: default-worker
           name: md-0
           replicas: ${WORKER_MACHINE_COUNT}
-    variables:
-      - name: kubeadmControlPlaneMaxSurge
-        value: "1"
-      - name: imageRepository
-        value: "kindest"

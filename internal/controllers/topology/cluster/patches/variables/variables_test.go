@@ -66,9 +66,11 @@ func TestGlobal(t *testing.T) {
 			},
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
+					Name:        "cluster1",
+					Namespace:   metav1.NamespaceDefault,
+					UID:         types.UID(clusterUID),
+					Labels:      map[string]string{"foo": "bar"},
+					Annotations: map[string]string{"fizz": "buzz"},
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -102,6 +104,7 @@ func TestGlobal(t *testing.T) {
 						"name": "cluster1",
   						"namespace": "default",
 						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"

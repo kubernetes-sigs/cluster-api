@@ -786,6 +786,12 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the metadata set on the Cluster object.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+						},
+					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
 							Description: "topology represents the cluster topology variables.",
@@ -802,7 +808,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"},
 	}
 }
 

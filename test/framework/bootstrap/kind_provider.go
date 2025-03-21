@@ -199,16 +199,27 @@ func (k *KindClusterProvider) createKindCluster() {
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.
 func setDockerSockConfig(cfg *kindv1.Cluster) {
-	cfg.Nodes = []kindv1.Node{
-		{
-			Role: kindv1.ControlPlaneRole,
-			ExtraMounts: []kindv1.Mount{
-				{
+	if len(cfg.Nodes) > 0 {
+		for _, node := range cfg.Nodes {
+			if node.Role == kindv1.ControlPlaneRole {
+				node.ExtraMounts = append(node.ExtraMounts, kindv1.Mount{
 					HostPath:      "/var/run/docker.sock",
 					ContainerPath: "/var/run/docker.sock",
+				})
+			}
+		}
+	} else {
+		cfg.Nodes = []kindv1.Node{
+			{
+				Role: kindv1.ControlPlaneRole,
+				ExtraMounts: []kindv1.Mount{
+					{
+						HostPath:      "/var/run/docker.sock",
+						ContainerPath: "/var/run/docker.sock",
+					},
 				},
 			},
-		},
+		}
 	}
 }
 

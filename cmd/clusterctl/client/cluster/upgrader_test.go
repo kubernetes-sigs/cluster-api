@@ -1034,6 +1034,117 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 			errorMsg: "detected multiple instances of the same provider",
 			opts:     UpgradeOptions{},
 		},
+		{
+			name: "fails to upgrade to current contract when violating core provider skip version rules",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
+						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
+								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+							},
+						}),
+				},
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.10.0", "cluster-api-system"),
+			},
+			providersToUpgrade: []UpgradeItem{
+				{
+					Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.10.0", "cluster-api-system"),
+					NextVersion: "v1.14.0",
+				},
+			},
+			wantErr:  true,
+			errorMsg: "upgrade for cluster-api-system/cluster-api provider can't skip more than 3 versions",
+			opts:     UpgradeOptions{},
+		},
+		{
+			name: "fails to upgrade to current contract when violating kubeadm bootstrap provider skip version rules",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider(config.KubeadmBootstrapProviderName, clusterctlv1.BootstrapProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0").
+						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+							},
+						}),
+					"bootstrap-kubeadm": repository.NewMemoryRepository().
+						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
+						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
+								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+							},
+						}),
+				},
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory(config.KubeadmBootstrapProviderName, clusterctlv1.BootstrapProviderType, "v1.10.0", "cluster-api-system"),
+			},
+			providersToUpgrade: []UpgradeItem{
+				{
+					Provider:    fakeProvider(config.KubeadmBootstrapProviderName, clusterctlv1.BootstrapProviderType, "v1.10.0", "cluster-api-system"),
+					NextVersion: "v1.14.0",
+				},
+			},
+			wantErr:  true,
+			errorMsg: "upgrade for cluster-api-system/bootstrap-kubeadm provider can't skip more than 3 versions",
+			opts:     UpgradeOptions{},
+		},
+		{
+			name: "fails to upgrade to current contract when violating kubeadm control plane provider skip version rules",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider(config.KubeadmControlPlaneProviderName, clusterctlv1.ControlPlaneProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0").
+						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+							},
+						}),
+					"control-plane-kubeadm": repository.NewMemoryRepository().
+						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
+						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
+								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+							},
+						}),
+				},
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory(config.KubeadmControlPlaneProviderName, clusterctlv1.ControlPlaneProviderType, "v1.10.0", "cluster-api-system"),
+			},
+			providersToUpgrade: []UpgradeItem{
+				{
+					Provider:    fakeProvider(config.KubeadmControlPlaneProviderName, clusterctlv1.ControlPlaneProviderType, "v1.10.0", "cluster-api-system"),
+					NextVersion: "v1.14.0",
+				},
+			},
+			wantErr:  true,
+			errorMsg: "upgrade for cluster-api-system/control-plane-kubeadm provider can't skip more than 3 versions",
+			opts:     UpgradeOptions{},
+		},
 	}
 
 	for _, tt := range tests {

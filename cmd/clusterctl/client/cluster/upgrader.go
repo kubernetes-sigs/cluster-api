@@ -21,6 +21,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -272,6 +273,10 @@ func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []
 			return nil, errors.Errorf("unable to complete that upgrade: the provider %s in not part of the management cluster", upgradeItem.InstanceName())
 		}
 
+		if upgradeItem.Version == "" {
+			upgradeItem.Version = provider.Version
+		}
+
 		// Retrieves the contract that is supported by the target version of the provider.
 		contract, err := u.getProviderContractByVersion(ctx, *provider, upgradeItem.NextVersion)
 		if err != nil {
@@ -355,6 +360,36 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 	if upgradePlan.Contract == clusterv1.GroupVersion.Version {
 		if err := u.providerInventory.CheckSingleProviderInstance(ctx); err != nil {
 			return err
+		}
+	}
+
+	// Block unsupported skip upgrades for Core, Kubeadm Bootstrap, Kubeadm ControlPlane.
+	// NOTE: in future we might consider extending the clusterctl contract to support enforcing of skip upgrade
+	// rules for out of tree providers.
+	minVersionSkew := semver.MustParse("1.10.0")
+	for _, upgradeItem := range upgradePlan.Providers {
+		if !(upgradeItem.Type == string(clusterctlv1.CoreProviderType) ||
+			(upgradeItem.Type == string(clusterctlv1.BootstrapProviderType) && upgradeItem.ProviderName == config.KubeadmBootstrapProviderName) ||
+			(upgradeItem.Type == string(clusterctlv1.ControlPlaneProviderType) && upgradeItem.ProviderName == config.KubeadmBootstrapProviderName)) {
+			continue
+		}
+
+		currentVersion, err := semver.ParseTolerant(upgradeItem.Version)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse current version for %s provider", upgradeItem.InstanceName())
+		}
+
+		if currentVersion.LT(minVersionSkew) {
+			continue
+		}
+
+		nextVersion, err := semver.ParseTolerant(upgradeItem.NextVersion)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse next version for %s provider", upgradeItem.InstanceName())
+		}
+
+		if nextVersion.Minor >= currentVersion.Minor+3 {
+			return errors.Errorf("upgrade for %s provider can't skip more than 3 versions", upgradeItem.InstanceName())
 		}
 	}
 

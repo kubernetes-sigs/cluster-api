@@ -88,7 +88,7 @@ type ApplyUpgradeOptions struct {
 	// Kubeconfig to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig Kubeconfig
 
-	// Contract defines the API Version of Cluster API (contract e.g. v1alpha4) the management cluster should upgrade to.
+	// Contract defines Cluster API contract version (e.g. v1alpha4) the management cluster should upgrade to.
 	// When upgrading by contract, the latest versions available will be used for all the providers; if you want
 	// a more granular control on upgrade, use CoreProvider, BootstrapProviders, ControlPlaneProviders, InfrastructureProviders.
 	Contract string
@@ -129,7 +129,7 @@ type ApplyUpgradeOptions struct {
 }
 
 func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error {
-	if options.Contract != "" && options.Contract != clusterv1.GroupVersion.Version {
+	if options.Contract != "" && options.Contract != c.currentContractVersion {
 		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterv1.GroupVersion.Version, options.Contract)
 	}
 

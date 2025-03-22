@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -182,6 +184,7 @@ func newFakeClient(ctx context.Context, configClient config.Client) *fakeClient 
 			}
 			return fake.repositories[input.Provider.ManifestLabel()], nil
 		}),
+		InjectCurrentContractVersion(currentContractVersion),
 	)
 
 	return fake
@@ -225,6 +228,8 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 			}
 			return fake.repositories[provider.Name()], nil
 		}),
+		cluster.InjectCurrentContractVersion(currentContractVersion),
+		cluster.InjectGetCompatibleContractVersionsFunc(getCompatibleContractVersions),
 	)
 	return fake
 }
@@ -603,4 +608,20 @@ func (f *fakeComponentClient) getRawBytes(ctx context.Context, options *reposito
 	path := f.fakeRepository.ComponentsPath()
 
 	return f.fakeRepository.GetFile(ctx, options.Version, path)
+}
+
+func fakeCAPISetupObjects() []client.Object {
+	return []client.Object{
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    currentContractVersion,
+						Storage: true,
+					},
+				},
+			},
+		},
+	}
 }

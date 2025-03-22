@@ -191,36 +191,7 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 	return f
 }
 
-// WithFakeCAPISetup adds required objects in order to make kubeadm pass checks
-// ensuring that management cluster has a proper release of Cluster API installed.
-// NOTE: When using the fake client it is not required to install CRDs, given that type information are
-// derived from the schema. However, CheckCAPIContract looks for CRDs to be installed, so this
-// helper provide a way to get around to this difference between fake client and a real API server.
-func (f *FakeProxy) WithFakeCAPISetup() *FakeProxy {
-	f.objs = append(f.objs, FakeCAPISetupObjects()...)
-
-	return f
-}
-
 func (f *FakeProxy) WithClusterAvailable(available bool) *FakeProxy {
 	f.available = ptr.To(available)
 	return f
-}
-
-// FakeCAPISetupObjects return required objects in order to make kubeadm pass checks
-// ensuring that management cluster has a proper release of Cluster API installed.
-func FakeCAPISetupObjects() []client.Object {
-	return []client.Object{
-		&apiextensionsv1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
-			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-					{
-						Name:    clusterv1.GroupVersion.Version, // Current Cluster API contract
-						Storage: true,
-					},
-				},
-			},
-		},
-	}
 }

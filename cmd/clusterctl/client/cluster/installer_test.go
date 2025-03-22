@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -30,69 +31,112 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
+var (
+	// oldContractVersionNotSupportedAnymore define the previous Cluster API contract, not supported by this release of clusterctl.
+	// (it has been removed by version of CAPI older that the version in use).
+	oldContractVersionNotSupportedAnymore = "v1alpha4"
+
+	// oldContractVersionStillSupported define an old Cluster API contract still supported.
+	oldContractVersionStillSupported = "v1beta1"
+
+	// currentContractVersion define the current Cluster API contract.
+	currentContractVersion = "v1beta2"
+
+	// nextContractVersionNotSupportedYet define the next Cluster API contract, not supported by this release of clusterctl.
+	// (it has been introduced by version of CAPI newer that the version in use).
+	nextContractVersionNotSupportedYet = "v99"
+
+	getCompatibleContractVersions = func(contract string) sets.Set[string] {
+		compatibleContracts := sets.New(contract)
+		if contract == currentContractVersion {
+			compatibleContracts.Insert(oldContractVersionStillSupported)
+		}
+		return compatibleContracts
+	}
+)
+
 func Test_providerInstaller_Validate(t *testing.T) {
 	fakeReader := test.NewFakeReader().
 		WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 		WithProvider("infra1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com").
-		WithProvider("infra2", clusterctlv1.InfrastructureProviderType, "https://somewhere.com")
+		WithProvider("infra2", clusterctlv1.InfrastructureProviderType, "https://somewhere.com").
+		WithProvider("infra3", clusterctlv1.InfrastructureProviderType, "https://somewhere.com")
 
 	repositoryMap := map[string]repository.Repository{
 		"cluster-api": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
 				},
 			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
+					{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 				},
 			}),
 		"infrastructure-infra1": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
 				},
 			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
+					{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 				},
 			}),
 		"infrastructure-infra2": repository.NewMemoryRepository().
 			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
 			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 9, Contract: test.PreviousCAPIContractNotSupported},
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
 				},
 			}).
 			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
 				},
 			}).
 			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-					{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+					{Major: 1, Minor: 0, Contract: currentContractVersion},
+					{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
+				},
+			}),
+		"infrastructure-infra3": repository.NewMemoryRepository().
+			WithVersions("v0.9.0", "v1.0.0", "v1.0.1", "v2.0.0").
+			WithMetadata("v0.9.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 0, Minor: 9, Contract: oldContractVersionNotSupportedAnymore},
+				},
+			}).
+			WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: oldContractVersionStillSupported},
+				},
+			}).
+			WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: oldContractVersionStillSupported},
+					{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 				},
 			}),
 	}
@@ -118,6 +162,17 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "install core/current contract + infra3/compatible contract on an empty cluster",
+			fields: fields{
+				proxy: test.NewFakeProxy(), // empty cluster
+				installQueue: []repository.Components{
+					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system"),
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "install infra2/current contract on a cluster already initialized with core/current contract + infra1/current contract",
 			fields: fields{
 				proxy: test.NewFakeProxy().
@@ -130,16 +185,16 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract",
+			name: "install infra3/compatible contract on a cluster already initialized with core/current contract + infra1/current contract",
 			fields: fields{
 				proxy: test.NewFakeProxy().
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
-					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns1"),
+					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system"),
 				installQueue: []repository.Components{
-					newFakeComponents("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "ns2"),
+					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system"),
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "install another instance of infra1/current contract on a cluster already initialized with core/current contract + infra1/current contract, same namespace of the existing infra1",
@@ -166,7 +221,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "install core/previous contract + infra1/previous contract on an empty cluster (not supported)",
+			name: "install core/previous contract (not supported) + infra1/previous contract (not supported) on an empty cluster",
 			fields: fields{
 				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
@@ -177,7 +232,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "install core/previous contract + infra1/current contract on an empty cluster (not supported)",
+			name: "install core/previous contract (not supported) + infra1/current contract on an empty cluster",
 			fields: fields{
 				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
@@ -199,7 +254,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "install core/next contract + infra1/next contract on an empty cluster (not supported)",
+			name: "install core/next contract (not supported) + infra1/next contract (not supported) on an empty cluster",
 			fields: fields{
 				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
@@ -210,7 +265,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "install core/current contract + infra1/next contract on an empty cluster (not supported)",
+			name: "install core/current contract + infra1/next contract (not supported) on an empty cluster",
 			fields: fields{
 				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
@@ -244,11 +299,13 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			i := &providerInstaller{
 				configClient:      configClient,
 				proxy:             tt.fields.proxy,
-				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+				providerInventory: newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
 				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
 				},
-				installQueue: tt.fields.installQueue,
+				installQueue:                  tt.fields.installQueue,
+				currentContractVersion:        currentContractVersion,
+				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 
 			err := i.Validate(ctx)

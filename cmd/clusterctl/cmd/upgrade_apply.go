@@ -55,10 +55,9 @@ var upgradeApplyCmd = &cobra.Command{
 		in order to guarantee the proper functioning of the management cluster.
 
  		Specifying the provider using namespace/name:version is deprecated and will be dropped in a future release.`),
-
 	Example: templates.Examples(`
 		# Upgrades all the providers in the management cluster to the latest version available which is compliant
-		# to the v1alpha4 API Version of Cluster API (contract).
+		# to the v1alpha4 Cluster API contract version.
 		clusterctl upgrade apply --contract v1alpha4
 
 		# Upgrades only the aws provider to the v2.0.1 version.
@@ -75,7 +74,7 @@ func init() {
 	upgradeApplyCmd.Flags().StringVar(&ua.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
-		"The API Version of Cluster API (contract, e.g. v1alpha4) the management cluster should upgrade to")
+		"The Cluster API contract version (e.g. v1alpha4) the management cluster should upgrade to")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
 		"Core provider instance version (e.g. cluster-api:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")

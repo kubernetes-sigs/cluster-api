@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
@@ -559,7 +558,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo").
 		WithObjs(configMap).
-		WithObjs(test.FakeCAPISetupObjects()...)
+		WithObjs(fakeCAPISetupObjects()...)
 
 	client := newFakeClient(ctx, config1).
 		WithCluster(cluster1).
@@ -720,7 +719,7 @@ func Test_clusterctlClient_GetClusterTemplate_withClusterClass(t *testing.T) {
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "ns4").
-		WithObjs(test.FakeCAPISetupObjects()...)
+		WithObjs(fakeCAPISetupObjects()...)
 
 	client := newFakeClient(ctx, config1).
 		WithCluster(cluster1).

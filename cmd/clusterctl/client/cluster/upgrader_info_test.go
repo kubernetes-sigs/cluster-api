@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -55,8 +56,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-							{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+							{Major: 1, Minor: 0, Contract: currentContractVersion},
+							{Major: 1, Minor: 1, Contract: currentContractVersion},
 						},
 					}),
 			},
@@ -70,12 +71,12 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 						Kind:       "Metadata",
 					},
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-						{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+						{Major: 1, Minor: 0, Contract: currentContractVersion},
+						{Major: 1, Minor: 1, Contract: currentContractVersion},
 					},
 				},
 				currentVersion:  version.MustParseSemantic("v1.0.1"),
-				currentContract: test.CurrentCAPIContract,
+				currentContract: currentContractVersion,
 				nextVersions: []version.Version{
 					// v1.0.1 (the current version) and older are ignored
 					*version.MustParseSemantic("v1.0.2"),
@@ -93,8 +94,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-							{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+							{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+							{Major: 1, Minor: 1, Contract: currentContractVersion},
 						},
 					}),
 			},
@@ -108,12 +109,12 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 						Kind:       "Metadata",
 					},
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-						{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
+						{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+						{Major: 1, Minor: 1, Contract: currentContractVersion},
 					},
 				},
 				currentVersion:  version.MustParseSemantic("v1.0.1"),
-				currentContract: test.PreviousCAPIContractNotSupported,
+				currentContract: oldContractVersionNotSupportedAnymore,
 				nextVersions: []version.Version{
 					// v1.0.1 (the current version) and older are ignored
 					*version.MustParseSemantic("v1.0.2"), // not supported, but upgrade plan should report these options
@@ -131,8 +132,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 					WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-							{Major: 1, Minor: 1, Contract: test.NextCAPIContractNotSupported},
+							{Major: 1, Minor: 0, Contract: currentContractVersion},
+							{Major: 1, Minor: 1, Contract: nextContractVersionNotSupportedYet},
 						},
 					}),
 			},
@@ -146,12 +147,12 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 						Kind:       "Metadata",
 					},
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-						{Major: 1, Minor: 1, Contract: test.NextCAPIContractNotSupported},
+						{Major: 1, Minor: 0, Contract: currentContractVersion},
+						{Major: 1, Minor: 1, Contract: nextContractVersionNotSupportedYet},
 					},
 				},
 				currentVersion:  version.MustParseSemantic("v1.0.1"),
-				currentContract: test.CurrentCAPIContract,
+				currentContract: currentContractVersion,
 				nextVersions: []version.Version{
 					// v1.0.1 (the current version) and older are ignored
 					*version.MustParseSemantic("v1.0.2"),
@@ -213,7 +214,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithVersions("v1.0.0", "v1.0.1", "v1.1.1").
 									WithMetadata("v1.1.1", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+							{Major: 1, Minor: 0, Contract: currentContractVersion},
 							// missing 1.1 series
 						},
 					}),
@@ -263,53 +264,53 @@ func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 			field: field{
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, all linked to a single contract
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, Contract: test.CurrentCAPIContract},
-						{Major: 0, Minor: 2, Contract: test.CurrentCAPIContract},
-						{Major: 0, Minor: 3, Contract: test.CurrentCAPIContract},
+						{Major: 0, Minor: 1, Contract: currentContractVersion},
+						{Major: 0, Minor: 2, Contract: currentContractVersion},
+						{Major: 0, Minor: 3, Contract: currentContractVersion},
 					},
 				},
 				currentVersion: "v0.2.1", // current version belonging of one of the above series
 			},
-			want: []string{test.CurrentCAPIContract},
+			want: []string{currentContractVersion},
 		},
 		{
 			name: "Multiple contracts (previous and current), all valid for upgrades", // upgrade plan should report unsupported options
 			field: field{
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, Contract: test.PreviousCAPIContractNotSupported},
-						{Major: 0, Minor: 2, Contract: test.CurrentCAPIContract},
+						{Major: 0, Minor: 1, Contract: oldContractVersionNotSupportedAnymore},
+						{Major: 0, Minor: 2, Contract: currentContractVersion},
 					},
 				},
 				currentVersion: "v0.1.1", // current version linked to the first contract
 			},
-			want: []string{test.PreviousCAPIContractNotSupported, test.CurrentCAPIContract},
+			want: []string{oldContractVersionNotSupportedAnymore, currentContractVersion},
 		},
 		{
 			name: "Multiple contracts (current and next), all valid for upgrades", // upgrade plan should report unsupported options
 			field: field{
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, Contract: test.CurrentCAPIContract},
-						{Major: 0, Minor: 2, Contract: test.NextCAPIContractNotSupported},
+						{Major: 0, Minor: 1, Contract: currentContractVersion},
+						{Major: 0, Minor: 2, Contract: nextContractVersionNotSupportedYet},
 					},
 				},
 				currentVersion: "v0.1.1", // current version linked to the first contract
 			},
-			want: []string{test.CurrentCAPIContract, test.NextCAPIContractNotSupported},
+			want: []string{currentContractVersion, nextContractVersionNotSupportedYet},
 		},
 		{
 			name: "Multiple contract supported (current and next), only one valid for upgrades", // upgrade plan should report unsupported options
 			field: field{
 				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, Contract: test.PreviousCAPIContractNotSupported},
-						{Major: 0, Minor: 2, Contract: test.CurrentCAPIContract},
+						{Major: 0, Minor: 1, Contract: oldContractVersionNotSupportedAnymore},
+						{Major: 0, Minor: 2, Contract: currentContractVersion},
 					},
 				},
 				currentVersion: "v0.2.1", // current version linked to the second/the last contract, so the first one is not anymore valid for upgrades
 			},
-			want: []string{test.CurrentCAPIContract},
+			want: []string{currentContractVersion},
 		},
 		{
 			name: "Current version does not match the release series",
@@ -339,7 +340,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 		metadata       *clusterctlv1.Metadata
 	}
 	type args struct {
-		contract string
+		compatibleContracts []string
 	}
 	tests := []struct {
 		name  string
@@ -354,12 +355,12 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 				nextVersions:   []string{}, // Next versions empty
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+						{Major: 1, Minor: 2, Contract: currentContractVersion},
 					},
 				},
 			},
 			args: args{
-				contract: test.CurrentCAPIContract,
+				compatibleContracts: []string{currentContractVersion},
 			},
 			want: "",
 		},
@@ -370,12 +371,28 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 				nextVersions:   []string{"v1.2.4", "v1.2.5"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+						{Major: 1, Minor: 2, Contract: currentContractVersion},
 					},
 				},
 			},
 			args: args{
-				contract: test.CurrentCAPIContract,
+				compatibleContracts: []string{currentContractVersion},
+			},
+			want: "v1.2.5", // skipping v1.2.4 because it is not the latest version available
+		},
+		{
+			name: "Find an upgrade version in the same release series, compatible contract",
+			field: field{
+				currentVersion: "v1.2.3",
+				nextVersions:   []string{"v1.2.4", "v1.2.5"},
+				metadata: &clusterctlv1.Metadata{
+					ReleaseSeries: []clusterctlv1.ReleaseSeries{
+						{Major: 1, Minor: 2, Contract: oldContractVersionStillSupported},
+					},
+				},
+			},
+			args: args{
+				compatibleContracts: []string{currentContractVersion, oldContractVersionStillSupported},
 			},
 			want: "v1.2.5", // skipping v1.2.4 because it is not the latest version available
 		},
@@ -386,14 +403,50 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
-						{Major: 1, Minor: 3, Contract: test.CurrentCAPIContract},
-						{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+						{Major: 1, Minor: 2, Contract: currentContractVersion},
+						{Major: 1, Minor: 3, Contract: currentContractVersion},
+						{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 					},
 				},
 			},
 			args: args{
-				contract: test.CurrentCAPIContract,
+				compatibleContracts: []string{currentContractVersion},
+			},
+			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v2.0.* because linked to a different contract
+		},
+		{
+			name: "Find an upgrade version in the next release series, compatible contract",
+			field: field{
+				currentVersion: "v1.2.3",
+				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
+				metadata: &clusterctlv1.Metadata{
+					ReleaseSeries: []clusterctlv1.ReleaseSeries{
+						{Major: 1, Minor: 2, Contract: oldContractVersionStillSupported},
+						{Major: 1, Minor: 3, Contract: oldContractVersionStillSupported},
+						{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
+					},
+				},
+			},
+			args: args{
+				compatibleContracts: []string{currentContractVersion, oldContractVersionStillSupported},
+			},
+			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v2.0.* because linked to a different contract
+		},
+		{
+			name: "Find an upgrade version in the next release series, current contract (transition from a compatible contract)",
+			field: field{
+				currentVersion: "v1.2.3",
+				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
+				metadata: &clusterctlv1.Metadata{
+					ReleaseSeries: []clusterctlv1.ReleaseSeries{
+						{Major: 1, Minor: 2, Contract: oldContractVersionStillSupported},
+						{Major: 1, Minor: 3, Contract: currentContractVersion},
+						{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
+					},
+				},
+			},
+			args: args{
+				compatibleContracts: []string{currentContractVersion, oldContractVersionStillSupported},
 			},
 			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v2.0.* because linked to a different contract
 		},
@@ -404,14 +457,14 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
-						{Major: 1, Minor: 3, Contract: test.CurrentCAPIContract},
-						{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+						{Major: 1, Minor: 2, Contract: currentContractVersion},
+						{Major: 1, Minor: 3, Contract: currentContractVersion},
+						{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 					},
 				},
 			},
 			args: args{
-				contract: test.NextCAPIContractNotSupported,
+				compatibleContracts: []string{nextContractVersionNotSupportedYet},
 			},
 			want: "v2.0.2", // skipping v2.0.1 because it is not the latest version available; ignoring v1.* because linked to a different contract
 		},
@@ -422,7 +475,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), toSemanticVersions(tt.field.nextVersions))
 
-			got := upgradeInfo.getLatestNextVersion(tt.args.contract)
+			got := upgradeInfo.getLatestNextVersion(sets.New(tt.args.compatibleContracts...))
 			g.Expect(versionTag(got)).To(Equal(tt.want))
 		})
 	}

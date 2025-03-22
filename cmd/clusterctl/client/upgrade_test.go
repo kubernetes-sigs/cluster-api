@@ -29,7 +29,6 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
@@ -168,12 +167,12 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		{
 			name: "apply a plan",
 			fields: fields{
-				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available), infra-compatible v2.0.0 (v2.0.1 available)
 			},
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Contract:                test.CurrentCAPIContract,
+					Contract:                currentContractVersion,
 					CoreProvider:            "",
 					BootstrapProviders:      nil,
 					ControlPlaneProviders:   nil,
@@ -185,6 +184,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{ // both providers should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
+					fakeProvider("infra-compatible", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-compatible-system"),
 				},
 			},
 			wantErr: false,
@@ -192,7 +192,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		{
 			name: "apply a custom plan - core provider only",
 			fields: fields{
-				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available), infra-compatible v2.0.0 (v2.0.1 available)
 			},
 			args: args{
 				options: ApplyUpgradeOptions{
@@ -209,6 +209,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+					fakeProvider("infra-compatible", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-compatible-system"),
 				},
 			},
 			wantErr: false,
@@ -216,7 +217,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		{
 			name: "apply a custom plan - infra provider only",
 			fields: fields{
-				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available), infra-compatible v2.0.0 (v2.0.1 available)
 			},
 			args: args{
 				options: ApplyUpgradeOptions{
@@ -225,7 +226,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 					CoreProvider:            "",
 					BootstrapProviders:      nil,
 					ControlPlaneProviders:   nil,
-					InfrastructureProviders: []string{"infra-system/infra:v2.0.1"},
+					InfrastructureProviders: []string{"infra-system/infra:v2.0.1", "infra-compatible-system/infra-compatible:v2.0.1"},
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
@@ -233,6 +234,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
+					fakeProvider("infra-compatible", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-compatible-system"),
 				},
 			},
 			wantErr: false,
@@ -240,7 +242,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		{
 			name: "apply a custom plan - both providers",
 			fields: fields{
-				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+				client: fakeClientForUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available), infra-compatible v2.0.0 (v2.0.1 available)
 			},
 			args: args{
 				options: ApplyUpgradeOptions{
@@ -249,7 +251,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 					CoreProvider:            "cluster-api-system/cluster-api:v1.0.1",
 					BootstrapProviders:      nil,
 					ControlPlaneProviders:   nil,
-					InfrastructureProviders: []string{"infra-system/infra:v2.0.1"},
+					InfrastructureProviders: []string{"infra-system/infra:v2.0.1", "infra-compatible-system/infra-compatible:v2.0.1"},
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
@@ -257,6 +259,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
+					fakeProvider("infra-compatible", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-compatible-system"),
 				},
 			},
 			wantErr: false,
@@ -302,12 +305,14 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 func fakeClientForUpgrade() *fakeClient {
 	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
+	infraCompatible := config.NewProvider("infra-compatible", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
 
 	ctx := context.Background()
 
 	config1 := newFakeConfig(ctx).
 		WithProvider(core).
-		WithProvider(infra)
+		WithProvider(infra).
+		WithProvider(infraCompatible)
 
 	repository1 := newFakeRepository(ctx, core, config1).
 		WithPaths("root", "components.yaml").
@@ -316,7 +321,7 @@ func fakeClientForUpgrade() *fakeClient {
 		WithVersions("v1.0.0", "v1.0.1").
 		WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 1, Minor: 0, Contract: currentContractVersion},
 			},
 		})
 	repository2 := newFakeRepository(ctx, infra, config1).
@@ -326,20 +331,33 @@ func fakeClientForUpgrade() *fakeClient {
 		WithVersions("v2.0.0", "v2.0.1").
 		WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+				{Major: 2, Minor: 0, Contract: currentContractVersion},
+			},
+		})
+	repository3 := newFakeRepository(ctx, infraCompatible, config1).
+		WithPaths("root", "components.yaml").
+		WithDefaultVersion("v2.0.0").
+		WithFile("v2.0.1", "components.yaml", componentsYAML("ns2")).
+		WithVersions("v2.0.0", "v2.0.1").
+		WithMetadata("v2.0.1", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 2, Minor: 0, Contract: oldContractVersionStillSupported},
 			},
 		})
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
+		WithRepository(repository3).
 		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system").
 		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system").
-		WithObjs(test.FakeCAPISetupObjects()...)
+		WithProviderInventory(infraCompatible.Name(), infra.Type(), "v2.0.0", "infra-compatible-system").
+		WithObjs(fakeCAPISetupObjects()...)
 
 	client := newFakeClient(ctx, config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
+		WithRepository(repository3).
 		WithCluster(cluster1)
 
 	return client

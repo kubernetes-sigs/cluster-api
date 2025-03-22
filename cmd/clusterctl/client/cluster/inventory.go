@@ -126,18 +126,20 @@ type InventoryClient interface {
 
 // inventoryClient implements InventoryClient.
 type inventoryClient struct {
-	proxy               Proxy
-	pollImmediateWaiter PollImmediateWaiter
+	proxy                  Proxy
+	pollImmediateWaiter    PollImmediateWaiter
+	currentContractVersion string
 }
 
 // ensure inventoryClient implements InventoryClient.
 var _ InventoryClient = &inventoryClient{}
 
 // newInventoryClient returns a inventoryClient.
-func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *inventoryClient {
+func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter, currentContractVersion string) *inventoryClient {
 	return &inventoryClient{
-		proxy:               proxy,
-		pollImmediateWaiter: pollImmediateWaiter,
+		proxy:                  proxy,
+		pollImmediateWaiter:    pollImmediateWaiter,
+		currentContractVersion: currentContractVersion,
 	}
 }
 
@@ -418,7 +420,7 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 
 	for _, version := range crd.Spec.Versions {
 		if version.Storage {
-			if version.Name == clusterv1.GroupVersion.Version {
+			if version.Name == p.currentContractVersion {
 				return nil
 			}
 			for _, allowedContract := range opt.AllowCAPIContracts {
@@ -426,7 +428,7 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 					return nil
 				}
 			}
-			return errors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", clusterv1.GroupVersion.Version, version.Name)
+			return errors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", p.currentContractVersion, version.Name)
 		}
 	}
 	return errors.Errorf("failed to check Cluster API version")
@@ -468,7 +470,7 @@ func (p *inventoryClient) CheckSingleProviderInstance(ctx context.Context) error
 
 	if len(errs) > 0 {
 		return errors.Wrap(kerrors.NewAggregate(errs), "detected multiple instances of the same provider, "+
-			"but clusterctl does not support this use case. See https://cluster-api.sigs.k8s.io/developer/architecture/controllers/support-multiple-instances.html for more details")
+			"but clusterctl does not support this use case. See https://cluster-api.sigs.k8s.io/developer/core/support-multiple-instances for more details")
 	}
 
 	return nil

@@ -1078,9 +1078,11 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			Kind:       "Cluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-			UID:       uuid.NewUUID(),
+			Name:        "cluster1",
+			Namespace:   metav1.NamespaceDefault,
+			UID:         uuid.NewUUID(),
+			Labels:      map[string]string{"foo": "bar"},
+			Annotations: map[string]string{"fizz": "buzz"},
 		},
 		Spec: clusterv1.ClusterSpec{
 			Paused: false,

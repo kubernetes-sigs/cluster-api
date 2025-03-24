@@ -419,7 +419,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(m.Spec.ProviderID).To(BeNil())
 				g.Expect(m.Spec.FailureDomain).To(BeNil())
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},

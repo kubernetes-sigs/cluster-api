@@ -151,8 +151,3 @@ spec:
             - type: Ready
               status: "False"
               timeout: 300s
-  patches:
-    - name: test-patch
-      external:
-        generateExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
-        discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}

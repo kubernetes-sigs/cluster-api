@@ -18,9 +18,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
@@ -74,6 +73,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -81,9 +81,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -139,6 +141,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -146,9 +149,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -204,6 +209,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -211,9 +217,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -269,6 +277,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -276,9 +285,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -334,6 +345,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -341,9 +353,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -399,6 +413,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -406,9 +421,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -465,6 +482,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -472,9 +490,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -530,6 +550,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -537,9 +558,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "datasource": {
@@ -578,6 +601,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -602,8 +626,7 @@
                 "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "#EAB839",
@@ -623,7 +646,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 2
+            "y": 6
           },
           "id": 5,
           "options": {
@@ -641,13 +664,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -678,6 +702,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -702,8 +727,7 @@
                 "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "#EAB839",
@@ -723,7 +747,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 8
+            "y": 715
           },
           "id": 4,
           "options": {
@@ -741,13 +765,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -778,6 +803,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -802,8 +828,7 @@
                 "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "#EAB839",
@@ -823,7 +848,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 721
           },
           "id": 6,
           "options": {
@@ -841,13 +866,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -856,7 +882,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneAvailable\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -864,7 +890,7 @@
               "refId": "A"
             }
           ],
-          "title": "Cluster time until ControlPlaneReady since creationTimestamp",
+          "title": "Cluster time until ControlPlaneAvailable since creationTimestamp",
           "type": "barchart"
         },
         {
@@ -882,8 +908,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -898,7 +923,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 20
+            "y": 727
           },
           "id": 38,
           "options": {
@@ -906,6 +931,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -913,9 +939,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -979,8 +1007,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1009,7 +1036,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 731
           },
           "id": 1,
           "options": {
@@ -1026,7 +1053,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1180,11 +1207,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1193,6 +1222,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -1214,8 +1244,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1231,7 +1260,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 31
+            "y": 738
           },
           "id": 13,
           "options": {
@@ -1247,10 +1276,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1278,11 +1309,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1291,6 +1324,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -1312,8 +1346,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1329,7 +1362,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 31
+            "y": 738
           },
           "id": 14,
           "options": {
@@ -1345,10 +1378,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1376,11 +1411,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1389,6 +1426,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -1410,8 +1448,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1427,7 +1464,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 39
+            "y": 746
           },
           "id": 25,
           "options": {
@@ -1443,10 +1480,12 @@
               "showLegend": false
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1489,6 +1528,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -1513,8 +1553,7 @@
                 "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "#EAB839",
@@ -1534,7 +1573,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 11
+            "y": 7
           },
           "id": 39,
           "options": {
@@ -1552,13 +1591,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1567,7 +1607,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Available\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -1575,7 +1615,7 @@
               "refId": "A"
             }
           ],
-          "title": "KubeadmControlPlane time until Ready since creationTimestamp",
+          "title": "KubeadmControlPlane time until Available since creationTimestamp",
           "type": "barchart"
         },
         {
@@ -1593,8 +1633,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1609,7 +1648,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 17
+            "y": 716
           },
           "id": 40,
           "options": {
@@ -1617,6 +1656,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -1624,9 +1664,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1634,13 +1676,13 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"})",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Available\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"})",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Average time until Ready since creationTimestamp",
+          "title": "Average time until Available since creationTimestamp",
           "type": "stat"
         },
         {
@@ -1666,8 +1708,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1695,7 +1736,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 21
+            "y": 720
           },
           "id": 41,
           "options": {
@@ -1712,7 +1753,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1796,11 +1837,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1809,6 +1852,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -1830,8 +1874,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1847,7 +1890,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 28
+            "y": 727
           },
           "id": 15,
           "options": {
@@ -1863,10 +1906,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -1894,11 +1939,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1907,6 +1954,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -1928,8 +1976,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1945,7 +1992,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 28
+            "y": 727
           },
           "id": 16,
           "options": {
@@ -1961,10 +2008,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2006,6 +2055,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2051,7 +2101,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 12
+            "y": 8
           },
           "id": 10,
           "options": {
@@ -2069,13 +2119,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2106,6 +2157,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2151,7 +2203,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 18
+            "y": 14
           },
           "id": 11,
           "options": {
@@ -2169,13 +2221,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2184,7 +2237,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2192,7 +2245,7 @@
               "refId": "A"
             }
           ],
-          "title": "Control Plane Machine time until BootstrapReady since creationTimestamp",
+          "title": "Control Plane Machine time until BootstrapConfigReady since creationTimestamp",
           "type": "barchart"
         },
         {
@@ -2206,6 +2259,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2251,7 +2305,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 20
           },
           "id": 12,
           "options": {
@@ -2269,13 +2323,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2326,7 +2381,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 26
           },
           "id": 42,
           "options": {
@@ -2334,6 +2389,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -2341,9 +2397,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2351,8 +2409,8 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
-              "legendFormat": "until BootstrapReady since creationTimestamp",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "legendFormat": "until BootstrapConfigReady since creationTimestamp",
               "range": true,
               "refId": "A"
             },
@@ -2379,6 +2437,19 @@
               "legendFormat": "until NodeHealthy since creationTimestamp",
               "range": true,
               "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "until NodeReady since creationTimestamp",
+              "range": true,
+              "refId": "D"
             }
           ],
           "title": "Average time",
@@ -2436,7 +2507,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 34
+            "y": 30
           },
           "id": 2,
           "options": {
@@ -2453,7 +2524,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2462,7 +2533,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -2546,8 +2617,8 @@
                   "name": 0
                 },
                 "renameByName": {
-                  "Value": "Creation until BootstrapReady",
-                  "Value #A": "Time until BootstrapReady",
+                  "Value": "Creation until BootstrapConfigReady",
+                  "Value #A": "Time until BootstrapConfigReady",
                   "Value #B": "Time until InfrastructureReady",
                   "Value #C": "Time until NodeHealthy",
                   "Value #D": "Creation Timestamp",
@@ -2569,11 +2640,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -2582,6 +2655,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -2620,7 +2694,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 41
+            "y": 37
           },
           "id": 17,
           "options": {
@@ -2636,10 +2710,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2667,11 +2743,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -2680,6 +2758,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -2718,7 +2797,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 41
+            "y": 37
           },
           "id": 18,
           "options": {
@@ -2734,10 +2813,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2779,6 +2860,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2824,7 +2906,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 13
+            "y": 9
           },
           "id": 43,
           "options": {
@@ -2842,13 +2924,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2879,6 +2962,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2924,7 +3008,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 19
+            "y": 15
           },
           "id": 44,
           "options": {
@@ -2942,13 +3026,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -2957,7 +3042,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2965,7 +3050,7 @@
               "refId": "A"
             }
           ],
-          "title": "Worker Machine time until BootstrapReady since creationTimestamp",
+          "title": "Worker Machine time until BootstrapConfigReady since creationTimestamp",
           "type": "barchart"
         },
         {
@@ -2979,6 +3064,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3024,7 +3110,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 25
+            "y": 21
           },
           "id": 45,
           "options": {
@@ -3042,13 +3128,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3099,7 +3186,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 31
+            "y": 27
           },
           "id": 46,
           "options": {
@@ -3107,6 +3194,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -3114,9 +3202,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3124,8 +3214,8 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
-              "legendFormat": "until BootstrapReady since creationTimestamp",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "legendFormat": "until BootstrapConfigReady since creationTimestamp",
               "range": true,
               "refId": "A"
             },
@@ -3152,6 +3242,19 @@
               "legendFormat": "until NodeHealthy since creationTimestamp",
               "range": true,
               "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "until NodeReady since CreationTimestamp",
+              "range": true,
+              "refId": "D"
             }
           ],
           "title": "Average time",
@@ -3209,7 +3312,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 35
+            "y": 31
           },
           "id": 47,
           "options": {
@@ -3226,7 +3329,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3235,7 +3338,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapConfigReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -3319,8 +3422,8 @@
                   "name": 0
                 },
                 "renameByName": {
-                  "Value": "Creation until BootstrapReady",
-                  "Value #A": "Time until BootstrapReady",
+                  "Value": "Creation until BootstrapConfigReady",
+                  "Value #A": "Time until BootstrapConfigReady",
                   "Value #B": "Time until InfrastructureReady",
                   "Value #C": "Time until NodeHealthy",
                   "Value #D": "Creation Timestamp",
@@ -3342,11 +3445,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3355,6 +3460,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -3393,7 +3499,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 38
           },
           "id": 19,
           "options": {
@@ -3409,10 +3515,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3440,11 +3548,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3453,6 +3563,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -3491,7 +3602,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 38
           },
           "id": 20,
           "options": {
@@ -3507,10 +3618,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3552,6 +3665,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3597,7 +3711,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 10
           },
           "id": 48,
           "options": {
@@ -3615,13 +3729,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3672,7 +3787,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 20
+            "y": 16
           },
           "id": 49,
           "options": {
@@ -3680,6 +3795,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -3687,9 +3803,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3758,7 +3876,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 20
           },
           "id": 50,
           "options": {
@@ -3775,7 +3893,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3856,11 +3974,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3869,6 +3989,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -3907,7 +4028,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 31
+            "y": 27
           },
           "id": 21,
           "options": {
@@ -3923,10 +4044,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -3954,11 +4077,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3967,6 +4092,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -4005,7 +4131,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 31
+            "y": 27
           },
           "id": 22,
           "options": {
@@ -4021,10 +4147,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4066,6 +4194,7 @@
                 "mode": "thresholds"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -4111,7 +4240,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 11
           },
           "id": 51,
           "options": {
@@ -4129,13 +4258,14 @@
             "showValue": "never",
             "stacking": "none",
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             },
             "xTickLabelRotation": 0,
             "xTickLabelSpacing": 0
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4186,7 +4316,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 21
+            "y": 17
           },
           "id": 52,
           "options": {
@@ -4194,6 +4324,7 @@
             "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "auto",
+            "percentChangeColorMode": "standard",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
@@ -4201,9 +4332,11 @@
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4272,7 +4405,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 25
+            "y": 21
           },
           "id": 53,
           "options": {
@@ -4289,7 +4422,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4370,11 +4503,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -4383,6 +4518,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -4421,7 +4557,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 32
+            "y": 28
           },
           "id": 23,
           "options": {
@@ -4437,10 +4573,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4468,11 +4606,13 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -4481,6 +4621,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 1,
@@ -4519,7 +4660,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 32
+            "y": 28
           },
           "id": 24,
           "options": {
@@ -4535,10 +4676,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "asc"
             }
           },
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4638,7 +4781,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -4895,7 +5038,7 @@
             "showHeader": true,
             "sortBy": []
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "11.5.2",
           "targets": [
             {
               "datasource": {
@@ -5058,21 +5201,19 @@
       "type": "row"
     }
   ],
+  "preload": false,
   "refresh": "",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 40,
   "tags": [],
   "templating": {
     "list": [
       {
         "allValue": ".*",
         "current": {
-          "selected": false,
           "text": ".*",
           "value": ".*"
         },
         "description": "Cluster prefix to filter by",
-        "hide": 0,
         "includeAll": true,
         "label": "Cluster",
         "multi": true,
@@ -5085,8 +5226,6 @@
           }
         ],
         "query": "",
-        "queryValue": ".*",
-        "skipUrlSync": false,
         "type": "custom"
       }
     ]
@@ -5099,6 +5238,6 @@
   "timezone": "",
   "title": "Cluster API Performance",
   "uid": "b2660352-4f3c-4024-837c-393d901e6981",
-  "version": 11,
+  "version": 1,
   "weekStart": ""
 }

@@ -1549,6 +1549,8 @@ clusterctl generate cluster capi-quickstart --flavor development \
   > capi-quickstart.yaml
 ```
 
+Note: If you want to use MachinePools use flavor `development-mp`.
+
 {{#/tab }}
 {{#tab vcluster}}
 

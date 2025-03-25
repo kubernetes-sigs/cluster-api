@@ -159,6 +159,27 @@ the newest API version in the same Cluster API release.
 A contract version might be temporarily compatible with older contract versions to ease transition of providers to
 a new supported version; compatibility for older contract versions will be dropped when the older contract version is EOL.
 
+<aside class="note">
+
+Unlike API versions, in Cluster API there will always be only one contract version, the supported contract version.
+
+Compatibility with older contract versions, when implemented, is only intended to ease the transition for providers, 
+and it will be considered in a very limited set of operations e.g. 
+- You can init a management cluster with a core provider implementing the v1beta2 contract and an
+  infrastructure provider still implementing the v1beta1 contract (v1beta1 is temporarily compatible with v1beta2).
+- You can temporarily have a management cluster with a core provider implementing the v1beta2 contract and an
+  infrastructure provider still implementing the v1beta1 contract, you can update both of them to newer versions
+  (v1beta1 is temporarily compatible with v1beta2).
+- A version of clusterctl implementing the v1beta2 contract cannot init a cluster with a core provider implementing
+  the v1beta1 contract (v1beta1 is deprecated).
+- A version of clusterctl implementing the v1beta2 contract cannot perform upgrades when the target version core provider 
+  will be implementing the v1beta1 contract (v1beta1 is deprecated).
+
+Also, might be that in future compatibility will be subject to limitations (e.g. compatibility only for infrastructure 
+providers of an older contract version)
+
+</aside>
+
 | Contract Version | Compatible with contract versions | Status      | Supported Until                                                                             |
 |------------------|-----------------------------------|-------------|---------------------------------------------------------------------------------------------|
 | v1beta2          | v1beta1 (temporarily)             | Supported   | After a newer API contract will be released                                                 |

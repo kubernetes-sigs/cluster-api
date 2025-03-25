@@ -47,7 +47,7 @@ func TestGenerate(t *testing.T) {
 				Definitions: []clusterv1.PatchDefinition{
 					{
 						Selector: clusterv1.PatchSelector{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
 								ControlPlane: true,
@@ -157,7 +157,7 @@ func TestGenerate(t *testing.T) {
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+									"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 									"kind":       "ControlPlaneTemplate",
 								},
 							},
@@ -196,7 +196,7 @@ func TestGenerate(t *testing.T) {
 				Definitions: []clusterv1.PatchDefinition{
 					{
 						Selector: clusterv1.PatchSelector{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
 								ControlPlane: true,
@@ -231,7 +231,7 @@ func TestGenerate(t *testing.T) {
 					},
 					{
 						Selector: clusterv1.PatchSelector{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionBootstrap.String(),
 							Kind:       "BootstrapTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
 								MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -267,7 +267,7 @@ func TestGenerate(t *testing.T) {
 					},
 					{
 						Selector: clusterv1.PatchSelector{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionBootstrap.String(),
 							Kind:       "BootstrapTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
 								MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -323,7 +323,7 @@ func TestGenerate(t *testing.T) {
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+									"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 									"kind":       "ControlPlaneTemplate",
 								},
 							},
@@ -347,7 +347,7 @@ func TestGenerate(t *testing.T) {
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+									"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 									"kind":       "BootstrapTemplate",
 								},
 							},
@@ -371,7 +371,7 @@ func TestGenerate(t *testing.T) {
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+									"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 									"kind":       "BootstrapTemplate",
 								},
 							},
@@ -437,7 +437,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
 					},
@@ -455,14 +455,14 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
 					},
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 			},
 			match: false,
@@ -473,7 +473,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
 					},
@@ -487,7 +487,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					InfrastructureCluster: true,
@@ -501,7 +501,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
 					},
@@ -515,7 +515,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionInfrastructure.String(),
 				Kind:           "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -527,7 +527,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
 					},
@@ -541,7 +541,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					InfrastructureCluster: false,
@@ -555,7 +555,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
 					},
@@ -569,7 +569,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -583,7 +583,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
 					},
@@ -597,7 +597,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionControlPlane.String(),
 				Kind:           "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -609,7 +609,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
 					},
@@ -623,7 +623,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: false,
@@ -637,13 +637,13 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
 					},
 				},
 				HolderReference: runtimehooksv1.HolderReference{
-					APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionControlPlane.String(),
 					Kind:       "KubeadmControlPlane",
 					Name:       "my-controlplane",
 					Namespace:  "default",
@@ -651,7 +651,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -665,7 +665,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -682,7 +682,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -698,7 +698,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -715,7 +715,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -731,7 +731,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -748,7 +748,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -764,7 +764,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -781,7 +781,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -797,7 +797,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -814,7 +814,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"class-A"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -830,7 +830,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -847,7 +847,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"class-A"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -863,7 +863,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -880,7 +880,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"class-A"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -896,7 +896,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -913,7 +913,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"class-A"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -929,7 +929,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -946,7 +946,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -962,7 +962,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -979,7 +979,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -995,7 +995,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1012,7 +1012,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: nil,
@@ -1026,7 +1026,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1043,7 +1043,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: nil,
@@ -1057,7 +1057,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1074,7 +1074,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionBootstrap.String(),
 				Kind:           "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -1086,7 +1086,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1103,7 +1103,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionBootstrap.String(),
 				Kind:           "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -1115,7 +1115,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1132,7 +1132,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1148,7 +1148,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
 					},
@@ -1165,7 +1165,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -1181,7 +1181,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
 					},
@@ -1198,7 +1198,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1214,7 +1214,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachinePoolTemplate",
 						},
 					},
@@ -1231,7 +1231,7 @@ func TestMatchesSelector(t *testing.T) {
 				"builtin": {Raw: []byte(`{"machinePool":{"class":"classA"}}`)},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -1247,7 +1247,7 @@ func TestMatchesSelector(t *testing.T) {
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
 					},
@@ -1261,7 +1261,7 @@ func TestMatchesSelector(t *testing.T) {
 				},
 			},
 			selector: clusterv1.PatchSelector{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,

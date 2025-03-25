@@ -544,7 +544,7 @@ func Test_createV1Beta2GroupNode(t *testing.T) {
 	want := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
@@ -623,7 +623,7 @@ func Test_createGroupNode(t *testing.T) {
 	want := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
@@ -663,7 +663,7 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
@@ -711,7 +711,7 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 	want := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
@@ -750,7 +750,7 @@ func Test_updateGroupNode(t *testing.T) {
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
@@ -791,7 +791,7 @@ func Test_updateGroupNode(t *testing.T) {
 	want := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string

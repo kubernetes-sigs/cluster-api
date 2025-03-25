@@ -92,7 +92,7 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 	Expect(err).ToNot(HaveOccurred(), "failed to load %s", workloadYamlTemplate)
 
 	if input.InfrastructureAPIGroup == "" {
-		input.InfrastructureAPIGroup = "infrastructure.cluster.x-k8s.io"
+		input.InfrastructureAPIGroup = clusterv1.GroupVersionInfrastructure.Group
 	}
 
 	// Get a server address for the Management Cluster.

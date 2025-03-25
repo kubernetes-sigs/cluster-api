@@ -127,7 +127,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 			name: "KubeadmControlPlane and Machine owning DockerMachine are added",
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "DockerMachine",
 					"metadata": map[string]interface{}{
 						"ownerReferences": []interface{}{
@@ -157,7 +157,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 			name: "Duplicate Cluster ownerRef should be deduplicated",
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "DockerCluster",
 					"metadata": map[string]interface{}{
 						"ownerReferences": []interface{}{

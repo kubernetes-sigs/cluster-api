@@ -3987,7 +3987,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			Reason:  metav1.StatusReasonInvalid,
 			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
 			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
+				Group: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:  "DockerMachineTemplate",
 				Name:  "docker-template-one",
 				Causes: []metav1.StatusCause{
@@ -4008,7 +4008,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			// The only difference between the two objects should be in the Message section.
 			Message: "failed to create DockerMachineTemplate.infrastructure.cluster.x-k8s.io: FieldValueInvalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
 			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
+				Group: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:  "DockerMachineTemplate",
 				Name:  "docker-template-one",
 				Causes: []metav1.StatusCause{
@@ -4028,7 +4028,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			Reason:  metav1.StatusReasonInvalid,
 			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
 			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
+				Group: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:  "DockerMachineTemplate",
 				Name:  "docker-template-one",
 			},
@@ -4042,7 +4042,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			// The only difference between the two objects should be in the Message section.
 			Message: "failed to create DockerMachineTemplate.infrastructure.cluster.x-k8s.io",
 			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
+				Group: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:  "DockerMachineTemplate",
 				Name:  "docker-template-one",
 			},

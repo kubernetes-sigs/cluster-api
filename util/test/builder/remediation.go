@@ -18,11 +18,13 @@ package builder
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
 	// RemediationGroupVersion is group version used for remediation objects.
-	RemediationGroupVersion = schema.GroupVersion{Group: "remediation.external.io", Version: "v1beta1"}
+	RemediationGroupVersion = schema.GroupVersion{Group: "remediation.external.io", Version: clusterv1.GroupVersion.Version}
 
 	// GenericRemediationCRD is a generic infrastructure remediation CRD.
 	GenericRemediationCRD = untypedCRD(RemediationGroupVersion.WithKind("GenericExternalRemediation"))

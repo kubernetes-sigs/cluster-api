@@ -1396,7 +1396,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			infraConfig := map[string]interface{}{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": ns.Name,
@@ -1465,7 +1465,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			infraConfig := map[string]interface{}{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config2",
 					"namespace": ns.Name,
@@ -1531,7 +1531,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 			infraConfig := map[string]interface{}{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config3",
 					"namespace": ns.Name,
@@ -1625,7 +1625,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	infraMachine1 := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-machine1",
 				"namespace": metav1.NamespaceDefault,
@@ -1640,7 +1640,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	infraMachine2 := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-machine2",
 				"namespace": metav1.NamespaceDefault,
@@ -1655,7 +1655,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	infraMachine3 := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-machine3",
 				"namespace": metav1.NamespaceDefault,
@@ -2128,7 +2128,7 @@ func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstru
 		infraMachines[i] = unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       builder.GenericInfrastructureMachineKind,
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      fmt.Sprintf("%s-infra-%d", mpName, i),
 					"namespace": nsName,

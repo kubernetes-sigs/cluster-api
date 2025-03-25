@@ -1274,7 +1274,7 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			m.Name: {
 				Object: map[string]interface{}{
 					"kind":       "InfrastructureMachine",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"metadata": map[string]interface{}{
 						"name":      "infra-config1",
 						"namespace": "default",
@@ -1354,7 +1354,7 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  "default",
@@ -1407,7 +1407,7 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 				machine.Name: {
 					Object: map[string]interface{}{
 						"kind":       "InfrastructureMachine",
-						"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+						"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 						"metadata": map[string]interface{}{
 							"name":        "infra-config1",
 							"namespace":   "default",
@@ -1431,7 +1431,7 @@ func TestUpToDate(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.31.0",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachineTemplate", Name: "template1"},
+				InfrastructureRef: corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachineTemplate", Name: "template1"},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
@@ -1453,7 +1453,7 @@ func TestUpToDate(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Version:           ptr.To("v1.31.0"),
-			InfrastructureRef: corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachine", Name: "infra-machine1"},
+			InfrastructureRef: corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachine", Name: "infra-machine1"},
 		},
 		Status: clusterv1.MachineStatus{
 			CertificatesExpiryDate: &metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
@@ -1464,7 +1464,7 @@ func TestUpToDate(t *testing.T) {
 		defaultMachine.Name: {
 			Object: map[string]interface{}{
 				"kind":       "AWSMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -1567,7 +1567,7 @@ func TestUpToDate(t *testing.T) {
 			name: "AWSMachine is not up-to-date",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
+				kcp.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
 				return kcp
 			}(),
 			machine:                 defaultMachine,

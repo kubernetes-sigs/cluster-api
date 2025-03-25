@@ -49,7 +49,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&clusterv1.MachineDeployment{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MachineDeployment",
-							APIVersion: "cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -73,7 +73,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&clusterv1.MachineDeployment{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MachineDeployment",
-							APIVersion: "cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -100,7 +100,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&clusterv1.MachineDeployment{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "MachineDeployment",
-							APIVersion: "cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -127,7 +127,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&controlplanev1.KubeadmControlPlane{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "KubeadmControlPlane",
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -151,7 +151,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&controlplanev1.KubeadmControlPlane{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "KubeadmControlPlane",
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -178,7 +178,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					&controlplanev1.KubeadmControlPlane{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "KubeadmControlPlane",
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",

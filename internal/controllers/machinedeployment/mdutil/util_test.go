@@ -188,14 +188,14 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 				Name:       "infra1",
 				Namespace:  "default",
 				Kind:       "InfrastructureMachineTemplate",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Name:       "bootstrap1",
 					Namespace:  "default",
 					Kind:       "BootstrapConfigTemplate",
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				},
 			},
 		},

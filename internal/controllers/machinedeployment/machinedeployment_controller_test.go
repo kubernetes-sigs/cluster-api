@@ -124,7 +124,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 						ClusterName: testCluster.Name,
 						Version:     &version,
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       "md-template",
 							Namespace:  namespace.Name,
@@ -144,7 +144,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -153,7 +153,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		infraTmpl := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachineTemplate",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "md-template",
 					"namespace": namespace.Name,
@@ -287,7 +287,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		infraTmpl2 := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachineTemplate",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "md-template-2",
 					"namespace": namespace.Name,
@@ -295,7 +295,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				"spec": map[string]interface{}{
 					"template": map[string]interface{}{
 						"kind":       "GenericInfrastructureMachine",
-						"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+						"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 						"metadata":   map[string]interface{}{},
 						"spec": map[string]interface{}{
 							"size": "5xlarge",
@@ -308,7 +308,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		g.Expect(env.Create(ctx, infraTmpl2)).To(Succeed())
 
 		infraTmpl2Ref := corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+			APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 			Kind:       "GenericInfrastructureMachineTemplate",
 			Name:       "md-template-2",
 			Namespace:  namespace.Name,
@@ -548,7 +548,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 					ClusterName: testCluster.Name,
 					Version:     &version,
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachineTemplate",
 						Name:       "md-template",
 						Namespace:  namespace.Name,
@@ -568,7 +568,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 	// Create infrastructure template resource.
 	infraResource := map[string]interface{}{
 		"kind":       "GenericInfrastructureMachine",
-		"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 		"metadata":   map[string]interface{}{},
 		"spec": map[string]interface{}{
 			"size": "3xlarge",
@@ -577,7 +577,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 	infraTmpl := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachineTemplate",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "md-template",
 				"namespace": namespace.Name,
@@ -619,7 +619,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				Spec: clusterv1.MachineSpec{
 					ClusterName: testCluster.Name,
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachineTemplate",
 						Name:       "md-template",
 						Namespace:  testCluster.Namespace,

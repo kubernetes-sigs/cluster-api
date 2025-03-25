@@ -50,7 +50,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 			outdatedExternalReferences: []outdatedRef{
 				{
 					Outdated: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						Kind:       "KubeadmControlPlaneTemplate",
 						Name:       "test-kcp",
 						Namespace:  metav1.NamespaceDefault,
@@ -64,7 +64,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 				},
 				{
 					Outdated: &corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "DockerMachineTemplate",
 						Name:       "test-dmt",
 						Namespace:  metav1.NamespaceDefault,

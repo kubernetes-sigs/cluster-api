@@ -30,8 +30,8 @@ spec:
         warn: "restricted"
     version: ${KUBERNETES_VERSION}
     workers:
-      machineDeployments:
+      machinePools:
       - class: default-worker
-        name: md-0
+        name: mp-0
         replicas: ${WORKER_MACHINE_COUNT}
 ---

@@ -63,7 +63,7 @@ func (c *clusterctlClient) GenerateProvider(ctx context.Context, provider string
 
 	compatibleContracts := c.getCompatibleContractVersions(c.currentContractVersion)
 	if !compatibleContracts.Has(releaseSeries.Contract) {
-		return nil, errors.Errorf("current version of clusterctl is only compatible with provider implementing %s conctract version, detected %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, providerName)
+		return nil, errors.Errorf("current version of clusterctl is only compatible with provider implementing %s conctract versions, detected %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, providerName)
 	}
 
 	return c.GetProviderComponents(ctx, provider, providerType, options)

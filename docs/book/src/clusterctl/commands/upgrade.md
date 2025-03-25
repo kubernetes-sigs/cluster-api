@@ -34,7 +34,7 @@ You can now apply the upgrade by executing the following command:
    clusterctl upgrade apply --contract v1beta1
 ```
 
-The output contains the latest release available for each cluster API contract version.
+The output contains the latest release available for each Cluster API contract version.
 available at the moment.
 
 <aside class="note">

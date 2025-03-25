@@ -38,10 +38,11 @@ var (
 )
 
 // GetCompatibleContractVersions return the list of contract version compatible with a given contract version.
-// NOTE: A contract version might be compatible with older contract versions e.g. to allow users time to transition to the new API.
+// NOTE: A contract version might be temporarily compatible with older contract versions e.g. to allow users time to transition to the new API.
 // NOTE: The return value must include also the contract version received in input.
 func GetCompatibleContractVersions(contract string) sets.Set[string] {
 	compatibleContracts := sets.New(contract)
+	// v1beta2 contract is temporarily be compatible with v1beta1 (until v1beta1 is EOL).
 	if contract == "v1beta2" {
 		compatibleContracts.Insert("v1beta1")
 	}

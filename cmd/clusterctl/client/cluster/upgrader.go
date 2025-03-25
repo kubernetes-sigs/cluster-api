@@ -290,7 +290,7 @@ func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []
 		}
 
 		if !compatibleContracts.Has(contract) {
-			return nil, errors.Errorf("unable to perform upgrade: the target version for the provider %s implements the %s contract version, while the core provider supports %s contract version", upgradeItem.InstanceName(), contract, strings.Join(compatibleContracts.UnsortedList(), ", "))
+			return nil, errors.Errorf("unable to perform upgrade: the target version for the provider %s implements the %s contract version, while the core provider supports %s contract versions", upgradeItem.InstanceName(), contract, strings.Join(compatibleContracts.UnsortedList(), ", "))
 		}
 
 		upgradePlan.Providers = append(upgradePlan.Providers, upgradeItem)
@@ -311,7 +311,7 @@ func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []
 		}
 
 		if !compatibleContracts.Has(contract) {
-			return nil, errors.Errorf("unable to perform upgrade: the provider %s implements the %s contract version, while the core provider to a version that supports %s contract version. Please include the %[1]s provider in the upgrade", provider.InstanceName(), contract, strings.Join(compatibleContracts.UnsortedList(), ", "))
+			return nil, errors.Errorf("unable to perform upgrade: the provider %s implements the %s contract version, while the core provider is getting updated to a version that supports %s contract versions. Please include the %[1]s provider in the upgrade", provider.InstanceName(), contract, strings.Join(compatibleContracts.UnsortedList(), ", "))
 		}
 	}
 	return upgradePlan, nil

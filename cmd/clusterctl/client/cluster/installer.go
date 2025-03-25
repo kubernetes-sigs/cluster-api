@@ -56,7 +56,7 @@ type ProviderInstaller interface {
 	// Validate performs steps to validate a management cluster by looking at the current state and the providers in the queue.
 	// The following checks are performed in order to ensure a fully operational cluster:
 	// - There must be only one instance of the same provider
-	// - All the providers in must support contract version or compatible version
+	// - All providers must support the contract version or one of its compatible versions
 	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
 	//   otherwise a warning is logged.
 	Validate(context.Context) error
@@ -200,10 +200,10 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 	coreProvider := coreProviders[0]
 
 	managementClusterContract, err := i.getProviderContract(ctx, providerInstanceContracts, coreProvider)
-	compatibleContracts := i.getCompatibleContractVersions(managementClusterContract)
 	if err != nil {
 		return err
 	}
+	compatibleContracts := i.getCompatibleContractVersions(managementClusterContract)
 
 	// Checks if all the providers supports the same Cluster API contract or compatible contracts.
 	for _, components := range i.installQueue {
@@ -325,7 +325,7 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 
 	compatibleContracts := i.getCompatibleContractVersions(i.currentContractVersion)
 	if !compatibleContracts.Has(releaseSeries.Contract) {
-		return "", errors.Errorf("current version of clusterctl is only compatible with providers implementing the %s contract version, detected contract version %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, provider.ManifestLabel())
+		return "", errors.Errorf("current version of clusterctl is only compatible with providers implementing the %s contract versions, detected contract version %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, provider.ManifestLabel())
 	}
 
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract

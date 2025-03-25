@@ -167,7 +167,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 				proxy: test.NewFakeProxy(), // empty cluster
 				installQueue: []repository.Components{
 					newFakeComponents("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
-					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system"),
+					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra3-system"),
 				},
 			},
 			wantErr: false,
@@ -191,7 +191,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
 					WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra1-system"),
 				installQueue: []repository.Components{
-					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra2-system"),
+					newFakeComponents("infra3", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra3-system"),
 				},
 			},
 			wantErr: false,

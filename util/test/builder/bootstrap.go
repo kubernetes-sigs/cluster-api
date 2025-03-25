@@ -19,11 +19,13 @@ package builder
 import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
 	// BootstrapGroupVersion is group version used for bootstrap objects.
-	BootstrapGroupVersion = schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta1"}
+	BootstrapGroupVersion = clusterv1.GroupVersionBootstrap
 
 	// GenericBootstrapConfigKind is the Kind for the GenericBootstrapConfig.
 	GenericBootstrapConfigKind = "GenericBootstrapConfig"

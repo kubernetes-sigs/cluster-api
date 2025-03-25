@@ -63,7 +63,7 @@ func TestWatches(t *testing.T) {
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -86,7 +86,7 @@ func TestWatches(t *testing.T) {
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericBootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
@@ -152,14 +152,14 @@ func TestWatches(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 					Namespace:  ns.Name,
@@ -206,7 +206,7 @@ func TestWatchesDelete(t *testing.T) {
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -231,7 +231,7 @@ func TestWatchesDelete(t *testing.T) {
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericBootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
@@ -290,14 +290,14 @@ func TestWatchesDelete(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 					Namespace:  ns.Name,
@@ -388,7 +388,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -402,7 +402,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericBootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
@@ -442,14 +442,14 @@ func TestMachine_Reconcile(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 					Namespace:  ns.Name,
@@ -807,7 +807,7 @@ func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
@@ -861,7 +861,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 						Namespace:  metav1.NamespaceDefault,
@@ -891,7 +891,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 						Namespace:  metav1.NamespaceDefault,
@@ -925,7 +925,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 						Namespace:  metav1.NamespaceDefault,
@@ -982,7 +982,7 @@ func TestMachineConditions(t *testing.T) {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -1013,7 +1013,7 @@ func TestMachineConditions(t *testing.T) {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -1043,14 +1043,14 @@ func TestMachineConditions(t *testing.T) {
 			ProviderID:  ptr.To("test://id-1"),
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  metav1.NamespaceDefault,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
 					Namespace:  metav1.NamespaceDefault,
@@ -1292,7 +1292,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  metav1.NamespaceDefault,
@@ -1361,7 +1361,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: KubeadmControlPlaneAPIVersion,
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1385,7 +1385,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: KubeadmControlPlaneAPIVersion,
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1922,7 +1922,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Annotations: map[string]string{KubeadmControlPlanePreTerminateHookCleanupAnnotation: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: KubeadmControlPlaneAPIVersion,
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -1946,7 +1946,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Labels:    map[string]string{clusterv1.MachineControlPlaneLabel: ""},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: KubeadmControlPlaneAPIVersion,
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "Foo",
 						},
@@ -2670,7 +2670,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						Kind:       "AWSManagedControlPlane",
 						Name:       "test-cluster",
 						Namespace:  "test-cluster",
@@ -2708,7 +2708,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						Kind:       "AWSManagedControlPlane",
 						Name:       "test-cluster-2",
 						Namespace:  "test-cluster",
@@ -2746,7 +2746,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
 						Kind:       "AWSManagedControlPlane",
 						Name:       "test-cluster-3",
 						Namespace:  "test-cluster",
@@ -2784,7 +2784,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			},
 		},
 	}
-	emp.SetAPIVersion("controlplane.cluster.x-k8s.io/v1beta1")
+	emp.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
 	emp.SetKind("AWSManagedControlPlane")
 	emp.SetName("test-cluster")
 	emp.SetNamespace("test-cluster")
@@ -2792,7 +2792,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	mcpBeingDeleted := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	mcpBeingDeleted.SetAPIVersion("controlplane.cluster.x-k8s.io/v1beta1")
+	mcpBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
 	mcpBeingDeleted.SetKind("AWSManagedControlPlane")
 	mcpBeingDeleted.SetName("test-cluster-2")
 	mcpBeingDeleted.SetNamespace("test-cluster")
@@ -2806,7 +2806,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			},
 		},
 	}
-	empBeingDeleted.SetAPIVersion("controlplane.cluster.x-k8s.io/v1beta1")
+	empBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
 	empBeingDeleted.SetKind("AWSManagedControlPlane")
 	empBeingDeleted.SetName("test-cluster-3")
 	empBeingDeleted.SetNamespace("test-cluster")
@@ -2895,7 +2895,7 @@ func TestNodeToMachine(t *testing.T) {
 	infraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -2918,7 +2918,7 @@ func TestNodeToMachine(t *testing.T) {
 	infraMachine2 := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config2",
 				"namespace": ns.Name,
@@ -2941,7 +2941,7 @@ func TestNodeToMachine(t *testing.T) {
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericBootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
@@ -3023,14 +3023,14 @@ func TestNodeToMachine(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  ns.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 					Namespace:  ns.Name,
@@ -3065,13 +3065,13 @@ func TestNodeToMachine(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config2",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
@@ -3202,7 +3202,7 @@ func TestNodeDeletion(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  metav1.NamespaceDefault,
@@ -3399,7 +3399,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  metav1.NamespaceDefault,

@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -101,44 +102,44 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines (grouping)
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
 				},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 			},
@@ -170,47 +171,47 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m2",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m2",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1":  {},
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m2":  {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1":  {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m2":  {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, should NOT be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should NOT be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 			},
@@ -240,57 +241,57 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachinePool, ns1/mp1",
 				},
 				// Machine Pool should have a group of machines
-				"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/mp1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/mp1",
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m1",
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m2",
+				clusterv1.GroupVersion.String() + ", Kind=MachinePool, ns1/mp1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/mp1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/mp1",
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/mp1m1",
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/mp1m2",
 				},
 				// Machine should have infra machine and bootstrap (echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1",
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cp1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cp1",
 				},
 				// MachinePool Machine should only have infra machine
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/mp1m1",
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/mp1m1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/mp1m1",
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m2": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/mp1m2",
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/mp1m2": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/mp1m2",
 				},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, should NOT be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine pool should NOT be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachinePool, ns1/mp1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 			},
@@ -322,65 +323,65 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
 				// Machine should have infra machine and bootstrap (echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1",
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cp1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cp1",
 				},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 				},
 				// Machine should have infra machine and bootstrap (echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 				},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, should NOT be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should NOT be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeFalse())
 				},
 				// infra machines and boostrap should have meta names
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))
 				},
 			},
@@ -396,55 +397,55 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
+					GroupVersionVirtualObject.String() + ", Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines (grouping)
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
 				},
 				// ClusterResourceSetGroup should have a ClusterResourceSet
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets": {
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+				GroupVersionVirtualObject.String() + ", Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets": {
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 				},
 				// ClusterResourceSet should be a leaf
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {},
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// ClusterResourceSetGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=ClusterResourceSetGroup, ns1/ClusterResourceSets": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 			},
@@ -492,93 +493,93 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template group
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md2",
 				},
 				// Machine deployment should have a group of machines (grouping) and templates group
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1",
 				},
 				// MachineDeployment TemplateGroup should have a BootstrapConfigRef and InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1",
 				},
 				// MachineDeployment InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
 				// MachineDeployment BootstrapConfigRef should be a leaf
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
 				// Machine deployment should have a group of machines (grouping) and templates group
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md2": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md2",
 				},
 				// MachineDeployment TemplateGroup using static bootstrap will only have InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md2": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md2",
 				},
 				// MachineDeployment InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
 				// ControlPlane TemplateGroup should have a InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp",
 				},
 				// ControlPlane InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// ControlPlane TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 				// MachineDeployment BootstrapConfigRef should have a meta name
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfigTemplate"))
 				},
 				// ControlPlane InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 			},
@@ -615,73 +616,73 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp",
 				},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have a machine deployment
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 				},
 				// Machine deployment should have a group of machines (grouping) and templates
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1",
 				},
 				// MachineDeployment InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
 				// MachineDeployment BootstrapConfigRef should be a leaf
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
 				// ControlPlane InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// ControlPlane TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 				// MachineDeployment BootstrapConfigRef should have a meta name
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfigTemplate"))
 				},
 				// ControlPlane InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 			},
@@ -730,108 +731,108 @@ func Test_Discovery(t *testing.T) {
 			},
 			wantTree: map[string][]string{
 				// Cluster should be parent of InfrastructureCluster, ControlPlane, WorkerGroup, and ClusterResourceSetGroup
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp",
+					GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers",
 				},
 				// InfrastructureCluster should be leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {},
 				// ControlPlane should have a machine and template group
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": {
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp",
 				},
 				// ControlPlane TemplateGroup should have a InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp",
 				},
 				// ControlPlane InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp": {},
 				// Machine should be leaf (no echo)
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {},
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cp1": {},
 				// Workers should have 2 machine deployments
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
-					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2",
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": {
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
+					clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md2",
 				},
 				// Machine deployment 1 should have a group of machines (grouping) and templates group
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1",
 				},
 				// MachineDeployment 1 TemplateGroup should have a BootstrapConfigRef and InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1",
 				},
 				// MachineDeployment 1 InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
 				// MachineDeployment 1 BootstrapConfigRef should be a leaf
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
 				// Machine deployment 2 should have a group of machines (grouping) and templates group
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2": {
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
-					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2",
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md2": {
+					GroupVersionVirtualObject.String() + ", Kind=MachineGroup, ns1/zzz_",
+					GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md2",
 				},
 				// MachineDeployment 2 TemplateGroup should have a BootstrapConfigRef and InfrastructureRef
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md2",
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md2": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md2",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md2",
 				},
 				// MachineDeployment 2 InfrastructureRef should be a leaf
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
 				// MachineDeployment 2 BootstrapConfigRef should be a leaf
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md2": {},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md2": {},
 			},
 			wantNodeCheck: map[string]nodeCheck{
 				// InfrastructureCluster should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
 				},
 				// ControlPlane should have a meta name, be a grouping object
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// Workers should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// Machine deployment should be a grouping object
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsGroupingObject(obj)).To(BeTrue())
 				},
 				// ControlPlane TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/cp": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// ControlPlane InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 				// MachineDeployment 1 TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment 1 InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 				// MachineDeployment 1 BootstrapConfigRef should have a meta name
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfigTemplate"))
 				},
 				// MachineDeployment 2 TemplateGroup should be a virtual node
-				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2": func(g *WithT, obj client.Object) {
+				GroupVersionVirtualObject.String() + ", Kind=TemplateGroup, ns1/md2": func(g *WithT, obj client.Object) {
 					g.Expect(IsVirtualObject(obj)).To(BeTrue())
 				},
 				// MachineDeployment 2 InfrastructureRef should have a meta name
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md2": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructureTemplate"))
 				},
 				// MachineDeployment 2 BootstrapConfigRef should have a meta name
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md2": func(g *WithT, obj client.Object) {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md2": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfigTemplate"))
 				},
 			},

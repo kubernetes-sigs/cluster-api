@@ -56,7 +56,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				Port: 8443,
 			},
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "test",
 				Namespace:  "test-namespace",
@@ -73,7 +73,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "test",
 				Namespace:  "test-namespace",
@@ -129,7 +129,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			cluster: cluster.DeepCopy(),
 			infraRef: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -143,7 +143,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			infraRef: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -160,7 +160,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			infraRef: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -187,7 +187,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			cluster: cluster.DeepCopy(),
 			infraRef: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -219,7 +219,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			}(),
 			infraRef: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -304,7 +304,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				Port: 8443,
 			},
 			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "GenericControlPlane",
 				Name:       "test",
 				Namespace:  "test-namespace",
@@ -321,7 +321,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "GenericControlPlane",
 				Name:       "test",
 				Namespace:  "test-namespace",
@@ -373,7 +373,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: cluster.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -387,7 +387,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: cluster.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":      "test",
 					"namespace": "test-namespace",
@@ -403,7 +403,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -420,7 +420,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -447,7 +447,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -474,7 +474,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			}(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -503,7 +503,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			cluster: clusterNoEndpoint.DeepCopy(),
 			cpRef: map[string]interface{}{
 				"kind":       "GenericControlPlane",
-				"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 				"metadata": map[string]interface{}{
 					"name":              "test",
 					"namespace":         "test-namespace",
@@ -837,7 +837,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				Port: 8443,
 			},
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureCluster",
 				Name:       "test",
 				Namespace:  "test-namespace",
@@ -954,7 +954,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 func generateInfraRef(withFailureDomain bool) map[string]interface{} {
 	infraRef := map[string]interface{}{
 		"kind":       "GenericInfrastructureCluster",
-		"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 		"metadata": map[string]interface{}{
 			"name":              "test",
 			"namespace":         "test-namespace",

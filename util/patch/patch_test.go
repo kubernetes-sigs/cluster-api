@@ -52,7 +52,7 @@ func TestPatchHelper(t *testing.T) {
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"metadata": map[string]interface{}{
 					"generateName": "test-bootstrap-",
 					"namespace":    ns.Name,
@@ -88,7 +88,7 @@ func TestPatchHelper(t *testing.T) {
 			t.Log("Modifying the OwnerReferences")
 			refs := []metav1.OwnerReference{
 				{
-					APIVersion: "cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       "test",
 					UID:        types.UID("fake-uid"),

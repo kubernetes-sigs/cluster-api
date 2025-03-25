@@ -390,7 +390,7 @@ func TestNodeLabelSync(t *testing.T) {
 	defaultInfraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
@@ -410,14 +410,14 @@ func TestNodeLabelSync(t *testing.T) {
 			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionBootstrap.String(),
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
 					Namespace:  metav1.NamespaceDefault,
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 				Namespace:  metav1.NamespaceDefault,

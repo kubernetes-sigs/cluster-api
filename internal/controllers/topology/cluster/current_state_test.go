@@ -1193,7 +1193,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		{
 			name: "Error for invalid apiVersion",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
 			}},
 			currentRef: &corev1.ObjectReference{
@@ -1207,7 +1207,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
 			}},
 			currentRef: &corev1.ObjectReference{
@@ -1218,7 +1218,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 			},
 			want: &corev1.ObjectReference{
 				// Group & kind is the same => apiVersion is taken from ClusterClass.
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
@@ -1231,14 +1231,14 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"kind":       "DifferentConfigTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
 			want: &corev1.ObjectReference{
 				// kind is different => apiVersion is taken from currentRef.
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
@@ -1251,14 +1251,14 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"kind":       "KubeadmConfigTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
 			want: &corev1.ObjectReference{
 				// group is different => apiVersion is taken from currentRef.
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,

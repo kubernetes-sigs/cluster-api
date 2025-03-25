@@ -46,7 +46,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -58,7 +58,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -81,7 +81,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -133,7 +133,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -145,7 +145,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -186,7 +186,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -198,7 +198,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -221,7 +221,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -273,7 +273,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -296,7 +296,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -319,7 +319,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -331,7 +331,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -361,7 +361,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -373,7 +373,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -401,7 +401,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -413,7 +413,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -453,7 +453,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -465,7 +465,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -506,7 +506,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -518,7 +518,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -559,7 +559,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -571,7 +571,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -612,7 +612,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -624,7 +624,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -667,7 +667,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -679,7 +679,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -707,7 +707,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -718,7 +718,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -762,7 +762,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -773,7 +773,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -801,7 +801,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -812,7 +812,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -843,7 +843,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -854,7 +854,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -884,7 +884,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -896,7 +896,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -929,7 +929,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -940,7 +940,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -968,7 +968,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -979,7 +979,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1023,7 +1023,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1034,7 +1034,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1075,7 +1075,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1086,7 +1086,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1130,7 +1130,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1141,7 +1141,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1182,7 +1182,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1193,7 +1193,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1234,7 +1234,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1245,7 +1245,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1291,7 +1291,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1302,7 +1302,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1332,7 +1332,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1344,7 +1344,7 @@ func TestValidatePatches(t *testing.T) {
 							Definitions: []clusterv1.PatchDefinition{
 								{
 									Selector: clusterv1.PatchSelector{
-										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
 											ControlPlane: true,
@@ -1376,7 +1376,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1403,7 +1403,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1430,7 +1430,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1454,7 +1454,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1482,7 +1482,7 @@ func TestValidatePatches(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneClass{
 						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
 							Ref: &corev1.ObjectReference{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
 						},
@@ -1526,7 +1526,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selectors are all set to false or empty",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane:           false,
@@ -1539,7 +1539,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
@@ -1549,7 +1549,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing infrastructureCluster reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					InfrastructureCluster: true,
@@ -1559,7 +1559,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
@@ -1568,7 +1568,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a non-existing infrastructureCluster APIVersion reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					InfrastructureCluster: true,
@@ -1588,7 +1588,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing controlPlane reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -1598,7 +1598,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 						}),
 				).
@@ -1607,7 +1607,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a non-existing controlPlane Kind reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -1617,7 +1617,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
@@ -1627,7 +1627,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing controlPlane machineInfrastructure reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -1637,14 +1637,14 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -1653,7 +1653,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a non-existing controlPlane machineInfrastructure reference",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane: true,
@@ -1663,14 +1663,14 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "NonMatchingInfrastructureMachineTemplate",
 						}),
 				).
@@ -1680,7 +1680,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachineDeploymentClass and MachinePoolClass BootstrapTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1696,12 +1696,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1710,12 +1710,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1725,7 +1725,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1738,12 +1738,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1753,7 +1753,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -1766,12 +1766,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1781,7 +1781,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a non-existing MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1794,24 +1794,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1822,7 +1822,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a non-existing MachinePoolClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -1835,24 +1835,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1863,7 +1863,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "fail if selector targets ControlPlane Machine Infrastructure but does not have MatchResources.ControlPlane enabled",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1876,7 +1876,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -1886,7 +1886,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets an empty MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionInfrastructure.String(),
 				Kind:           "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -1895,24 +1895,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1923,7 +1923,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets an empty MachinePoolClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion:     "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion:     clusterv1.GroupVersionInfrastructure.String(),
 				Kind:           "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{},
 			},
@@ -1932,24 +1932,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1960,7 +1960,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a bad pattern for matching MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -1973,12 +1973,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -1989,7 +1989,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "error if selector targets a bad pattern for matching MachinePoolClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -2002,12 +2002,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2018,7 +2018,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate with prefix *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2031,12 +2031,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2046,7 +2046,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate with prefix *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -2059,12 +2059,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2074,7 +2074,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate with suffix *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2087,12 +2087,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2102,7 +2102,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate with suffix *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -2115,12 +2115,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2130,7 +2130,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets all existing MachineDeploymentClass InfrastructureTemplate with *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2143,12 +2143,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2158,7 +2158,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets all existing MachinePoolClass InfrastructureTemplate with *",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachinePoolTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
@@ -2171,12 +2171,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2187,7 +2187,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "fail if selector targets a matching infrastructureCluster reference and a not matching control plane",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					InfrastructureCluster: true,
@@ -2198,21 +2198,21 @@ func Test_validateSelectors(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "NonMatchingInfrastructureMachineTemplate",
 						}),
 				).
@@ -2222,7 +2222,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "pass if selector targets BOTH an existing ControlPlane MachineInfrastructureTemplate and an existing MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2235,7 +2235,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -2243,24 +2243,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2271,7 +2271,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "fail if selector targets BOTH an existing ControlPlane MachineInfrastructureTemplate and an existing MachineDeploymentClass InfrastructureTemplate but does not match all MachineDeployment classes",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2284,14 +2284,14 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -2299,24 +2299,24 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2327,7 +2327,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "fail if selector targets BOTH an existing ControlPlane MachineInfrastructureTemplate and an existing MachineDeploymentClass InfrastructureTemplate but matches only one",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
@@ -2340,14 +2340,14 @@ func Test_validateSelectors(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -2355,12 +2355,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "OtherInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
@@ -2371,7 +2371,7 @@ func Test_validateSelectors(t *testing.T) {
 		{
 			name: "fail if selector targets everything but nothing matches",
 			selector: clusterv1.PatchSelector{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "NotMatchingInfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane:          true,
@@ -2385,21 +2385,21 @@ func Test_validateSelectors(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
 				WithControlPlaneTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
 				).
@@ -2407,12 +2407,12 @@ func Test_validateSelectors(t *testing.T) {
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "OtherInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),

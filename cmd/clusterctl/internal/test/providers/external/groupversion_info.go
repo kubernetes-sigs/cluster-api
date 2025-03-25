@@ -22,11 +22,13 @@ package external
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "external.cluster.x-k8s.io", Version: "v1beta1"}
+	GroupVersion = schema.GroupVersion{Group: "external.cluster.x-k8s.io", Version: clusterv1.GroupVersion.Version}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

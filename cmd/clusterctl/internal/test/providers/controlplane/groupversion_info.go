@@ -22,12 +22,13 @@ package controlplane
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "controlplane.cluster.x-k8s.io", Version: "v1beta1"}
+	GroupVersion = clusterv1.GroupVersionControlPlane
 
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 

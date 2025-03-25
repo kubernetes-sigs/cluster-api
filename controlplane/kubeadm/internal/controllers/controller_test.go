@@ -1229,7 +1229,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachineTemplate",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
@@ -1472,7 +1472,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachineTemplate",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
@@ -1691,7 +1691,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	existingInfraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "existing-inframachine",
 				"namespace": testCluster.Namespace,
@@ -1713,7 +1713,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Kind:       "GenericInfrastructureMachine",
 		Namespace:  namespace.Name,
 		Name:       "existing-inframachine",
-		APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 	}
 	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
 	g.Expect(env.Create(ctx, existingInfraMachine, client.FieldOwner("manager"))).To(Succeed())
@@ -1885,7 +1885,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 					Kind:       "GenericInfrastructureMachineTemplate",
 					Namespace:  namespace.Name,
 					Name:       "infra-foo",
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				},
 				NodeDrainTimeout:        duration5s,
 				NodeVolumeDetachTimeout: duration5s,
@@ -2096,7 +2096,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		Spec: clusterv1.MachineSpec{
 			Version:           ptr.To("v1.31.0"),
 			ProviderID:        ptr.To("foo"),
-			InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+			InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m1"},
 		},
 	}
 	defaultMachine1NotUpToDate := defaultMachine1.DeepCopy()
@@ -3807,7 +3807,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 					Kind:       "GenericInfrastructureMachineTemplate",
 					Namespace:  namespace,
 					Name:       "infra-foo",
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				},
 			},
 			Replicas: ptr.To[int32](int32(3)),
@@ -3826,7 +3826,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 	genericMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachineTemplate",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
 				"namespace": namespace,

@@ -326,7 +326,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "GenericInfrastructureMachineTemplate",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
@@ -502,13 +502,13 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 
 	infraRef := &corev1.ObjectReference{
 		Kind:       "InfraKind",
-		APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 		Name:       "infra",
 		Namespace:  cluster.Namespace,
 	}
 	bootstrapRef := &corev1.ObjectReference{
 		Kind:       "BootstrapKind",
-		APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+		APIVersion: clusterv1.GroupVersionBootstrap.String(),
 		Name:       "bootstrap",
 		Namespace:  cluster.Namespace,
 	}

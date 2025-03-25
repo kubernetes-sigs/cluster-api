@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -30,6 +31,9 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
+
+// GroupVersionVirtualObject is the group version for VirtualObject.
+var GroupVersionVirtualObject = schema.GroupVersion{Group: "virtual.cluster.x-k8s.io", Version: clusterv1.GroupVersion.Version}
 
 // GetReadyV1Beta2Condition returns the ReadyCondition for an object, if defined.
 func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
@@ -172,11 +176,10 @@ func objToSetter(obj client.Object) conditions.Setter {
 
 // VirtualObject returns a new virtual object.
 func VirtualObject(namespace, kind, name string) *NodeObject {
-	gk := "virtual.cluster.x-k8s.io/v1beta1"
 	return &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       kind,
-			APIVersion: "virtual.cluster.x-k8s.io/v1beta1",
+			APIVersion: GroupVersionVirtualObject.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -184,7 +187,7 @@ func VirtualObject(namespace, kind, name string) *NodeObject {
 			Annotations: map[string]string{
 				VirtualObjectAnnotation: "True",
 			},
-			UID: types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", gk, kind, namespace, name)),
+			UID: types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", GroupVersionVirtualObject.String(), kind, namespace, name)),
 		},
 		Status: NodeStatus{},
 	}

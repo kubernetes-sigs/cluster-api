@@ -19,11 +19,13 @@ package builder
 import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
 	// ControlPlaneGroupVersion is group version used for control plane objects.
-	ControlPlaneGroupVersion = schema.GroupVersion{Group: "controlplane.cluster.x-k8s.io", Version: "v1beta1"}
+	ControlPlaneGroupVersion = clusterv1.GroupVersionControlPlane
 
 	// GenericControlPlaneKind is the Kind for the GenericControlPlane.
 	GenericControlPlaneKind = "GenericControlPlane"

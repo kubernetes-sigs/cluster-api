@@ -1307,7 +1307,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
 			"kind":       "GenericInfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size": "3xlarge",
@@ -1321,7 +1321,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 		}
 		infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
-		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1beta1")
+		infraTmpl.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
 		infraTmpl.SetGenerateName("mhc-ms-template-")
 		infraTmpl.SetNamespace(mhc.Namespace)
 
@@ -1346,7 +1346,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 							DataSecretName: ptr.To("test-data-secret-name"),
 						},
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       infraTmpl.GetName(),
 							Namespace:  mhc.Namespace,
@@ -2450,7 +2450,7 @@ func newInfraMachine(machine *clusterv1.Machine) (*unstructured.Unstructured, st
 	providerID := fmt.Sprintf("test:////%v", uuid.NewUUID())
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"kind":       "GenericInfrastructureMachine",
 			"metadata": map[string]interface{}{
 				"generateName": "test-mhc-machine-infra-",

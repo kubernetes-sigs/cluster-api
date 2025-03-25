@@ -3124,7 +3124,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 		{
 			name: "Return desired ref if current ref is nil",
 			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
 				"metadata": map[string]interface{}{
 					"name":      "my-cluster-abc",
@@ -3132,7 +3132,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				},
 			}},
 			want: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
@@ -3147,7 +3147,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Namespace:  metav1.NamespaceDefault,
 			},
 			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
 				"metadata": map[string]interface{}{
 					"name":      "my-cluster-abc",
@@ -3159,7 +3159,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 		{
 			name: "Return desired ref if group changed",
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
@@ -3183,13 +3183,13 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 		{
 			name: "Return desired ref if kind changed",
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
 			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster2",
 				"metadata": map[string]interface{}{
 					"name":      "my-cluster-abc",
@@ -3198,7 +3198,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 			}},
 			want: &corev1.ObjectReference{
 				// Kind changed => apiVersion is taken from desired.
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster2",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
@@ -3213,7 +3213,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Namespace:  metav1.NamespaceDefault,
 			},
 			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
 				"metadata": map[string]interface{}{
 					"name":      "my-cluster-abc",

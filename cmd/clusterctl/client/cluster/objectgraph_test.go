@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -93,13 +95,13 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			},
 			want: map[string]*discoveryTypeInfo{
 				"clusters.cluster.x-k8s.io": {
-					typeMeta:           metav1.TypeMeta{Kind: "Cluster", APIVersion: "cluster.x-k8s.io/v1beta1"},
+					typeMeta:           metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 					forceMove:          true,
 					forceMoveHierarchy: true,
 					scope:              "Namespaced",
 				},
 				"clusterresourcesets.addons.cluster.x-k8s.io": {
-					typeMeta:           metav1.TypeMeta{Kind: "ClusterResourceSet", APIVersion: "addons.cluster.x-k8s.io/v1beta1"},
+					typeMeta:           metav1.TypeMeta{Kind: "ClusterResourceSet", APIVersion: addonsv1.GroupVersion.String()},
 					forceMove:          true,
 					forceMoveHierarchy: true,
 					scope:              "Namespaced",
@@ -124,12 +126,12 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy().
 					WithObjs(
-						test.FakeClusterCustomResourceDefinition("infrastructure.cluster.x-k8s.io", "GenericClusterInfrastructureIdentity", "v1beta1"),
+						test.FakeClusterCustomResourceDefinition(clusterv1.GroupVersionInfrastructure.Group, "GenericClusterInfrastructureIdentity", clusterv1.GroupVersionInfrastructure.Version),
 					),
 			},
 			want: map[string]*discoveryTypeInfo{
 				"genericclusterinfrastructureidentitys.infrastructure.cluster.x-k8s.io": {
-					typeMeta:           metav1.TypeMeta{Kind: "GenericClusterInfrastructureIdentity", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1"},
+					typeMeta:           metav1.TypeMeta{Kind: "GenericClusterInfrastructureIdentity", APIVersion: clusterv1.GroupVersionInfrastructure.String()},
 					forceMove:          false,
 					forceMoveHierarchy: false,
 					scope:              "Cluster",
@@ -505,23 +507,23 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 			},
@@ -535,23 +537,23 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-cloud-config": {
@@ -572,42 +574,42 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 			},
@@ -623,49 +625,49 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-sa": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -682,60 +684,60 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/ms1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/ms1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -757,66 +759,66 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/md1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
-					},
-				},
-
-				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1": {
-					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
+					},
+				},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": {
+					owners: []string{
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -839,61 +841,61 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
-					},
-				},
-
-				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1": {
-					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineDeployment, ns1/md1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/ms1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
+					},
+				},
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": {
+					owners: []string{
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -912,60 +914,60 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/cp1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-sa": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp1",
+						clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp1",
+						clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1": {
 					owners: []string{
-						"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp1",
+						clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlane, ns1/cp1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1",
 					},
 				},
 			},
@@ -981,39 +983,39 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachinePool, ns1/mp1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/mp1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/mp1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/mp1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/mp1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 			},
@@ -1052,113 +1054,113 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/shared": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/shared": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster1-ms1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster1-ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster1-m1": {
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster1-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster1-ms1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster1-ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cluster1-m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cluster1-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster1-m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster1-m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster1-m1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster1-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster1-m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster1-m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster1-m1",
 					},
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster2-ms1": {
+				clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster2-ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 
-				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster2-m1": {
+				clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster2-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster2-ms1",
+						clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster2-ms1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cluster2-m1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cluster2-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster2-m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster2-m1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster2-m1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster2-m1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster2-m1",
+						clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster2-m1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-m1": {
 					owners: []string{
-						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
+						clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster2-m1",
 					},
 				},
 			},
@@ -1182,45 +1184,45 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/resource-s1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 				},
 				"/v1, Kind=ConfigMap, ns1/resource-c1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 				},
 			},
@@ -1246,72 +1248,72 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster2": {
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster2": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",
 					},
 				},
 				"/v1, Kind=Secret, ns1/resource-s1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 				},
 				"/v1, Kind=ConfigMap, ns1/resource-c1": {
 					owners: []string{
-						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 					},
 				},
 			},
@@ -1368,28 +1370,28 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-ca": {
 					softOwners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"/v1, Kind=Secret, ns1/cluster1-credentials": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 					},
 				},
 			},
@@ -1404,14 +1406,14 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 					isGlobal:           true,
 				},
 				"/v1, Kind=Secret, infra1-system/infra1-identity-credentials": {
 					owners: []string{
-						"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity",
+						clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity",
 					},
 				},
 			},
@@ -1424,18 +1426,18 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
 			},
@@ -1453,23 +1455,23 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/inframachinetemplate1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/inframachinetemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
 			},
@@ -1487,28 +1489,28 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/mdclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/mdclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/mdclass1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/mdclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
 			},
@@ -1533,28 +1535,28 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
 			},
@@ -1572,32 +1574,32 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/clusterclass2": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/clusterclass2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
 			},
@@ -1650,50 +1652,50 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2": {
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2": {
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/clusterclass2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/controlplanetemplate1": {
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/controlplanetemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate1": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass1",
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass1",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate2": {
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/infamachinetemplate2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
-				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate2": {
+				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/bootstraptemplate2": {
 					owners: []string{
-						"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/clusterclass2",
+						clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/clusterclass2",
 					},
 				},
 			},
@@ -1833,42 +1835,42 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns2/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns2/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns2/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns2/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1",
 						},
 					},
 				},
@@ -1887,23 +1889,23 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 				},
@@ -1924,57 +1926,57 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class2": {
 						// Expected to be moved but not deleted after
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						shouldNotDelete:    true,
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class2": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class2": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class2",
 						},
 						shouldNotDelete: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class2": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class2": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class2",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class2",
 						},
 						shouldNotDelete: true,
 					},
@@ -1996,40 +1998,40 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
 				},
@@ -2049,42 +2051,42 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 						shouldNotDelete: true,
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						shouldNotDelete:    true,
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 						shouldNotDelete: true,
 					},
@@ -2105,42 +2107,42 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns2/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns2/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns2/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1", // NB. this secret is not linked to the cluster through owner ref
 						},
 					},
 					"/v1, Kind=Secret, ns2/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns2/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns2/cluster1",
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 						shouldNotDelete: true,
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						shouldNotDelete:    true,
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 						shouldNotDelete: true,
 					},
@@ -2221,23 +2223,23 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": { // the ca secret has no explicit OwnerRef to the cluster, so it should be identified as a soft ownership
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": { // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 				},
@@ -2255,40 +2257,40 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+					clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+					clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
 						},
 					},
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1", // NB. this cluster is not linked to the clusterclass through owner ref, but it is detected as soft ownership
+							clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1", // NB. this cluster is not linked to the clusterclass through owner ref, but it is detected as soft ownership
 						},
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 				},
@@ -2310,45 +2312,45 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-ca": {
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
 						},
 					},
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
 						owners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",
 						},
 					},
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
 						forceMove:          true,
 						forceMoveHierarchy: true,
 					},
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1": {
 						owners: []string{
-							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+							addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 						},
 						softOwners: []string{
-							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this ClusterResourceSetBinding is not linked to the cluster through owner ref, but it is detected as soft ownership
+							clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // NB. this ClusterResourceSetBinding is not linked to the cluster through owner ref, but it is detected as soft ownership
 						},
 					},
 					"/v1, Kind=Secret, ns1/resource-s1": {
 						owners: []string{
-							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+							addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 						},
 					},
 					"/v1, Kind=ConfigMap, ns1/resource-c1": {
 						owners: []string{
-							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+							addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",
 						},
 					},
 				},
@@ -2384,9 +2386,9 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				objs: test.NewFakeCluster("ns1", "foo").Objs(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
@@ -2403,9 +2405,9 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				}(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
@@ -2422,15 +2424,15 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				}(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
 					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/foo-kubeconfig",
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/bar": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/bar", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/bar",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/bar": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/bar", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/bar",
 					"/v1, Kind=Secret, ns1/bar-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/bar-kubeconfig",
 				},
@@ -2468,30 +2470,30 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				}(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",                                           // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1",                                          // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-					"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster1-ms1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1",
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster1-m1",
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cluster1-m1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster1-m1",
+					clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster1-ms1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/cluster1-ms1",
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster1-m1",
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cluster1-m1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster1-m1",
 					"/v1, Kind=Secret, ns1/cluster1-m1",
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",                                           // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster2",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachineTemplate, ns1/shared", // the shared object should be in both lists
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2",                                          // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
-					"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/cluster2-ms1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1",
-					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cluster2-m1",
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cluster2-m1",
-					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cluster2-m1",
+					clusterv1.GroupVersion.String() + ", Kind=MachineSet, ns1/cluster2-ms1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfigTemplate, ns1/cluster2-ms1",
+					clusterv1.GroupVersion.String() + ", Kind=Machine, ns1/cluster2-m1",
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cluster2-m1",
+					clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cluster2-m1",
 					"/v1, Kind=Secret, ns1/cluster2-m1",
 				},
 			},
@@ -2513,12 +2515,12 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				}(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
 				},
 			},
 		},
@@ -2541,19 +2543,19 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				}(),
 			},
 			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster1", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster1",
 					"/v1, Kind=Secret, ns1/cluster1-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by the cluster
 				},
-				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2": {
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster2",
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2": {
+					clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/cluster2", // the cluster should be tenant of itself
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/cluster2",
 					"/v1, Kind=Secret, ns1/cluster2-ca", // the ca secret is a soft owned
 					"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by the cluster
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by the cluster
 				},
 			},
 		},
@@ -2624,11 +2626,11 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 				}(),
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
-					"/v1, Kind=Secret, ns1/resource-s1",                                             // resource are owned by ClusterResourceSet
-					"/v1, Kind=ConfigMap, ns1/resource-c1",                                          // resource are owned by ClusterResourceSet
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                               // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                            // resource are owned by ClusterResourceSet
 				},
 			},
 		},
@@ -2651,12 +2653,12 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 				}(),
 			},
 			wantCRSs: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
-				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
-					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by ClusterResourceSet
-					"/v1, Kind=Secret, ns1/resource-s1",                                             // resource are owned by ClusterResourceSet
-					"/v1, Kind=ConfigMap, ns1/resource-c1",                                          // resource are owned by ClusterResourceSet
+				addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1": {
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSet, ns1/crs1",            // the ClusterResourceSet should be tenant of itself
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster1", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					addonsv1.GroupVersion.String() + ", Kind=ClusterResourceSetBinding, ns1/cluster2", // ClusterResourceSetBinding are owned by ClusterResourceSet
+					"/v1, Kind=Secret, ns1/resource-s1",                                               // resource are owned by ClusterResourceSet
+					"/v1, Kind=ConfigMap, ns1/resource-c1",                                            // resource are owned by ClusterResourceSet
 				},
 			},
 		},
@@ -2714,8 +2716,8 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 					Objs(),
 			},
 			wantIdentity: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity", // the global identity should be tenant of itself
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
+					clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericClusterInfrastructureIdentity, infra1-identity", // the global identity should be tenant of itself
 					"/v1, Kind=Secret, infra1-system/infra1-identity-credentials",
 				},
 			},

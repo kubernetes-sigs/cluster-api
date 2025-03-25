@@ -543,12 +543,12 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 	infraRef := corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachineTemplate",
 		Name:       "infra-template-1",
-		APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 	}
 	bootstrapRef := corev1.ObjectReference{
 		Kind:       "GenericBootstrapConfigTemplate",
 		Name:       "bootstrap-template-1",
-		APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+		APIVersion: clusterv1.GroupVersionBootstrap.String(),
 	}
 
 	deployment := &clusterv1.MachineDeployment{

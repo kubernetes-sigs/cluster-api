@@ -370,7 +370,7 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 	for _, upgradeItem := range upgradePlan.Providers {
 		if !(upgradeItem.Type == string(clusterctlv1.CoreProviderType) ||
 			(upgradeItem.Type == string(clusterctlv1.BootstrapProviderType) && upgradeItem.ProviderName == config.KubeadmBootstrapProviderName) ||
-			(upgradeItem.Type == string(clusterctlv1.ControlPlaneProviderType) && upgradeItem.ProviderName == config.KubeadmBootstrapProviderName)) {
+			(upgradeItem.Type == string(clusterctlv1.ControlPlaneProviderType) && upgradeItem.ProviderName == config.KubeadmControlPlaneProviderName)) {
 			continue
 		}
 
@@ -388,7 +388,7 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 			return errors.Wrapf(err, "failed to parse next version for %s provider", upgradeItem.InstanceName())
 		}
 
-		if nextVersion.Minor >= currentVersion.Minor+3 {
+		if nextVersion.Minor > currentVersion.Minor+3 {
 			return errors.Errorf("upgrade for %s provider can't skip more than 3 versions", upgradeItem.InstanceName())
 		}
 	}

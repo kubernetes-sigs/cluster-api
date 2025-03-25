@@ -82,6 +82,9 @@ clusterctl upgrade apply \
 Please check providers documentation before performing skip upgrades (skip minor versions).
 Not supported skip upgrades might lead to non functional management clusters. 
 
+For Core provider, Kubeadm bootstrap provider, Kubeadm control plane provider and Docker infrastructure provider
+please look at [skip upgrades](../../reference/versions.md#skip-upgrades) rules.
+
 </aside>
 
 <aside class="note warning">

@@ -32,21 +32,21 @@ import (
 )
 
 var (
-	// CurrentContractVersion return the contract version supported by this Cluster API version.
+	// CurrentContractVersion is the contract version supported by this Cluster API version.
 	// Note: Each Cluster API version supports one contract version, and by convention the contract version matches the current API version.
 	CurrentContractVersion = clusterv1.GroupVersion.Version
-
-	// GetCompatibleContractVersions return the list of contract version compatible with a given contract version.
-	// NOTE: A contract version might be compatible with older contract versions e.g. to allow users time to transition to the new API.
-	// NOTE: The return value must include also the contract version received in input.
-	GetCompatibleContractVersions = func(contract string) sets.Set[string] {
-		compatibleContracts := sets.New(contract)
-		if contract == "v1beta2" {
-			compatibleContracts.Insert("v1beta1")
-		}
-		return compatibleContracts
-	}
 )
+
+// GetCompatibleContractVersions return the list of contract version compatible with a given contract version.
+// NOTE: A contract version might be compatible with older contract versions e.g. to allow users time to transition to the new API.
+// NOTE: The return value must include also the contract version received in input.
+func GetCompatibleContractVersions(contract string) sets.Set[string] {
+	compatibleContracts := sets.New(contract)
+	if contract == "v1beta2" {
+		compatibleContracts.Insert("v1beta1")
+	}
+	return compatibleContracts
+}
 
 // Kubeconfig is a type that specifies inputs related to the actual
 // kubeconfig.

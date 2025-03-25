@@ -215,7 +215,7 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 			return err
 		}
 		if !compatibleContracts.Has(providerContract) {
-			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider implements the %s contract version, while the core provider is compatible with %s contract versions", components.ManifestLabel(), providerContract, strings.Join(compatibleContracts.UnsortedList(), ","))
+			return errors.Errorf("installing provider %q could lead to a non functioning management cluster: the target version for the provider implements the %s contract version, while the core provider is compatible with %s contract versions", components.ManifestLabel(), providerContract, strings.Join(compatibleContracts.UnsortedList(), ","))
 		}
 	}
 

@@ -24,30 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
-
-var (
-	// CurrentContractVersion is the contract version supported by this Cluster API version.
-	// Note: Each Cluster API version supports one contract version, and by convention the contract version matches the current API version.
-	CurrentContractVersion = clusterv1.GroupVersion.Version
-)
-
-// GetCompatibleContractVersions return the list of contract version compatible with a given contract version.
-// NOTE: A contract version might be temporarily compatible with older contract versions e.g. to allow users time to transition to the new API.
-// NOTE: The return value must include also the contract version received in input.
-func GetCompatibleContractVersions(contract string) sets.Set[string] {
-	compatibleContracts := sets.New(contract)
-	// v1beta2 contract is temporarily be compatible with v1beta1 (until v1beta1 is EOL).
-	if contract == "v1beta2" {
-		compatibleContracts.Insert("v1beta1")
-	}
-	return compatibleContracts
-}
 
 // Kubeconfig is a type that specifies inputs related to the actual
 // kubeconfig.
@@ -233,8 +215,8 @@ func newClusterClient(kubeconfig Kubeconfig, configClient config.Client, options
 		configClient:                  configClient,
 		kubeconfig:                    kubeconfig,
 		processor:                     yaml.NewSimpleProcessor(),
-		currentContractVersion:        CurrentContractVersion,
-		getCompatibleContractVersions: GetCompatibleContractVersions,
+		currentContractVersion:        contract.Version,
+		getCompatibleContractVersions: contract.GetCompatibleVersions,
 	}
 	for _, o := range options {
 		o(client)

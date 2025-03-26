@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
@@ -44,7 +44,7 @@ type IPAddressClaimStatus struct {
 
 	// conditions summarises the current state of the IPAddressClaim
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in IPAddressClaim's status with the V1Beta2 version.
 	// +optional
@@ -65,7 +65,7 @@ type IPAddressClaimV1Beta2Status struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddressclaims,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool to allocate an address from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool to allocate an address from"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdressClaim"
@@ -87,12 +87,12 @@ type IPAddressClaim struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *IPAddressClaim) GetConditions() clusterv1.Conditions {
+func (m *IPAddressClaim) GetConditions() clusterv1beta1.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
+func (m *IPAddressClaim) SetConditions(conditions clusterv1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 

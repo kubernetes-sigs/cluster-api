@@ -23,8 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -70,7 +70,7 @@ const (
 	// etcd member right before Machine termination (i.e. before InfraMachine deletion).
 	// Note: Starting with Kubernetes v1.31 this hook will wait for all other pre-terminate hooks to finish to
 	// ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run).
-	PreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
+	PreTerminateHookCleanupAnnotation = clusterv1beta1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
 
 	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
@@ -104,7 +104,7 @@ type KubeadmControlPlaneSpec struct {
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	// +required
-	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+	KubeadmConfigSpec bootstrapv1beta1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// rolloutBefore is a field to indicate a rollout should be performed
 	// if the specified criteria is met.
@@ -142,7 +142,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
@@ -162,7 +162,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +listType=map
 	// +listMapKey=conditionType
 	// +kubebuilder:validation:MaxItems=32
-	ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
+	ReadinessGates []clusterv1beta1.MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
@@ -365,7 +365,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// conditions defines current service state of the KubeadmControlPlane.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// lastRemediation stores info about last remediation performed.
 	// +optional
@@ -423,7 +423,7 @@ type LastRemediationStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmcontrolplanes,shortName=kcp,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
@@ -454,12 +454,12 @@ type KubeadmControlPlane struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
+func (in *KubeadmControlPlane) GetConditions() clusterv1beta1.Conditions {
 	return in.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (in *KubeadmControlPlane) SetConditions(conditions clusterv1beta1.Conditions) {
 	in.Status.Conditions = conditions
 }
 

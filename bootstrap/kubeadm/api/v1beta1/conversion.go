@@ -16,12 +16,32 @@ limitations under the License.
 
 package v1beta1
 
-func (*KubeadmConfig) Hub()             {}
-func (*KubeadmConfigList) Hub()         {}
-func (*KubeadmConfigTemplate) Hub()     {}
-func (*KubeadmConfigTemplateList) Hub() {}
+import (
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-func (*ClusterConfiguration) Hub() {}
-func (*ClusterStatus) Hub()        {}
-func (*InitConfiguration) Hub()    {}
-func (*JoinConfiguration) Hub()    {}
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+)
+
+func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*bootstrapv1.KubeadmConfig)
+
+	return Convert_v1beta1_KubeadmConfig_To_v1beta2_KubeadmConfig(src, dst, nil)
+}
+
+func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*bootstrapv1.KubeadmConfig)
+
+	return Convert_v1beta2_KubeadmConfig_To_v1beta1_KubeadmConfig(src, dst, nil)
+}
+
+func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*bootstrapv1.KubeadmConfigTemplate)
+
+	return Convert_v1beta1_KubeadmConfigTemplate_To_v1beta2_KubeadmConfigTemplate(src, dst, nil)
+}
+
+func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*bootstrapv1.KubeadmConfigTemplate)
+
+	return Convert_v1beta2_KubeadmConfigTemplate_To_v1beta1_KubeadmConfigTemplate(src, dst, nil)
+}

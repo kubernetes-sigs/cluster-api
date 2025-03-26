@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ClusterResourceSet's ResourcesApplied condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -40,7 +40,7 @@ const (
 	ResourcesAppliedWrongSecretTypeV1Beta2Reason = "WrongSecretType"
 
 	// ResourcesAppliedInternalErrorV1Beta2Reason surfaces unexpected failures when reconciling a ClusterResourceSet.
-	ResourcesAppliedInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	ResourcesAppliedInternalErrorV1Beta2Reason = clusterv1beta1.InternalErrorV1Beta2Reason
 )
 
 const (
@@ -125,7 +125,7 @@ type ClusterResourceSetStatus struct {
 
 	// conditions defines current state of the ClusterResourceSet.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in ClusterResourceSet's status with the V1Beta2 version.
 	// +optional
@@ -147,12 +147,12 @@ type ClusterResourceSetV1Beta2Status struct {
 // ANCHOR_END: ClusterResourceSetStatus
 
 // GetConditions returns the set of conditions for this object.
-func (m *ClusterResourceSet) GetConditions() clusterv1.Conditions {
+func (m *ClusterResourceSet) GetConditions() clusterv1beta1.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
+func (m *ClusterResourceSet) SetConditions(conditions clusterv1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 
@@ -175,7 +175,7 @@ func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition)
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSet"
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.

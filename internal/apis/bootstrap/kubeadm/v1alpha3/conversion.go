@@ -20,7 +20,7 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -28,7 +28,7 @@ import (
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.KubeadmConfig)
 
-	if err := Convert_v1alpha3_KubeadmConfig_To_v1beta1_KubeadmConfig(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_KubeadmConfig_To_v1beta2_KubeadmConfig(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -115,7 +115,7 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.KubeadmConfig)
 
-	if err := Convert_v1beta1_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -130,19 +130,19 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.KubeadmConfigList)
 
-	return Convert_v1alpha3_KubeadmConfigList_To_v1beta1_KubeadmConfigList(src, dst, nil)
+	return Convert_v1alpha3_KubeadmConfigList_To_v1beta2_KubeadmConfigList(src, dst, nil)
 }
 
 func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.KubeadmConfigList)
 
-	return Convert_v1beta1_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(src, dst, nil)
+	return Convert_v1beta2_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(src, dst, nil)
 }
 
 func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.KubeadmConfigTemplate)
 
-	if err := Convert_v1alpha3_KubeadmConfigTemplate_To_v1beta1_KubeadmConfigTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_KubeadmConfigTemplate_To_v1beta2_KubeadmConfigTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.KubeadmConfigTemplate)
 
-	if err := Convert_v1beta1_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -177,76 +177,76 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.KubeadmConfigTemplateList)
 
-	return Convert_v1alpha3_KubeadmConfigTemplateList_To_v1beta1_KubeadmConfigTemplateList(src, dst, nil)
+	return Convert_v1alpha3_KubeadmConfigTemplateList_To_v1beta2_KubeadmConfigTemplateList(src, dst, nil)
 }
 
 func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.KubeadmConfigTemplateList)
 
-	return Convert_v1beta1_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
+	return Convert_v1beta2_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
 }
 
-func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apiconversion.Scope) error {
+func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apiconversion.Scope) error {
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4 because its content has been moved to the bootstrap data secret, value will be lost during conversion.
-	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in, out, s)
+	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)
 }
 
-func Convert_v1beta1_ClusterConfiguration_To_upstreamv1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *upstreamv1beta1.ClusterConfiguration, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *upstreamv1beta1.ClusterConfiguration, s apiconversion.Scope) error {
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// Existing clusters using kube-dns or other DNS solutions will continue to be managed/supported via the skip-coredns annotation.
 
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
-	return upstreamv1beta1.Convert_v1beta1_ClusterConfiguration_To_upstreamv1beta1_ClusterConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta1_ClusterConfiguration(in, out, s)
 }
 
-func Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *upstreamv1beta1.ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apiconversion.Scope) error {
+func Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *upstreamv1beta1.ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apiconversion.Scope) error {
 	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported; the information will be left to empty (kubeadm defaults it to CoredDNS);
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
-	return upstreamv1beta1.Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }
 
-func Convert_upstreamv1beta1_InitConfiguration_To_v1beta1_InitConfiguration(in *upstreamv1beta1.InitConfiguration, out *bootstrapv1.InitConfiguration, s apiconversion.Scope) error {
+func Convert_upstreamv1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in *upstreamv1beta1.InitConfiguration, out *bootstrapv1.InitConfiguration, s apiconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
-	return upstreamv1beta1.Convert_upstreamv1beta1_InitConfiguration_To_v1beta1_InitConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_upstreamv1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
 }
 
-func Convert_v1beta1_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *upstreamv1beta1.InitConfiguration, s apiconversion.Scope) error {
+func Convert_v1beta2_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *upstreamv1beta1.InitConfiguration, s apiconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
-	return upstreamv1beta1.Convert_v1beta1_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_v1beta2_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in, out, s)
 }
 
-func Convert_upstreamv1beta1_JoinConfiguration_To_v1beta1_JoinConfiguration(in *upstreamv1beta1.JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apiconversion.Scope) error {
+func Convert_upstreamv1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in *upstreamv1beta1.JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apiconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
-	return upstreamv1beta1.Convert_upstreamv1beta1_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_upstreamv1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
 }
 
-func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *upstreamv1beta1.JoinConfiguration, s apiconversion.Scope) error {
+func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *upstreamv1beta1.JoinConfiguration, s apiconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
-	return upstreamv1beta1.Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in, out, s)
+	return upstreamv1beta1.Convert_v1beta2_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in, out, s)
 }
 
-// Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec is an autogenerated conversion function.
-func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
+// Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec is an autogenerated conversion function.
+func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
-	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
 }
 
-func Convert_v1beta1_File_To_v1alpha3_File(in *bootstrapv1.File, out *File, s apiconversion.Scope) error {
+func Convert_v1beta2_File_To_v1alpha3_File(in *bootstrapv1.File, out *File, s apiconversion.Scope) error {
 	// File.Append does not exist in kubeadm v1alpha3 API.
-	return autoConvert_v1beta1_File_To_v1alpha3_File(in, out, s)
+	return autoConvert_v1beta2_File_To_v1alpha3_File(in, out, s)
 }
 
-func Convert_v1beta1_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
+func Convert_v1beta2_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
 	// User.PasswdFrom does not exist in kubeadm v1alpha3 API.
-	return autoConvert_v1beta1_User_To_v1alpha3_User(in, out, s)
+	return autoConvert_v1beta2_User_To_v1alpha3_User(in, out, s)
 }
 
-func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
+func Convert_v1beta2_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
 	// KubeadmConfigTemplateResource.metadata does not exist in kubeadm v1alpha3.
-	return autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in, out, s)
+	return autoConvert_v1beta2_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in, out, s)
 }
 
-func Convert_v1beta1_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in, out, s)
+	return autoConvert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in, out, s)
 }

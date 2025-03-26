@@ -20,8 +20,8 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -29,7 +29,7 @@ import (
 func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlane)
 
-	if err := Convert_v1alpha3_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_KubeadmControlPlane_To_v1beta2_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlane)
 
-	if err := Convert_v1beta1_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -82,39 +82,39 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *KubeadmControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneList)
 
-	return Convert_v1alpha3_KubeadmControlPlaneList_To_v1beta1_KubeadmControlPlaneList(src, dst, nil)
+	return Convert_v1alpha3_KubeadmControlPlaneList_To_v1beta2_KubeadmControlPlaneList(src, dst, nil)
 }
 
 func (dst *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlaneList)
 
-	return Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha3_KubeadmControlPlaneList(src, dst, nil)
+	return Convert_v1beta2_KubeadmControlPlaneList_To_v1alpha3_KubeadmControlPlaneList(src, dst, nil)
 }
 
-func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.UpgradeAfter = in.RolloutAfter
 	out.InfrastructureTemplate = in.MachineTemplate.InfrastructureRef
 	out.NodeDrainTimeout = in.MachineTemplate.NodeDrainTimeout
-	return autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
+	return autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
 }
 
-func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because status.Version does not exist in v1alpha3.
 	// .V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in, out, s)
+	return autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in, out, s)
 }
 
-func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneSpec, s apiconversion.Scope) error {
+func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.RolloutAfter = in.UpgradeAfter
 	out.MachineTemplate.InfrastructureRef = in.InfrastructureTemplate
 	out.MachineTemplate.NodeDrainTimeout = in.NodeDrainTimeout
-	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in, out, s)
+	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s)
 }
 
-func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *bootstrapv1alpha3.KubeadmConfigSpec, s apiconversion.Scope) error {
-	return bootstrapv1alpha3.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *bootstrapv1alpha3.KubeadmConfigSpec, s apiconversion.Scope) error {
+	return bootstrapv1alpha3.Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
 }
 
-func Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apiconversion.Scope) error {
-	return bootstrapv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in, out, s)
+func Convert_v1alpha3_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apiconversion.Scope) error {
+	return bootstrapv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s)
 }

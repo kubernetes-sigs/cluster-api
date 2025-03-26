@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 

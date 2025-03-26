@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
@@ -38,7 +38,7 @@ type IPAddressClaimStatus struct {
 
 	// conditions summarises the current state of the IPAddressClaim
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1v1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -65,12 +65,12 @@ type IPAddressClaim struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *IPAddressClaim) GetConditions() clusterv1.Conditions {
+func (m *IPAddressClaim) GetConditions() clusterv1v1beta1.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
+func (m *IPAddressClaim) SetConditions(conditions clusterv1v1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 

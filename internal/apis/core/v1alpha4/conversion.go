@@ -20,14 +20,14 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Cluster)
 
-	if err := Convert_v1alpha4_Cluster_To_v1beta1_Cluster(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_Cluster_To_v1beta2_Cluster(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -90,7 +90,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Cluster)
 
-	if err := Convert_v1beta1_Cluster_To_v1alpha4_Cluster(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_Cluster_To_v1alpha4_Cluster(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -105,19 +105,19 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.ClusterList)
 
-	return Convert_v1alpha4_ClusterList_To_v1beta1_ClusterList(src, dst, nil)
+	return Convert_v1alpha4_ClusterList_To_v1beta2_ClusterList(src, dst, nil)
 }
 
 func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.ClusterList)
 
-	return Convert_v1beta1_ClusterList_To_v1alpha4_ClusterList(src, dst, nil)
+	return Convert_v1beta2_ClusterList_To_v1alpha4_ClusterList(src, dst, nil)
 }
 
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.ClusterClass)
 
-	if err := Convert_v1alpha4_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_ClusterClass_To_v1beta2_ClusterClass(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.ClusterClass)
 
-	if err := Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -173,19 +173,19 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterClassList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.ClusterClassList)
 
-	return Convert_v1alpha4_ClusterClassList_To_v1beta1_ClusterClassList(src, dst, nil)
+	return Convert_v1alpha4_ClusterClassList_To_v1beta2_ClusterClassList(src, dst, nil)
 }
 
 func (dst *ClusterClassList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.ClusterClassList)
 
-	return Convert_v1beta1_ClusterClassList_To_v1alpha4_ClusterClassList(src, dst, nil)
+	return Convert_v1beta2_ClusterClassList_To_v1alpha4_ClusterClassList(src, dst, nil)
 }
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
-	if err := Convert_v1alpha4_Machine_To_v1beta1_Machine(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_Machine_To_v1beta2_Machine(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -208,7 +208,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Machine)
 
-	if err := Convert_v1beta1_Machine_To_v1alpha4_Machine(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_Machine_To_v1alpha4_Machine(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -223,19 +223,19 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineList)
 
-	return Convert_v1alpha4_MachineList_To_v1beta1_MachineList(src, dst, nil)
+	return Convert_v1alpha4_MachineList_To_v1beta2_MachineList(src, dst, nil)
 }
 
 func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineList)
 
-	return Convert_v1beta1_MachineList_To_v1alpha4_MachineList(src, dst, nil)
+	return Convert_v1beta2_MachineList_To_v1alpha4_MachineList(src, dst, nil)
 }
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
-	if err := Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_MachineSet_To_v1beta2_MachineSet(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -260,7 +260,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSet)
 
-	if err := Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineSet_To_v1alpha4_MachineSet(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -271,19 +271,19 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSetList)
 
-	return Convert_v1alpha4_MachineSetList_To_v1beta1_MachineSetList(src, dst, nil)
+	return Convert_v1alpha4_MachineSetList_To_v1beta2_MachineSetList(src, dst, nil)
 }
 
 func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSetList)
 
-	return Convert_v1beta1_MachineSetList_To_v1alpha4_MachineSetList(src, dst, nil)
+	return Convert_v1beta2_MachineSetList_To_v1alpha4_MachineSetList(src, dst, nil)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeployment)
 
-	if err := Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_MachineDeployment_To_v1beta2_MachineDeployment(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -317,7 +317,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
-	if err := Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -328,19 +328,19 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeploymentList)
 
-	return Convert_v1alpha4_MachineDeploymentList_To_v1beta1_MachineDeploymentList(src, dst, nil)
+	return Convert_v1alpha4_MachineDeploymentList_To_v1beta2_MachineDeploymentList(src, dst, nil)
 }
 
 func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeploymentList)
 
-	return Convert_v1beta1_MachineDeploymentList_To_v1alpha4_MachineDeploymentList(src, dst, nil)
+	return Convert_v1beta2_MachineDeploymentList_To_v1alpha4_MachineDeploymentList(src, dst, nil)
 }
 
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheck)
 
-	if err := Convert_v1alpha4_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_MachineHealthCheck_To_v1beta2_MachineHealthCheck(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -357,7 +357,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineHealthCheck)
 
-	if err := Convert_v1beta1_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -368,111 +368,111 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineHealthCheckList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheckList)
 
-	return Convert_v1alpha4_MachineHealthCheckList_To_v1beta1_MachineHealthCheckList(src, dst, nil)
+	return Convert_v1alpha4_MachineHealthCheckList_To_v1beta2_MachineHealthCheckList(src, dst, nil)
 }
 
 func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineHealthCheckList)
 
-	return Convert_v1beta1_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(src, dst, nil)
+	return Convert_v1beta2_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(src, dst, nil)
 }
 
-func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
+func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
-	return autoConvert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+	return autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
 }
 
-func Convert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apiconversion.Scope) error {
 	// spec.{variables,patches} has been added with v1beta1.
-	return autoConvert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
+	return autoConvert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
 	// spec.nodeDeletionTimeout was added in v1beta1.
 	// ReadinessGates was added in v1beta1.
-	return autoConvert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in, out, s)
+	return autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in, out, s)
+func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in, out, s)
 }
 
-func Convert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
 	// AvailabilityGates was added in v1beta1.
-	return autoConvert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(in, out, s)
+	return autoConvert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in, out, s)
 }
 
-func Convert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
+	return autoConvert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
 }
 
-func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *Topology, s apiconversion.Scope) error {
+func Convert_v1beta2_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *Topology, s apiconversion.Scope) error {
 	// spec.topology.variables has been added with v1beta1.
-	return autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in, out, s)
+	return autoConvert_v1beta2_Topology_To_v1alpha4_Topology(in, out, s)
 }
 
-// Convert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology is an autogenerated conversion function.
-func Convert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in *clusterv1.MachineDeploymentTopology, out *MachineDeploymentTopology, s apiconversion.Scope) error {
+// Convert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology is an autogenerated conversion function.
+func Convert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in *clusterv1.MachineDeploymentTopology, out *MachineDeploymentTopology, s apiconversion.Scope) error {
 	// MachineDeploymentTopology.FailureDomain has been added with v1beta1.
-	return autoConvert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in, out, s)
+	return autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in *clusterv1.MachineDeploymentClass, out *MachineDeploymentClass, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in *clusterv1.MachineDeploymentClass, out *MachineDeploymentClass, s apiconversion.Scope) error {
 	// machineDeploymentClass.machineHealthCheck has been added with v1beta1.
-	return autoConvert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in, out, s)
+	return autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in, out, s)
 }
 
-func Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apiconversion.Scope) error {
+func Convert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apiconversion.Scope) error {
 	// controlPlaneClass.machineHealthCheck has been added with v1beta1.
-	return autoConvert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
+	return autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
 }
 
-func Convert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in *clusterv1.ControlPlaneTopology, out *ControlPlaneTopology, s apiconversion.Scope) error {
+func Convert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in *clusterv1.ControlPlaneTopology, out *ControlPlaneTopology, s apiconversion.Scope) error {
 	// controlPlaneTopology.nodeDrainTimeout has been added with v1beta1.
-	return autoConvert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in, out, s)
+	return autoConvert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in, out, s)
 }
 
-func Convert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
 	// MachineStatus.CertificatesExpiryDate has been added in v1beta1.
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in, out, s)
+	return autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in, out, s)
 }
 
-func Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apiconversion.Scope) error {
 	// ClusterClass.Status has been added in v1beta1.
-	return autoConvert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in, out, s)
+	return autoConvert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in, out, s)
 }
 
-func Convert_v1beta1_WorkersClass_To_v1alpha4_WorkersClass(in *clusterv1.WorkersClass, out *WorkersClass, s apiconversion.Scope) error {
+func Convert_v1beta2_WorkersClass_To_v1alpha4_WorkersClass(in *clusterv1.WorkersClass, out *WorkersClass, s apiconversion.Scope) error {
 	// WorkersClass.MachinePools has been added in v1beta1.
-	return autoConvert_v1beta1_WorkersClass_To_v1alpha4_WorkersClass(in, out, s)
+	return autoConvert_v1beta2_WorkersClass_To_v1alpha4_WorkersClass(in, out, s)
 }
 
-func Convert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in *clusterv1.WorkersTopology, out *WorkersTopology, s apiconversion.Scope) error {
+func Convert_v1beta2_WorkersTopology_To_v1alpha4_WorkersTopology(in *clusterv1.WorkersTopology, out *WorkersTopology, s apiconversion.Scope) error {
 	// WorkersTopology.MachinePools has been added in v1beta1.
-	return autoConvert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in, out, s)
+	return autoConvert_v1beta2_WorkersTopology_To_v1alpha4_WorkersTopology(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in, out, s)
+func Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in, out, s)
 }
 
-func Convert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in, out, s)
+func Convert_v1beta2_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineSetSpec_To_v1alpha4_MachineSetSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in, out, s)
+	return autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in, out, s)
 }
 
-func Convert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(in, out, s)
+	return autoConvert_v1beta2_MachineSetStatus_To_v1alpha4_MachineSetStatus(in, out, s)
 }
 
-func Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in, out, s)
+	return autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in, out, s)
 }

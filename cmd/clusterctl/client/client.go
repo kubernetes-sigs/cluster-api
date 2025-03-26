@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 // Client is exposes the clusterctl high-level client library.
@@ -178,8 +179,8 @@ func New(ctx context.Context, path string, options ...Option) (Client, error) {
 
 func newClusterctlClient(ctx context.Context, path string, options ...Option) (*clusterctlClient, error) {
 	client := &clusterctlClient{
-		currentContractVersion:        cluster.CurrentContractVersion,
-		getCompatibleContractVersions: cluster.GetCompatibleContractVersions,
+		currentContractVersion:        contract.Version,
+		getCompatibleContractVersions: contract.GetCompatibleVersions,
 	}
 	for _, o := range options {
 		o(client)

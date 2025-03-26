@@ -101,7 +101,8 @@ type Reconciler struct {
 
 	RemoteConditionsGracePeriod time.Duration
 
-	AdditionalSyncMachineLabels []*regexp.Regexp
+	AdditionalSyncMachineLabels      []*regexp.Regexp
+	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
 	controller      controller.Controller
 	recorder        record.EventRecorder

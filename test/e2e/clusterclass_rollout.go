@@ -22,7 +22,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -47,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -522,8 +522,12 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		node := clusterObjects.NodesByMachine[machine.Name]
 		nodeMetadata := filterMetadataBeforeValidation(node)
 
-		for k, v := range getManagedLabels(machineMetadata.Labels) {
+		for k, v := range labels.GetManagedLabels(machineMetadata.Labels) {
 			g.Expect(nodeMetadata.Labels).To(HaveKeyWithValue(k, v))
+		}
+
+		for k, v := range annotations.GetManagedAnnotations(machine) {
+			g.Expect(nodeMetadata.Annotations).To(HaveKeyWithValue(k, v))
 		}
 	}
 }
@@ -891,8 +895,12 @@ func assertMachineSetsMachines(g Gomega, clusterObjects clusterObjects, cluster 
 				// MachineDeployment MachineSet Machine Node.metadata
 				node := clusterObjects.NodesByMachine[machine.Name]
 				nodeMetadata := filterMetadataBeforeValidation(node)
-				for k, v := range getManagedLabels(machineMetadata.Labels) {
+				for k, v := range labels.GetManagedLabels(machineMetadata.Labels) {
 					g.Expect(nodeMetadata.Labels).To(HaveKeyWithValue(k, v))
+				}
+
+				for k, v := range annotations.GetManagedAnnotations(machine) {
+					g.Expect(nodeMetadata.Annotations).To(HaveKeyWithValue(k, v))
 				}
 			}
 		}
@@ -1010,28 +1018,6 @@ func (m unionMap) without(g Gomega, keys ...string) unionMap {
 		delete(m, key)
 	}
 	return m
-}
-
-// getManagedLabels gets a map[string]string and returns another map[string]string
-// filtering out labels not managed by CAPI.
-// Note: This is replicated from machine_controller_noderef.go.
-// TODO: Consider moving this func to an internal util or the API package.
-func getManagedLabels(labels map[string]string) map[string]string {
-	managedLabels := make(map[string]string)
-	for key, value := range labels {
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
-		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
-			managedLabels[key] = value
-		}
-	}
-
-	return managedLabels
 }
 
 type clusterClassObjects struct {

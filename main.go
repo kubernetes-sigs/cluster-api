@@ -112,21 +112,22 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
-	remoteConnectionGracePeriod     time.Duration
-	remoteConditionsGracePeriod     time.Duration
-	clusterTopologyConcurrency      int
-	clusterCacheConcurrency         int
-	clusterClassConcurrency         int
-	clusterConcurrency              int
-	extensionConfigConcurrency      int
-	machineConcurrency              int
-	machineSetConcurrency           int
-	machineDeploymentConcurrency    int
-	machinePoolConcurrency          int
-	clusterResourceSetConcurrency   int
-	machineHealthCheckConcurrency   int
-	useDeprecatedInfraMachineNaming bool
-	additionalSyncMachineLabels     []string
+	remoteConnectionGracePeriod      time.Duration
+	remoteConditionsGracePeriod      time.Duration
+	clusterTopologyConcurrency       int
+	clusterCacheConcurrency          int
+	clusterClassConcurrency          int
+	clusterConcurrency               int
+	extensionConfigConcurrency       int
+	machineConcurrency               int
+	machineSetConcurrency            int
+	machineDeploymentConcurrency     int
+	machinePoolConcurrency           int
+	clusterResourceSetConcurrency    int
+	machineHealthCheckConcurrency    int
+	useDeprecatedInfraMachineNaming  bool
+	additionalSyncMachineLabels      []string
+	additionalSyncMachineAnnotations []string
 )
 
 func init() {
@@ -253,8 +254,11 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	fs.StringArrayVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
-		"List of regexes to select the additional set of labels to sync from the Machine to the Node. A label will be synced as long as it matches at least one of the regexes.")
+	fs.StringSliceVar(&additionalSyncMachineLabels, "additional-sync-machine-labels", []string{},
+		"List of regexes to select an additional set of labels to sync from a Machine to its associated Node. A label will be synced as long as it matches at least one of the regexes.")
+
+	fs.StringSliceVar(&additionalSyncMachineAnnotations, "additional-sync-machine-annotations", []string{},
+		"List of regexes to select an additional set of labels to sync from a Machine to its associated Node. An annotation will be synced as long as it matches at least one of the regexes.")
 
 	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
 		"Use deprecated infrastructure machine naming")
@@ -569,7 +573,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}
 
 	var errs []error
-	var additionalSyncMachineLabelRegexes []*regexp.Regexp
+	var additionalSyncMachineLabelRegexes, additionalSyncMachineAnnotationRegexes []*regexp.Regexp
 	for _, re := range additionalSyncMachineLabels {
 		reg, err := regexp.Compile(re)
 		if err != nil {
@@ -582,13 +586,26 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		setupLog.Error(fmt.Errorf("at least one of --additional-sync-machine-labels regexes is invalid: %w", kerrors.NewAggregate(errs)), "Unable to start manager")
 		os.Exit(1)
 	}
+	for _, re := range additionalSyncMachineAnnotations {
+		reg, err := regexp.Compile(re)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			additionalSyncMachineAnnotationRegexes = append(additionalSyncMachineAnnotationRegexes, reg)
+		}
+	}
+	if len(errs) > 0 {
+		setupLog.Error(fmt.Errorf("at least one of --additional-sync-machine-annotations regexes is invalid: %w", kerrors.NewAggregate(errs)), "Unable to start manager")
+		os.Exit(1)
+	}
 	if err := (&controllers.MachineReconciler{
-		Client:                      mgr.GetClient(),
-		APIReader:                   mgr.GetAPIReader(),
-		ClusterCache:                clusterCache,
-		WatchFilterValue:            watchFilterValue,
-		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
-		AdditionalSyncMachineLabels: additionalSyncMachineLabelRegexes,
+		Client:                           mgr.GetClient(),
+		APIReader:                        mgr.GetAPIReader(),
+		ClusterCache:                     clusterCache,
+		WatchFilterValue:                 watchFilterValue,
+		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,
+		AdditionalSyncMachineLabels:      additionalSyncMachineLabelRegexes,
+		AdditionalSyncMachineAnnotations: additionalSyncMachineAnnotationRegexes,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)

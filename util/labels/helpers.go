@@ -18,6 +18,9 @@ limitations under the License.
 package labels
 
 import (
+	"regexp"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -51,4 +54,34 @@ func HasWatchLabel(o metav1.Object, labelValue string) bool {
 		return false
 	}
 	return val == labelValue
+}
+
+// GetManagedLabels returns the set of labels managed by CAPI, with an optional list of regex patterns for user-specified labels.
+func GetManagedLabels(labels map[string]string, additionalSyncMachineLabels ...*regexp.Regexp) map[string]string {
+	managedLabels := make(map[string]string)
+	for key, value := range labels {
+		// Always sync the default set of labels.
+		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
+			managedLabels[key] = value
+			continue
+		}
+		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
+			managedLabels[key] = value
+			continue
+		}
+		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
+			managedLabels[key] = value
+			continue
+		}
+
+		// Sync if the labels matches at least one user provided regex.
+		for _, regex := range additionalSyncMachineLabels {
+			if regex.MatchString(key) {
+				managedLabels[key] = value
+				break
+			}
+		}
+	}
+	return managedLabels
 }

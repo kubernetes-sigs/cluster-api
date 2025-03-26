@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -38,11 +39,20 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 var (
 	// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
+	// CommonNodeAnnotations is a collection of annotations common to all nodes that ClusterAPI manages.
+	CommonNodeAnnotations = []string{
+		clusterv1.ClusterNameAnnotation,
+		clusterv1.ClusterNamespaceAnnotation,
+		clusterv1.MachineAnnotation,
+		clusterv1.OwnerKindAnnotation,
+		clusterv1.OwnerNameAnnotation,
+	}
 )
 
 func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, error) {
@@ -113,21 +123,12 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	machine.Status.NodeInfo = &s.node.Status.NodeInfo
 
 	// Compute all the annotations that CAPI is setting on nodes;
-	// CAPI only enforces some annotations and never changes or removes them.
-	nodeAnnotations := map[string]string{
-		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
-		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
-		clusterv1.MachineAnnotation:          machine.Name,
-	}
-	if owner := metav1.GetControllerOfNoCopy(machine); owner != nil {
-		nodeAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
-		nodeAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
-	}
+	nodeAnnotations := annotations.GetManagedAnnotations(machine, r.AdditionalSyncMachineAnnotations...)
 
 	// Compute labels to be propagated from Machines to nodes.
 	// NOTE: CAPI should manage only a subset of node labels, everything else should be preserved.
 	// NOTE: Once we reconcile node labels for the first time, the NodeUninitializedTaint is removed from the node.
-	nodeLabels := r.getManagedLabels(machine.Labels)
+	nodeLabels := labels.GetManagedLabels(machine.Labels, r.AdditionalSyncMachineLabels...)
 
 	// Get interruptible instance status from the infrastructure provider and set the interruptible label on the node.
 	interruptible := false
@@ -174,34 +175,6 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
 	return ctrl.Result{}, nil
-}
-
-// getManagedLabels gets a map[string]string and returns another map[string]string
-// filtering out labels not managed by CAPI.
-func (r *Reconciler) getManagedLabels(labels map[string]string) map[string]string {
-	managedLabels := make(map[string]string)
-	for key, value := range labels {
-		// Always sync the default set of labels.
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
-		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
-			managedLabels[key] = value
-		}
-
-		// Sync if the labels matches at least one user provided regex.
-		for _, regex := range r.AdditionalSyncMachineLabels {
-			if regex.MatchString(key) {
-				managedLabels[key] = value
-				break
-			}
-		}
-	}
-	return managedLabels
 }
 
 // summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
@@ -285,8 +258,41 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine) error {
 	newNode := node.DeepCopy()
 
-	// Adds the annotations CAPI sets on the node.
-	hasAnnotationChanges := annotations.AddAnnotations(newNode, newAnnotations)
+	// Adds the annotations from the Machine.
+	// NOTE: in order to handle deletion we are tracking the annotations set from the Machine in an annotation
+	// at the next reconcile we are going to use this for deleting annotations previously set by the Machine, but
+	// not present anymore. Annotations not set from machines should be always preserved.
+	if newNode.Annotations == nil {
+		newNode.Annotations = make(map[string]string)
+	}
+	hasAnnotationChanges := false
+	annotationsFromPreviousReconcile := strings.Split(newNode.Annotations[clusterv1.AnnotationsFromMachineAnnotation], ",")
+	if len(annotationsFromPreviousReconcile) == 1 && annotationsFromPreviousReconcile[0] == "" {
+		annotationsFromPreviousReconcile = []string{}
+	}
+	// append well known names
+	annotationsFromPreviousReconcile = append(annotationsFromPreviousReconcile, CommonNodeAnnotations...)
+
+	annotationsFromCurrentReconcile := []string{}
+	for k, v := range newAnnotations {
+		if cur, ok := newNode.Annotations[k]; !ok || cur != v {
+			newNode.Annotations[k] = v
+			hasAnnotationChanges = true
+		}
+		annotationsFromCurrentReconcile = append(annotationsFromCurrentReconcile, k)
+	}
+
+	// Make sure any annotations that were in the previous reconcile but aren't in the current set are removed.
+	for _, k := range annotationsFromPreviousReconcile {
+		// Don't include the annotation used to track other annotations
+		if k == clusterv1.AnnotationsFromMachineAnnotation {
+			continue
+		}
+		if _, ok := newAnnotations[k]; !ok {
+			delete(newNode.Annotations, k)
+			hasAnnotationChanges = true
+		}
+	}
 
 	// Adds the labels from the Machine.
 	// NOTE: in order to handle deletion we are tracking the labels set from the Machine in an annotation.
@@ -314,7 +320,26 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 			hasLabelChanges = true
 		}
 	}
-	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: strings.Join(labelsFromCurrentReconcile, ",")})
+
+	// drop the well known annotations before setting the value of AnnotationsFromMachineAnnotation so we're not double-accounting
+	// our own metadata
+	finalAnnotationsFromCurrentReconcile := []string{}
+	for _, entry := range annotationsFromCurrentReconcile {
+		if slices.Contains(CommonNodeAnnotations, entry) {
+			continue
+		}
+		finalAnnotationsFromCurrentReconcile = append(finalAnnotationsFromCurrentReconcile, entry)
+	}
+
+	// Sort entries so that comparisons in tests are determinate
+	slices.Sort(finalAnnotationsFromCurrentReconcile)
+	slices.Sort(labelsFromCurrentReconcile)
+
+	finalAnnotationsFromMachine := strings.Join(finalAnnotationsFromCurrentReconcile, ",")
+	newLabelsFromMachine := strings.Join(labelsFromCurrentReconcile, ",")
+
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: newLabelsFromMachine})
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.AnnotationsFromMachineAnnotation: finalAnnotationsFromMachine})
 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)

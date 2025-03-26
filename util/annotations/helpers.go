@@ -18,6 +18,7 @@ limitations under the License.
 package annotations
 
 import (
+	"regexp"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,6 +87,36 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 	}
 	o.SetAnnotations(annotations)
 	return hasChanged
+}
+
+// GetManagedAnnotations filters out and returns the CAPI-managed annotations for a Machine, with an optional list of regex patterns for user-specified annotations.
+func GetManagedAnnotations(m *clusterv1.Machine, additionalSyncMachineAnnotations ...*regexp.Regexp) map[string]string {
+	// Always sync CAPI's bookkeeping annotations
+	managedAnnotations := map[string]string{
+		clusterv1.ClusterNameAnnotation:      m.Spec.ClusterName,
+		clusterv1.ClusterNamespaceAnnotation: m.GetNamespace(),
+		clusterv1.MachineAnnotation:          m.Name,
+	}
+	if owner := metav1.GetControllerOfNoCopy(m); owner != nil {
+		managedAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
+		managedAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
+	}
+	for key, value := range m.GetAnnotations() {
+		// Always sync CAPI's default annotation node domain
+		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		if dnsSubdomainOrName == clusterv1.ManagedNodeAnnotationDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeAnnotationDomain) {
+			managedAnnotations[key] = value
+			continue
+		}
+		// Sync if the annotations matches at least one user provided regex
+		for _, regex := range additionalSyncMachineAnnotations {
+			if regex.MatchString(key) {
+				managedAnnotations[key] = value
+				break
+			}
+		}
+	}
+	return managedAnnotations
 }
 
 // hasAnnotation returns true if the object has the specified annotation.

@@ -34,13 +34,13 @@ import (
 func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	v.decoder = admission.NewDecoder(mgr.GetScheme())
 
-	mgr.GetWebhookServer().Register("/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane", &webhook.Admission{
+	mgr.GetWebhookServer().Register("/validate-scale-controlplane-cluster-x-k8s-io-v1beta2-kubeadmcontrolplane", &webhook.Admission{
 		Handler: v,
 	})
 	return nil
 }
 
-// +kubebuilder:webhook:verbs=update,path=/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes/scale,versions=v1beta1,name=validation-scale.kubeadmcontrolplane.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=update,path=/validate-scale-controlplane-cluster-x-k8s-io-v1beta2-kubeadmcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes/scale,versions=v1beta2,name=validation-scale.kubeadmcontrolplane.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // ScaleValidator validates KCP for replicas.
 type ScaleValidator struct {

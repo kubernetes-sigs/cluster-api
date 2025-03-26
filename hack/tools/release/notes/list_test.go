@@ -67,15 +67,6 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 }
 
 func Test_githubFromToPRLister_listPRs(t *testing.T) {
-	type fields struct {
-		client  *githubClient
-		fromRef *ref
-		toRef   *ref
-		branch  string
-	}
-	type args struct {
-		previousReleaseRef ref
-	}
 	tests := []struct {
 		name    string
 		fields  *githubFromToPRLister
@@ -85,106 +76,106 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		{
 			name: "Successful PR Listing",
 			fields: &githubFromToPRLister{
-				client:  &githubClient{
-					repo:    "kubernetes-sigs/kind",
+				client: &githubClient{
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value: "v0.26.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value: "v0.27.0",
+					value:  "v0.27.0",
 				},
-				branch:  "main",
+				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value: "v0.26.0",
+				value:  "v0.26.0",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Setting previousReleaseRef.value blank - should use toRef and fromRef from fields",
 			fields: &githubFromToPRLister{
-				client:  &githubClient{
-					repo:    "kubernetes-sigs/kind",
+				client: &githubClient{
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value: "v0.26.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value: "v0.27.0",
+					value:  "v0.27.0",
 				},
-				branch:  "main",
+				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value: "",
+				value:  "",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Create PR List when fromRef is not set",
 			fields: &githubFromToPRLister{
-				client:  &githubClient{
-					repo:    "kubernetes-sigs/kind",
+				client: &githubClient{
+					repo: "kubernetes-sigs/kind",
 				},
 				toRef: ref{
 					reType: "tags",
-					value: "v0.27.0",
+					value:  "v0.27.0",
 				},
-				branch:  "main",
+				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value: "v0.26.0",
+				value:  "v0.26.0",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Fail when previousReleaseRef.value is set to invalid",
 			fields: &githubFromToPRLister{
-				client:  &githubClient{
-					repo:    "kubernetes-sigs/kind",
+				client: &githubClient{
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value: "v0.26.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value: "v0.27.0",
+					value:  "v0.27.0",
 				},
-				branch:  "main",
+				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value: "invalid",
+				value:  "invalid",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Fail when toRef and previousReleaseRef set blank",
 			fields: &githubFromToPRLister{
-				client:  &githubClient{
-					repo:    "kubernetes-sigs/kind",
+				client: &githubClient{
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value: "v0.26.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value: "",
+					value:  "",
 				},
-				branch:  "main",
+				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value: "",
+				value:  "",
 			},
 			wantErr: true,
 		},

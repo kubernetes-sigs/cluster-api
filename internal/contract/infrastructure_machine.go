@@ -49,6 +49,19 @@ func (m *InfrastructureMachineContract) Ready() *Bool {
 	}
 }
 
+// Provisioned returns if the InfrastructureMachine is provisioned.
+func (m *InfrastructureMachineContract) Provisioned(contractVersion string) *Bool {
+	if contractVersion == "v1beta1" {
+		return &Bool{
+			path: []string{"status", "ready"},
+		}
+	}
+
+	return &Bool{
+		path: []string{"status", "initialization", "provisioned"},
+	}
+}
+
 // ReadyConditionType returns the type of the ready condition.
 func (m *InfrastructureMachineContract) ReadyConditionType() string {
 	return "Ready"

@@ -25,6 +25,8 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -339,8 +341,8 @@ func Test_topologyClient_Plan(t *testing.T) {
 			for _, o := range tt.existingObjects {
 				existingObjects = append(existingObjects, o)
 			}
-			proxy := test.NewFakeProxy().WithClusterAvailable(true).WithFakeCAPISetup().WithObjs(existingObjects...)
-			inventoryClient := newInventoryClient(proxy, nil)
+			proxy := test.NewFakeProxy().WithClusterAvailable(true).WithObjs(fakeCAPISetupObjects()...).WithObjs(existingObjects...)
+			inventoryClient := newInventoryClient(proxy, nil, currentContractVersion)
 			tc := newTopologyClient(
 				proxy,
 				inventoryClient,
@@ -393,6 +395,22 @@ func Test_topologyClient_Plan(t *testing.T) {
 				g.Expect(res.Deleted).To(ContainElement(MatchTopologyPlanOutputItem(deleted.kind, deleted.namespace, deleted.namePrefix)))
 			}
 		})
+	}
+}
+
+func fakeCAPISetupObjects() []client.Object {
+	return []client.Object{
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    currentContractVersion,
+						Storage: true,
+					},
+				},
+			},
+		},
 	}
 }
 

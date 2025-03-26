@@ -29,6 +29,8 @@ import (
 )
 
 func Test_metadataClient_Get(t *testing.T) {
+	var contractVersion = "foo"
+
 	type fields struct {
 		provider   config.Provider
 		version    string
@@ -50,7 +52,7 @@ func Test_metadataClient_Get(t *testing.T) {
 					WithDefaultVersion("v1.0.0").
 					WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+							{Major: 1, Minor: 2, Contract: contractVersion},
 						},
 					}),
 			},
@@ -63,7 +65,7 @@ func Test_metadataClient_Get(t *testing.T) {
 					{
 						Major:    1,
 						Minor:    2,
-						Contract: test.CurrentCAPIContract,
+						Contract: contractVersion,
 					},
 				},
 			},
@@ -91,7 +93,7 @@ func Test_metadataClient_Get(t *testing.T) {
 					WithDefaultVersion("v2.0.0").
 					WithMetadata("v2.0.0", &clusterctlv1.Metadata{ // metadata file exists for version 2.0.0, while we are checking metadata for v1.0.0
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 2, Contract: test.CurrentCAPIContract},
+							{Major: 1, Minor: 2, Contract: contractVersion},
 						},
 					}),
 			},

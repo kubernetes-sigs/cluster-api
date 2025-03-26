@@ -18,11 +18,11 @@ package client
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
@@ -61,8 +61,9 @@ func (c *clusterctlClient) GenerateProvider(ctx context.Context, provider string
 		return nil, errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", providerVersion, providerName)
 	}
 
-	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
-		return nil, errors.Errorf("current version of clusterctl is only compatible with %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, providerName)
+	compatibleContracts := c.getCompatibleContractVersions(c.currentContractVersion)
+	if !compatibleContracts.Has(releaseSeries.Contract) {
+		return nil, errors.Errorf("current version of clusterctl is only compatible with provider implementing %s conctract versions, detected %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, providerName)
 	}
 
 	return c.GetProviderComponents(ctx, provider, providerType, options)

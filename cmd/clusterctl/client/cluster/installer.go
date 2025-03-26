@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -57,7 +56,7 @@ type ProviderInstaller interface {
 	// Validate performs steps to validate a management cluster by looking at the current state and the providers in the queue.
 	// The following checks are performed in order to ensure a fully operational cluster:
 	// - There must be only one instance of the same provider
-	// - All the providers in must support the same API Version of Cluster API (contract)
+	// - All providers must support the contract version or one of its compatible versions
 	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
 	//   otherwise a warning is logged.
 	Validate(context.Context) error
@@ -74,12 +73,14 @@ type InstallOptions struct {
 
 // providerInstaller implements ProviderInstaller.
 type providerInstaller struct {
-	configClient            config.Client
-	repositoryClientFactory RepositoryClientFactory
-	proxy                   Proxy
-	providerComponents      ComponentsClient
-	providerInventory       InventoryClient
-	installQueue            []repository.Components
+	configClient                  config.Client
+	repositoryClientFactory       RepositoryClientFactory
+	proxy                         Proxy
+	providerComponents            ComponentsClient
+	providerInventory             InventoryClient
+	installQueue                  []repository.Components
+	currentContractVersion        string
+	getCompatibleContractVersions func(string) sets.Set[string]
 }
 
 var _ ProviderInstaller = &providerInstaller{}
@@ -188,13 +189,13 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 		}
 	}
 
-	// Gets the API Version of Cluster API (contract) all the providers in the management cluster must support,
-	// which is the same of the core provider.
+	// Gets the contract version that all the providers in the management cluster must support,
+	// which is the same of the core provider (or a compatible one).
 	providerInstanceContracts := map[string]string{}
 
 	coreProviders := providerList.FilterCore()
 	if len(coreProviders) != 1 {
-		return errors.Errorf("invalid management cluster: there should a core provider, found %d", len(coreProviders))
+		return errors.Errorf("invalid management cluster: there must be one core provider, found %d", len(coreProviders))
 	}
 	coreProvider := coreProviders[0]
 
@@ -202,18 +203,19 @@ func (i *providerInstaller) Validate(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	compatibleContracts := i.getCompatibleContractVersions(managementClusterContract)
 
-	// Checks if all the providers supports the same API Version of Cluster API (contract).
+	// Checks if all the providers supports the same Cluster API contract or compatible contracts.
 	for _, components := range i.installQueue {
 		provider := components.InventoryObject()
 
-		// Gets the API Version of Cluster API (contract) the provider support and compare it with the management cluster contract.
+		// Gets the contract version supported by the provider and compare it with the contract versions the management cluster is compatible with.
 		providerContract, err := i.getProviderContract(ctx, providerInstanceContracts, provider)
 		if err != nil {
 			return err
 		}
-		if providerContract != managementClusterContract {
-			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider supports the %s API Version of Cluster API (contract), while the management cluster is using %s", components.ManifestLabel(), providerContract, managementClusterContract)
+		if !compatibleContracts.Has(providerContract) {
+			return errors.Errorf("installing provider %q could lead to a non functioning management cluster: the target version for the provider implements the %s contract version, while the core provider is compatible with %s contract versions", components.ManifestLabel(), providerContract, strings.Join(compatibleContracts.UnsortedList(), ","))
 		}
 	}
 
@@ -285,7 +287,7 @@ func validateCRDName(obj unstructured.Unstructured, gk *schema.GroupKind) error 
 		"CRDs. If not, this warning can be hidden by setting the %q' annotation.", obj.GetName(), correctCRDName, clusterctlv1.SkipCRDNamePreflightCheckAnnotation)
 }
 
-// getProviderContract returns the API Version of Cluster API (contract) for a provider instance.
+// getProviderContract returns the contract versions supported by a provider instance.
 func (i *providerInstaller) getProviderContract(ctx context.Context, providerInstanceContracts map[string]string, provider clusterctlv1.Provider) (string, error) {
 	// If the contract for the provider instance is already known, return it.
 	if contract, ok := providerInstanceContracts[provider.InstanceName()]; ok {
@@ -321,8 +323,9 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 		return "", errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", provider.Version, provider.InstanceName())
 	}
 
-	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
-		return "", errors.Errorf("current version of clusterctl is only compatible with %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, provider.ManifestLabel())
+	compatibleContracts := i.getCompatibleContractVersions(i.currentContractVersion)
+	if !compatibleContracts.Has(releaseSeries.Contract) {
+		return "", errors.Errorf("current version of clusterctl is only compatible with providers implementing the %s contract versions, detected contract version %s for provider %s", strings.Join(compatibleContracts.UnsortedList(), ", "), releaseSeries.Contract, provider.ManifestLabel())
 	}
 
 	providerInstanceContracts[provider.InstanceName()] = releaseSeries.Contract
@@ -357,12 +360,14 @@ func (i *providerInstaller) Images() []string {
 	return sets.List(ret)
 }
 
-func newProviderInstaller(configClient config.Client, repositoryClientFactory RepositoryClientFactory, proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {
+func newProviderInstaller(configClient config.Client, repositoryClientFactory RepositoryClientFactory, proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient, currentContractVersion string, getCompatibleContractVersions func(string) sets.Set[string]) *providerInstaller {
 	return &providerInstaller{
-		configClient:            configClient,
-		repositoryClientFactory: repositoryClientFactory,
-		proxy:                   proxy,
-		providerComponents:      providerComponents,
-		providerInventory:       providerMetadata,
+		configClient:                  configClient,
+		repositoryClientFactory:       repositoryClientFactory,
+		proxy:                         proxy,
+		providerComponents:            providerComponents,
+		providerInventory:             providerMetadata,
+		currentContractVersion:        currentContractVersion,
+		getCompatibleContractVersions: getCompatibleContractVersions,
 	}
 }

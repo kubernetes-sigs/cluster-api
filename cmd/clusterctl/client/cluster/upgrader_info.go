@@ -30,7 +30,8 @@ import (
 
 // upgradeInfo holds all the information required for taking upgrade decisions for a provider.
 type upgradeInfo struct {
-	// metadata holds the information about releaseSeries and the link between release series and the API Version of Cluster API (contract).
+	// metadata holds the information about releaseSeries and the link between release series and the Cluster API contract
+	// version implemented in that release series.
 	// e.g. release series 0.5.x for the AWS provider --> v1alpha3
 	metadata *clusterctlv1.Metadata
 
@@ -122,7 +123,7 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 }
 
 func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Version, nextVersions []version.Version) *upgradeInfo {
-	// Sorts release series; this ensures also an implicit ordering of API Version of Cluster API (contract).
+	// Sorts release series; this ensures also an implicit ordering of contract versions.
 	sort.Slice(metadata.ReleaseSeries, func(i, j int) bool {
 		return metadata.ReleaseSeries[i].Major < metadata.ReleaseSeries[j].Major ||
 			(metadata.ReleaseSeries[i].Major == metadata.ReleaseSeries[j].Major && metadata.ReleaseSeries[i].Minor < metadata.ReleaseSeries[j].Minor)
@@ -148,7 +149,7 @@ func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Ver
 	}
 }
 
-// getContractsForUpgrade return the list of API Version of Cluster API (contract) version available for a provider upgrade.
+// getContractsForUpgrade return the list of contract version available for a provider upgrade.
 func (i *upgradeInfo) getContractsForUpgrade() []string {
 	contractsForUpgrade := sets.Set[string]{}
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
@@ -162,13 +163,13 @@ func (i *upgradeInfo) getContractsForUpgrade() []string {
 	return sets.List(contractsForUpgrade)
 }
 
-// getLatestNextVersion returns the next available version for a provider within the target API Version of Cluster API (contract).
-// the next available version is the latest version available in the for the target contract version.
-func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
+// getLatestNextVersion returns the next available version for a provider within target contract versions or a compatible contract version, if available.
+// the next available version is the latest version available that implements one of the contract version.
+func (i *upgradeInfo) getLatestNextVersion(compatibleContracts sets.Set[string]) *version.Version {
 	var latestNextVersion *version.Version
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
-		// Skip the release series if not linked with the target contract version
-		if releaseSeries.Contract != contract {
+		// Skip the release series if not linked with the compatible contract versions.
+		if !compatibleContracts.Has(releaseSeries.Contract) {
 			continue
 		}
 

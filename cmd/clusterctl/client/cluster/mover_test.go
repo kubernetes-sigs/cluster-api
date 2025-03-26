@@ -1758,9 +1758,9 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 			ctx := context.Background()
 
 			o := &objectMover{
-				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
+				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil, currentContractVersion),
 			}
-			err := o.checkTargetProviders(ctx, newInventoryClient(tt.args.toProxy, nil))
+			err := o.checkTargetProviders(ctx, newInventoryClient(tt.args.toProxy, nil, currentContractVersion))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

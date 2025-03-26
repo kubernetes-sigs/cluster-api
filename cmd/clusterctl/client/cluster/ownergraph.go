@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
@@ -69,7 +70,8 @@ func FilterClusterObjectsWithNameFilter(s string) func(u unstructured.Unstructur
 // a custom implementation of this function, or the OwnerGraph it returns.
 func GetOwnerGraph(ctx context.Context, namespace, kubeconfigPath string, filterFn GetOwnerGraphFilterFunction) (OwnerGraph, error) {
 	p := NewProxy(Kubeconfig{Path: kubeconfigPath, Context: ""})
-	invClient := newInventoryClient(p, nil)
+	// NOTE: Each Cluster API version supports one contract version, and by convention the contract version matches the current API version.
+	invClient := newInventoryClient(p, nil, clusterv1.GroupVersion.Version)
 
 	graph := newObjectGraph(p, invClient)
 

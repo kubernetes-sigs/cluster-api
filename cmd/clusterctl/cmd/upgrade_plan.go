@@ -43,12 +43,12 @@ var upgradePlanCmd = &cobra.Command{
 		The upgrade plan command provides a list of recommended target versions for upgrading the
         Cluster API providers in a management cluster.
 
-		All the providers should be supporting the same API Version of Cluster API (contract) in order
+		All the providers should be supporting the same API Version of the Cluster API contract or compatible versions in order
         to guarantee the proper functioning of the management cluster.
 
 		Then, for each provider, the following upgrade options are provided:
-		- The latest patch release for the current API Version of Cluster API (contract).
-		- The latest patch release for the next API Version of Cluster API (contract), if available.`),
+		- The latest patch release for the current Cluster API contract version.
+		- The latest patch release for the next Cluster API contract version, if available.`),
 
 	Example: templates.Examples(`
 		# Gets the recommended target versions for upgrading Cluster API providers.
@@ -111,7 +111,7 @@ func runUpgradePlan() error {
 		upgradeAvailable := false
 
 		fmt.Println("")
-		fmt.Printf("Latest release available for the %s API Version of Cluster API (contract):\n", plan.Contract)
+		fmt.Printf("Latest release available for the %s Cluster API contract version:\n", plan.Contract)
 		fmt.Println("")
 		w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
 		fmt.Fprintln(w, "NAME\tNAMESPACE\tTYPE\tCURRENT VERSION\tNEXT VERSION")

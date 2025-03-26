@@ -130,7 +130,7 @@ func (c *clusterctlClient) Init(ctx context.Context, options InitOptions) ([]Com
 
 	// Before installing the providers, validates the management cluster resulting by the planned installation. The following checks are performed:
 	// - There should be only one instance of the same provider.
-	// - All the providers must support the same API Version of Cluster API (contract)
+	// - All the providers must support the same contract version or compatible versions.
 	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
 	//   otherwise a warning is logged.
 	if err := installer.Validate(ctx); err != nil {

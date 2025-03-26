@@ -1760,7 +1760,7 @@ func getObjectGraphWithObjs(objs []client.Object) *objectGraph {
 	}
 
 	fromProxy.WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.2.3", "infra1-system")
-	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter)
+	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter, currentContractVersion)
 
 	return newObjectGraph(fromProxy, inventory)
 }
@@ -1770,7 +1770,7 @@ func getObjectGraph() *objectGraph {
 	fromProxy := getFakeProxyWithCRDs()
 
 	fromProxy.WithProviderInventory("infra1", clusterctlv1.InfrastructureProviderType, "v1.2.3", "infra1-system")
-	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter)
+	inventory := newInventoryClient(fromProxy, fakePollImmediateWaiter, currentContractVersion)
 
 	return newObjectGraph(fromProxy, inventory)
 }

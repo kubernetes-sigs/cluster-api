@@ -69,7 +69,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 			ctx := context.Background()
 
 			proxy := test.NewFakeProxy()
-			p := newInventoryClient(proxy, fakePollImmediateWaiter)
+			p := newInventoryClient(proxy, fakePollImmediateWaiter, currentContractVersion)
 			if tt.fields.alreadyHasCRD {
 				// forcing creation of metadata before test
 				g.Expect(p.EnsureCustomResourceDefinitions(ctx)).To(Succeed())
@@ -116,7 +116,7 @@ func Test_inventoryClient_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
+			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter, currentContractVersion)
 			got, err := p.List(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -249,10 +249,10 @@ func Test_CheckCAPIContract(t *testing.T) {
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
-								Name: test.PreviousCAPIContractNotSupported,
+								Name: oldContractVersionNotSupportedAnymore,
 							},
 							{
-								Name:    test.CurrentCAPIContract,
+								Name:    currentContractVersion,
 								Storage: true,
 							},
 						},
@@ -270,11 +270,11 @@ func Test_CheckCAPIContract(t *testing.T) {
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
-								Name:    test.PreviousCAPIContractNotSupported,
+								Name:    oldContractVersionNotSupportedAnymore,
 								Storage: true,
 							},
 							{
-								Name: test.CurrentCAPIContract,
+								Name: currentContractVersion,
 							},
 						},
 					},
@@ -291,18 +291,18 @@ func Test_CheckCAPIContract(t *testing.T) {
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
-								Name:    test.PreviousCAPIContractNotSupported,
+								Name:    oldContractVersionNotSupportedAnymore,
 								Storage: true,
 							},
 							{
-								Name: test.CurrentCAPIContract,
+								Name: currentContractVersion,
 							},
 						},
 					},
 				}),
 			},
 			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: v1alpha4Contract}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: v1alpha4Contract}, AllowCAPIContract{Contract: oldContractVersionNotSupportedAnymore}},
 			},
 			wantErr: false,
 		},
@@ -314,10 +314,10 @@ func Test_CheckCAPIContract(t *testing.T) {
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
-								Name: test.CurrentCAPIContract,
+								Name: currentContractVersion,
 							},
 							{
-								Name:    test.NextCAPIContractNotSupported,
+								Name:    nextContractVersionNotSupportedYet,
 								Storage: true,
 							},
 						},
@@ -333,7 +333,8 @@ func Test_CheckCAPIContract(t *testing.T) {
 			g := NewWithT(t)
 
 			p := &inventoryClient{
-				proxy: tt.fields.proxy,
+				proxy:                  tt.fields.proxy,
+				currentContractVersion: currentContractVersion,
 			}
 			err := p.CheckCAPIContract(context.Background(), tt.args.options...)
 			if tt.wantErr {
@@ -381,7 +382,7 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
+			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter, currentContractVersion)
 			err := p.CheckSingleProviderInstance(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

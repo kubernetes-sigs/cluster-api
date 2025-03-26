@@ -237,7 +237,7 @@ func fakeClusterForDelete() *fakeClient {
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), providerVersion, "capi-kubeadm-bootstrap-system")
 	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), providerVersion, "capi-kubeadm-control-plane-system")
 	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), providerVersion, namespace)
-	cluster1.fakeProxy.WithFakeCAPISetup()
+	cluster1.fakeProxy.WithObjs(fakeCAPISetupObjects()...)
 
 	client := newFakeClient(ctx, config1).
 		// fake repository for capi, bootstrap, controlplane and infra provider (matching provider's config)

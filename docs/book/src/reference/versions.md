@@ -118,14 +118,17 @@ An API version is considered deprecated when a new API version is published.
 API deprecation and removal follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/);
 Cluster API maintainers might decide to support API versions longer than what is defined in the Kubernetes policy.
 
-| API Version | Status         | Supported Until                                                                  |
-|-------------|----------------|----------------------------------------------------------------------------------|
-| v1beta1     | Supported      | at least 9 months or 3 minor releases after a newer API version will be released |
-| v1alpha4    | Not served (*) | EOL since 2023-12-05 - v1.6.0 release date                                       |
-| v1alpha3    | Not served (*) | EOL since 2023-07-25 - v1.5.0 release date                                       |
+| API Version | Status      | Supported Until                                                                  |
+|-------------|-------------|----------------------------------------------------------------------------------|
+| v1beta2     | Supported   | at least 9 months or 3 minor releases after a newer API version will be released |
+| v1beta1     | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta1 will stop to be served     |
+| v1alpha4    | Not served  | EOL since 2023-12-05 - v1.6.0 release date; removal planned for v1.13, Apr 26    |
+| v1alpha3    | Not served  | EOL since 2023-07-25 - v1.5.0 release date; removal planned for v1.13, Apr 26    |
 
-(*) Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release. 
-Those types still exist in Cluster API while we work to a fix (or a workaround) for [10051](https://github.com/kubernetes-sigs/cluster-api/issues/10051). 
+See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
+See [11919](https://github.com/kubernetes-sigs/cluster-api/issues/11919) for details about the v1alpha3/v1alpha4 removal plan.
+Note: Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release.
+Those types still exist in Cluster API while we work to a fix (or a workaround) for [10051](https://github.com/kubernetes-sigs/cluster-api/issues/10051).
 
 <aside class="note warning">
 
@@ -150,16 +153,41 @@ Each Cluster API contract version defines a set of rules a provider is expected 
 Those rules can be in the form of CustomResourceDefinition (CRD) fields and/or expected behaviors to be implemented.
 See [provider contracts](../developer/providers/contracts/overview.md)
 
-Each Cluster API release supports only one contract version, and by convention the supported contract version matches
+Each Cluster API release supports one contract version, and by convention the supported contract version matches
 the newest API version in the same Cluster API release.
 
-| Contract Version | Status    | Supported Until                                                               |
-|------------------|-----------|-------------------------------------------------------------------------------|
-| v1beta1          | Supported | After a newer API contract will be released                                   |
-| v1alpha4         | EOL       | EOL since 2023-12-05 - v1.6.0 release date; removal planned for v1.13, Apr 26 |
-| v1alpha3         | EOL       | EOL since 2023-07-25 - v1.5.0 release date; removal planned for v1.13, Apr 26 |
+A contract version might be temporarily compatible with older contract versions to ease transition of providers to
+a new supported version; compatibility for older contract versions will be dropped when the older contract version is EOL.
 
-See [11919](https://github.com/kubernetes-sigs/cluster-api/issues/11919) for details about the v1alpha3/v1alpha4 removal plan.
+<aside class="note">
+
+Unlike API versions, in Cluster API there will always be only one contract version, the supported contract version.
+
+Compatibility with older contract versions, when implemented, is only intended to ease the transition for providers, 
+and it will be considered in a very limited set of operations e.g. 
+- You can init a management cluster with a core provider implementing the v1beta2 contract and an
+  infrastructure provider still implementing the v1beta1 contract (v1beta1 is temporarily compatible with v1beta2).
+- You can temporarily have a management cluster with a core provider implementing the v1beta2 contract and an
+  infrastructure provider still implementing the v1beta1 contract, you can update both of them to newer versions
+  (v1beta1 is temporarily compatible with v1beta2).
+- A version of clusterctl implementing the v1beta2 contract cannot init a cluster with a core provider implementing
+  the v1beta1 contract (v1beta1 is deprecated).
+- A version of clusterctl implementing the v1beta2 contract cannot perform upgrades when the target version core provider 
+  will be implementing the v1beta1 contract (v1beta1 is deprecated).
+
+Also, might be that in future compatibility will be subject to limitations (e.g. compatibility only for infrastructure 
+providers of an older contract version)
+
+</aside>
+
+| Contract Version | Compatible with contract versions | Status      | Supported Until                                                                             |
+|------------------|-----------------------------------|-------------|---------------------------------------------------------------------------------------------|
+| v1beta2          | v1beta1 (temporarily)             | Supported   | After a newer API contract will be released                                                 |
+| v1beta1          |                                   | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta1 will no more be considered compatible |
+| v1alpha4         |                                   | EOL         | EOL since 2023-12-05 - v1.6.0 release date                                                  |
+| v1alpha3         |                                   | EOL         | EOL since 2023-07-25 - v1.5.0 release date                                                  |
+
+See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 
 #### Supported Cluster API - Cluster API provider version Skew
 

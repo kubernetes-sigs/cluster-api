@@ -21,13 +21,33 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
+
+var (
+	// CurrentContractVersion is the contract version supported by this Cluster API version.
+	// Note: Each Cluster API version supports one contract version, and by convention the contract version matches the current API version.
+	CurrentContractVersion = clusterv1.GroupVersion.Version
+)
+
+// GetCompatibleContractVersions return the list of contract version compatible with a given contract version.
+// NOTE: A contract version might be temporarily compatible with older contract versions e.g. to allow users time to transition to the new API.
+// NOTE: The return value must include also the contract version received in input.
+func GetCompatibleContractVersions(contract string) sets.Set[string] {
+	compatibleContracts := sets.New(contract)
+	// v1beta2 contract is temporarily be compatible with v1beta1 (until v1beta1 is EOL).
+	if contract == "v1beta2" {
+		compatibleContracts.Insert("v1beta1")
+	}
+	return compatibleContracts
+}
 
 // Kubeconfig is a type that specifies inputs related to the actual
 // kubeconfig.
@@ -89,12 +109,14 @@ type PollImmediateWaiter func(ctx context.Context, interval, timeout time.Durati
 
 // clusterClient implements Client.
 type clusterClient struct {
-	configClient            config.Client
-	kubeconfig              Kubeconfig
-	proxy                   Proxy
-	repositoryClientFactory RepositoryClientFactory
-	pollImmediateWaiter     PollImmediateWaiter
-	processor               yaml.Processor
+	configClient                  config.Client
+	kubeconfig                    Kubeconfig
+	proxy                         Proxy
+	repositoryClientFactory       RepositoryClientFactory
+	pollImmediateWaiter           PollImmediateWaiter
+	processor                     yaml.Processor
+	currentContractVersion        string
+	getCompatibleContractVersions func(string) sets.Set[string]
 }
 
 // RepositoryClientFactory defines a function that returns a new repository.Client.
@@ -120,11 +142,11 @@ func (c *clusterClient) ProviderComponents() ComponentsClient {
 }
 
 func (c *clusterClient) ProviderInventory() InventoryClient {
-	return newInventoryClient(c.proxy, c.pollImmediateWaiter)
+	return newInventoryClient(c.proxy, c.pollImmediateWaiter, c.currentContractVersion)
 }
 
 func (c *clusterClient) ProviderInstaller() ProviderInstaller {
-	return newProviderInstaller(c.configClient, c.repositoryClientFactory, c.proxy, c.ProviderInventory(), c.ProviderComponents())
+	return newProviderInstaller(c.configClient, c.repositoryClientFactory, c.proxy, c.ProviderInventory(), c.ProviderComponents(), c.currentContractVersion, c.getCompatibleContractVersions)
 }
 
 func (c *clusterClient) ObjectMover() ObjectMover {
@@ -132,7 +154,7 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 }
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
-	return newProviderUpgrader(c.configClient, c.proxy, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents())
+	return newProviderUpgrader(c.configClient, c.proxy, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents(), c.currentContractVersion, c.getCompatibleContractVersions)
 }
 
 func (c *clusterClient) Template() TemplateClient {
@@ -183,6 +205,24 @@ func InjectYamlProcessor(p yaml.Processor) Option {
 	}
 }
 
+// InjectGetCompatibleContractVersionsFunc allows you to override the getCompatibleContractVersions function that
+// cluster client uses. This option is intended for internal tests only.
+func InjectGetCompatibleContractVersionsFunc(getCompatibleContractVersions func(string) sets.Set[string]) Option {
+	return func(c *clusterClient) {
+		if getCompatibleContractVersions != nil {
+			c.getCompatibleContractVersions = getCompatibleContractVersions
+		}
+	}
+}
+
+// InjectCurrentContractVersion allows you to override the currentContractVersion that
+// cluster client uses. This option is intended for internal tests only.
+func InjectCurrentContractVersion(currentContractVersion string) Option {
+	return func(c *clusterClient) {
+		c.currentContractVersion = currentContractVersion
+	}
+}
+
 // New returns a cluster.Client.
 func New(kubeconfig Kubeconfig, configClient config.Client, options ...Option) Client {
 	return newClusterClient(kubeconfig, configClient, options...)
@@ -190,9 +230,11 @@ func New(kubeconfig Kubeconfig, configClient config.Client, options ...Option) C
 
 func newClusterClient(kubeconfig Kubeconfig, configClient config.Client, options ...Option) *clusterClient {
 	client := &clusterClient{
-		configClient: configClient,
-		kubeconfig:   kubeconfig,
-		processor:    yaml.NewSimpleProcessor(),
+		configClient:                  configClient,
+		kubeconfig:                    kubeconfig,
+		processor:                     yaml.NewSimpleProcessor(),
+		currentContractVersion:        CurrentContractVersion,
+		getCompatibleContractVersions: GetCompatibleContractVersions,
 	}
 	for _, o := range options {
 		o(client)

@@ -66,10 +66,6 @@ type ComponentsClient interface {
 	// and for the deletion of the provider's CRDs.
 	Delete(ctx context.Context, options DeleteOptions) error
 
-	// DeleteWebhookNamespace deletes the core provider webhook namespace (eg. capi-webhook-system).
-	// This is required when upgrading to v1alpha4 where webhooks are included in the controller itself.
-	DeleteWebhookNamespace(ctx context.Context) error
-
 	// ValidateNoObjectsExist checks if custom resources of the custom resource definitions exist and returns an error if so.
 	ValidateNoObjectsExist(ctx context.Context, provider clusterctlv1.Provider) error
 }

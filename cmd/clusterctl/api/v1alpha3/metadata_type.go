@@ -32,12 +32,12 @@ type Metadata struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// releaseSeries maps a provider release series (major/minor) with an API Version of Cluster API (contract).
+	// releaseSeries maps a provider release series (major/minor) with a Cluster API contract version.
 	// +optional
 	ReleaseSeries []ReleaseSeries `json:"releaseSeries"`
 }
 
-// ReleaseSeries maps a provider release series (major/minor) with a API Version of Cluster API (contract).
+// ReleaseSeries maps a provider release series (major/minor) with a Cluster API contract version.
 type ReleaseSeries struct {
 	// major version of the release series
 	// +optional

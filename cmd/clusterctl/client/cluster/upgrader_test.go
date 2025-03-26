@@ -53,14 +53,14 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -71,7 +71,52 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases the current contract
-					Contract: test.CurrentCAPIContract,
+					Contract: currentContractVersion,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v1.0.1",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+							NextVersion: "v2.0.1",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Upgrade within the current and compatible contract",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v1.0.1").
+						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+					"infrastructure-infra": repository.NewMemoryRepository().
+						WithVersions("v2.0.0", "v2.0.1").
+						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: oldContractVersionStillSupported},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+			},
+			want: []UpgradePlan{
+				{ // one upgrade plan with the latest releases the current contract
+					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -98,20 +143,20 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0-alpha.0").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}).
 						WithMetadata("v3.0.0-alpha.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -122,7 +167,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases the current contract
-					Contract: test.CurrentCAPIContract,
+					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -149,16 +194,16 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -169,7 +214,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the previous contract (not supported, but upgrade plan should report these options)
-					Contract: test.PreviousCAPIContractNotSupported,
+					Contract: oldContractVersionNotSupportedAnymore,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -182,7 +227,67 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					},
 				},
 				{ // one upgrade plan with the latest releases in the current contract
-					Contract: test.CurrentCAPIContract,
+					Contract: currentContractVersion,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v2.0.0",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+							NextVersion: "v3.0.0",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Upgrade for compatible contract, current contract", // upgrade plan should report unsupported options
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: oldContractVersionStillSupported},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+					"infrastructure-infra": repository.NewMemoryRepository().
+						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: oldContractVersionStillSupported},
+								{Major: 3, Minor: 0, Contract: oldContractVersionStillSupported},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+			},
+			want: []UpgradePlan{
+				{ // one upgrade plan with the latest releases in the previous contract (not supported, but upgrade plan should report these options)
+					Contract: oldContractVersionStillSupported,
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+							NextVersion: "v1.0.1",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+							NextVersion: "v3.0.0",
+						},
+					},
+				},
+				{ // one upgrade plan with the latest releases in the current contract
+					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -209,16 +314,16 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 				},
@@ -229,7 +334,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the current
-					Contract: test.CurrentCAPIContract,
+					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -242,7 +347,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 					},
 				},
 				{ // one upgrade plan with the latest releases in the next contract (not supported, but upgrade plan should report these options)
-					Contract: test.NextCAPIContractNotSupported,
+					Contract: nextContractVersionNotSupportedYet,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -269,15 +374,15 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0"). // no new releases available for the infra provider (only the current release exists)
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 				},
@@ -288,7 +393,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the current contract
-					Contract: test.CurrentCAPIContract,
+					Contract: currentContractVersion,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -318,7 +423,9 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
-				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+				providerInventory:             newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
+				currentContractVersion:        currentContractVersion,
+				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 			got, err := u.Plan(ctx)
 			if tt.wantErr {
@@ -361,14 +468,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -387,7 +494,55 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 			},
 			want: &UpgradePlan{
-				Contract: test.CurrentCAPIContract,
+				Contract: currentContractVersion,
+				Providers: []UpgradeItem{
+					{
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+						NextVersion: "v2.0.1",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pass if upgrade infra provider, compatible contract",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v1.0.1").
+						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+					"infra": repository.NewMemoryRepository().
+						WithVersions("v2.0.0", "v2.0.1").
+						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: oldContractVersionStillSupported},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+			},
+			args: args{
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
+				providersToUpgrade: []UpgradeItem{
+					{
+						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+						NextVersion: "v2.0.1", // upgrade to next release in the current contract
+					},
+				},
+			},
+			want: &UpgradePlan{
+				Contract: currentContractVersion,
 				Providers: []UpgradeItem{
 					{
 						Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
@@ -409,14 +564,14 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1").
 						WithMetadata("v1.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1").
 						WithMetadata("v2.0.1", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -435,7 +590,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 			},
 			want: &UpgradePlan{
-				Contract: test.CurrentCAPIContract,
+				Contract: currentContractVersion,
 				Providers: []UpgradeItem{
 					{
 						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -457,16 +612,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -489,7 +644,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 			},
 			want: &UpgradePlan{
-				Contract: test.CurrentCAPIContract,
+				Contract: currentContractVersion,
 				Providers: []UpgradeItem{
 					{
 						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -515,16 +670,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 				},
@@ -557,16 +712,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -599,16 +754,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 				},
@@ -641,16 +796,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -672,6 +827,56 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "pass if upgrade core provider alone from previous to the current contract and infra provider remains on a compatible version",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithVersions("v1.0.0", "v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+					"infra": repository.NewMemoryRepository().
+						WithVersions("v2.0.0", "v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: oldContractVersionStillSupported},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+			},
+			args: args{
+				coreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "", "cluster-api-system"),
+				providersToUpgrade: []UpgradeItem{
+					{
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+						NextVersion: "v2.0.0", // upgrade to next release in the current contract
+					},
+				},
+			},
+			want: &UpgradePlan{
+				Contract: currentContractVersion,
+				Providers: []UpgradeItem{
+					{
+						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+						NextVersion: "v2.0.0",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "fail if upgrade core and infra provider to the next contract", // not supported in current clusterctl release
 			fields: fields{
 				// config for two providers
@@ -683,16 +888,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 2, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
+								{Major: 2, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
-								{Major: 3, Minor: 0, Contract: test.NextCAPIContractNotSupported},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+								{Major: 3, Minor: 0, Contract: nextContractVersionNotSupportedYet},
 							},
 						}),
 				},
@@ -729,16 +934,16 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -761,7 +966,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 			},
 			want: &UpgradePlan{
-				Contract: test.CurrentCAPIContract,
+				Contract: currentContractVersion,
 				Providers: []UpgradeItem{
 					{
 						Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -789,7 +994,9 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
 				},
-				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+				providerInventory:             newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
+				currentContractVersion:        currentContractVersion,
+				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 			got, err := u.createCustomPlan(ctx, tt.args.providersToUpgrade)
 			if tt.wantErr {
@@ -832,16 +1039,16 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -851,7 +1058,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system-1").
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 			},
-			contract: test.CurrentCAPIContract,
+			contract: currentContractVersion,
 			wantErr:  true,
 			errorMsg: "detected multiple instances of the same provider",
 			opts:     UpgradeOptions{},
@@ -869,16 +1076,16 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -888,7 +1095,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system").
 					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system-1"),
 			},
-			contract: test.CurrentCAPIContract,
+			contract: currentContractVersion,
 			wantErr:  true,
 			errorMsg: "detected multiple instances of the same provider",
 			opts:     UpgradeOptions{},
@@ -908,7 +1115,9 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
-				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+				providerInventory:             newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
+				currentContractVersion:        currentContractVersion,
+				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 			err := u.ApplyPlan(ctx, tt.opts, tt.contract)
 			if tt.wantErr {
@@ -939,7 +1148,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 		opts               UpgradeOptions
 	}{
 		{
-			name: "fails to upgrade to v1alpha4 when there are multiple instances of the core provider",
+			name: "fails to upgrade when there are multiple instances of the core provider",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -952,15 +1161,15 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
 								{Major: 1, Minor: 0, Contract: "v1alpha3"},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -981,11 +1190,11 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				},
 			},
 			wantErr:  true,
-			errorMsg: "invalid management cluster: there should a core provider, found 2",
+			errorMsg: "invalid management cluster: there must be one core provider, found 2",
 			opts:     UpgradeOptions{},
 		},
 		{
-			name: "fails to upgrade to v1alpha4 when there are multiple instances of the infra provider",
+			name: "fails to upgrade when there are multiple instances of the infra provider",
 			fields: fields{
 				// config for two providers
 				reader: test.NewFakeReader().
@@ -997,16 +1206,16 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
 						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 2, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"infrastructure-infra": repository.NewMemoryRepository().
 						WithVersions("v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1044,11 +1253,11 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1076,18 +1285,18 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0").
 						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"bootstrap-kubeadm": repository.NewMemoryRepository().
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1116,18 +1325,18 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0").
 						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"control-plane-kubeadm": repository.NewMemoryRepository().
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1160,7 +1369,9 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
-				providerInventory: newInventoryClient(tt.fields.proxy, nil),
+				providerInventory:             newInventoryClient(tt.fields.proxy, nil, currentContractVersion),
+				currentContractVersion:        currentContractVersion,
+				getCompatibleContractVersions: getCompatibleContractVersions,
 			}
 			err := u.ApplyCustomPlan(ctx, tt.opts, tt.providersToUpgrade...)
 			if tt.wantErr {

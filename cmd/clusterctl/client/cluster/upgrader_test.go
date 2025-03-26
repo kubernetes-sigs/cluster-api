@@ -1253,11 +1253,11 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1285,18 +1285,18 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0").
 						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"bootstrap-kubeadm": repository.NewMemoryRepository().
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},
@@ -1325,18 +1325,18 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 						WithVersions("v1.0.0").
 						WithMetadata("v1.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 0, Contract: currentContractVersion},
 							},
 						}),
 					"control-plane-kubeadm": repository.NewMemoryRepository().
 						WithVersions("v1.10.0", "v1.11.0", "v1.12.0", "v1.13.0", "v1.14.0").
 						WithMetadata("v1.14.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 10, Contract: test.PreviousCAPIContractNotSupported},
-								{Major: 1, Minor: 11, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 12, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 13, Contract: test.CurrentCAPIContract},
-								{Major: 1, Minor: 14, Contract: test.CurrentCAPIContract},
+								{Major: 1, Minor: 10, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 1, Minor: 11, Contract: currentContractVersion},
+								{Major: 1, Minor: 12, Contract: currentContractVersion},
+								{Major: 1, Minor: 13, Contract: currentContractVersion},
+								{Major: 1, Minor: 14, Contract: currentContractVersion},
 							},
 						}),
 				},

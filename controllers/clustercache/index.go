@@ -19,7 +19,7 @@ package clustercache
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/api/v1beta2/index"
 )
 
 // NodeProviderIDIndex is used to index Nodes by ProviderID.

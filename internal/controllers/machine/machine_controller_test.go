@@ -2821,11 +2821,11 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine: &InfrastructureMachine{
-				Spec: InfrastructureMachineSpec{
-					ProviderID: ptr.To("test-node-a"),
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"providerID": "test-node-a",
 				},
-			},
+			}},
 			expectedError: nil,
 		},
 	}

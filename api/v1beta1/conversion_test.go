@@ -118,7 +118,7 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	// because we cannot call `FuzzNoCustom` as it would lead
 	// to an infinite recursion.
 	in.Type = c.RandString()
-	for i := 0; i < c.Intn(10); i++ {
+	for range c.Intn(10) {
 		in.Required = append(in.Required, c.RandString())
 	}
 	in.MaxItems = ptr.To(c.Int63())
@@ -150,7 +150,7 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
 	in.Properties = map[string]clusterv1.JSONSchemaProps{}
-	for i := 0; i < c.Intn(10); i++ {
+	for range c.Intn(10) {
 		in.Properties[c.RandString()] = *in2
 	}
 	in.Items = in2
@@ -161,7 +161,7 @@ func JSONSchemaPropsFuzzerV1beta1(in *JSONSchemaProps, c fuzz.Continue) {
 	// because we cannot call `FuzzNoCustom` as it would lead
 	// to an infinite recursion.
 	in.Type = c.RandString()
-	for i := 0; i < c.Intn(10); i++ {
+	for range c.Intn(10) {
 		in.Required = append(in.Required, c.RandString())
 	}
 	in.MaxItems = ptr.To(c.Int63())
@@ -193,7 +193,7 @@ func JSONSchemaPropsFuzzerV1beta1(in *JSONSchemaProps, c fuzz.Continue) {
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
 	in.Properties = map[string]JSONSchemaProps{}
-	for i := 0; i < c.Intn(10); i++ {
+	for range c.Intn(10) {
 		in.Properties[c.RandString()] = *in2
 	}
 	in.Items = in2

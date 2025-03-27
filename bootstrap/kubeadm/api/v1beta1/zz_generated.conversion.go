@@ -540,6 +540,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*apiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*apiv1beta2.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta2.ObjectMeta)(nil), (*apiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*apiv1beta2.ObjectMeta), b.(*apiv1beta1.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1531,7 +1541,17 @@ func Convert_v1beta2_KubeadmConfigTemplate_To_v1beta1_KubeadmConfigTemplate(in *
 
 func autoConvert_v1beta1_KubeadmConfigTemplateList_To_v1beta2_KubeadmConfigTemplateList(in *KubeadmConfigTemplateList, out *v1beta2.KubeadmConfigTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.KubeadmConfigTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.KubeadmConfigTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_KubeadmConfigTemplate_To_v1beta2_KubeadmConfigTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1542,7 +1562,17 @@ func Convert_v1beta1_KubeadmConfigTemplateList_To_v1beta2_KubeadmConfigTemplateL
 
 func autoConvert_v1beta2_KubeadmConfigTemplateList_To_v1beta1_KubeadmConfigTemplateList(in *v1beta2.KubeadmConfigTemplateList, out *KubeadmConfigTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]KubeadmConfigTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]KubeadmConfigTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_KubeadmConfigTemplate_To_v1beta1_KubeadmConfigTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1552,7 +1582,9 @@ func Convert_v1beta2_KubeadmConfigTemplateList_To_v1beta1_KubeadmConfigTemplateL
 }
 
 func autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1beta2_KubeadmConfigTemplateResource(in *KubeadmConfigTemplateResource, out *v1beta2.KubeadmConfigTemplateResource, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -1565,7 +1597,9 @@ func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1beta2_KubeadmConfigTempl
 }
 
 func autoConvert_v1beta2_KubeadmConfigTemplateResource_To_v1beta1_KubeadmConfigTemplateResource(in *v1beta2.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}

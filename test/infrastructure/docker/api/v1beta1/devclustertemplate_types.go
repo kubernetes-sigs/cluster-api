@@ -19,7 +19,7 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // DevClusterTemplateSpec defines the desired state of DevClusterTemplate.
@@ -58,6 +58,6 @@ type DevClusterTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
-	Spec       DevClusterSpec       `json:"spec"`
+	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
+	Spec       DevClusterSpec            `json:"spec"`
 }

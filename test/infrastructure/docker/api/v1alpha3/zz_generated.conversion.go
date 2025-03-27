@@ -27,6 +27,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
 	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
@@ -302,7 +303,7 @@ func autoConvert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in *v1b
 func autoConvert_v1alpha3_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *DockerClusterStatus, out *v1beta1.DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*v1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -420,8 +421,8 @@ func autoConvert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *v1b
 func autoConvert_v1alpha3_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *DockerMachineStatus, out *v1beta1.DockerMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Addresses = *(*[]v1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Conditions = *(*v1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // KubeadmConfig's Ready condition and corresponding reasons that will be used in v1Beta2 API version.

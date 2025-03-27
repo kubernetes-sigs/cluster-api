@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/types"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // BuiltinsName is the name of the builtin variable.
@@ -57,7 +57,7 @@ type ClusterBuiltins struct {
 
 	// metadata is the metadata set on the Cluster object.
 	// +optional
-	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Metadata *clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// topology represents the cluster topology variables.
 	// +optional
@@ -112,7 +112,7 @@ type ControlPlaneBuiltins struct {
 
 	// metadata is the metadata set on the ControlPlane object.
 	// +optional
-	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Metadata *clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// name is the name of the ControlPlane,
 	// to which the current template belongs to.
@@ -156,7 +156,7 @@ type MachineDeploymentBuiltins struct {
 
 	// metadata is the metadata set on the MachineDeployment.
 	// +optional
-	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Metadata *clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// class is the class name of the MachineDeployment,
 	// to which the current template belongs to.
@@ -200,7 +200,7 @@ type MachinePoolBuiltins struct {
 
 	// metadata is the metadata set on the MachinePool.
 	// +optional
-	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Metadata *clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// class is the class name of the MachinePool,
 	// to which the current template belongs to.

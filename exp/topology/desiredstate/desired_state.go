@@ -483,9 +483,14 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 			// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 			if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+				v1beta1Cluster := &clusterv1beta1.Cluster{}
+				if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(s.Current.Cluster, v1beta1Cluster, nil); err != nil {
+					return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+				}
+
 				// Call all the registered extension for the hook.
 				hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-					Cluster:           *s.Current.Cluster,
+					Cluster:           *v1beta1Cluster,
 					KubernetesVersion: desiredVersion,
 				}
 				hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
@@ -552,8 +557,13 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 		// At this point the control plane and the machine deployments are stable and we are almost ready to pick
 		// up the desiredVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(s.Current.Cluster, v1beta1Cluster, nil); err != nil {
+			return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+		}
+
 		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-			Cluster:               *s.Current.Cluster,
+			Cluster:               *v1beta1Cluster,
 			FromKubernetesVersion: *currentVersion,
 			ToKubernetesVersion:   desiredVersion,
 		}

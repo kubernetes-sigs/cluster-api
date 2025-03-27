@@ -196,9 +196,14 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 	// hook because already called the hook after the control plane is initialized.
 	if hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster) {
 		if isControlPlaneInitialized(s.Current.Cluster) {
+			v1beta1Cluster := &clusterv1beta1.Cluster{}
+			if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(s.Current.Cluster, v1beta1Cluster, nil); err != nil {
+				return errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+			}
+
 			// The control plane is initialized for the first time. Call all the registered extensions for the hook.
 			hookRequest := &runtimehooksv1.AfterControlPlaneInitializedRequest{
-				Cluster: *s.Current.Cluster,
+				Cluster: *v1beta1Cluster,
 			}
 			hookResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -244,9 +249,14 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			!s.UpgradeTracker.MachinePools.IsAnyPendingCreate() && // No MachinePools are pending create
 			!s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() && // No MachinePools are pending an upgrade
 			!s.UpgradeTracker.MachinePools.DeferredUpgrade() { // No MachinePools have deferred an upgrade
+			v1beta1Cluster := &clusterv1beta1.Cluster{}
+			if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(s.Current.Cluster, v1beta1Cluster, nil); err != nil {
+				return errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+			}
+
 			// Everything is stable and the cluster can be considered fully upgraded.
 			hookRequest := &runtimehooksv1.AfterClusterUpgradeRequest{
-				Cluster:           *s.Current.Cluster,
+				Cluster:           *v1beta1Cluster,
 				KubernetesVersion: s.Current.Cluster.Spec.Topology.Version,
 			}
 			hookResponse := &runtimehooksv1.AfterClusterUpgradeResponse{}

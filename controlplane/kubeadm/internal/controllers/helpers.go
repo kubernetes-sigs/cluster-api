@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -151,7 +152,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, contract.Version); err != nil {
 		return err
 	}
 

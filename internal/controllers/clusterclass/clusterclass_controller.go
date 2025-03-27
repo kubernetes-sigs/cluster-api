@@ -47,6 +47,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util"
@@ -273,7 +274,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 		// Check if the template reference is outdated, i.e. it is not using the latest apiVersion
 		// for the current CAPI contract.
 		updatedRef := ref.DeepCopy()
-		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, updatedRef); err != nil {
+		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, updatedRef, contract.Version); err != nil {
 			errs = append(errs, err)
 		}
 		if ref.GroupVersionKind().Version != updatedRef.GroupVersionKind().Version {

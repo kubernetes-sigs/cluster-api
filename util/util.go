@@ -464,7 +464,7 @@ func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersio
 	meta.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
 	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
-		return meta, errors.Wrap(err, "failed to retrieve metadata from GVK resource")
+		return meta, errors.Wrap(err, "failed to get CustomResourceDefinition metadata")
 	}
 	return meta, nil
 }

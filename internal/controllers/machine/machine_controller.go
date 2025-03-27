@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -117,6 +118,10 @@ type Reconciler struct {
 	reconcileDeleteCache cache.Cache[cache.ReconcileEntry]
 
 	predicateLog *logr.Logger
+
+	// currentContractVersion should only be used in unit tests to test behavior with other
+	// than the current contract versions. Defaults to contract.Version.
+	currentContractVersion string
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -185,6 +190,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		PredicateLogger: r.predicateLog,
 	}
 	r.reconcileDeleteCache = cache.New[cache.ReconcileEntry](cache.DefaultTTL)
+	r.currentContractVersion = contract.Version
 	return nil
 }
 

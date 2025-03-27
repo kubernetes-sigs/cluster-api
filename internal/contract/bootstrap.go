@@ -39,6 +39,19 @@ func (b *BootstrapContract) Ready() *Bool {
 	}
 }
 
+// DataSecretCreated returns if the data secret has been created.
+func (b *BootstrapContract) DataSecretCreated(contractVersion string) *Bool {
+	if contractVersion == "v1beta1" {
+		return &Bool{
+			path: []string{"status", "ready"},
+		}
+	}
+
+	return &Bool{
+		path: []string{"status", "initialization", "dataSecretCreated"},
+	}
+}
+
 // ReadyConditionType returns the type of the ready condition.
 func (b *BootstrapContract) ReadyConditionType() string {
 	return "Ready" //nolint:goconst // Not making this a constant for now

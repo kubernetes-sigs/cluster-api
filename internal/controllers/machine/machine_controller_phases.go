@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -47,7 +48,7 @@ var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, r.currentContractVersion); err != nil {
 		if apierrors.IsNotFound(err) {
 			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 			return nil, errors.New(err.Error())
@@ -143,7 +144,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 	return obj, nil
 }
 
-// reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
+// reconcileBootstrap reconciles the BootstrapConfig of a Machine.
 func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
@@ -180,48 +181,59 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		return ctrl.Result{}, nil
 	}
 
-	// Determine if the bootstrap provider is ready.
-	ready, err := external.IsReady(s.bootstrapConfig)
+	// Determine contract version used by the BootstrapConfig.
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind(), r.currentContractVersion)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Determine if the data secret was created.
+	dataSecretCreated, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(s.bootstrapConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
-	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := conditions.WithFallbackValue(*dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(ready, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = conditions.WithFallbackValue(*dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
-		conditions.UnstructuredGetter(s.bootstrapConfig),
-		fallBack,
-	)
+	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition, conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
 
 	if !s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	// If the bootstrap provider is not ready, return.
-	if !ready {
-		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
+	// If the data secret was not created yet, return.
+	if !*dataSecretCreated {
+		log.Info(fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s",
+			contract.Bootstrap().DataSecretCreated(contractVersion).Path().String()),
+			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
 		return ctrl.Result{}, nil
 	}
 
-	// Get and set the name of the secret containing the bootstrap data.
-	secretName, _, err := unstructured.NestedString(s.bootstrapConfig.Object, "status", "dataSecretName")
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
-	} else if secretName == "" {
-		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	// Get and set the dataSecretName containing the bootstrap data.
+	secretName, err := contract.Bootstrap().DataSecretName().Get(s.bootstrapConfig)
+	switch {
+	case err != nil:
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read dataSecretName from %s %s",
+			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
+	case *secretName == "":
+		return ctrl.Result{}, errors.Errorf("got empty %s field from %s %s",
+			contract.Bootstrap().DataSecretName().Path().String(),
+			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
+	default:
+		m.Spec.Bootstrap.DataSecretName = secretName
 	}
-	m.Spec.Bootstrap.DataSecretName = ptr.To(secretName)
+
 	if !m.Status.BootstrapReady {
-		log.Info("Bootstrap provider generated data secret and reports status.ready", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
+		log.Info("Bootstrap provider generated data secret", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, *secretName))
 	}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
 }
 
-// reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
+// reconcileInfrastructure reconciles the InfrastructureMachine of a Machine.
 func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
@@ -240,77 +252,90 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 			if m.Status.InfrastructureReady {
 				// Infra object went missing after the machine was up and running
-				log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
+				log.Error(err, "Machine infrastructure reference has been deleted after provisioning was completed, setting failure state")
 				m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
-				m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+				m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after provisioning was completed",
 					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 				return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 			}
-			log.Info("Could not find infrastructure machine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+			log.Info("Could not find InfrastructureMachine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
 		return ctrl.Result{}, err
 	}
 	s.infraMachine = obj
 
-	// Determine if the infrastructure provider is ready.
-	ready, err := external.IsReady(s.infraMachine)
+	// Determine contract version used by the InfraMachine.
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind(), r.currentContractVersion)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if ready && !m.Status.InfrastructureReady {
-		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+
+	// Determine if the InfrastructureMachine is provisioned.
+	provisioned, err := contract.InfrastructureMachine().Provisioned(contractVersion).Get(s.infraMachine)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if *provisioned && !m.Status.InfrastructureReady {
+		log.Info("Infrastructure provider has completed provisioning", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	}
 
-	// Report a summary of current status of the infrastructure object defined for this machine.
-	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	// Report a summary of current status of the InfrastructureMachine for this Machine.
+	fallBack := conditions.WithFallbackValue(*provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(ready, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = conditions.WithFallbackValue(*provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
-		conditions.UnstructuredGetter(s.infraMachine),
-		fallBack,
-	)
+	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition, conditions.UnstructuredGetter(s.infraMachine), fallBack)
 
 	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	// If the infrastructure provider is not ready (and it wasn't ready before), return early.
-	if !ready && !m.Status.InfrastructureReady {
-		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+	// If the InfrastructureMachine is not provisioned (and it wasn't already provisioned before), return.
+	if !*provisioned && !m.Status.InfrastructureReady {
+		log.Info(fmt.Sprintf("Waiting for infrastructure provider to create machine infrastructure and set %s",
+			contract.InfrastructureMachine().Provisioned(contractVersion).Path().String()),
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 		return ctrl.Result{}, nil
 	}
 
-	// Get Spec.ProviderID from the infrastructure provider.
-	var providerID string
-	if err := util.UnstructuredUnmarshalField(s.infraMachine, &providerID, "spec", "providerID"); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
-	} else if providerID == "" {
-		return ctrl.Result{}, errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	// Get providerID from the InfrastructureMachine (intentionally not setting it on the Machine yet).
+	var providerID *string
+	if providerID, err = contract.InfrastructureMachine().ProviderID().Get(s.infraMachine); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read providerID from %s %s",
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+	} else if *providerID == "" {
+		return ctrl.Result{}, errors.Errorf("got empty %s field from %s %s",
+			contract.InfrastructureMachine().ProviderID().Path().String(),
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	}
 
-	// Get and set Status.Addresses from the infrastructure provider.
-	err = util.UnstructuredUnmarshalField(s.infraMachine, &m.Status.Addresses, "status", "addresses")
-	if err != nil && err != util.ErrUnstructuredFieldNotFound {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
-	}
-
-	// Get and set the failure domain from the infrastructure provider.
-	var failureDomain string
-	err = util.UnstructuredUnmarshalField(s.infraMachine, &failureDomain, "spec", "failureDomain")
+	// Get and set addresses from the InfrastructureMachine.
+	addresses, err := contract.InfrastructureMachine().Addresses().Get(s.infraMachine)
 	switch {
-	case err == util.ErrUnstructuredFieldNotFound: // no-op
+	case errors.Is(err, contract.ErrFieldNotFound): // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read addresses from %s %s",
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
-		m.Spec.FailureDomain = ptr.To(failureDomain)
+		m.Status.Addresses = *addresses
 	}
 
-	// When we hit this point provider id is set, and either:
-	// - the infra machine is reporting ready for the first time
-	// - the infra machine already reported ready (and thus m.Status.InfrastructureReady is already true and it should not flip back)
-	m.Spec.ProviderID = ptr.To(providerID)
+	// Get and set failureDomain from the InfrastructureMachine.
+	failureDomain, err := contract.InfrastructureMachine().FailureDomain().Get(s.infraMachine)
+	switch {
+	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+	case err != nil:
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read failureDomain from %s %s",
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+	default:
+		m.Spec.FailureDomain = failureDomain
+	}
+
+	// When we hit this point providerID is set, and either:
+	// - the infra machine is reporting provisioned for the first time
+	// - the infra machine already reported provisioned (and thus m.Status.InfrastructureReady is already true and it should not flip back)
+	m.Spec.ProviderID = providerID
 	m.Status.InfrastructureReady = true
 	return ctrl.Result{}, nil
 }

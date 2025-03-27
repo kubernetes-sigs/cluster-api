@@ -38,7 +38,7 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Cluster{},
 		Spoke:       &Cluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterJSONFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
 	t.Run("for ClusterClass", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.ClusterClass{},
@@ -69,48 +69,11 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func ClusterJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		ClusterVariableFuzzer,
-		ClusterVariableFuzzerV1beta1,
-	}
-}
-
-func ClusterVariableFuzzer(in *clusterv1.ClusterVariable, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
-	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
-}
-
-func ClusterVariableFuzzerV1beta1(in *clusterv1.ClusterVariable, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
-	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
-}
-
 func ClusterClassJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		JSONPatchFuzzer,
-		JSONSchemaPropsFuzzer,
 		JSONSchemaPropsFuzzer,
 		JSONSchemaPropsFuzzerV1beta1,
 	}
-}
-
-func JSONPatchFuzzer(in *clusterv1.JSONPatch, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
-	in.Value = &apiextensionsv1.JSON{Raw: []byte("5")}
-}
-
-func JSONPatchFuzzerV1beta1(in *JSONPatch, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
-	in.Value = &apiextensionsv1.JSON{Raw: []byte("5")}
 }
 
 func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {

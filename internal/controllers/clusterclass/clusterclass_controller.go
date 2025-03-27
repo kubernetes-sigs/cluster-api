@@ -341,7 +341,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 				v1beta2Variables = append(v1beta2Variables, v)
 			}
 
-			if v1beta2Variables != nil && errs != nil {
+			if len(v1beta2Variables) > 0 && len(errs) == 0 {
 				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, v1beta2Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
 				if validationErrors != nil {
 					errs = append(errs, validationErrors)

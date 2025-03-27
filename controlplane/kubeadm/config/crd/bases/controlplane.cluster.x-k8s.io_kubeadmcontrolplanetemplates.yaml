@@ -4395,7 +4395,6 @@ spec:
                                   required:
                                   - device
                                   - filesystem
-                                  - label
                                   type: object
                                 maxItems: 100
                                 type: array

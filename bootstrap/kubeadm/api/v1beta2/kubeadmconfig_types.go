@@ -805,31 +805,37 @@ type Filesystem struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Device string `json:"device"`
+
 	// filesystem specifies the file system type.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	Filesystem string `json:"filesystem"`
+
 	// label specifies the file system label to be used. If set to None, no label is used.
-	// +required
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Label string `json:"label"`
+	Label string `json:"label,omitempty"`
+
 	// partition specifies the partition to use. The valid options are: "auto|any", "auto", "any", "none", and <NUM>, where NUM is the actual partition number.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	Partition *string `json:"partition,omitempty"`
+
 	// overwrite defines whether or not to overwrite any existing filesystem.
 	// If true, any pre-existing file system will be destroyed. Use with Caution.
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
+
 	// replaceFS is a special directive, used for Microsoft Azure that instructs cloud-init to replace a file system of <FS_TYPE>.
 	// NOTE: unless you define a label, this requires the use of the 'any' partition directive.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	ReplaceFS *string `json:"replaceFS,omitempty"`
+
 	// extraOpts defined extra options to add to the command for creating the file system.
 	// +optional
 	// +kubebuilder:validation:MaxItems=100

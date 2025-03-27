@@ -95,7 +95,7 @@ issues:
     linters:
       - kal
   # We follow the current CustomResourceDefinition field's json tag pattern.
-  - path: "api/v1beta2/*|pi/v1beta1/*"
+  - path: "api/v1beta2/*|api/v1beta1/*"
     text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
     linters:
       - kal

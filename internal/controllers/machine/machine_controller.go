@@ -723,8 +723,8 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	var providerID string
 	if machine.Spec.ProviderID != nil {
 		providerID = *machine.Spec.ProviderID
-	} else if machine.Spec.ProviderID == nil && infraMachine != nil {
-		// If we don't have a provider id, try to retrieve it from the inframachine.
+	} else if infraMachine != nil {
+		// Fallback to retrieve from infraMachine.
 		_ = util.UnstructuredUnmarshalField(infraMachine, &providerID, "spec", "providerID")
 	}
 

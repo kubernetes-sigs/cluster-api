@@ -30,7 +30,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
@@ -55,16 +54,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
-
-type InfrastructureMachineSpec struct {
-	ProviderID *string `json:"providerID,omitempty"`
-}
-
-type InfrastructureMachine struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              InfrastructureMachineSpec `json:"spec,omitempty"`
-}
 
 func TestWatches(t *testing.T) {
 	g := NewWithT(t)
@@ -2599,7 +2588,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
@@ -2632,7 +2621,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
@@ -2663,7 +2652,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: nil,
 		},
 		{
@@ -2677,7 +2666,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine:       &clusterv1.Machine{},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errClusterIsBeingDeleted,
 		},
 		{
@@ -2716,7 +2705,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: nil,
 		},
 		{
@@ -2755,7 +2744,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errControlPlaneIsBeingDeleted,
 		},
 		{
@@ -2794,7 +2783,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errControlPlaneIsBeingDeleted,
 		},
 		{
@@ -2940,10 +2929,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(tc.cluster)),
 			}
 
-			infraMachine, err := infrastructureMachineToUnstructured(tc.infraMachine)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			err = mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine, infraMachine)
+			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine, tc.infraMachine)
 			if tc.expectedError == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {
@@ -3612,13 +3598,4 @@ func podByNodeName(o client.Object) []string {
 	}
 
 	return []string{pod.Spec.NodeName}
-}
-
-func infrastructureMachineToUnstructured(obj *InfrastructureMachine) (*unstructured.Unstructured, error) {
-	unstructuredMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return nil, err
-	}
-	unstructuredObj := &unstructured.Unstructured{Object: unstructuredMap}
-	return unstructuredObj, nil
 }

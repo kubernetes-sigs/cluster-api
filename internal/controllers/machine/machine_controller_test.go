@@ -2541,7 +2541,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		name          string
 		cluster       *clusterv1.Cluster
 		machine       *clusterv1.Machine
-		infraMachine  *InfrastructureMachine
+		infraMachine  *unstructured.Unstructured
 		expectedError error
 	}{
 		{

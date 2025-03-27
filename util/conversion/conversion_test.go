@@ -164,49 +164,18 @@ func TestUnmarshalData(t *testing.T) {
 func TestGetContractVersion(t *testing.T) {
 	testCases := []struct {
 		name                    string
-		currentContractVersion  string
 		crdLabels               map[string]string
 		expectedContractVersion string
 		expectError             bool
 	}{
 		{
 			name:                    "no contract labels",
-			currentContractVersion:  "v1beta1",
 			crdLabels:               nil,
 			expectedContractVersion: "",
 			expectError:             true,
 		},
 		{
-			name:                   "v1beta1 contract labels (only v1beta1 exist)",
-			currentContractVersion: "v1beta1",
-			crdLabels: map[string]string{
-				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
-			},
-			expectedContractVersion: "v1beta1",
-			expectError:             false,
-		},
-		{
-			name:                   "v1beta1 contract labels (only v1beta2 exist)",
-			currentContractVersion: "v1beta1",
-			crdLabels: map[string]string{
-				"cluster.x-k8s.io/v1beta2": "v1alpha1_v1alpha2",
-			},
-			expectedContractVersion: "",
-			expectError:             true,
-		},
-		{
-			name:                   "v1beta1 contract labels (both exist)",
-			currentContractVersion: "v1beta1",
-			crdLabels: map[string]string{
-				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
-				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
-			},
-			expectedContractVersion: "v1beta1",
-			expectError:             false,
-		},
-		{
-			name:                   "v1beta2 contract labels (only v1beta2 exist)",
-			currentContractVersion: "v1beta2",
+			name: "v1beta2 contract labels (only v1beta2 exist)",
 			crdLabels: map[string]string{
 				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
 			},
@@ -214,8 +183,7 @@ func TestGetContractVersion(t *testing.T) {
 			expectError:             false,
 		},
 		{
-			name:                   "v1beta2 contract labels (only v1beta1 exist)",
-			currentContractVersion: "v1beta2",
+			name: "v1beta2 contract labels (only v1beta1 exist)",
 			crdLabels: map[string]string{
 				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
 			},
@@ -223,8 +191,7 @@ func TestGetContractVersion(t *testing.T) {
 			expectError:             false,
 		},
 		{
-			name:                   "v1beta2 contract labels (both exist)",
-			currentContractVersion: "v1beta2",
+			name: "v1beta2 contract labels (both exist)",
 			crdLabels: map[string]string{
 				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
 				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
@@ -247,7 +214,7 @@ func TestGetContractVersion(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
 
-			contractVersion, err := GetContractVersion(ctx, fakeClient, gvk, tt.currentContractVersion)
+			contractVersion, err := GetContractVersion(ctx, fakeClient, gvk)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())

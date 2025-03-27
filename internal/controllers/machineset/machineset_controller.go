@@ -1553,7 +1553,7 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		return false, nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, contract.Version); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return false, err
 	}
 

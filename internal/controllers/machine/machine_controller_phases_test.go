@@ -361,7 +361,6 @@ func TestReconcileBootstrap(t *testing.T) {
 					Scheme:          runtime.NewScheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
-				currentContractVersion: tc.contract,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			res, err := r.reconcileBootstrap(ctx, s)
@@ -978,7 +977,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Scheme:          c.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
-				currentContractVersion: tc.contract,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)

@@ -58,8 +58,7 @@ const (
 //
 // The object passed as input is modified in place if an updated compatible version is found.
 // NOTE: This version depends on CRDs being named correctly as defined by contract.CalculateCRDName.
-// TODO(v1beta2) Drop currentContractVersion as soon as we bumped contract.Version to v1beta2 (this parameter is needed for test coverage for now).
-func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference, currentContractVersion string) error {
+func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
 	gvk := ref.GroupVersionKind()
 
 	metadata, err := util.GetGVKMetadata(ctx, c, gvk)
@@ -67,7 +66,7 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
-	_, chosen, err := getLatestAPIVersionFromContract(metadata, currentContractVersion)
+	_, chosen, err := getLatestAPIVersionFromContract(metadata, contract.Version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
@@ -82,14 +81,13 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev
 }
 
 // GetContractVersion get the latest compatible contract from a CRD based on currentContractVersion.
-// TODO(v1beta2) Drop currentContractVersion as soon as we bumped contract.Version to v1beta2 (this parameter is needed for test coverage for now).
-func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, currentContractVersion string) (string, error) {
+func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (string, error) {
 	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version")
 	}
 
-	contractVersion, _, err := getLatestAPIVersionFromContract(crdMetadata, currentContractVersion)
+	contractVersion, _, err := getLatestAPIVersionFromContract(crdMetadata, contract.Version)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version")
 	}

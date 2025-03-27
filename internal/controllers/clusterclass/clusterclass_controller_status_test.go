@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -56,7 +56,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 						Namespace:  metav1.NamespaceDefault,
 					},
 					UpToDate: &corev1.ObjectReference{
-						APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+						APIVersion: "controlplane.cluster.x-k8s.io/v99",
 						Kind:       "KubeadmControlPlaneTemplate",
 						Name:       "test-kcp",
 						Namespace:  metav1.NamespaceDefault,
@@ -70,7 +70,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 						Namespace:  metav1.NamespaceDefault,
 					},
 					UpToDate: &corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v99",
 						Kind:       "DockerMachineTemplate",
 						Name:       "test-dmt",
 						Namespace:  metav1.NamespaceDefault,
@@ -81,10 +81,10 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 				Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterClassRefVersionsNotUpToDateV1Beta2Reason,
-				Message: "* Ref \"controlplane.cluster.x-k8s.io/v1beta1, Kind=KubeadmControlPlaneTemplate default/test-kcp\" should be " +
-					"\"controlplane.cluster.x-k8s.io/v1beta2, Kind=KubeadmControlPlaneTemplate default/test-kcp\"\n" +
-					"* Ref \"infrastructure.cluster.x-k8s.io/v1beta1, Kind=DockerMachineTemplate default/test-dmt\" should be " +
-					"\"infrastructure.cluster.x-k8s.io/v1beta2, Kind=DockerMachineTemplate default/test-dmt\"",
+				Message: "* Ref \"controlplane.cluster.x-k8s.io/v1beta2, Kind=KubeadmControlPlaneTemplate default/test-kcp\" should be " +
+					"\"controlplane.cluster.x-k8s.io/v99, Kind=KubeadmControlPlaneTemplate default/test-kcp\"\n" +
+					"* Ref \"infrastructure.cluster.x-k8s.io/v1beta2, Kind=DockerMachineTemplate default/test-dmt\" should be " +
+					"\"infrastructure.cluster.x-k8s.io/v99, Kind=DockerMachineTemplate default/test-dmt\"",
 			},
 		},
 		{

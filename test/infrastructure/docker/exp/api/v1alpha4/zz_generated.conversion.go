@@ -26,10 +26,10 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
 	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
-	dockerapiv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	apiv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
@@ -136,7 +136,7 @@ func Convert_v1beta1_DockerMachinePool_To_v1alpha4_DockerMachinePool(in *v1beta1
 }
 
 func autoConvert_v1alpha4_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(in *DockerMachinePoolInstanceStatus, out *v1beta1.DockerMachinePoolInstanceStatus, s conversion.Scope) error {
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]v1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceName = in.InstanceName
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
@@ -210,7 +210,7 @@ func Convert_v1beta1_DockerMachinePoolList_To_v1alpha4_DockerMachinePoolList(in 
 func autoConvert_v1alpha4_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(in *DockerMachinePoolMachineTemplate, out *v1beta1.DockerMachinePoolMachineTemplate, s conversion.Scope) error {
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]dockerapiv1beta1.Mount)(unsafe.Pointer(&in.ExtraMounts))
+	out.ExtraMounts = *(*[]apiv1beta1.Mount)(unsafe.Pointer(&in.ExtraMounts))
 	return nil
 }
 
@@ -264,7 +264,7 @@ func autoConvert_v1alpha4_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolSt
 	out.Replicas = in.Replicas
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Instances = *(*[]v1beta1.DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*v1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 func TestDiff(t *testing.T) {

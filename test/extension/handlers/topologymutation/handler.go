@@ -33,9 +33,9 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
@@ -416,17 +416,17 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 	log.Info("DiscoverVariables called")
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
-	resp.Variables = []clusterv1.ClusterClassVariable{
+	resp.Variables = []clusterv1beta1.ClusterClassVariable{
 		{
 			Name:     "kubeadmControlPlaneMaxSurge",
 			Required: false,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Type:        "string",
 					Default:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
 					Example:     &apiextensionsv1.JSON{Raw: []byte(`"0"`)},
 					Description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.",
-					XValidations: []clusterv1.ValidationRule{
+					XValidations: []clusterv1beta1.ValidationRule{
 						{
 							Rule:              "self == \"\" || self != \"\"",
 							MessageExpression: "'just a test expression, got %s'.format([self])",
@@ -439,11 +439,11 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		{
 			Name:     "imageRepository",
 			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Type:    "string",
 					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
-					XMetadata: &clusterv1.VariableSchemaMetadata{
+					XMetadata: &clusterv1beta1.VariableSchemaMetadata{
 						Labels: map[string]string{
 							"objects": "DockerCluster",
 						},
@@ -453,7 +453,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 					},
 				},
 			},
-			Metadata: clusterv1.ClusterClassVariableMetadata{
+			Metadata: clusterv1beta1.ClusterClassVariableMetadata{
 				Labels: map[string]string{
 					"objects": "DockerCluster",
 				},

@@ -2568,7 +2568,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			infraMachine:  &InfrastructureMachine{},
+			infraMachine:  nil,
 			expectedError: errNilNodeRef,
 		},
 		{

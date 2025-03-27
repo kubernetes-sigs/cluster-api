@@ -196,7 +196,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group),
 						Labels: map[string]string{
-							clusterv1.GroupVersion.String(): "v1beta1",
+							clusterv1.GroupVersion.String(): clusterv1.GroupVersion.Version,
 						},
 					},
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{

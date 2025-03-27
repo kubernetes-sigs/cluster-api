@@ -588,7 +588,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 							Spec: clusterv1.MachineSpec{
 								Version: ptr.To("v1.26.2"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1/invalid",
+									APIVersion: "bootstrap.cluster.x-k8s.io/vx/invalid",
 									Kind:       "KubeadmConfigTemplate",
 								}},
 							},

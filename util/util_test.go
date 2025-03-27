@@ -52,7 +52,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 			name: "should reconcile infra-1",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha4",
+				Version: "vx",
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
@@ -62,7 +62,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/v1beta1",
+						APIVersion: "foo.cluster.x-k8s.io/vx",
 						Kind:       "TestMachine",
 						Name:       "infra-1",
 					},
@@ -81,7 +81,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 			name: "should return no matching reconcile requests",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1beta1",
+				Version: "vx",
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
@@ -91,7 +91,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "bar.cluster.x-k8s.io/v1beta1",
+						APIVersion: "bar.cluster.x-k8s.io/vx",
 						Kind:       "TestMachine",
 						Name:       "bar-1",
 					},
@@ -122,7 +122,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			name: "should reconcile infra-1",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha4",
+				Version: "vx",
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
@@ -132,14 +132,14 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/v1beta1",
+						APIVersion: "foo.cluster.x-k8s.io/vx",
 						Kind:       "TestCluster",
 						Name:       "infra-1",
 					},
 				},
 			},
 			infrastructure: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "foo.cluster.x-k8s.io/v1beta1",
+				"apiVersion": "foo.cluster.x-k8s.io/vx",
 				"kind":       "TestCluster",
 				"metadata": map[string]interface{}{
 					"namespace": metav1.NamespaceDefault,
@@ -159,7 +159,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			name: "should return no matching reconcile requests",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1beta1",
+				Version: "vx",
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
@@ -169,7 +169,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "bar.cluster.x-k8s.io/v1beta1",
+						APIVersion: "bar.cluster.x-k8s.io/vx",
 						Kind:       "TestCluster",
 						Name:       "bar-1",
 					},
@@ -181,7 +181,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			name: "Externally managed provider cluster is excluded",
 			input: schema.GroupVersionKind{
 				Group:   "foo.cluster.x-k8s.io",
-				Version: "v1alpha4",
+				Version: "vx",
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
@@ -191,14 +191,14 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/v1beta1",
+						APIVersion: "foo.cluster.x-k8s.io/vx",
 						Kind:       "TestCluster",
 						Name:       "infra-1",
 					},
 				},
 			},
 			infrastructure: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "foo.cluster.x-k8s.io/v1beta1",
+				"apiVersion": "foo.cluster.x-k8s.io/vx",
 				"kind":       "TestCluster",
 				"metadata": map[string]interface{}{
 					"namespace": metav1.NamespaceDefault,
@@ -999,7 +999,7 @@ func TestRemoveOwnerRef(t *testing.T) {
 				Name:       "m4g1c",
 			},
 			{
-				APIVersion: "bar.cluster.x-k8s.io/v1beta1",
+				APIVersion: "bar.cluster.x-k8s.io/vx",
 				Kind:       "TestCluster",
 				Name:       "bar-1",
 			},

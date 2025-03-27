@@ -1578,7 +1578,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "nonmatchinginfrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: "nonmatchinginfrastructure.cluster.x-k8s.io/vx",
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).

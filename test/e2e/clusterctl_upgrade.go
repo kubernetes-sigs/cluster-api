@@ -129,7 +129,7 @@ type ClusterctlUpgradeSpecInput struct {
 	WorkloadKubernetesVersion string
 
 	// Upgrades allows to define upgrade sequences.
-	// If not set, the test will upgrade once to the v1beta1 contract.
+	// If not set, the test will upgrade once to the latest contract.
 	// For some examples see clusterctl_upgrade_test.go
 	Upgrades []ClusterctlUpgradeSpecInputUpgrade
 
@@ -161,7 +161,7 @@ type ClusterctlUpgradeSpecInputUpgrade struct {
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
 //
-// NOTE: this test is designed to test older versions of Cluster API --> v1beta1 upgrades.
+// NOTE: this test is designed to test older versions of Cluster API --> latest contract version upgrades.
 // This spec will create a workload cluster, which will be converted into a new management cluster (henceforth called secondary
 // managemnet cluster)
 // with the older version of Cluster API and infrastructure provider. It will then create an additional
@@ -231,7 +231,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initClusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
 
 		// NOTE: by default we are considering all the providers, no matter of the contract.
-		// However, given that we want to test both v1alpha3 --> v1beta1 and v1alpha4 --> v1beta1,
+		// However, given that we want to test both v1alpha3 --> v1beta1, v1alpha4 --> v1beta1, v1beta1 --> v1beta2,
 		// InitWithProvidersContract can be used to select versions with a specific contract.
 		initContract = "*"
 		if input.InitWithProvidersContract != "" {
@@ -241,7 +241,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initKubernetesVersion = input.InitWithKubernetesVersion
 
 		if len(input.Upgrades) == 0 {
-			// Upgrade once to v1beta1 if no upgrades are specified.
+			// Upgrade once to latest contract version if no upgrades are specified.
 			input.Upgrades = []ClusterctlUpgradeSpecInputUpgrade{
 				{
 					Contract: clusterv1.GroupVersion.Version,
@@ -467,7 +467,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		coreCAPIStorageVersion := getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
-		// Note: We have to use unstructured here as the Cluster could be e.g. v1alpha3 / v1alpha4 / v1beta1.
+		// Note: We have to use unstructured here as the Cluster could use also old API versions.
 		workloadClusterUnstructured := discoveryAndWaitForCluster(ctx, discoveryAndWaitForClusterInput{
 			Client:                 managementClusterProxy.GetClient(),
 			CoreCAPIStorageVersion: coreCAPIStorageVersion,
@@ -609,7 +609,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// We have to get the core CAPI storage version again as the upgrade might have stopped serving v1alpha3/v1alpha4.
 			coreCAPIStorageVersion = getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
-			// Note: Currently we only support v1beta1 core CAPI apiVersion after upgrades.
+			// Note: Currently we only support v1beta2 core CAPI apiVersion after upgrades.
 			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
 			workloadCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    managementClusterProxy.GetClient(),
@@ -891,8 +891,7 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
 	var expectedMachineDeploymentWorkerCount int64
 
-	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
-	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	// Convert unstructured Cluster to Cluster.
 	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
 		cluster := &clusterv1.Cluster{}
 		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
@@ -968,8 +967,7 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
 	var expectedMachinePoolWorkerCount int64
 
-	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
-	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	// Convert unstructured Cluster to Cluster
 	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
 		cluster := &clusterv1.Cluster{}
 		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())

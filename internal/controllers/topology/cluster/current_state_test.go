@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1247,8 +1248,11 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		{
 			name: "Use apiVersion from currentRef: group is different",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "bootstrap2.cluster.x-k8s.io/v1beta1",
-				"kind":       "KubeadmConfigTemplate",
+				"apiVersion": schema.GroupVersion{
+					Group:   "foo",
+					Version: clusterv1.GroupVersionBootstrap.String(),
+				}.String(),
+				"kind": "KubeadmConfigTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),

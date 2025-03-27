@@ -35,7 +35,7 @@ import (
 func TestGetReference(t *testing.T) {
 	fakeControlPlaneTemplateCRDv99 := builder.GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
-		clusterv1.GroupVersion.String(): "v1beta1_v99",
+		clusterv1.GroupVersion.String(): "v99",
 	}
 	crds := []client.Object{
 		fakeControlPlaneTemplateCRDv99,

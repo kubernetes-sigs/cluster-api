@@ -101,7 +101,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		match, diff, err := matchClusterConfiguration(kcp, m)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(diff).To(BeComparableTo(`&v1beta1.ClusterConfiguration{
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
     ... // 10 identical fields
     ImageRepository: "",
     FeatureGates:    nil,
@@ -532,12 +532,12 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
-    InitConfiguration: &v1beta1.InitConfiguration{
+    InitConfiguration: &v1beta2.InitConfiguration{
       TypeMeta:        {},
       BootstrapTokens: nil,
-      NodeRegistration: v1beta1.NodeRegistrationOptions{
+      NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "A new name",
         CRISocket: "",
@@ -657,12 +657,12 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration:    nil,
-    JoinConfiguration: &v1beta1.JoinConfiguration{
+    JoinConfiguration: &v1beta2.JoinConfiguration{
       TypeMeta: {},
-      NodeRegistration: v1beta1.NodeRegistrationOptions{
+      NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "A new name",
         CRISocket: "",
@@ -728,12 +728,12 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration:    nil,
 -   Files:                nil,
-+   Files:                []v1beta1.File{},
++   Files:                []v1beta2.File{},
     DiskSetup:            nil,
     Mounts:               nil,
     ... // 9 identical fields
@@ -792,7 +792,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta1.ClusterConfiguration{
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
     ... // 10 identical fields
     ImageRepository: "",
     FeatureGates:    nil,
@@ -904,12 +904,12 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
-    InitConfiguration: &v1beta1.InitConfiguration{
+    InitConfiguration: &v1beta2.InitConfiguration{
       TypeMeta:        {},
       BootstrapTokens: nil,
-      NodeRegistration: v1beta1.NodeRegistrationOptions{
+      NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "foo",
         CRISocket: "",
@@ -1029,12 +1029,12 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration:    nil,
-    JoinConfiguration: &v1beta1.JoinConfiguration{
+    JoinConfiguration: &v1beta2.JoinConfiguration{
       TypeMeta: {},
-      NodeRegistration: v1beta1.NodeRegistrationOptions{
+      NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "foo",
         CRISocket: "",
@@ -1100,12 +1100,12 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration:    nil,
 -   Files:                nil,
-+   Files:                []v1beta1.File{},
++   Files:                []v1beta2.File{},
     DiskSetup:            nil,
     Mounts:               nil,
     ... // 9 identical fields
@@ -1560,7 +1560,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta1.ClusterConfiguration{\n    ... // 10 identical fields\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n-   ClusterName:     \"foo\",\n+   ClusterName:     \"bar\",\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 10 identical fields\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n-   ClusterName:     \"foo\",\n+   ClusterName:     \"bar\",\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{

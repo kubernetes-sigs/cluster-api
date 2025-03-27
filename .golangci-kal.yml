@@ -62,15 +62,15 @@ issues:
   - path-except: "api//*"
     linters:
       - kal
-  - path: "api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
     text: "Conditions field must be a slice of metav1.Condition"
     linters:
       - kal
-  - path: "api/v1beta1/*"
+  - path: "api/v1beta2/*|api/v1beta1/*"
     text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
-  - path: "exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
+  - path: "exp/ipam/api/v1beta2/*|exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
       - kal
@@ -80,35 +80,35 @@ issues:
     linters:
       - kal
   # controller-gen does not allow to add MaxItems to Schemaless fields
-  - path: "api/v1beta1/*"
+  - path: "api/v1beta2/*|api/v1beta1/*"
     text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
       - kal
   # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
   # This exclude will  be removed once https://github.com/JoelSpeed/kal/issues/38 is resolved.
-  - path: "api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
     text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
       - kal
-  - path: "api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
+  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
     text: "nobools"
     linters:
       - kal
   # We follow the current CustomResourceDefinition field's json tag pattern.
-  - path: "api/v1beta1/*"
+  - path: "api/v1beta2/*|pi/v1beta1/*"
     text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
     linters:
       - kal
   # The following rules are disabled until we migrate to the new API.
-  - path: "bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
+  - path: "bootstrap/kubeadm/api/v1beta2/kubeadm_types.go|bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
     text: "field Token is marked as required, should not be a pointer"
     linters:
       - kal
-  - path: "api/v1beta1/clusterclass_types.go"
+  - path: "api/v1beta2/clusterclass_types.go|api/v1beta1/clusterclass_types.go"
     text: "field Ref is marked as required, should not be a pointer"
     linters:
       - kal
-  - path: "api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
+  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
     text: "field Items must be marked as optional or required"
     linters:
       - kal

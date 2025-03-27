@@ -624,7 +624,7 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ // group1
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericExternalObject, ns1/externalObject1",
+				"external.cluster.x-k8s.io/v1beta2, Kind=GenericExternalObject, ns1/externalObject1",
 			},
 		},
 		wantErr: false,
@@ -637,7 +637,7 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ // group1
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, externalObject1",
+				"external.cluster.x-k8s.io/v1beta2, Kind=GenericClusterExternalObject, externalObject1",
 			},
 		},
 		wantErr: false,

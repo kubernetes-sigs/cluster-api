@@ -121,6 +121,8 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4
         alias: bootstrapv1alpha4
       - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        alias: bootstrapv1beta1
+      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
         alias: bootstrapv1
       # KCP
       - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3
@@ -128,6 +130,8 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4
         alias: controlplanev1alpha4
       - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        alias: controlplanev1beta1
+      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
         alias: controlplanev1
       # CAPI
       - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3
@@ -135,6 +139,8 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4
         alias: clusterv1alpha4
       - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        alias: clusterv1beta1
+      - pkg: sigs.k8s.io/cluster-api/api/v1beta2
         alias: clusterv1
       # CAPI exp
       - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3
@@ -142,6 +148,8 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4
         alias: expv1alpha4
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
+        alias: expv1beta1
+      - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta2
         alias: expv1
       # CAPI exp addons
       - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3
@@ -149,9 +157,13 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha4
         alias: addonsv1alpha4
       - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
+        alias: addonsv1beta1
+      - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
         alias: addonsv1
       # CAPI exp IPAM
       - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
+        alias: ipamv1beta1
+      - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
         alias: ipamv1
       # CAPI exp runtime
       - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1
@@ -244,7 +256,7 @@ issues:
   # should be removed as the referenced deprecated item is removed from the project.
   - linters:
       - staticcheck
-    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
+    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
     # Deprecations forGetIPFamily
   - linters:
       - staticcheck

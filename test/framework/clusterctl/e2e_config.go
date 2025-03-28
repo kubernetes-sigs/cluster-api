@@ -402,7 +402,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 
 	// If we reached this point, it means we didn't find any release.
-	return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	return "", errors.New("failed to find releases tagged with a valid semantic version number (metadata.yaml up-to-date?)")
 }
 
 var (

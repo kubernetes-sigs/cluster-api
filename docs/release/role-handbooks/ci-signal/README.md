@@ -45,7 +45,6 @@ While we add test coverage for the new release branch we will also drop the test
   TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
   ```
 6. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.8`
-7. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.8`).
 
 Prior art:
 

@@ -38,6 +38,7 @@ The domain for Cluster API resources is `cluster.x-k8s.io`, and infrastructure p
 Commit your changes so far:
 
 ```bash
+git add .
 git commit -m "Generate scaffolding."
 ```
 

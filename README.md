@@ -14,7 +14,7 @@
 
 #### Useful links
 - [Feature proposals](./docs/proposals)
-- [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
+- [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-startFAIL.html)
 
 ## ✨ What is the Cluster API?
 

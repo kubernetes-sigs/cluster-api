@@ -1,12 +1,13 @@
 resources:
-  - ./crd-clusterrole.yaml
+  - ./rbac.yaml
 
 namespace: observability
+namePrefix: capi-
 
 configMapGenerator:
-- name: kube-state-metrics-crd-config-capi
+- name: kube-state-metrics-crd-config
   files:
-  - capi.yaml=crd-metrics-config.yaml
+  - capi.yaml=metrics.yaml
   options:
     disableNameSuffixHash: true
     labels:

@@ -352,7 +352,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-in-memory.yaml"
-    - sourcePath: "../data/shared/main/metadata-docker.yaml"
+    - sourcePath: "../data/shared/main/docker/metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider

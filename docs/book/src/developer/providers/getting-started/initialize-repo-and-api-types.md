@@ -76,29 +76,6 @@ Create Controller under pkg/controller [y/n]?
 y
 ```
 
-### Add Status subresource
-
-The [status subresource][status] lets Spec and Status requests for custom resources be addressed separately so requests don't conflict with each other.
-It also lets you split RBAC rules between Spec and Status. You will have to [manually enable it in Kubebuilder][kbstatus].
-
-Add the `subresource:status` annotation to your `<provider>cluster_types.go` `<provider>machine_types.go`
-
-```go
-// +kubebuilder:subresource:status
-// +kubebuilder:object:root=true
-
-// MailgunCluster is the Schema for the mailgunclusters API
-type MailgunCluster struct {
-```
-
-```go
-// +kubebuilder:subresource:status
-// +kubebuilder:object:root=true
-
-// MailgunMachine is the Schema for the mailgunmachines API
-type MailgunMachine struct {
-```
-
 And regenerate the CRDs:
 ```bash
 make manifests
@@ -110,9 +87,6 @@ Commit your changes
 git add .
 git commit -m "Generate Cluster and Machine resources."
 ```
-
-[status]:  https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#status-subresource
-[kbstatus]: https://book.kubebuilder.io/reference/generating-crd.html?highlight=status#status
 
 ### Apply further customizations
 

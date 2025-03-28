@@ -41,6 +41,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -945,7 +946,16 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	scheme := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(scheme)
 	cluster := &clusterv1.Cluster{}
-	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
+	if objs[0].GetAPIVersion() == clusterv1beta1.GroupVersion.String() {
+		// Read a v1beta1 Cluster and convert to a v1beta2 Cluster.
+		_ = clusterv1beta1.AddToScheme(scheme)
+		clusterV1beta1 := &clusterv1beta1.Cluster{}
+		Expect(scheme.Convert(&objs[0], clusterV1beta1, nil)).Should(Succeed())
+		Expect(clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(clusterV1beta1, cluster, nil)).To(Succeed())
+	} else {
+		Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
+	}
+
 	// Verify the Cluster Topology.
 	Expect(cluster.Spec.Topology).NotTo(BeNil(), "Should be a ClusterClass based Cluster")
 	Expect(cluster.Spec.Topology.Workers).NotTo(BeNil(), "ClusterTopology should have exactly one MachineDeployment. Cannot be empty")

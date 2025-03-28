@@ -25,8 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
@@ -61,7 +62,7 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 		},
 	}
 	if cluster.Labels != nil || cluster.Annotations != nil {
-		builtin.Cluster.Metadata = &clusterv1.ObjectMeta{
+		builtin.Cluster.Metadata = &clusterv1beta1.ObjectMeta{
 			Labels:      cluster.Labels,
 			Annotations: cluster.Annotations,
 		}
@@ -125,7 +126,7 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 		builtin.ControlPlane.Replicas = replicas
 	}
 	if cp.GetLabels() != nil || cp.GetAnnotations() != nil {
-		builtin.ControlPlane.Metadata = &clusterv1.ObjectMeta{
+		builtin.ControlPlane.Metadata = &clusterv1beta1.ObjectMeta{
 			Annotations: cp.GetAnnotations(),
 			Labels:      cp.GetLabels(),
 		}
@@ -181,7 +182,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
 	}
 	if md.Labels != nil || md.Annotations != nil {
-		builtin.MachineDeployment.Metadata = &clusterv1.ObjectMeta{
+		builtin.MachineDeployment.Metadata = &clusterv1beta1.ObjectMeta{
 			Annotations: md.Annotations,
 			Labels:      md.Labels,
 		}
@@ -237,7 +238,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePoo
 		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
 	}
 	if mp.Labels != nil || mp.Annotations != nil {
-		builtin.MachinePool.Metadata = &clusterv1.ObjectMeta{
+		builtin.MachinePool.Metadata = &clusterv1beta1.ObjectMeta{
 			Annotations: mp.Annotations,
 			Labels:      mp.Labels,
 		}

@@ -39,7 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
@@ -544,14 +545,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "cpu",
 						// Note: This schema must be exactly equal to the one in clusterClassWithInlineVariables to avoid conflicts.
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "integer",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: &clusterv1beta1.VariableSchemaMetadata{
 									Labels: map[string]string{
 										"some-label": "some-label-value",
 									},
@@ -559,14 +560,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 										"some-annotation": "some-annotation-value",
 									},
 								},
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									Rule:    "self >= 1",
 									Message: "integer must be greater or equal than 1",
-									Reason:  clusterv1.FieldValueInvalid,
+									Reason:  clusterv1beta1.FieldValueInvalid,
 								}},
 							},
 						},
-						Metadata: clusterv1.ClusterClassVariableMetadata{
+						Metadata: clusterv1beta1.ClusterClassVariableMetadata{
 							Labels: map[string]string{
 								"some-label": "some-label-value",
 							},
@@ -577,10 +578,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name: "memory",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									Rule:              "true",
 									MessageExpression: "'test error message, got value %s'.format([self])",
 								}},
@@ -589,10 +590,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name: "location",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: &clusterv1beta1.VariableSchemaMetadata{
 									Labels: map[string]string{
 										"some-label": "some-label-value",
 									},
@@ -602,7 +603,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 								},
 							},
 						},
-						Metadata: clusterv1.ClusterClassVariableMetadata{
+						Metadata: clusterv1beta1.ClusterClassVariableMetadata{
 							Labels: map[string]string{
 								"some-label": "some-label-value",
 							},
@@ -756,12 +757,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "cpu",
 						// Note: This schema conflicts with the schema in clusterClassWithInlineVariables.
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
 							},
 						},
@@ -788,21 +789,21 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "cpu",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
 							},
 						},
 					},
 					{
 						Name: "memory",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									Rule:              "true",
 									MessageExpression: "'test error message, got value %s'.format([self])",
 								}},
@@ -811,15 +812,15 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name: "httpProxy",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
+								Properties: map[string]clusterv1beta1.JSONSchemaProps{
 									"enabled": {
 										Type: "boolean",
 									},
 								},
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									Rule:              "true",
 									MessageExpression: "'test error message, got value %s'.format([self.enabled])",
 									FieldPath:         ".enabled",
@@ -829,10 +830,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name: "location",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: &clusterv1beta1.VariableSchemaMetadata{
 									Labels: map[string]string{
 										"some-label": "some-label-value",
 									},
@@ -842,7 +843,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 								},
 							},
 						},
-						Metadata: clusterv1.ClusterClassVariableMetadata{
+						Metadata: clusterv1beta1.ClusterClassVariableMetadata{
 							Labels: map[string]string{
 								"some-label": "some-label-value",
 							},
@@ -957,19 +958,19 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "cpu",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
 							},
 						},
 					},
 					{
 						Name: "cpu",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "integer",
 							},
 						},
@@ -997,13 +998,13 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "httpProxy",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
+								Properties: map[string]clusterv1beta1.JSONSchemaProps{
 									"enabled": {
 										Type:    "boolean",
 										Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
@@ -1042,19 +1043,19 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "cpu",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
+								Properties: map[string]clusterv1beta1.JSONSchemaProps{
 									"nestedField": {
 										Type: "integer",
 										Default: &apiextensionsv1.JSON{
 											Raw: []byte(`0`), // Default value is invalid according to CEL.
 										},
-										XValidations: []clusterv1.ValidationRule{{
+										XValidations: []clusterv1beta1.ValidationRule{{
 											Rule: "self >= 1",
 										}},
 									},
@@ -1064,10 +1065,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name: "anotherCPU",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "integer",
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									Rule:              "self >= 1",
 									MessageExpression: "'Expected integer greater or equal to 1, got ' + this does not compile", // does not compile
 								}},
@@ -1111,13 +1112,13 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
-				Variables: []clusterv1.ClusterClassVariable{
+				Variables: []clusterv1beta1.ClusterClassVariable{
 					{
 						Name: "someIP",
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Schema: clusterv1beta1.VariableSchema{
+							OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 								Type: "string",
-								XValidations: []clusterv1.ValidationRule{{
+								XValidations: []clusterv1beta1.ValidationRule{{
 									// Note: IP will be only available if the compatibility version is 1.30
 									Rule: "ip(self).family() == 6",
 								}},

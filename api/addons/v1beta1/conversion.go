@@ -16,7 +16,32 @@ limitations under the License.
 
 package v1beta1
 
-func (*ClusterResourceSet) Hub()            {}
-func (*ClusterResourceSetList) Hub()        {}
-func (*ClusterResourceSetBinding) Hub()     {}
-func (*ClusterResourceSetBindingList) Hub() {}
+import (
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+)
+
+func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*addonsv1.ClusterResourceSet)
+
+	return Convert_v1beta1_ClusterResourceSet_To_v1beta2_ClusterResourceSet(src, dst, nil)
+}
+
+func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*addonsv1.ClusterResourceSet)
+
+	return Convert_v1beta2_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil)
+}
+
+func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
+
+	return Convert_v1beta1_ClusterResourceSetBinding_To_v1beta2_ClusterResourceSetBinding(src, dst, nil)
+}
+
+func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*addonsv1.ClusterResourceSetBinding)
+
+	return Convert_v1beta2_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil)
+}

@@ -42,13 +42,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/api/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1257,7 +1256,6 @@ func TestMachineConditions(t *testing.T) {
 					Scheme:          clientFake.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
-				currentContractVersion: contract.Version,
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -1312,10 +1310,9 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	c := fake.NewClientBuilder().WithObjects(testCluster, m, builder.GenericInfrastructureMachineCRD.DeepCopy()).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
-		Client:                 c,
-		ClusterCache:           clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
-		reconcileDeleteCache:   cache.New[cache.ReconcileEntry](cache.DefaultTTL),
-		currentContractVersion: contract.Version,
+		Client:               c,
+		ClusterCache:         clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
+		reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())

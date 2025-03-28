@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: "my-cluster"
@@ -16,7 +16,7 @@ spec:
     host: 172.19.0.4
     port: 6443
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: KubeadmControlPlane
     name: my-cluster-fwbpf
     namespace: default
@@ -56,7 +56,7 @@ spec:
     port: 6443
   loadBalancer: {}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   annotations:
@@ -70,7 +70,7 @@ metadata:
   name: my-cluster-fwbpf
   namespace: default
   ownerReferences:
-    - apiVersion: cluster.x-k8s.io/v1beta1
+    - apiVersion: cluster.x-k8s.io/v1beta2
       blockOwnerDeletion: true
       controller: true
       kind: Cluster
@@ -125,7 +125,7 @@ metadata:
   name: my-cluster-control-plane-44cd4
   namespace: default
   ownerReferences:
-    - apiVersion: cluster.x-k8s.io/v1beta1
+    - apiVersion: cluster.x-k8s.io/v1beta2
       kind: Cluster
       name: my-cluster
       uid: 3ba5ce4f-d279-4edb-8ade-62a2381d11a8

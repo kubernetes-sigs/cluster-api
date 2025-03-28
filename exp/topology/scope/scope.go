@@ -19,7 +19,7 @@ package scope
 import (
 	"strconv"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 // Scope holds all the information to process a request in the topology/ClusterReconciler controller.

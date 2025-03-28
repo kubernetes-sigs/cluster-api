@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: my-cluster-class
@@ -6,7 +6,7 @@ metadata:
 spec:
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: control-plane
       namespace: default
@@ -28,7 +28,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-worker-bootstraptemplate
             namespace: default
@@ -49,7 +49,7 @@ spec:
     spec: {}
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "control-plane"
   namespace: default
@@ -98,7 +98,7 @@ spec:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "docker-worker-bootstraptemplate"

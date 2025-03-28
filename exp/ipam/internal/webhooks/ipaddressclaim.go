@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
 
@@ -39,7 +39,7 @@ func (webhook *IPAddressClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-ipam-cluster-x-k8s-io-v1beta1-ipaddressclaim,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,versions=v1beta1,name=validation.ipaddressclaim.ipam.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-ipam-cluster-x-k8s-io-v1beta2-ipaddressclaim,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,versions=v1beta2,name=validation.ipaddressclaim.ipam.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // IPAddressClaim implements a validating webhook for IPAddressClaim.
 type IPAddressClaim struct {

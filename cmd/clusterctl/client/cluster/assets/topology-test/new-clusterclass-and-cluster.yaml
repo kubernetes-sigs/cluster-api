@@ -4,7 +4,7 @@ metadata:
   name: default
 spec: {}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: my-cluster-class
@@ -20,7 +20,7 @@ spec:
           example: "registry.k8s.io"
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: control-plane
       namespace: default
@@ -42,7 +42,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-worker-bootstraptemplate
         infrastructure:
@@ -54,7 +54,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-worker-bootstraptemplate
         infrastructure:
@@ -67,7 +67,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-worker-bootstraptemplate
         infrastructure:
@@ -79,7 +79,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-worker-bootstraptemplate
         infrastructure:
@@ -98,7 +98,7 @@ spec:
     spec: {}
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "control-plane"
   namespace: default
@@ -159,7 +159,7 @@ spec:
       preLoadImages: 
       - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "docker-worker-bootstraptemplate"
@@ -171,7 +171,7 @@ spec:
         nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: "my-cluster"

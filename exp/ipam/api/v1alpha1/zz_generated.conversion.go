@@ -26,8 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	v1beta1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	v1beta2 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 )
 
 func init() {
@@ -37,144 +38,144 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*IPAddress)(nil), (*v1beta1.IPAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddress_To_v1beta1_IPAddress(a.(*IPAddress), b.(*v1beta1.IPAddress), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddress)(nil), (*v1beta2.IPAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddress_To_v1beta2_IPAddress(a.(*IPAddress), b.(*v1beta2.IPAddress), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.IPAddress)(nil), (*IPAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddress_To_v1alpha1_IPAddress(a.(*v1beta1.IPAddress), b.(*IPAddress), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.IPAddress)(nil), (*IPAddress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddress_To_v1alpha1_IPAddress(a.(*v1beta2.IPAddress), b.(*IPAddress), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressClaim)(nil), (*v1beta1.IPAddressClaim)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(a.(*IPAddressClaim), b.(*v1beta1.IPAddressClaim), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressClaim)(nil), (*v1beta2.IPAddressClaim)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(a.(*IPAddressClaim), b.(*v1beta2.IPAddressClaim), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.IPAddressClaim)(nil), (*IPAddressClaim)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(a.(*v1beta1.IPAddressClaim), b.(*IPAddressClaim), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.IPAddressClaim)(nil), (*IPAddressClaim)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(a.(*v1beta2.IPAddressClaim), b.(*IPAddressClaim), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressClaimList)(nil), (*v1beta1.IPAddressClaimList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(a.(*IPAddressClaimList), b.(*v1beta1.IPAddressClaimList), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressClaimList)(nil), (*v1beta2.IPAddressClaimList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList(a.(*IPAddressClaimList), b.(*v1beta2.IPAddressClaimList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.IPAddressClaimList)(nil), (*IPAddressClaimList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(a.(*v1beta1.IPAddressClaimList), b.(*IPAddressClaimList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.IPAddressClaimList)(nil), (*IPAddressClaimList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(a.(*v1beta2.IPAddressClaimList), b.(*IPAddressClaimList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressClaimSpec)(nil), (*v1beta1.IPAddressClaimSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(a.(*IPAddressClaimSpec), b.(*v1beta1.IPAddressClaimSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressClaimSpec)(nil), (*v1beta2.IPAddressClaimSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(a.(*IPAddressClaimSpec), b.(*v1beta2.IPAddressClaimSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressClaimStatus)(nil), (*v1beta1.IPAddressClaimStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(a.(*IPAddressClaimStatus), b.(*v1beta1.IPAddressClaimStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressClaimStatus)(nil), (*v1beta2.IPAddressClaimStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(a.(*IPAddressClaimStatus), b.(*v1beta2.IPAddressClaimStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressList)(nil), (*v1beta1.IPAddressList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(a.(*IPAddressList), b.(*v1beta1.IPAddressList), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressList)(nil), (*v1beta2.IPAddressList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList(a.(*IPAddressList), b.(*v1beta2.IPAddressList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.IPAddressList)(nil), (*IPAddressList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(a.(*v1beta1.IPAddressList), b.(*IPAddressList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.IPAddressList)(nil), (*IPAddressList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(a.(*v1beta2.IPAddressList), b.(*IPAddressList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IPAddressSpec)(nil), (*v1beta1.IPAddressSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(a.(*IPAddressSpec), b.(*v1beta1.IPAddressSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*IPAddressSpec)(nil), (*v1beta2.IPAddressSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(a.(*IPAddressSpec), b.(*v1beta2.IPAddressSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.IPAddressSpec)(nil), (*IPAddressSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(a.(*v1beta1.IPAddressSpec), b.(*IPAddressSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.IPAddressSpec)(nil), (*IPAddressSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(a.(*v1beta2.IPAddressSpec), b.(*IPAddressSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.IPAddressClaimSpec)(nil), (*IPAddressClaimSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(a.(*v1beta1.IPAddressClaimSpec), b.(*IPAddressClaimSpec), scope)
+	if err := s.AddConversionFunc((*v1beta2.IPAddressClaimSpec)(nil), (*IPAddressClaimSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(a.(*v1beta2.IPAddressClaimSpec), b.(*IPAddressClaimSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.IPAddressClaimStatus)(nil), (*IPAddressClaimStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(a.(*v1beta1.IPAddressClaimStatus), b.(*IPAddressClaimStatus), scope)
+	if err := s.AddConversionFunc((*v1beta2.IPAddressClaimStatus)(nil), (*IPAddressClaimStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(a.(*v1beta2.IPAddressClaimStatus), b.(*IPAddressClaimStatus), scope)
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func autoConvert_v1alpha1_IPAddress_To_v1beta1_IPAddress(in *IPAddress, out *v1beta1.IPAddress, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddress_To_v1beta2_IPAddress(in *IPAddress, out *v1beta2.IPAddress, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha1_IPAddress_To_v1beta1_IPAddress is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddress_To_v1beta1_IPAddress(in *IPAddress, out *v1beta1.IPAddress, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddress_To_v1beta1_IPAddress(in, out, s)
+// Convert_v1alpha1_IPAddress_To_v1beta2_IPAddress is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddress_To_v1beta2_IPAddress(in *IPAddress, out *v1beta2.IPAddress, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddress_To_v1beta2_IPAddress(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddress_To_v1alpha1_IPAddress(in *v1beta1.IPAddress, out *IPAddress, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddress_To_v1alpha1_IPAddress(in *v1beta2.IPAddress, out *IPAddress, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_IPAddress_To_v1alpha1_IPAddress is an autogenerated conversion function.
-func Convert_v1beta1_IPAddress_To_v1alpha1_IPAddress(in *v1beta1.IPAddress, out *IPAddress, s conversion.Scope) error {
-	return autoConvert_v1beta1_IPAddress_To_v1alpha1_IPAddress(in, out, s)
+// Convert_v1beta2_IPAddress_To_v1alpha1_IPAddress is an autogenerated conversion function.
+func Convert_v1beta2_IPAddress_To_v1alpha1_IPAddress(in *v1beta2.IPAddress, out *IPAddress, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPAddress_To_v1alpha1_IPAddress(in, out, s)
 }
 
-func autoConvert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(in *IPAddressClaim, out *v1beta1.IPAddressClaim, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(in *IPAddressClaim, out *v1beta2.IPAddressClaim, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(in *IPAddressClaim, out *v1beta1.IPAddressClaim, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(in, out, s)
+// Convert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(in *IPAddressClaim, out *v1beta2.IPAddressClaim, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(in *v1beta1.IPAddressClaim, out *IPAddressClaim, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(in *v1beta2.IPAddressClaim, out *IPAddressClaim, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim is an autogenerated conversion function.
-func Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(in *v1beta1.IPAddressClaim, out *IPAddressClaim, s conversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(in, out, s)
+// Convert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim is an autogenerated conversion function.
+func Convert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(in *v1beta2.IPAddressClaim, out *IPAddressClaim, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(in, out, s)
 }
 
-func autoConvert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(in *IPAddressClaimList, out *v1beta1.IPAddressClaimList, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList(in *IPAddressClaimList, out *v1beta2.IPAddressClaimList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta1.IPAddressClaim, len(*in))
+		*out = make([]v1beta2.IPAddressClaim, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -184,18 +185,18 @@ func autoConvert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(in *I
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(in *IPAddressClaimList, out *v1beta1.IPAddressClaimList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(in, out, s)
+// Convert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList(in *IPAddressClaimList, out *v1beta2.IPAddressClaimList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v1beta1.IPAddressClaimList, out *IPAddressClaimList, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v1beta2.IPAddressClaimList, out *IPAddressClaimList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]IPAddressClaim, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -205,68 +206,68 @@ func autoConvert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v
 	return nil
 }
 
-// Convert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList is an autogenerated conversion function.
-func Convert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v1beta1.IPAddressClaimList, out *IPAddressClaimList, s conversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in, out, s)
+// Convert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList is an autogenerated conversion function.
+func Convert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v1beta2.IPAddressClaimList, out *IPAddressClaimList, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in, out, s)
 }
 
-func autoConvert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta1.IPAddressClaimSpec, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta2.IPAddressClaimSpec, s conversion.Scope) error {
 	out.PoolRef = in.PoolRef
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta1.IPAddressClaimSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(in, out, s)
+// Convert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta2.IPAddressClaimSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(in *v1beta1.IPAddressClaimSpec, out *IPAddressClaimSpec, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(in *v1beta2.IPAddressClaimSpec, out *IPAddressClaimSpec, s conversion.Scope) error {
 	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
 	out.PoolRef = in.PoolRef
 	return nil
 }
 
-func autoConvert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta1.IPAddressClaimStatus, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta2.IPAddressClaimStatus, s conversion.Scope) error {
 	out.AddressRef = in.AddressRef
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta1.IPAddressClaimStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in, out, s)
+// Convert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta2.IPAddressClaimStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(in *v1beta1.IPAddressClaimStatus, out *IPAddressClaimStatus, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(in *v1beta2.IPAddressClaimStatus, out *IPAddressClaimStatus, s conversion.Scope) error {
 	out.AddressRef = in.AddressRef
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*v1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-func autoConvert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(in *IPAddressList, out *v1beta1.IPAddressList, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList(in *IPAddressList, out *v1beta2.IPAddressList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta1.IPAddress)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]v1beta2.IPAddress)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(in *IPAddressList, out *v1beta1.IPAddressList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(in, out, s)
+// Convert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList(in *IPAddressList, out *v1beta2.IPAddressList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(in *v1beta1.IPAddressList, out *IPAddressList, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(in *v1beta2.IPAddressList, out *IPAddressList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]IPAddress)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList is an autogenerated conversion function.
-func Convert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(in *v1beta1.IPAddressList, out *IPAddressList, s conversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(in, out, s)
+// Convert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList is an autogenerated conversion function.
+func Convert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(in *v1beta2.IPAddressList, out *IPAddressList, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(in, out, s)
 }
 
-func autoConvert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(in *IPAddressSpec, out *v1beta1.IPAddressSpec, s conversion.Scope) error {
+func autoConvert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *v1beta2.IPAddressSpec, s conversion.Scope) error {
 	out.ClaimRef = in.ClaimRef
 	out.PoolRef = in.PoolRef
 	out.Address = in.Address
@@ -275,12 +276,12 @@ func autoConvert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(in *IPAddressSp
 	return nil
 }
 
-// Convert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec is an autogenerated conversion function.
-func Convert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(in *IPAddressSpec, out *v1beta1.IPAddressSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_IPAddressSpec_To_v1beta1_IPAddressSpec(in, out, s)
+// Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec is an autogenerated conversion function.
+func Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *v1beta2.IPAddressSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta1.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
+func autoConvert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta2.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
 	out.ClaimRef = in.ClaimRef
 	out.PoolRef = in.PoolRef
 	out.Address = in.Address
@@ -289,7 +290,7 @@ func autoConvert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta1.IPA
 	return nil
 }
 
-// Convert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec is an autogenerated conversion function.
-func Convert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta1.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressSpec_To_v1alpha1_IPAddressSpec(in, out, s)
+// Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec is an autogenerated conversion function.
+func Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta2.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in, out, s)
 }

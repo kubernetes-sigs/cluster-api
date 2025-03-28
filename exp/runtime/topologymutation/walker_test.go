@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
 
@@ -106,7 +106,7 @@ func Test_WalkTemplates(t *testing.T) {
 				{
 					UID: types.UID("1"),
 					Object: runtime.RawExtension{
-						Raw: []byte("{\"kind\":\"Unknown\",\"apiVersion\":\"controlplane.cluster.x-k8s.io/v1beta1\"}"),
+						Raw: []byte("{\"kind\":\"Unknown\",\"apiVersion\":\"controlplane.cluster.x-k8s.io/v1beta2\"}"),
 					},
 				},
 			},
@@ -122,7 +122,7 @@ func Test_WalkTemplates(t *testing.T) {
 				{
 					UID: types.UID("1"),
 					Object: runtime.RawExtension{
-						Raw: []byte("{\"kind\":\"Unknown\",\"apiVersion\":\"controlplane.cluster.x-k8s.io/v1beta1\"}"),
+						Raw: []byte("{\"kind\":\"Unknown\",\"apiVersion\":\"controlplane.cluster.x-k8s.io/v1beta2\"}"),
 					},
 				},
 			},
@@ -130,7 +130,7 @@ func Test_WalkTemplates(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusFailure,
 					Message: "no kind \"Unknown\" is registered for version \"controlplane.cluster.x-k8s." +
-						"io/v1beta1\" in scheme",
+						"io/v1beta2\" in scheme",
 				},
 			},
 			options: []WalkTemplatesOption{
@@ -146,7 +146,7 @@ func Test_WalkTemplates(t *testing.T) {
 						Raw: toJSON(kubeadmConfigTemplate),
 					},
 					HolderReference: runtimehooksv1.HolderReference{
-						APIVersion: "invalid/cluster.x-k8s.io/v1beta1",
+						APIVersion: "invalid/cluster.x-k8s.io/vx",
 					},
 				},
 			},
@@ -154,8 +154,8 @@ func Test_WalkTemplates(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusFailure,
 					Message: "error generating patches - HolderReference apiVersion \"invalid/cluster.x-k8s." +
-						"io/v1beta1\" is not in valid format: unexpected GroupVersion string: invalid/cluster.x-k8s." +
-						"io/v1beta1",
+						"io/vx\" is not in valid format: unexpected GroupVersion string: invalid/cluster.x-k8s." +
+						"io/vx",
 				},
 			},
 			options: []WalkTemplatesOption{

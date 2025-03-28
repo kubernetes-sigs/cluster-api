@@ -28,7 +28,7 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -142,13 +142,14 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
-	in.AdditionalProperties = in.DeepCopy()
+	in2 := in.DeepCopy()
+	in.AdditionalProperties = in2
 
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
 	in.Properties = map[string]clusterv1.JSONSchemaProps{}
 	for i := 0; i < c.Intn(10); i++ {
-		in.Properties[c.RandString()] = *in.DeepCopy()
+		in.Properties[c.RandString()] = *in2
 	}
-	in.Items = in.DeepCopy()
+	in.Items = in2
 }

@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -196,7 +196,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group),
 						Labels: map[string]string{
-							clusterv1.GroupVersion.String(): "v1beta1",
+							clusterv1.GroupVersion.String(): clusterv1.GroupVersion.Version,
 						},
 					},
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{

@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	crwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster/internal/dryrun"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"

@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -1553,7 +1553,7 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		return false, nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, contract.Version); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return false, err
 	}
 

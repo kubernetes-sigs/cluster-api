@@ -14,5 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains experimental v1beta1 API implementation.
+// Package v1beta1 contains API Schema definitions for the exp v1beta1 API group
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/api/v1beta2
+// +kubebuilder:object:generate=true
+// +groupName=cluster.x-k8s.io
 package v1beta1

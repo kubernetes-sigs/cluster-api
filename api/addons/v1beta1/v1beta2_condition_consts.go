@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+import clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // Conditions that will be used for the ClusterResourceSet object in v1Beta2 API version.
 const (
@@ -25,5 +25,5 @@ const (
 	ClusterResourceSetResourceSetAppliedV1Beta2Condition = "ResourceSetApplied"
 
 	// ClusterResourceSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the ClusterResourceSet.
-	ClusterResourceSetDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
+	ClusterResourceSetDeletingV1Beta2Condition = clusterv1beta1.DeletingV1Beta2Condition
 )

@@ -449,38 +449,42 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/v1beta1,./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/v1alpha3 \
-		./internal/apis/core/v1alpha4
+		./internal/apis/core/v1alpha4 \
+		./api/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
 generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/addons/v1alpha3,./internal/apis/addons/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1,./internal/apis/addons/v1alpha3,./internal/apis/addons/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/addons/v1alpha3 \
-		./internal/apis/addons/v1alpha4
+		./internal/apis/addons/v1alpha4 \
+		./api/addons/v1beta1
 
 .PHONY: generate-go-conversions-core-exp
 generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go code for core exp
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./exp/api/v1beta1,./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/exp/v1alpha3 \
-		./internal/apis/core/exp/v1alpha4
+		./internal/apis/core/exp/v1alpha4 \
+		./$(EXP_DIR)/api/v1beta1
 
 .PHONY: generate-go-conversions-core-exp-ipam
 generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
-	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1alpha1"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1beta1,./$(EXP_DIR)/ipam/api/v1alpha1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./$(EXP_DIR)/ipam/api/v1alpha1
+		./$(EXP_DIR)/ipam/api/v1alpha1 \
+		./$(EXP_DIR)/ipam/api/v1beta1
 
 .PHONY: generate-go-conversions-core-runtime
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime
@@ -493,12 +497,13 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/bootstrap/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/api/v1beta1,./internal/apis/bootstrap/kubeadm"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/bootstrap/kubeadm/v1alpha3 \
-		./internal/apis/bootstrap/kubeadm/v1alpha4
+		./internal/apis/bootstrap/kubeadm/v1alpha4 \
+		./bootstrap/kubeadm/api/v1beta1
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta1,./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
@@ -510,12 +515,13 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 
 .PHONY: generate-go-conversions-kubeadm-control-plane
 generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm control plane
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/controlplane/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./controlplane/kubeadm/api/v1beta1,./internal/apis/controlplane/kubeadm"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/controlplane/kubeadm/v1alpha3 \
-		./internal/apis/controlplane/kubeadm/v1alpha4
+		./internal/apis/controlplane/kubeadm/v1alpha4 \
+		./controlplane/kubeadm/api/v1beta1
 
 .PHONY: generate-go-conversions-docker-infrastructure
 generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for docker infrastructure provider
@@ -534,7 +540,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
-	for pkg in "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
+	for pkg in "api/v1beta2" "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \

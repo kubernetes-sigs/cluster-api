@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -46,7 +46,7 @@ type MachinePoolSpec struct {
 
 	// template describes the machines that will be created.
 	// +required
-	Template clusterv1.MachineTemplateSpec `json:"template"`
+	Template clusterv1beta1.MachineTemplateSpec `json:"template"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine instances should
 	// be ready.
@@ -142,7 +142,7 @@ type MachinePoolStatus struct {
 
 	// conditions define the current service state of the MachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachinePool's status with the V1Beta2 version.
 	// +optional
@@ -260,7 +260,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +kubebuilder:resource:path=machinepools,shortName=mp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"
 // +kubebuilder:printcolumn:name="Desired",type=integer,JSONPath=".spec.replicas",description="Total number of machines desired by this MachinePool",priority=10
 // +kubebuilder:printcolumn:name="Replicas",type="string",JSONPath=".status.replicas",description="MachinePool replicas count"
@@ -286,12 +286,12 @@ type MachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *MachinePool) GetConditions() clusterv1.Conditions {
+func (m *MachinePool) GetConditions() clusterv1beta1.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *MachinePool) SetConditions(conditions clusterv1.Conditions) {
+func (m *MachinePool) SetConditions(conditions clusterv1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 

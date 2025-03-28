@@ -36,9 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -515,7 +514,7 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cl
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, ref, contract.Version); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, ref); err != nil {
 		// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 		return errors.New(err.Error())
 	}

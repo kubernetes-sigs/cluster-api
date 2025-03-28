@@ -26,7 +26,8 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
@@ -55,6 +56,7 @@ func main() {
 	_ = runtimehooksv1.AddToCatalog(c)
 
 	c.AddOpenAPIDefinitions(clusterv1.GetOpenAPIDefinitions)
+	c.AddOpenAPIDefinitions(clusterv1beta1.GetOpenAPIDefinitions)
 	c.AddOpenAPIDefinitions(GetOpenAPIDefinitions)
 
 	openAPI, err := c.OpenAPI(*version)

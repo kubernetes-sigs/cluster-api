@@ -21,7 +21,7 @@ package v1alpha3
 import (
 	"testing"
 
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 

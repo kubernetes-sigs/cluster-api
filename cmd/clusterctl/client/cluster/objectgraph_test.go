@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -89,8 +89,8 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy().
 					WithObjs(
-						test.FakeNamespacedCustomResourceDefinition("cluster.x-k8s.io", "Cluster", "v1beta1"),
-						test.FakeNamespacedCustomResourceDefinition("addons.cluster.x-k8s.io", "ClusterResourceSet", "v1beta1"),
+						test.FakeNamespacedCustomResourceDefinition("cluster.x-k8s.io", "Cluster", clusterv1.GroupVersion.Version),
+						test.FakeNamespacedCustomResourceDefinition("addons.cluster.x-k8s.io", "ClusterResourceSet", clusterv1.GroupVersion.Version),
 					),
 			},
 			want: map[string]*discoveryTypeInfo{
@@ -1327,7 +1327,7 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericExternalObject, ns1/externalObject1": {
+				"external.cluster.x-k8s.io/v1beta2, Kind=GenericExternalObject, ns1/externalObject1": {
 					forceMove: true,
 				},
 			},
@@ -1341,7 +1341,7 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, externalObject1": {
+				"external.cluster.x-k8s.io/v1beta2, Kind=GenericClusterExternalObject, externalObject1": {
 					forceMove: true,
 					isGlobal:  true,
 				},
@@ -2158,7 +2158,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			},
 			want: wantGraph{
 				nodes: map[string]wantGraphItem{
-					"external.cluster.x-k8s.io/v1beta1, Kind=GenericExternalObject, ns1/externalObject1": {
+					"external.cluster.x-k8s.io/v1beta2, Kind=GenericExternalObject, ns1/externalObject1": {
 						forceMove: true,
 					},
 				},

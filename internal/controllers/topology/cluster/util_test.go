@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -35,7 +35,7 @@ import (
 func TestGetReference(t *testing.T) {
 	fakeControlPlaneTemplateCRDv99 := builder.GenericControlPlaneTemplateCRD.DeepCopy()
 	fakeControlPlaneTemplateCRDv99.Labels = map[string]string{
-		clusterv1.GroupVersion.String(): "v1beta1_v99",
+		clusterv1.GroupVersion.String(): "v99",
 	}
 	crds := []client.Object{
 		fakeControlPlaneTemplateCRDv99,

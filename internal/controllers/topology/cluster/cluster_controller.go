@@ -43,12 +43,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/api/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -453,9 +454,15 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 	// If the cluster objects (InfraCluster, ControlPlane, etc) are not yet created we are in the creation phase.
 	// Call the BeforeClusterCreate hook before proceeding.
 	log := ctrl.LoggerFrom(ctx)
+
 	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(s.Current.Cluster, v1beta1Cluster, nil); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+		}
+
 		hookRequest := &runtimehooksv1.BeforeClusterCreateRequest{
-			Cluster: *s.Current.Cluster,
+			Cluster: *v1beta1Cluster,
 		}
 		hookResponse := &runtimehooksv1.BeforeClusterCreateResponse{}
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -542,8 +549,13 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	log := ctrl.LoggerFrom(ctx)
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
+			v1beta1Cluster := &clusterv1beta1.Cluster{}
+			if err := clusterv1beta1.Convert_v1beta2_Cluster_To_v1beta1_Cluster(cluster, v1beta1Cluster, nil); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+			}
+
 			hookRequest := &runtimehooksv1.BeforeClusterDeleteRequest{
-				Cluster: *cluster,
+				Cluster: *v1beta1Cluster,
 			}
 			hookResponse := &runtimehooksv1.BeforeClusterDeleteResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, cluster, hookRequest, hookResponse); err != nil {

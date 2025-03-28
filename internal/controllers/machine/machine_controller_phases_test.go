@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -361,7 +361,6 @@ func TestReconcileBootstrap(t *testing.T) {
 					Scheme:          runtime.NewScheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
-				currentContractVersion: tc.contract,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			res, err := r.reconcileBootstrap(ctx, s)
@@ -978,7 +977,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Scheme:          c.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
-				currentContractVersion: tc.contract,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)

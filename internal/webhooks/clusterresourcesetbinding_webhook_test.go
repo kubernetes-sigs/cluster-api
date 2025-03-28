@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 )
 
 func TestClusterResourceSetBindingClusterNameImmutable(t *testing.T) {

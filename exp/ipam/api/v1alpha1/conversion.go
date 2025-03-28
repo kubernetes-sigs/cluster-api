@@ -20,39 +20,39 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*ipamv1.IPAddress)
 
-	return Convert_v1alpha1_IPAddress_To_v1beta1_IPAddress(src, dst, nil)
+	return Convert_v1alpha1_IPAddress_To_v1beta2_IPAddress(src, dst, nil)
 }
 
 func (dst *IPAddress) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*ipamv1.IPAddress)
 
-	return Convert_v1beta1_IPAddress_To_v1alpha1_IPAddress(src, dst, nil)
+	return Convert_v1beta2_IPAddress_To_v1alpha1_IPAddress(src, dst, nil)
 }
 
 func (src *IPAddressList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*ipamv1.IPAddressList)
 
-	return Convert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(src, dst, nil)
+	return Convert_v1alpha1_IPAddressList_To_v1beta2_IPAddressList(src, dst, nil)
 }
 
 func (dst *IPAddressList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*ipamv1.IPAddressList)
 
-	return Convert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(src, dst, nil)
+	return Convert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(src, dst, nil)
 }
 
 func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*ipamv1.IPAddressClaim)
 
-	if err := Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(src, dst, nil); err != nil {
+	if err := Convert_v1alpha1_IPAddressClaim_To_v1beta2_IPAddressClaim(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*ipamv1.IPAddressClaim)
 
-	if err := Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_IPAddressClaim_To_v1alpha1_IPAddressClaim(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -110,19 +110,19 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *IPAddressClaimList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*ipamv1.IPAddressClaimList)
 
-	return Convert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(src, dst, nil)
+	return Convert_v1alpha1_IPAddressClaimList_To_v1beta2_IPAddressClaimList(src, dst, nil)
 }
 
 func (dst *IPAddressClaimList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*ipamv1.IPAddressClaimList)
 
-	return Convert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(src, dst, nil)
+	return Convert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(src, dst, nil)
 }
 
-func Convert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipamv1.IPAddressClaimSpec, to *IPAddressClaimSpec, scope apiconversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from, to, scope)
+func Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipamv1.IPAddressClaimSpec, to *IPAddressClaimSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from, to, scope)
 }
 
-func Convert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apiconversion.Scope) error {
-	return autoConvert_v1beta1_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from, to, scope)
+func Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apiconversion.Scope) error {
+	return autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from, to, scope)
 }

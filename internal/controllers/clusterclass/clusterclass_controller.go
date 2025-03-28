@@ -41,13 +41,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util"
@@ -274,7 +274,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 		// Check if the template reference is outdated, i.e. it is not using the latest apiVersion
 		// for the current CAPI contract.
 		updatedRef := ref.DeepCopy()
-		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, updatedRef, contract.Version); err != nil {
+		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, updatedRef); err != nil {
 			errs = append(errs, err)
 		}
 		if ref.GroupVersionKind().Version != updatedRef.GroupVersionKind().Version {
@@ -329,14 +329,25 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 				errs = append(errs, errors.Errorf("patch %s returned status %q with message %q", patch.Name, resp.Status, resp.Message))
 				continue
 			}
-			if resp.Variables != nil {
-				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, resp.Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
+
+			v1beta2Variables := make([]clusterv1.ClusterClassVariable, 0, len(resp.Variables))
+			for _, variable := range resp.Variables {
+				v := clusterv1.ClusterClassVariable{}
+				if err := clusterv1beta1.Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(&variable, &v, nil); err != nil {
+					errs = append(errs, errors.Errorf("failed to convert variable %s to v1beta2", variable.Name))
+					continue
+				}
+				v1beta2Variables = append(v1beta2Variables, v)
+			}
+
+			if len(v1beta2Variables) > 0 && len(errs) == 0 {
+				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, v1beta2Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
 				if validationErrors != nil {
 					errs = append(errs, validationErrors)
 					continue
 				}
 
-				for _, variable := range resp.Variables {
+				for _, variable := range v1beta2Variables {
 					// If a variable of the same name already exists in allVariableDefinitions add the new definition to the existing list.
 					if _, ok := allVariableDefinitions[variable.Name]; ok {
 						allVariableDefinitions[variable.Name] = addDefinitionToExistingStatusVariable(variable, patch.Name, allVariableDefinitions[variable.Name])

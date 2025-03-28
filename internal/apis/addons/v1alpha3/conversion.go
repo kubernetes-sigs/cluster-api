@@ -18,8 +18,9 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -27,7 +28,7 @@ import (
 func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSet)
 
-	if err := Convert_v1alpha3_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_ClusterResourceSet_To_v1beta2_ClusterResourceSet(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -44,7 +45,7 @@ func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSet)
 
-	if err := Convert_v1beta1_ClusterResourceSet_To_v1alpha3_ClusterResourceSet(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_ClusterResourceSet_To_v1alpha3_ClusterResourceSet(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -55,19 +56,19 @@ func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterResourceSetList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSetList)
 
-	return Convert_v1alpha3_ClusterResourceSetList_To_v1beta1_ClusterResourceSetList(src, dst, nil)
+	return Convert_v1alpha3_ClusterResourceSetList_To_v1beta2_ClusterResourceSetList(src, dst, nil)
 }
 
 func (dst *ClusterResourceSetList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSetList)
 
-	return Convert_v1beta1_ClusterResourceSetList_To_v1alpha3_ClusterResourceSetList(src, dst, nil)
+	return Convert_v1beta2_ClusterResourceSetList_To_v1alpha3_ClusterResourceSetList(src, dst, nil)
 }
 
 func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
 
-	if err := Convert_v1alpha3_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_ClusterResourceSetBinding_To_v1beta2_ClusterResourceSetBinding(src, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
@@ -82,7 +83,7 @@ func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSetBinding)
 
-	if err := Convert_v1beta1_ClusterResourceSetBinding_To_v1alpha3_ClusterResourceSetBinding(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_ClusterResourceSetBinding_To_v1alpha3_ClusterResourceSetBinding(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -97,22 +98,22 @@ func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterResourceSetBindingList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSetBindingList)
 
-	return Convert_v1alpha3_ClusterResourceSetBindingList_To_v1beta1_ClusterResourceSetBindingList(src, dst, nil)
+	return Convert_v1alpha3_ClusterResourceSetBindingList_To_v1beta2_ClusterResourceSetBindingList(src, dst, nil)
 }
 
 func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSetBindingList)
 
-	return Convert_v1beta1_ClusterResourceSetBindingList_To_v1alpha3_ClusterResourceSetBindingList(src, dst, nil)
+	return Convert_v1beta2_ClusterResourceSetBindingList_To_v1alpha3_ClusterResourceSetBindingList(src, dst, nil)
 }
 
-// Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec is a conversion function.
-func Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in *addonsv1.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s apiconversion.Scope) error {
+// Convert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec is a conversion function.
+func Convert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in *addonsv1.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s apiconversion.Scope) error {
 	// Spec.ClusterName does not exist in ClusterResourceSetBinding v1alpha3 API.
-	return autoConvert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in, out, s)
+	return autoConvert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in, out, s)
 }
 
-func Convert_v1beta1_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1
-	return autoConvert_v1beta1_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in, out, s)
+	return autoConvert_v1beta2_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(in, out, s)
 }

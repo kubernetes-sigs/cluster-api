@@ -15,4 +15,7 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the v1beta1 IPAM API.
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
+// +kubebuilder:object:generate=true
+// +groupName=ipam.cluster.x-k8s.io
 package v1beta1

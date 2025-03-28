@@ -16,15 +16,80 @@ limitations under the License.
 
 package v1beta1
 
-func (*Cluster) Hub()                {}
-func (*ClusterList) Hub()            {}
-func (*ClusterClass) Hub()           {}
-func (*ClusterClassList) Hub()       {}
-func (*Machine) Hub()                {}
-func (*MachineList) Hub()            {}
-func (*MachineSet) Hub()             {}
-func (*MachineSetList) Hub()         {}
-func (*MachineDeployment) Hub()      {}
-func (*MachineDeploymentList) Hub()  {}
-func (*MachineHealthCheck) Hub()     {}
-func (*MachineHealthCheckList) Hub() {}
+import (
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+)
+
+func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.Cluster)
+
+	return Convert_v1beta1_Cluster_To_v1beta2_Cluster(src, dst, nil)
+}
+
+func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.Cluster)
+
+	return Convert_v1beta2_Cluster_To_v1beta1_Cluster(src, dst, nil)
+}
+
+func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.ClusterClass)
+
+	return Convert_v1beta1_ClusterClass_To_v1beta2_ClusterClass(src, dst, nil)
+}
+
+func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.ClusterClass)
+
+	return Convert_v1beta2_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil)
+}
+
+func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.Machine)
+
+	return Convert_v1beta1_Machine_To_v1beta2_Machine(src, dst, nil)
+}
+
+func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.Machine)
+
+	return Convert_v1beta2_Machine_To_v1beta1_Machine(src, dst, nil)
+}
+
+func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachineSet)
+
+	return Convert_v1beta1_MachineSet_To_v1beta2_MachineSet(src, dst, nil)
+}
+
+func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachineSet)
+
+	return Convert_v1beta2_MachineSet_To_v1beta1_MachineSet(src, dst, nil)
+}
+
+func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachineDeployment)
+
+	return Convert_v1beta1_MachineDeployment_To_v1beta2_MachineDeployment(src, dst, nil)
+}
+
+func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachineDeployment)
+
+	return Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil)
+}
+
+func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachineHealthCheck)
+
+	return Convert_v1beta1_MachineHealthCheck_To_v1beta2_MachineHealthCheck(src, dst, nil)
+}
+
+func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachineHealthCheck)
+
+	return Convert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil)
+}

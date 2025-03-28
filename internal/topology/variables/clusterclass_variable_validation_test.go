@@ -29,7 +29,7 @@ import (
 	utilversion "k8s.io/component-base/version"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 func Test_ValidateClusterClassVariables(t *testing.T) {

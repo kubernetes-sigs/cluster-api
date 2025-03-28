@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
@@ -220,7 +220,7 @@ type DiscoverVariablesResponse struct {
 
 	// variables are variable schemas for variables defined by the DiscoverVariables hook.
 	// +optional
-	Variables []clusterv1.ClusterClassVariable `json:"variables,omitempty"`
+	Variables []clusterv1beta1.ClusterClassVariable `json:"variables,omitempty"`
 }
 
 var _ ResponseObject = &DiscoverVariablesResponse{}

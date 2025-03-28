@@ -49,16 +49,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4"
@@ -108,6 +109,7 @@ func init() {
 	_ = expv1.AddToScheme(scheme)
 	_ = controlplanev1alpha3.AddToScheme(scheme)
 	_ = controlplanev1alpha4.AddToScheme(scheme)
+	_ = controlplanev1beta1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)

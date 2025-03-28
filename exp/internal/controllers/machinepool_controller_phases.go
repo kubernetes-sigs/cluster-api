@@ -36,12 +36,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -111,7 +110,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, contract.Version); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 

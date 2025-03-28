@@ -27,7 +27,8 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -75,14 +76,26 @@ func clusterClassNamesFromTemplate(template Template) ([]types.NamespacedName, e
 		if obj.GroupVersionKind().GroupKind() != clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
 			continue
 		}
-		cluster := &clusterv1.Cluster{}
-		if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
-			return nil, errors.Wrap(err, "failed to convert object to Cluster")
+		switch {
+		case obj.GroupVersionKind().Version == clusterv1.GroupVersion.Version:
+			cluster := &clusterv1.Cluster{}
+			if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
+				return nil, errors.Wrap(err, "failed to convert object to Cluster")
+			}
+			if cluster.Spec.Topology == nil {
+				continue
+			}
+			classes = append(classes, cluster.GetClassKey())
+		case obj.GroupVersionKind().Version == clusterv1beta1.GroupVersion.Version:
+			cluster := &clusterv1beta1.Cluster{}
+			if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
+				return nil, errors.Wrap(err, "failed to convert object to Cluster")
+			}
+			if cluster.Spec.Topology == nil {
+				continue
+			}
+			classes = append(classes, cluster.GetClassKey())
 		}
-		if cluster.Spec.Topology == nil {
-			continue
-		}
-		classes = append(classes, cluster.GetClassKey())
 	}
 	return classes, nil
 }

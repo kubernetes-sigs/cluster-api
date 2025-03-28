@@ -20,7 +20,7 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -28,7 +28,7 @@ import (
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Cluster)
 
-	if err := Convert_v1alpha3_Cluster_To_v1beta1_Cluster(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_Cluster_To_v1beta2_Cluster(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Cluster)
 
-	if err := Convert_v1beta1_Cluster_To_v1alpha3_Cluster(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_Cluster_To_v1alpha3_Cluster(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -77,19 +77,19 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.ClusterList)
 
-	return Convert_v1alpha3_ClusterList_To_v1beta1_ClusterList(src, dst, nil)
+	return Convert_v1alpha3_ClusterList_To_v1beta2_ClusterList(src, dst, nil)
 }
 
 func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.ClusterList)
 
-	return Convert_v1beta1_ClusterList_To_v1alpha3_ClusterList(src, dst, nil)
+	return Convert_v1beta2_ClusterList_To_v1alpha3_ClusterList(src, dst, nil)
 }
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
-	if err := Convert_v1alpha3_Machine_To_v1beta1_Machine(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_Machine_To_v1beta2_Machine(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -113,7 +113,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Machine)
 
-	if err := Convert_v1beta1_Machine_To_v1alpha3_Machine(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_Machine_To_v1alpha3_Machine(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -128,19 +128,19 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineList)
 
-	return Convert_v1alpha3_MachineList_To_v1beta1_MachineList(src, dst, nil)
+	return Convert_v1alpha3_MachineList_To_v1beta2_MachineList(src, dst, nil)
 }
 
 func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineList)
 
-	return Convert_v1beta1_MachineList_To_v1alpha3_MachineList(src, dst, nil)
+	return Convert_v1beta2_MachineList_To_v1alpha3_MachineList(src, dst, nil)
 }
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
-	if err := Convert_v1alpha3_MachineSet_To_v1beta1_MachineSet(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_MachineSet_To_v1beta2_MachineSet(src, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
@@ -163,7 +163,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSet)
 
-	if err := Convert_v1beta1_MachineSet_To_v1alpha3_MachineSet(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineSet_To_v1alpha3_MachineSet(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -177,19 +177,19 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSetList)
 
-	return Convert_v1alpha3_MachineSetList_To_v1beta1_MachineSetList(src, dst, nil)
+	return Convert_v1alpha3_MachineSetList_To_v1beta2_MachineSetList(src, dst, nil)
 }
 
 func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSetList)
 
-	return Convert_v1beta1_MachineSetList_To_v1alpha3_MachineSetList(src, dst, nil)
+	return Convert_v1beta2_MachineSetList_To_v1alpha3_MachineSetList(src, dst, nil)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeployment)
 
-	if err := Convert_v1alpha3_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_MachineDeployment_To_v1beta2_MachineDeployment(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
-	if err := Convert_v1beta1_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -244,19 +244,19 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeploymentList)
 
-	return Convert_v1alpha3_MachineDeploymentList_To_v1beta1_MachineDeploymentList(src, dst, nil)
+	return Convert_v1alpha3_MachineDeploymentList_To_v1beta2_MachineDeploymentList(src, dst, nil)
 }
 
 func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeploymentList)
 
-	return Convert_v1beta1_MachineDeploymentList_To_v1alpha3_MachineDeploymentList(src, dst, nil)
+	return Convert_v1beta2_MachineDeploymentList_To_v1alpha3_MachineDeploymentList(src, dst, nil)
 }
 
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheck)
 
-	if err := Convert_v1alpha3_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_MachineHealthCheck_To_v1beta2_MachineHealthCheck(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -277,7 +277,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineHealthCheck)
 
-	if err := Convert_v1beta1_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_MachineHealthCheck_To_v1alpha3_MachineHealthCheck(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -292,87 +292,87 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineHealthCheckList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheckList)
 
-	return Convert_v1alpha3_MachineHealthCheckList_To_v1beta1_MachineHealthCheckList(src, dst, nil)
+	return Convert_v1alpha3_MachineHealthCheckList_To_v1beta2_MachineHealthCheckList(src, dst, nil)
 }
 
 func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineHealthCheckList)
 
-	return Convert_v1beta1_MachineHealthCheckList_To_v1alpha3_MachineHealthCheckList(src, dst, nil)
+	return Convert_v1beta2_MachineHealthCheckList_To_v1alpha3_MachineHealthCheckList(src, dst, nil)
 }
 
-func Convert_v1beta1_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, _ apiconversion.Scope) error {
+func Convert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, _ apiconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, nil)
+	return autoConvert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, nil)
 }
 
-func Convert_v1beta1_ClusterSpec_To_v1alpha3_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.Topology does not exist in v1alpha3
 	// AvailabilityGates was added in v1beta1.
-	return autoConvert_v1beta1_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s)
+	return autoConvert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s)
 }
 
-func Convert_v1beta1_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s)
+	return autoConvert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s)
 }
 
-func Convert_v1alpha3_Bootstrap_To_v1beta1_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apiconversion.Scope) error {
-	return autoConvert_v1alpha3_Bootstrap_To_v1beta1_Bootstrap(in, out, s)
+func Convert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in, out, s)
 }
 
-func Convert_v1beta1_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in *clusterv1.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in, out, s)
+func Convert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in *clusterv1.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha3_MachineRollingUpdateDeployment(in, out, s)
 }
 
-func Convert_v1beta1_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in, out, s)
+func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in, out, s)
+	return autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in, out, s)
 }
 
-func Convert_v1alpha3_ClusterStatus_To_v1beta1_ClusterStatus(in *ClusterStatus, out *clusterv1.ClusterStatus, s apiconversion.Scope) error {
-	return autoConvert_v1alpha3_ClusterStatus_To_v1beta1_ClusterStatus(in, out, s)
+func Convert_v1alpha3_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, out *clusterv1.ClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_ClusterStatus_To_v1beta2_ClusterStatus(in, out, s)
 }
 
-func Convert_v1alpha3_ObjectMeta_To_v1beta1_ObjectMeta(in *ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
-	return autoConvert_v1alpha3_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
+func Convert_v1alpha3_ObjectMeta_To_v1beta2_ObjectMeta(in *ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_ObjectMeta_To_v1beta2_ObjectMeta(in, out, s)
 }
 
-func Convert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
+	return autoConvert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
 }
 
-func Convert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
 	// spec.nodeDeletionTimeout was added in v1beta1.
 	// ReadinessGates was added in v1beta1.
-	return autoConvert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
+	return autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s)
+func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
+func Convert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
+	return autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
 }
 
-func Convert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
+func Convert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
-	return autoConvert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+	return autoConvert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in, out, s)
+func Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in, out, s)
 }
 
-func Convert_v1beta1_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
+func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
 }

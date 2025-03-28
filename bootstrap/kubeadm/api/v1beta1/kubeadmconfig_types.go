@@ -22,7 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
@@ -486,7 +486,7 @@ type KubeadmConfigStatus struct {
 
 	// conditions defines current service state of the KubeadmConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in KubeadmConfig's status with the V1Beta2 version.
 	// +optional
@@ -507,7 +507,7 @@ type KubeadmConfigV1Beta2Status struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
@@ -529,12 +529,12 @@ type KubeadmConfig struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *KubeadmConfig) GetConditions() clusterv1.Conditions {
+func (c *KubeadmConfig) GetConditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
+func (c *KubeadmConfig) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

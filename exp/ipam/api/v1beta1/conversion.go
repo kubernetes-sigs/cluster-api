@@ -16,7 +16,32 @@ limitations under the License.
 
 package v1beta1
 
-func (*IPAddress) Hub()          {}
-func (*IPAddressList) Hub()      {}
-func (*IPAddressClaim) Hub()     {}
-func (*IPAddressClaimList) Hub() {}
+import (
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
+)
+
+func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*ipamv1.IPAddress)
+
+	return Convert_v1beta1_IPAddress_To_v1beta2_IPAddress(src, dst, nil)
+}
+
+func (dst *IPAddress) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*ipamv1.IPAddress)
+
+	return Convert_v1beta2_IPAddress_To_v1beta1_IPAddress(src, dst, nil)
+}
+
+func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*ipamv1.IPAddressClaim)
+
+	return Convert_v1beta1_IPAddressClaim_To_v1beta2_IPAddressClaim(src, dst, nil)
+}
+
+func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*ipamv1.IPAddressClaim)
+
+	return Convert_v1beta2_IPAddressClaim_To_v1beta1_IPAddressClaim(src, dst, nil)
+}

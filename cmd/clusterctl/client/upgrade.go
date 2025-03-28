@@ -24,7 +24,8 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -56,8 +57,9 @@ func (c *clusterctlClient) PlanUpgrade(ctx context.Context, options PlanUpgradeO
 		return nil, err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract;
+	// temporarily we also allow upgrading from v1beta1 to allow transition to the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPIContract{Contract: clusterv1beta1.GroupVersion.Version}); err != nil {
 		return nil, err
 	}
 
@@ -145,8 +147,9 @@ func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgrad
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract;
+	// temporarily we also allow upgrading from v1beta1 to allow transition to the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPIContract{Contract: clusterv1beta1.GroupVersion.Version}); err != nil {
 		return err
 	}
 

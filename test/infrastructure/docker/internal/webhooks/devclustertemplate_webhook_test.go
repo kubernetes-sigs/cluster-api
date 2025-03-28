@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
@@ -107,7 +107,7 @@ func TestDevClusterTemplateValidationMetadata(t *testing.T) {
 				},
 				Spec: infrav1.DevClusterTemplateSpec{
 					Template: infrav1.DevClusterTemplateResource{
-						ObjectMeta: clusterv1.ObjectMeta{
+						ObjectMeta: clusterv1beta1.ObjectMeta{
 							Labels: map[string]string{
 								"foo":          "$invalid-key",
 								"bar":          strings.Repeat("a", 64) + "too-long-value",

@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -48,7 +48,7 @@ var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref, r.currentContractVersion); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		if apierrors.IsNotFound(err) {
 			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 			return nil, errors.New(err.Error())
@@ -182,7 +182,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Determine contract version used by the BootstrapConfig.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind(), r.currentContractVersion)
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -266,7 +266,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraMachine = obj
 
 	// Determine contract version used by the InfraMachine.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind(), r.currentContractVersion)
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}

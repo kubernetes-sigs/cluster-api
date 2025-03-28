@@ -27,7 +27,7 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -1578,7 +1578,7 @@ func Test_validateSelectors(t *testing.T) {
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
 						&corev1.ObjectReference{
-							APIVersion: "nonmatchinginfrastructure.cluster.x-k8s.io/v1beta1",
+							APIVersion: "nonmatchinginfrastructure.cluster.x-k8s.io/vx",
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).

@@ -19,7 +19,7 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
@@ -34,7 +34,7 @@ type KubeadmConfigTemplateResource struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmConfig.
 	// +optional
@@ -43,7 +43,7 @@ type KubeadmConfigTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigtemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfigTemplate"
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.

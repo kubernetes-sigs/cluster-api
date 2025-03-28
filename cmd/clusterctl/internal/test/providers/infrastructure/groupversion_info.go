@@ -22,7 +22,7 @@ package infrastructure
 import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 var (

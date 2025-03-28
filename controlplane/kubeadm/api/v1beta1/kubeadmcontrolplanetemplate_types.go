@@ -19,8 +19,8 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
 // KubeadmControlPlaneTemplateSpec defines the desired state of KubeadmControlPlaneTemplate.
@@ -32,7 +32,7 @@ type KubeadmControlPlaneTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmcontrolplanetemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmControlPlaneTemplate"
 
 // KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
@@ -70,7 +70,7 @@ type KubeadmControlPlaneTemplateResource struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlaneTemplateResource.
 	// +required
@@ -91,7 +91,7 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	// +required
-	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+	KubeadmConfigSpec bootstrapv1beta1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// rolloutBefore is a field to indicate a rollout should be performed
 	// if the specified criteria is met.
@@ -132,7 +132,7 @@ type KubeadmControlPlaneTemplateMachineTemplate struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.

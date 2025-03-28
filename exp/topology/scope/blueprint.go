@@ -19,7 +19,7 @@ package scope
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 // ClusterBlueprint holds all the objects required for computing the desired state of a managed Cluster topology,

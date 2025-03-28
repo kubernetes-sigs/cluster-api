@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
@@ -97,7 +97,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", Flake
 					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease15)},
 					InfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease15)},
 				},
-				{ // Upgrade to latest v1beta1.
+				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -182,7 +182,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease16)},
 					InfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease16)},
 				},
-				{ // Upgrade to latest v1beta1.
+				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -255,7 +255,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
 			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
-				{ // Upgrade to latest v1beta1.
+				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -290,7 +290,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
-				{ // Upgrade to latest v1beta1.
+				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
@@ -327,7 +327,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
-				{ // Upgrade to latest v1beta1.
+				{ // Upgrade to latest contract version.
 					Contract: clusterv1.GroupVersion.Version,
 					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,

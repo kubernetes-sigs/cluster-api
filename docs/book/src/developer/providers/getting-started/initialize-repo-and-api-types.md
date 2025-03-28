@@ -3,7 +3,7 @@
 ## Create a repository
 
 ```bash
-mkdir cluster-api-provider-mailgun
+mkdir -p src/sigs.k8s.io/cluster-api-provider-mailgun
 cd src/sigs.k8s.io/cluster-api-provider-mailgun
 git init
 ```

@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -946,15 +947,12 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	scheme := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(scheme)
 	cluster := &clusterv1.Cluster{}
-	if objs[0].GetAPIVersion() == clusterv1beta1.GroupVersion.String() {
-		// Read a v1beta1 Cluster and convert to a v1beta2 Cluster.
-		_ = clusterv1beta1.AddToScheme(scheme)
-		clusterV1beta1 := &clusterv1beta1.Cluster{}
-		Expect(scheme.Convert(&objs[0], clusterV1beta1, nil)).Should(Succeed())
-		Expect(clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(clusterV1beta1, cluster, nil)).To(Succeed())
-	} else {
-		Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
-	}
+	// Adding v1beta1 scheme and registering the conversion function to allow auto-converting to v1beta2.
+	_ = clusterv1beta1.AddToScheme(scheme)
+	Expect(scheme.AddConversionFunc((*clusterv1beta1.Cluster)(nil), (*clusterv1.Cluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(a.(*clusterv1beta1.Cluster), b.(*clusterv1.Cluster), nil)
+	})).To(Succeed())
+	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
 
 	// Verify the Cluster Topology.
 	Expect(cluster.Spec.Topology).NotTo(BeNil(), "Should be a ClusterClass based Cluster")

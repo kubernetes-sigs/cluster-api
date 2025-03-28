@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -222,6 +223,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.KindManagementClusterNewClusterProxyFunc = func(name string, kubeconfigPath string) framework.ClusterProxy {
 				scheme := apiruntime.NewScheme()
 				framework.TryAddDefaultSchemes(scheme)
+				_ = clusterv1beta1.AddToScheme(scheme)
 				return framework.NewClusterProxy(name, kubeconfigPath, scheme)
 			}
 		}
@@ -620,9 +622,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// We have to get the core CAPI storage version again as the upgrade might have stopped serving v1alpha3/v1alpha4.
 			coreCAPIStorageVersion = getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
-			// Note: Currently we only support v1beta2 core CAPI apiVersion after upgrades.
+			// Note: Currently we only support upgrades that (still) serve the v1beta1 core CAPI apiVersion after upgrade.
 			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
-			workloadCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
+			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
+			workloadCluster := discoveryAndWaitForClusterV1Beta1(ctx, discoveryAndWaitForClusterV1Beta1Input{
 				Getter:    managementClusterProxy.GetClient(),
 				Namespace: workloadClusterNamespace,
 				Name:      workloadClusterName,
@@ -674,13 +678,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)
 			if workloadCluster.Spec.Topology != nil {
 				// Cluster is using ClusterClass, scale up via topology.
-				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
+				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  2,
 					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 				})
-				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
+				framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentTopologyV1Beta1Input{
 					ClusterProxy:              managementClusterProxy,
 					Cluster:                   workloadCluster,
 					Replicas:                  1,
@@ -688,20 +692,20 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				})
 			} else {
 				// Cluster is not using ClusterClass, scale up via MachineDeployment.
-				testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+				testMachineDeployments := framework.GetMachineDeploymentsByClusterV1Beta1(ctx, framework.GetMachineDeploymentsByClusterInput{
 					Lister:      managementClusterProxy.GetClient(),
 					ClusterName: workloadClusterName,
 					Namespace:   workloadClusterNamespace,
 				})
 				if len(testMachineDeployments) > 0 {
-					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
 						Replicas:                  2,
 						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 					})
-					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+					framework.ScaleAndWaitMachineDeploymentV1Beta1(ctx, framework.ScaleAndWaitMachineDeploymentV1Beta1Input{
 						ClusterProxy:              managementClusterProxy,
 						Cluster:                   workloadCluster,
 						MachineDeployment:         testMachineDeployments[0],
@@ -718,12 +722,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			}
 
 			Byf("[%d] Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines", i)
-			verifyV1Beta2ConditionsTrue(ctx, managementClusterProxy.GetClient(), workloadCluster.Name, workloadCluster.Namespace,
+			verifyV1Beta2ConditionsTrueV1Beta1(ctx, managementClusterProxy.GetClient(), workloadCluster.Name, workloadCluster.Namespace,
 				[]string{clusterv1.AvailableV1Beta2Condition, clusterv1.ReadyV1Beta2Condition})
 
 			Byf("[%d] Verify client-side SSA still works", i)
 			clusterUpdate := &unstructured.Unstructured{}
-			clusterUpdate.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Cluster"))
+			clusterUpdate.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Cluster"))
 			clusterUpdate.SetNamespace(workloadCluster.Namespace)
 			clusterUpdate.SetName(workloadCluster.Name)
 			clusterUpdate.SetLabels(map[string]string{
@@ -783,14 +787,18 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	})
 }
 
-// verifyV1Beta2ConditionsTrue checks the Cluster and Machines of a Cluster that
+// verifyV1Beta2ConditionsTrueV1Beta1 checks the Cluster and Machines of a Cluster that
 // the given v1beta2 condition types are set to true without a message, if they exist.
-func verifyV1Beta2ConditionsTrue(ctx context.Context, c client.Client, clusterName, clusterNamespace string, v1beta2conditionTypes []string) {
-	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-		Getter:    c,
-		Name:      clusterName,
+func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, clusterName, clusterNamespace string, v1beta2conditionTypes []string) {
+	cluster := &clusterv1beta1.Cluster{}
+	key := client.ObjectKey{
 		Namespace: clusterNamespace,
-	})
+		Name:      clusterName,
+	}
+	Eventually(func() error {
+		return c.Get(ctx, key, cluster)
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(clusterNamespace, clusterName))
+
 	for _, conditionType := range v1beta2conditionTypes {
 		if v1beta2conditions.Has(cluster, conditionType) {
 			condition := v1beta2conditions.Get(cluster, conditionType)
@@ -799,12 +807,14 @@ func verifyV1Beta2ConditionsTrue(ctx context.Context, c client.Client, clusterNa
 		}
 	}
 
-	machines := framework.GetMachinesByCluster(ctx, framework.GetMachinesByClusterInput{
-		Lister:      c,
-		ClusterName: clusterName,
-		Namespace:   clusterNamespace,
-	})
-	for _, machine := range machines {
+	machineList := &clusterv1beta1.MachineList{}
+	Eventually(func() error {
+		return c.List(ctx, machineList, client.InNamespace(clusterNamespace),
+			client.MatchingLabels{
+				clusterv1.ClusterNameLabel: clusterName,
+			})
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KObj(cluster))
+	for _, machine := range machineList.Items {
 		for _, conditionType := range v1beta2conditionTypes {
 			if v1beta2conditions.Has(&machine, conditionType) {
 				condition := v1beta2conditions.Get(&machine, conditionType)
@@ -895,6 +905,38 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 		g.Expect(ok).To(BeTrue(), "could not get status.phase field")
 		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(cluster))
 	}, intervals...).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
+
+	return cluster
+}
+
+// discoveryAndWaitForClusterV1Beta1Input is the input type for discoveryAndWaitForClusterV1Beta1.
+type discoveryAndWaitForClusterV1Beta1Input struct {
+	Getter    framework.Getter
+	Namespace string
+	Name      string
+}
+
+// discoveryAndWaitForClusterV1Beta1 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func discoveryAndWaitForClusterV1Beta1(ctx context.Context, input discoveryAndWaitForClusterV1Beta1Input, intervals ...interface{}) *clusterv1beta1.Cluster {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta1")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta1")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta1")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForClusterV1Beta1")
+
+	// NOTE: We intentionally return the provisioned Cluster because it also contains
+	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
+	cluster := &clusterv1beta1.Cluster{}
+	By("Waiting for cluster to enter the provisioned phase")
+	Eventually(func() (string, error) {
+		key := client.ObjectKey{
+			Namespace: input.Namespace,
+			Name:      input.Name,
+		}
+		if err := input.Getter.Get(ctx, key, cluster); err != nil {
+			return "", err
+		}
+		return cluster.Status.Phase, nil
+	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KRef(input.Namespace, input.Name))
 
 	return cluster
 }

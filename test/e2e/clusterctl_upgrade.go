@@ -478,7 +478,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Calculating expected MachineDeployment and MachinePool Machine and Node counts")
 		expectedMachineDeploymentMachineCount := calculateExpectedMachineDeploymentMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
 		expectedMachinePoolNodeCount := calculateExpectedMachinePoolNodeCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
-		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName)
+		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName, coreCAPIStorageVersion)
 		Expect(err).ToNot(HaveOccurred())
 
 		expectedMachineCount := *controlPlaneMachineCount + expectedMachineDeploymentMachineCount + expectedMachinePoolMachineCount
@@ -512,16 +512,27 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Waiting for MachinePool to be ready with correct number of replicas")
 		Eventually(func() (int64, error) {
 			var n int64
-			machinePoolList := &expv1.MachinePoolList{}
+			machinePoolList := &unstructured.UnstructuredList{}
+			machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   clusterv1.GroupVersion.Group,
+				Version: coreCAPIStorageVersion,
+				Kind:    "MachinePoolList",
+			})
 			if err := managementClusterProxy.GetClient().List(
 				ctx,
 				machinePoolList,
 				client.InNamespace(workloadClusterNamespace),
 				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 			); err == nil {
-				for _, mp := range machinePoolList.Items {
-					if mp.Status.Phase == string(expv1.MachinePoolPhaseRunning) {
-						n += int64(mp.Status.ReadyReplicas)
+				for _, m := range machinePoolList.Items {
+					phase, found, err := unstructured.NestedString(m.Object, "status", "phase")
+					if err != nil || !found || phase != string(expv1.MachinePoolPhaseRunning) {
+						continue
+					}
+
+					replicas, found, err := unstructured.NestedInt64(m.Object, "status", "readyReplicas")
+					if err == nil && found {
+						n += replicas
 					}
 				}
 			}
@@ -935,10 +946,15 @@ func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c clien
 	return expectedMachineDeploymentWorkerCount
 }
 
-func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Client, workloadClusterNamespace, workloadClusterName string) (int64, error) {
+func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Client, workloadClusterNamespace, workloadClusterName, coreCAPIStorageVersion string) (int64, error) {
 	expectedMachinePoolMachineCount := int64(0)
 
-	machinePoolList := &expv1.MachinePoolList{}
+	machinePoolList := &unstructured.UnstructuredList{}
+	machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: coreCAPIStorageVersion,
+		Kind:    "MachinePoolList",
+	})
 	if err := c.List(
 		ctx,
 		machinePoolList,
@@ -946,7 +962,13 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 	); err == nil {
 		for _, mp := range machinePoolList.Items {
-			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef)
+			ref := &corev1.ObjectReference{}
+			err = util.UnstructuredUnmarshalField(&mp, ref, "spec", "template", "spec", "infrastructureRef")
+			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+				return 0, err
+			}
+
+			infraMachinePool, err := external.Get(ctx, c, ref)
 			if err != nil {
 				return 0, err
 			}
@@ -955,8 +977,10 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 				return 0, err
 			}
-			if err == nil {
-				expectedMachinePoolMachineCount += int64(*mp.Spec.Replicas)
+
+			replicas, found, err := unstructured.NestedInt64(mp.Object, "spec", "replicas")
+			if err == nil && found {
+				expectedMachinePoolMachineCount += replicas
 			}
 		}
 	}

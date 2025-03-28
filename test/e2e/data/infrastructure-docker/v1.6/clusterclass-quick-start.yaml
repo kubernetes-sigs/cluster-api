@@ -159,6 +159,7 @@ spec:
           template: |
             imageRepository: {{ .lbImageRepository }}
   - name: etcdImageTag
+    enabledIf: '{{ ne .etcdImageTag "" }}'
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
     - selector:
@@ -174,6 +175,7 @@ spec:
             local:
               imageTag: {{ .etcdImageTag }}
   - name: coreDNSImageTag
+    enabledIf: '{{ ne .coreDNSImageTag "" }}'
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
     - selector:

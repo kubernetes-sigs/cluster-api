@@ -626,6 +626,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
 			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
 			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
+			// Note: We can migrate to only use v1beta2 once we only support upgrades from CAPI versions that already have v1beta2.
 			workloadCluster := discoveryAndWaitForClusterV1Beta1(ctx, discoveryAndWaitForClusterV1Beta1Input{
 				Getter:    managementClusterProxy.GetClient(),
 				Namespace: workloadClusterNamespace,
@@ -651,7 +652,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
+			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 
 			Byf("[%d] Waiting for three minutes before checking if an unexpected rollout happened", i)
 			time.Sleep(time.Minute * 3)
@@ -671,7 +672,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
+			}, "3m", "10s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 			Expect(validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)).To(BeTrue(), "Machines should remain the same after the upgrade")
 
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.

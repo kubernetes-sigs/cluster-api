@@ -1,3 +1,4 @@
+# Configuration for alloy - https://github.com/grafana/alloy/blob/main/operations/helm/charts/alloy/values.yaml
 config:
   # publish data to loki
   clients:

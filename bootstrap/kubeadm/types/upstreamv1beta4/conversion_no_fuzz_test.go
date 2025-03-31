@@ -27,7 +27,7 @@ import (
 )
 
 // This test case has been moved out of conversion_test.go because it should be run with the race detector.
-// Note: The tests in conversion_test.go are disabled when the race detector is enabled (via "//go:build !race") because otherwise the fuzz tests would just time out.
+// Note: The tests in conversion_test.go are disabled when the race detector is enabled (via "") because otherwise the fuzz tests would just time out.
 
 func TestTimeoutForControlPlaneMigration(t *testing.T) {
 	timeout := metav1.Duration{Duration: 10 * time.Second}

@@ -1,5 +1,3 @@
-//go:build !race
-
 /*
 Copyright 2021 The Kubernetes Authors.
 
@@ -34,7 +32,7 @@ const (
 	fakeSecret = "abcdef0123456789"
 )
 
-// Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
+// Test is disabled when the race detector is enabled (via "" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

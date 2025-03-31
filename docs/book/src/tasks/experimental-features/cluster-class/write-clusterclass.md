@@ -609,7 +609,7 @@ spec:
 In addition to variables specified in the ClusterClass, the following builtin variables can be 
 referenced in patches:
 - `builtin.cluster.{name,namespace,uid,metadata.labels,metadata.annotations}`
-- `builtin.cluster.topology.{version,class}`
+- `builtin.cluster.topology.{version,class,classNamespace}`
 - `builtin.cluster.network.{serviceDomain,services,pods,ipFamily}`
     - Note: ipFamily is deprecated and will be removed in a future release. see https://github.com/kubernetes-sigs/cluster-api/issues/7521.
 - `builtin.controlPlane.{replicas,version,name,metadata.labels,metadata.annotations}`

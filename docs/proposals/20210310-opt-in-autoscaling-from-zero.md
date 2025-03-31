@@ -179,7 +179,9 @@ const (
 // DockerMachineTemplateStatus defines the observed state of a DockerMachineTemplate
 type DockerMachineTemplateStatus struct {
     Capacity corev1.ResourceList `json:"capacity,omitempty"`
-    NodeInfo *platform.NodeSystemInfo `json:"nodeInfo,omitempty"`
+    
+    // +optional
+    NodeInfo *platform.NodeInfo `json:"nodeInfo,omitempty"`
 }
 
 // DockerMachineTemplate is the Schema for the dockermachinetemplates API.
@@ -193,7 +195,7 @@ type DockerMachineTemplate struct {
 ```
 _Note: the `ResourceList` and `ResourceName` referenced are from k8s.io/api/core/v1`_
 
-`platform.NodeSystemInfo` is a struct that contains the architecture and operating system information of the node, to 
+`platform.NodeInfo` is a struct that contains the architecture and operating system information of the node, to 
 implement in the `util` package of the `cluster-api` project. The defined types and constants are exported for use by the 
 cluster-api providers integrations.
 Its definition would look like this:
@@ -201,8 +203,11 @@ Its definition would look like this:
 ```go
 package platform
 
+// Architecture represents the architecture of the node. Its underlying type is a string.
+// +enum
 type Architecture string
 
+// Architecture constants defined for clarity and to be used by the cluster-api providers.
 const (
     ArchitectureAmd64 Architecture = "amd64"
     ArchitectureArm64 Architecture = "arm64"
@@ -210,8 +215,14 @@ const (
     ArchitecturePpc64le Architecture = "ppc64le"
 )
 
-type NodeSystemInfo struct {
+// NodeInfo contains information about the node's architecture and operating system.
+type NodeInfo struct {
+    // Architecture is the architecture of the node. It is a string that can be any of (amd64, arm64, s390x, ppc64le).
+    // +optional
+    // +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
     Architecture Architecture `json:"architecture,omitempty"`
+    // OperatingSystem is a string representing the operating system of the node. 
+    // +optional
     OperatingSystem string `json:"operatingSystem,omitempty"`
 }
 ```
@@ -265,8 +276,8 @@ metadata:
       capacity.cluster-autoscaler.kubernetes.io/memory: "500mb"
       capacity.cluster-autoscaler.kubernetes.io/cpu: "1"
       capacity.cluster-autoscaler.kubernetes.io/ephemeral-disk: "100Gi"
-      node-info.cluster-autoscaler.kubernetes.io/cpu-architecture: "arm64"
-      node-info.cluster-autoscaler.kubernetes.io/os: "linux"
+      node-info.cluster-autoscaler.kubernetes.io/architecture: "arm64"
+      node-info.cluster-autoscaler.kubernetes.io/operating-system: "linux"
 ```
 _Note: the annotations will be defined in the cluster autoscaler, not in cluster-api._
 

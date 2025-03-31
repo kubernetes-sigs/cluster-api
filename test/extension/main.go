@@ -45,17 +45,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -97,11 +93,6 @@ func init() {
 	// Adds to the scheme all the API types we used by the test extension.
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
-
-	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1.AddToScheme(scheme)
-	_ = controlplanev1.AddToScheme(scheme)
-	_ = infrav1.AddToScheme(scheme)
 
 	// Register the RuntimeHook types into the catalog.
 	_ = runtimehooksv1.AddToCatalog(catalog)

@@ -16,15 +16,9 @@ limitations under the License.
 
 package v1beta2
 
-func (*Cluster) Hub()                {}
-func (*ClusterList) Hub()            {}
-func (*ClusterClass) Hub()           {}
-func (*ClusterClassList) Hub()       {}
-func (*Machine) Hub()                {}
-func (*MachineList) Hub()            {}
-func (*MachineSet) Hub()             {}
-func (*MachineSetList) Hub()         {}
-func (*MachineDeployment) Hub()      {}
-func (*MachineDeploymentList) Hub()  {}
-func (*MachineHealthCheck) Hub()     {}
-func (*MachineHealthCheckList) Hub() {}
+func (*Cluster) Hub()            {}
+func (*ClusterClass) Hub()       {}
+func (*Machine) Hub()            {}
+func (*MachineSet) Hub()         {}
+func (*MachineDeployment) Hub()  {}
+func (*MachineHealthCheck) Hub() {}

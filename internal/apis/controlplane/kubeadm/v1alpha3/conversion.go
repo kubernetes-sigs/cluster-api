@@ -79,18 +79,6 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *KubeadmControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneList)
-
-	return Convert_v1alpha3_KubeadmControlPlaneList_To_v1beta2_KubeadmControlPlaneList(src, dst, nil)
-}
-
-func (dst *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*controlplanev1.KubeadmControlPlaneList)
-
-	return Convert_v1beta2_KubeadmControlPlaneList_To_v1alpha3_KubeadmControlPlaneList(src, dst, nil)
-}
-
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	out.UpgradeAfter = in.RolloutAfter
 	out.InfrastructureTemplate = in.MachineTemplate.InfrastructureRef

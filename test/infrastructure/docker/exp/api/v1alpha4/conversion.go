@@ -53,18 +53,6 @@ func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	return utilconversion.MarshalData(src, dst)
 }
 
-func (src *DockerMachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infraexpv1.DockerMachinePoolList)
-
-	return Convert_v1alpha4_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(src, dst, nil)
-}
-
-func (dst *DockerMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infraexpv1.DockerMachinePoolList)
-
-	return Convert_v1beta1_DockerMachinePoolList_To_v1alpha4_DockerMachinePoolList(src, dst, nil)
-}
-
 func Convert_v1beta1_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolStatus(in *infraexpv1.DockerMachinePoolStatus, out *DockerMachinePoolStatus, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because Status.InfrastructureMachineKind has been added in v1beta1.
 	return autoConvert_v1beta1_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolStatus(in, out, s)

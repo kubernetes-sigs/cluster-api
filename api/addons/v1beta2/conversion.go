@@ -16,7 +16,5 @@ limitations under the License.
 
 package v1beta2
 
-func (*ClusterResourceSet) Hub()            {}
-func (*ClusterResourceSetList) Hub()        {}
-func (*ClusterResourceSetBinding) Hub()     {}
-func (*ClusterResourceSetBindingList) Hub() {}
+func (*ClusterResourceSet) Hub()        {}
+func (*ClusterResourceSetBinding) Hub() {}

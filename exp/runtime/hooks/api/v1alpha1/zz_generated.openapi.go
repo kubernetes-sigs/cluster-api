@@ -890,6 +890,13 @@ func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.Refere
 							Format:      "",
 						},
 					},
+					"classNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "classNamespace is the namespace of the ClusterClass of the Cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

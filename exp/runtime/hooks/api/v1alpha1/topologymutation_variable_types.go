@@ -79,6 +79,10 @@ type ClusterTopologyBuiltins struct {
 	// class is the name of the ClusterClass of the Cluster.
 	// +optional
 	Class string `json:"class,omitempty"`
+
+	// classNamespace is the namespace of the ClusterClass of the Cluster.
+	// +optional
+	ClassNamespace string `json:"classNamespace,omitempty"`
 }
 
 // ClusterNetworkBuiltins represents builtin cluster network variables.

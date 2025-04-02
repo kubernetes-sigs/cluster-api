@@ -2823,6 +2823,45 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 	}
 }
 
+func TestKubeadmControlPlaneReconciler_deferPatch(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-reconcile-update-status")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	cluster, kcp, _ := createClusterWithControlPlane(ns.Name)
+	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.Create(ctx, kcp)).To(Succeed())
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(kcp, ns)
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		managementCluster: &fakeManagementCluster{
+			WorkloadErr: &internal.RemoteClusterConnectionError{
+				Name: util.ObjectKey(cluster).String(),
+				Err:  errors.New("connection error"),
+			},
+		},
+	}
+
+	controlPlane, _, err := r.initControlPlaneScope(ctx, cluster, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	patchHelper, err := patch.NewHelper(kcp, env)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	result, err := r.deferPatch(ctx, kcp, controlPlane, patchHelper)
+	// Should bump RemoteClusterConnectionError
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: 20 * time.Second}))
+
+	// calling reconcile should return error
+	g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
+}
+
 type fakeClusterCache struct {
 	clustercache.ClusterCache
 	lastProbeSuccessTime time.Time

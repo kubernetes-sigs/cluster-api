@@ -40,6 +40,7 @@ type initOptions struct {
 	validate                  bool
 	waitProviders             bool
 	waitProviderTimeout       int
+	retryCertManagerCheck     bool
 }
 
 var initOpts = &initOptions{}
@@ -117,6 +118,8 @@ func init() {
 		"Wait timeout per provider installation in seconds. This value is ignored if --wait-providers is false")
 	initCmd.Flags().BoolVar(&initOpts.validate, "validate", true,
 		"If true, clusterctl will validate that the deployments will succeed on the management cluster.")
+	initCmd.Flags().BoolVar(&initOpts.retryCertManagerCheck, "retry-cert-manager-readiness-check", false,
+		"If true, clusterctl will retry checking for an existing cert-manager readiness using cert-manager.timeout entry value from the config file.")
 
 	initCmd.AddCommand(initListImagesCmd)
 	RootCmd.AddCommand(initCmd)
@@ -131,19 +134,20 @@ func runInit() error {
 	}
 
 	options := client.InitOptions{
-		Kubeconfig:                client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
-		CoreProvider:              initOpts.coreProvider,
-		BootstrapProviders:        initOpts.bootstrapProviders,
-		ControlPlaneProviders:     initOpts.controlPlaneProviders,
-		InfrastructureProviders:   initOpts.infrastructureProviders,
-		IPAMProviders:             initOpts.ipamProviders,
-		RuntimeExtensionProviders: initOpts.runtimeExtensionProviders,
-		AddonProviders:            initOpts.addonProviders,
-		TargetNamespace:           initOpts.targetNamespace,
-		LogUsageInstructions:      true,
-		WaitProviders:             initOpts.waitProviders,
-		WaitProviderTimeout:       time.Duration(initOpts.waitProviderTimeout) * time.Second,
-		IgnoreValidationErrors:    !initOpts.validate,
+		Kubeconfig:                     client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
+		CoreProvider:                   initOpts.coreProvider,
+		BootstrapProviders:             initOpts.bootstrapProviders,
+		ControlPlaneProviders:          initOpts.controlPlaneProviders,
+		InfrastructureProviders:        initOpts.infrastructureProviders,
+		IPAMProviders:                  initOpts.ipamProviders,
+		RuntimeExtensionProviders:      initOpts.runtimeExtensionProviders,
+		AddonProviders:                 initOpts.addonProviders,
+		TargetNamespace:                initOpts.targetNamespace,
+		LogUsageInstructions:           true,
+		WaitProviders:                  initOpts.waitProviders,
+		WaitProviderTimeout:            time.Duration(initOpts.waitProviderTimeout) * time.Second,
+		IgnoreValidationErrors:         !initOpts.validate,
+		RetryCertManagerReadinessCheck: initOpts.retryCertManagerCheck,
 	}
 
 	if _, err := c.Init(ctx, options); err != nil {

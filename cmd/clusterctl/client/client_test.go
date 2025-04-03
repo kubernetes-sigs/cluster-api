@@ -251,7 +251,7 @@ type fakeCertManagerClient struct {
 
 var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 
-func (p *fakeCertManagerClient) EnsureInstalled(_ context.Context) error {
+func (p *fakeCertManagerClient) EnsureInstalled(_ context.Context, _ bool) error {
 	return nil
 }
 

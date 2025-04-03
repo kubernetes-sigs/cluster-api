@@ -76,6 +76,10 @@ type InitOptions struct {
 	// WaitProviderTimeout sets the timeout per provider wait installation
 	WaitProviderTimeout time.Duration
 
+	// RetryCertManagerReadinessCheck instructs the init command to retry the check for cert-manager readiness
+	// before attempting to install it.
+	RetryCertManagerReadinessCheck bool
+
 	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
 	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
 	skipTemplateProcess bool
@@ -142,7 +146,7 @@ func (c *clusterctlClient) Init(ctx context.Context, options InitOptions) ([]Com
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
 	certManager := clusterClient.CertManager()
-	if err := certManager.EnsureInstalled(ctx); err != nil {
+	if err := certManager.EnsureInstalled(ctx, options.RetryCertManagerReadinessCheck); err != nil {
 		return nil, err
 	}
 

@@ -16,7 +16,5 @@ limitations under the License.
 
 package v1beta2
 
-func (*KubeadmControlPlane) Hub()             {}
-func (*KubeadmControlPlaneList) Hub()         {}
-func (*KubeadmControlPlaneTemplate) Hub()     {}
-func (*KubeadmControlPlaneTemplateList) Hub() {}
+func (*KubeadmControlPlane) Hub()         {}
+func (*KubeadmControlPlaneTemplate) Hub() {}

@@ -16,5 +16,4 @@ limitations under the License.
 
 package v1beta2
 
-func (*MachinePool) Hub()     {}
-func (*MachinePoolList) Hub() {}
+func (*MachinePool) Hub() {}

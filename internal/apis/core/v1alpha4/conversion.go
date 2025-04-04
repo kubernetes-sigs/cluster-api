@@ -102,18 +102,6 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.ClusterList)
-
-	return Convert_v1alpha4_ClusterList_To_v1beta2_ClusterList(src, dst, nil)
-}
-
-func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.ClusterList)
-
-	return Convert_v1beta2_ClusterList_To_v1alpha4_ClusterList(src, dst, nil)
-}
-
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.ClusterClass)
 
@@ -170,18 +158,6 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *ClusterClassList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.ClusterClassList)
-
-	return Convert_v1alpha4_ClusterClassList_To_v1beta2_ClusterClassList(src, dst, nil)
-}
-
-func (dst *ClusterClassList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.ClusterClassList)
-
-	return Convert_v1beta2_ClusterClassList_To_v1alpha4_ClusterClassList(src, dst, nil)
-}
-
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
@@ -220,18 +196,6 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.MachineList)
-
-	return Convert_v1alpha4_MachineList_To_v1beta2_MachineList(src, dst, nil)
-}
-
-func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.MachineList)
-
-	return Convert_v1beta2_MachineList_To_v1alpha4_MachineList(src, dst, nil)
-}
-
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
@@ -266,18 +230,6 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
-}
-
-func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.MachineSetList)
-
-	return Convert_v1alpha4_MachineSetList_To_v1beta2_MachineSetList(src, dst, nil)
-}
-
-func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.MachineSetList)
-
-	return Convert_v1beta2_MachineSetList_To_v1alpha4_MachineSetList(src, dst, nil)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
@@ -325,18 +277,6 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	return utilconversion.MarshalData(src, dst)
 }
 
-func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.MachineDeploymentList)
-
-	return Convert_v1alpha4_MachineDeploymentList_To_v1beta2_MachineDeploymentList(src, dst, nil)
-}
-
-func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.MachineDeploymentList)
-
-	return Convert_v1beta2_MachineDeploymentList_To_v1alpha4_MachineDeploymentList(src, dst, nil)
-}
-
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheck)
 
@@ -363,18 +303,6 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
-}
-
-func (src *MachineHealthCheckList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*clusterv1.MachineHealthCheckList)
-
-	return Convert_v1alpha4_MachineHealthCheckList_To_v1beta2_MachineHealthCheckList(src, dst, nil)
-}
-
-func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*clusterv1.MachineHealthCheckList)
-
-	return Convert_v1beta2_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(src, dst, nil)
 }
 
 func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {

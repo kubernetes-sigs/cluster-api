@@ -16,7 +16,5 @@ limitations under the License.
 
 package v1beta2
 
-func (*IPAddress) Hub()          {}
-func (*IPAddressList) Hub()      {}
-func (*IPAddressClaim) Hub()     {}
-func (*IPAddressClaimList) Hub() {}
+func (*IPAddress) Hub()      {}
+func (*IPAddressClaim) Hub() {}

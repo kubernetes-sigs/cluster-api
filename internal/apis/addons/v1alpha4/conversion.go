@@ -53,18 +53,6 @@ func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
 	return utilconversion.MarshalData(src, dst)
 }
 
-func (src *ClusterResourceSetList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*addonsv1.ClusterResourceSetList)
-
-	return Convert_v1alpha4_ClusterResourceSetList_To_v1beta2_ClusterResourceSetList(src, dst, nil)
-}
-
-func (dst *ClusterResourceSetList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*addonsv1.ClusterResourceSetList)
-
-	return Convert_v1beta2_ClusterResourceSetList_To_v1alpha4_ClusterResourceSetList(src, dst, nil)
-}
-
 func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
 
@@ -93,18 +81,6 @@ func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
-}
-
-func (src *ClusterResourceSetBindingList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*addonsv1.ClusterResourceSetBindingList)
-
-	return Convert_v1alpha4_ClusterResourceSetBindingList_To_v1beta2_ClusterResourceSetBindingList(src, dst, nil)
-}
-
-func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*addonsv1.ClusterResourceSetBindingList)
-
-	return Convert_v1beta2_ClusterResourceSetBindingList_To_v1alpha4_ClusterResourceSetBindingList(src, dst, nil)
 }
 
 // Convert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha4_ClusterResourceSetBindingSpec is a conversion function.

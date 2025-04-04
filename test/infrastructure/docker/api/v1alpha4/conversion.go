@@ -59,18 +59,6 @@ func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *DockerClusterList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.DockerClusterList)
-
-	return Convert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(src, dst, nil)
-}
-
-func (dst *DockerClusterList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.DockerClusterList)
-
-	return Convert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(src, dst, nil)
-}
-
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerClusterTemplate)
 
@@ -108,18 +96,6 @@ func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *DockerClusterTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.DockerClusterTemplateList)
-
-	return Convert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(src, dst, nil)
-}
-
-func (dst *DockerClusterTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.DockerClusterTemplateList)
-
-	return Convert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(src, dst, nil)
-}
-
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachine)
 
@@ -155,18 +131,6 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *DockerMachineList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.DockerMachineList)
-
-	return Convert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(src, dst, nil)
-}
-
-func (dst *DockerMachineList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.DockerMachineList)
-
-	return Convert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(src, dst, nil)
-}
-
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachineTemplate)
 
@@ -199,18 +163,6 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
-}
-
-func (src *DockerMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.DockerMachineTemplateList)
-
-	return Convert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(src, dst, nil)
-}
-
-func (dst *DockerMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.DockerMachineTemplateList)
-
-	return Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(src, dst, nil)
 }
 
 func Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *infrav1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s apiconversion.Scope) error {

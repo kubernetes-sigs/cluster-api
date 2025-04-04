@@ -16,10 +16,8 @@ limitations under the License.
 
 package v1beta2
 
-func (*KubeadmConfig) Hub()             {}
-func (*KubeadmConfigList) Hub()         {}
-func (*KubeadmConfigTemplate) Hub()     {}
-func (*KubeadmConfigTemplateList) Hub() {}
+func (*KubeadmConfig) Hub()         {}
+func (*KubeadmConfigTemplate) Hub() {}
 
 func (*ClusterConfiguration) Hub() {}
 func (*ClusterStatus) Hub()        {}

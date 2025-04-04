@@ -74,18 +74,6 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	return utilconversion.MarshalData(src, dst)
 }
 
-func (src *KubeadmControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneList)
-
-	return Convert_v1alpha4_KubeadmControlPlaneList_To_v1beta2_KubeadmControlPlaneList(src, dst, nil)
-}
-
-func (dst *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*controlplanev1.KubeadmControlPlaneList)
-
-	return Convert_v1beta2_KubeadmControlPlaneList_To_v1alpha4_KubeadmControlPlaneList(src, dst, nil)
-}
-
 func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
 
@@ -137,18 +125,6 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
-}
-
-func (src *KubeadmControlPlaneTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplateList)
-
-	return Convert_v1alpha4_KubeadmControlPlaneTemplateList_To_v1beta2_KubeadmControlPlaneTemplateList(src, dst, nil)
-}
-
-func (dst *KubeadmControlPlaneTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplateList)
-
-	return Convert_v1beta2_KubeadmControlPlaneTemplateList_To_v1alpha4_KubeadmControlPlaneTemplateList(src, dst, nil)
 }
 
 func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, s apiconversion.Scope) error {

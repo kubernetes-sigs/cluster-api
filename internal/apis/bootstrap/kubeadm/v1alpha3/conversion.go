@@ -127,18 +127,6 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.KubeadmConfigList)
-
-	return Convert_v1alpha3_KubeadmConfigList_To_v1beta2_KubeadmConfigList(src, dst, nil)
-}
-
-func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.KubeadmConfigList)
-
-	return Convert_v1beta2_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(src, dst, nil)
-}
-
 func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.KubeadmConfigTemplate)
 
@@ -172,18 +160,6 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
-}
-
-func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.KubeadmConfigTemplateList)
-
-	return Convert_v1alpha3_KubeadmConfigTemplateList_To_v1beta2_KubeadmConfigTemplateList(src, dst, nil)
-}
-
-func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.KubeadmConfigTemplateList)
-
-	return Convert_v1beta2_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
 }
 
 func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apiconversion.Scope) error {

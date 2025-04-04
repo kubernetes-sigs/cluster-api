@@ -55,18 +55,6 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	return utilconversion.MarshalData(src, dst)
 }
 
-func (src *MachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*expv1.MachinePoolList)
-
-	return Convert_v1alpha4_MachinePoolList_To_v1beta2_MachinePoolList(src, dst, nil)
-}
-
-func (dst *MachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*expv1.MachinePoolList)
-
-	return Convert_v1beta2_MachinePoolList_To_v1alpha4_MachinePoolList(src, dst, nil)
-}
-
 func Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(in *clusterv1alpha4.MachineTemplateSpec, out *clusterv1.MachineTemplateSpec, s apimachineryconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(in, out, s)
 }

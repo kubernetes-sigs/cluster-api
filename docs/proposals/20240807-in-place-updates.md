@@ -81,8 +81,6 @@ __External Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke extern
 
 __External Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
 
-__Marking Machine as Pending/Done__: Using the `sigs.k8s.io/cluster-api/internal/hooks.MarkAsPending()` and `sigs.k8s.io/cluster-api/internal/hooks.MarkAsDone()` functions to track that updaters should be called and to mark machine as done updating.
-
 ## Summary
 
 The proposal introduces update extensions allowing users to execute custom strategies when performing Cluster API rollouts.
@@ -108,22 +106,20 @@ Over time several improvement were made to Cluster API immutable rollouts:
 
 Even if the project continues to improve immutable rollouts, most probably there are and there will always be some remaining use cases where it is complex for users to perform immutable rollouts, or where users perceive immutable rollouts to be too disruptive to how they are used to manage machines in their organization:
 * More efficient updates (multiple instances) that don't require re-bootstrap. Re-bootstrapping a bare metal machine takes ~10-15 mins on average. Speed matters when you have 100s - 1000s of nodes to upgrade. For a common telco RAN use case, users can have 30000-ish nodes. Depending on the parallelism, that could take days / weeks to upgrade because of the re-bootstrap time.
-* Single node cluster without extra hardware available.
-* `TODO: looking for more real life usecases here`
+* Credentials rotation, e.g. rotating authorized keys for SSH.
 
-With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems, allowing them to implement a custom rollout strategy to be triggered via a new external update extension point implemented using the existing runtime extension framework.
 
-With the implementation of custom rollout strategy, users can take ownership of the rollout process and embrace in-place rollout strategies, intentionally trading off some of the benefits that you get from immutable infrastructure.
+With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems by implementing an Update extension.
+
+With the implementation of an Update extension, users can take ownership of the rollout process and embrace in-place rollout strategies, intentionally trading off some of the benefits that you get from immutable infrastructure.
 
 ### Divide and conquer
 
-As this proposal is an output of the In-place updates Feature Group, ensuring that the external update extension allows the implementation of in-place rollout strategies is considered a non-negotiable goal of this effort.
+Considering the complexity of this topic, a phased approach is required to design and implement the solution for in-place upgrades.
 
-Please note that the practical consequence of focusing on in-place rollout strategies, is that the possibility to implement different types of custom rollout strategies, even if technically possible, won’t be validated in this first iteration (future goal).
+The main goal of the first iteration of this proposal is to make it possible for Cluster API users to start experimenting usage of in-place upgrades, so we can gather feedback and evolve to the next stage.
 
-Another important point to surface, before digging into implementation details of the proposal, is the fact that this proposal is not tackling the problem of improving CAPI to embrace all the possibilities that external update extensions are introducing. E.g. If an external update extension introduces support for in-place updates, using “BootstrapConfig” (emphasis on bootstrap) as the place where most of the machine configurations are defined seems not ideal.
-
-However, at the same time we would like to make it possible for Cluster API users to start exploring this field, gain experience, and report back so we can have concrete use cases and real-world feedback to evolve our API.
+This iteration will focus on implementing the machinery required to interact with update extensions, while users facing changes in the API types are deferred to follow up iterations.
 
 ### Tenets
 
@@ -136,36 +132,36 @@ Cluster API user experience MUST be the same when using default, immutable updat
 If external update extensions can not cover the totality of the desired changes, CAPI WILL defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
 * It allows to implement custom rollout strategies incrementally, without the need to cover all use cases up-front.
-* There are case when replacing the machine will always be necessary:
+* There are cases when replacing the machine will always be necessary:
     * When it is not possible to recover the machine, e.g. hardware failure.
     * When the user determines that recovering the machine is too complex/costly vs replacing it. 
     * Automatic machine remediation (unless you use external remediation strategies)
 
 #### Clean separation of concern
 
-The external update extension will be responsible to perform the updates on a single machine.
+It is the responsibility of the extension to decide if it can perform changes in-place and to perform these changes on a single machine. If the extension decides that it cannot perform changes in-place, CAPI will fall back to rollout.
 
-The responsibility to determine which machine should be rolled out as well as the responsibility to handle rollout options like MaxSurge/MaxUnavailable will remain on the controllers owning the machine (e.g. KCP, MD controller).
+The responsibility to determine which machine should be rolled out as well as the responsibility to handle rollout options like MaxSurge/MaxUnavailable will remain on the controllers owning the machine (e.g. KCP, MD controller). 
 
 ### Goals
 
-- Enable the implementation of in-place update strategies.
+- Enable the implementation of pluggable update extensions.
 - Allow users to update Kubernetes clusters using pluggable External Update Extension.
 - Maintain a coherent user experience for both rolling and in-place updates.
 - Support External Update Extensions for both Control Plane (KCP or others) and MachineDeployment controlled machines.
-- Allow in-place updates for single-node clusters without the requirement to reprovision hosts.
 
 ### Non-Goals/Future work
 
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
 - Introduce any changes to KCP (or any other control plane provider), MachineDeployment, MachineSet, Machine APIs.
 - Ammend the desired state to something that the registered updaters can cover or register additional updaters capable of handling the desired changes.
+- Allow in-place updates for single-node clusters without the requirement to reprovision hosts.
 
 ## Proposal
 
-We propose a pluggable update strategy architecture that allows External Update Extension to handle the update process.
+We propose to extend upgrade workflows to call External Update Extensions, if defined.
 
-Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism and be contained within the experimental package. This means that any changes in behavior are controlled by the feature gate `InPlaceUpdates`, which must be enabled by users for the new in-place updates workflow to be available. It is disabled unless explicitly configured.
+Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. This means that any changes in behavior are controlled by the feature gate `InPlaceUpdates`, which must be enabled by users for the new in-place updates workflow to be available. It is disabled unless explicitly configured.
 
 This proposal introduces a Lifecycle Hook named `ExternalUpdate` for communication between CAPI and external update implementers. Multiple external updaters can be registered, each of them only covering a subset of machine changes. The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the reponse, compose and orchestrate them to achieve the desired state.
 
@@ -175,26 +171,23 @@ With the introduction of this experimental feature, users may want to apply the 
 
 #### Story 1
 
-As an cluster operator, I want to perform in-place updates on my Kubernetes clusters without replacing the underlying machines. I expect the update process to be flexible, allowing me to customize the strategy based on my specific requirements, such as air-gapped environments or special node configurations.
+As a cluster operator, I want to perform in-place updates on my Kubernetes clusters without replacing the underlying machines. I expect the update process to be flexible, allowing me to customize the strategy based on my specific requirements, such as air-gapped environments or special node configurations.
 
 #### Story 2
 
 As a cluster operator, I want to seamlessly transition between rolling and in-place updates while maintaining a consistent user interface. I appreciate the option to choose or implement my own update strategy,  ensuring that the update process aligns with my organization's unique needs.
 
 #### Story 3
-As an cluster operator for resource constrained environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without requiring additional compute capacity in a single node cluster.
+As a cluster operator for resource constrained environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without requiring additional compute capacity in a single node cluster.
 
 #### Story 4
-As an cluster operator for highly specialized/customized environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without losing the existing VM/OS customizations.
+As a cluster operator for highly specialized/customized environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without losing the existing VM/OS customizations.
 
 #### Story 5
 As a cluster operator, I want to update machine attributes supported by my infrastructure provider without the need to recreate the machine.
 
 #### Story 6
-As a cluster service provider, I want guidance/documentation on how to write external update extension for own my use case.
-
-#### Story 7
-As a bootstrap/controlplane provider developer, I want guidance/documentation on how to reuse some parts of this pluggable external update mechanism.
+As a cluster service provider, I want guidance/documentation on how to write external update extension for my own use case.
 
 ### High level flow
 
@@ -231,7 +224,7 @@ sequenceDiagram
 
 When configured, external updates will, roughly, follow these steps:
 1. CP/MD Controller: detect an update is required.
-2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place.
+2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, the update will be performed as of today (rollout).
 3. CP/MD Controller: mark machines as pending using `sigs.k8s.io/cluster-api/internal/hooks.MarkAsPending()` function to track that updaters should be called.
 4. Machine Controller: set `UpToDate` condition on machines to `False`.
 5. Machine Controller: invoke all registered updaters, sequentially, one by one.
@@ -312,14 +305,12 @@ end
 
 The MachineDeployment controller updates machines in place in a very similar way to rolling updates: by creating a new MachineSet and moving the machines from the old MS to the new one. We want to stress that the Machine objects won't be deleted and recreated like in the current rolling strategy. The MachineDeployment will just update the OwnerRefs and labels, effectively moving the existing Machine object from one MS to another. The number of machines moved at once might be made configurable on the MachineDeployment in the same way `maxSurge` and `maxUnavailable` control this for rolling updates.
 
-When the new MachineSet controller sees a new Machine with an outdated spec, it updates the spec to match the one in the MS. This update together with marking machine as pending and setting a condition is what triggers the Machine controller to start executing 
-the external updaters.
-
 ### KCP updates
 
 ```mermaid
 sequenceDiagram
 box Management Cluster
+    participant Operator
     participant apiserver as kube-api server
     participant capi as KCP controller
     participant mach as Machine Controller
@@ -391,13 +382,15 @@ Once a Machine is marked as pending and `UpToDate` condition is set and the Mach
 
 The Machine controller currently calls registered external updaters sequentially but without a defined order. We are explicitly not trying to design a solution for ordering of execution at this stage. However, determining a specific ordering mechanism or dependency management between update extensions will need to be addressed in future iterations of this proposal.
 
-The controller will trigger updaters by hitting another RuntimeHook endpoint (eg. `/UpdateMachine`). The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until it reaches a terminal state.
+The controller will trigger updaters by hitting a RuntimeHook endpoint (eg. `/UpdateMachine`). The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until it reaches a terminal state.
 
-CAPI expects the `/UpdateMachine` endpoint of an updater to be idempotent: for the same Machine with the same spec, the endpoint can be called any number of times (before and after it completes), and the end result should be the same. CAPI guarantees that once an `/UpdateMachine` endpoint has been called once, it won't change the Machine spec until the update reaches a terminal state.
+CAPI expects the `/UpdateMachine` endpoint of an updater to be idempotent: for the same Machine with the same spec, the endpoint can be called any number of times (before and after it completes), and the end result should be the same. CAPI guarantees that once an `/UpdateMachine` endpoint has been called once, it won't change the Machine spec until the update either completes or fails.
 
 Once all of the updaters are complete, the Machine controller will mark machine as done. If the update fails, this will be reflected in the Machine status.
 
 From this point on, the `KCP` or `MachineDeployment` controller will take over and set the `UpToDate` condition to `True`.
+
+Note: We might revisit which controller should set `UpToDate` during implementation, because we have to make sure there are no race conditions that can lead to reconcile failures, but apart from the ownership of this operation, the workflows described in this doc should not be impacted.
 
 ### Infra Machine Template changes
 
@@ -586,7 +579,7 @@ When the `kcp-version-upgrade` extension receives the request, it verifies it ca
 {
     "error": null,
     "status": "InProgress",
-    "tryAgain": "5m0s"
+    "retryAfterSeconds": "5m0s"
 }
 ```
 
@@ -672,7 +665,7 @@ status:
     type: UpToDate
 ```
 
-This process is repeated a third time with the last KCP machine, finally marking the KCP object as up to date.
+This process is repeated for the second and third KCP machine, finally marking the KCP object as up to date.
 
 #### Update worker node memory
 
@@ -902,34 +895,6 @@ Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions inf
 ```
 
 Since the fallback to machine replacement is a default strategy and always enabled, the MachineDeployment controller proceeds with the rollout process as it does today, replacing the old machines with new ones.
-
-### API Changes
-
-*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
-
-#### External Update RuntimeExtension
-
-> TODO: we will add this later, after we get feedback from the first daft
-
-##### `CanUpdateMachine` endpoint
-##### Request
-> Requirements:
-> * Desired Machine/Bootstrap/InfraMachine changes
-
-##### Response
-> Requirements:
-> * Set of supported changes, probably an array of strings (the path in the object)
-> * Error
-
-##### `UpdateMachine` endpoint
-##### Request
-> Requirements:
-> *  Machine reference - namespace, name
-
-##### Response
-> Requirements:
-> * Result: [Success/Error/InProgress]
-> * Retry in X seconds
 
 ### Security Model
 

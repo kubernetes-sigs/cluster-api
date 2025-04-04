@@ -420,9 +420,9 @@ def deploy_provider_crds():
     )
 
 def deploy_observability():
-    if "promtail" in settings.get("deploy_observability", []):
-        k8s_yaml(read_file("./.tiltbuild/yaml/promtail.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"], resource_deps = ["loki"], objects = ["promtail:serviceaccount"])
+    if "alloy" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/alloy.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "alloy", extra_pod_selectors = [{"app": "alloy"}], labels = ["observability"], resource_deps = ["loki"], objects = ["alloy:serviceaccount"])
 
     if "loki" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)

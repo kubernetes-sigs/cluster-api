@@ -143,7 +143,7 @@ func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1
 		return errors.New("leader candidate cannot be nil")
 	}
 	if leaderCandidate.Status.NodeRef == nil {
-		return errors.New("leader has no node reference")
+		return errors.New("leader candidate has no node reference")
 	}
 
 	nodes, err := w.getControlPlaneNodes(ctx)

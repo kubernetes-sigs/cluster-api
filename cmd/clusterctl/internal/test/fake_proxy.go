@@ -17,6 +17,7 @@ limitations under the License.
 package test
 
 import (
+	"container/list"
 	"context"
 	"errors"
 
@@ -46,6 +47,8 @@ type FakeProxy struct {
 	namespace string
 	objs      []client.Object
 	available *bool
+
+	newClientErrors *list.List
 }
 
 var (
@@ -80,6 +83,12 @@ func (f *FakeProxy) GetConfig() (*rest.Config, error) {
 }
 
 func (f *FakeProxy) NewClient(_ context.Context) (client.Client, error) {
+	firstInserted := f.newClientErrors.Back()
+	if firstInserted != nil {
+		f.newClientErrors.Remove(firstInserted)
+		return nil, firstInserted.Value.(error)
+	}
+
 	if f.cs != nil {
 		return f.cs, nil
 	}
@@ -149,7 +158,8 @@ func (f *FakeProxy) GetResourceNames(_ context.Context, _, _ string, _ []client.
 
 func NewFakeProxy() *FakeProxy {
 	return &FakeProxy{
-		namespace: "default",
+		namespace:       "default",
+		newClientErrors: list.New(),
 	}
 }
 
@@ -160,6 +170,13 @@ func (f *FakeProxy) WithObjs(objs ...client.Object) *FakeProxy {
 
 func (f *FakeProxy) WithNamespace(n string) *FakeProxy {
 	f.namespace = n
+	return f
+}
+
+func (f *FakeProxy) WithNewClientErrors(errs ...error) *FakeProxy {
+	for _, err := range errs {
+		f.newClientErrors.PushFront(err)
+	}
 	return f
 }
 

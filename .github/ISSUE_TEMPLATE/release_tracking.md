@@ -66,6 +66,7 @@ Week 18:
 * [ ] [Release Lead] Organize release retrospective
 * [ ] [Communications Manager] [Change production branch in Netlify to the new release branch](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/communications#change-production-branch-in-netlify-to-the-new-release-branch)
 * [ ] [Communications Manager] [Update clusterctl links in the quickstart](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/communications#update-clusterctl-links-in-the-quickstart)
+* [ ] [CI Manager] [Post-release cleanup](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/ci-signal#post-release-cleanup)
 
 Continuously:
 * [Release lead] [Maintain the GitHub release milestone](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/role-handbooks/release-lead#continuously-maintain-the-github-release-milestone)

@@ -82,13 +82,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 // as a consequence it is required to compute the counters again before calling scale down machine sets,
 // and again to before computing the overall availability of the Machine deployment.
 func setReplicas(machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet) {
-	if machineDeployment.Status.V1Beta2 == nil {
-		machineDeployment.Status.V1Beta2 = &clusterv1.MachineDeploymentV1Beta2Status{}
-	}
-
-	machineDeployment.Status.V1Beta2.ReadyReplicas = mdutil.GetV1Beta2ReadyReplicaCountForMachineSets(machineSets)
-	machineDeployment.Status.V1Beta2.AvailableReplicas = mdutil.GetV1Beta2AvailableReplicaCountForMachineSets(machineSets)
-	machineDeployment.Status.V1Beta2.UpToDateReplicas = mdutil.GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.ReadyReplicas = mdutil.GetV1Beta2ReadyReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.AvailableReplicas = mdutil.GetV1Beta2AvailableReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.UpToDateReplicas = mdutil.GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets)
 }
 
 func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
@@ -115,7 +111,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	}
 
 	// Surface if .status.v1beta2.availableReplicas is not yet set.
-	if machineDeployment.Status.V1Beta2 == nil || machineDeployment.Status.V1Beta2.AvailableReplicas == nil {
+	if machineDeployment.Status.AvailableReplicas == nil {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -128,7 +124,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
 	minReplicasNeeded := *(machineDeployment.Spec.Replicas) - mdutil.MaxUnavailable(*machineDeployment)
 
-	if *machineDeployment.Status.V1Beta2.AvailableReplicas >= minReplicasNeeded {
+	if *machineDeployment.Status.AvailableReplicas >= minReplicasNeeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
@@ -137,7 +133,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		return
 	}
 
-	message := fmt.Sprintf("%d available replicas, at least %d required", *machineDeployment.Status.V1Beta2.AvailableReplicas, minReplicasNeeded)
+	message := fmt.Sprintf("%d available replicas, at least %d required", *machineDeployment.Status.AvailableReplicas, minReplicasNeeded)
 	if machineDeployment.Spec.Strategy != nil && mdutil.IsRollingUpdate(machineDeployment) && machineDeployment.Spec.Strategy.RollingUpdate != nil {
 		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s, spec.replicas is %d)", machineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *machineDeployment.Spec.Replicas)
 	}

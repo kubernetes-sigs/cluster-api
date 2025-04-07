@@ -456,10 +456,15 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		machine.Status.Conditions = clusterv1.Conditions{
-			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+		// TODO (v1beta2)
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+				},
+			},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
@@ -470,11 +475,16 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		machine.Status.Conditions = clusterv1.Conditions{
-			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-			*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "",
-				clusterv1.ConditionSeverityWarning, ""),
+		// TODO (v1beta2)
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+					*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "",
+						clusterv1.ConditionSeverityWarning, ""),
+				},
+			},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
 	})
@@ -485,14 +495,19 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		machine.Status.Conditions = clusterv1.Conditions{
-			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
-				clusterv1.ConditionSeverityWarning, ""),
-			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
-				clusterv1.ConditionSeverityWarning, ""),
+		// TODO (v1beta2)
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+					*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+						clusterv1.ConditionSeverityWarning, ""),
+					*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+						clusterv1.ConditionSeverityWarning, ""),
+				},
+			},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
@@ -503,14 +518,19 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		machine.Status.Conditions = clusterv1.Conditions{
-			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
-				clusterv1.ConditionSeverityWarning, ""),
-			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
-				clusterv1.ConditionSeverityWarning, ""),
+		// TODO (v1beta2)
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+					*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+						clusterv1.ConditionSeverityWarning, ""),
+					*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+						clusterv1.ConditionSeverityWarning, ""),
+				},
+			},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
 	})
@@ -521,12 +541,17 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		machine.Status.Conditions = clusterv1.Conditions{
-			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
-			*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+		// TODO (v1beta2)
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+					*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+				},
+			},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
 	})

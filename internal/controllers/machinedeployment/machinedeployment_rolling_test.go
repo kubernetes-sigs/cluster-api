@@ -367,7 +367,11 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Replicas: ptr.To[int32](0),
 				},
 				Status: clusterv1.MachineSetStatus{
-					AvailableReplicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 2,
+						},
+					},
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
@@ -380,7 +384,11 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Replicas: ptr.To[int32](2),
 					},
 					Status: clusterv1.MachineSetStatus{
-						AvailableReplicas: 2,
+						Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+							V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+								AvailableReplicas: 2,
+							},
+						},
 					},
 				},
 				{
@@ -392,7 +400,11 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Replicas: ptr.To[int32](1),
 					},
 					Status: clusterv1.MachineSetStatus{
-						AvailableReplicas: 1,
+						Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+							V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+								AvailableReplicas: 1,
+							},
+						},
 					},
 				},
 			},
@@ -425,9 +437,13 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Replicas: ptr.To[int32](5),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Replicas:          5,
-					ReadyReplicas:     0,
-					AvailableReplicas: 0,
+					Replicas: 5,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							ReadyReplicas:     0,
+							AvailableReplicas: 0,
+						},
+					},
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
@@ -440,9 +456,13 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Replicas: ptr.To[int32](8),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas:          10,
-						ReadyReplicas:     8,
-						AvailableReplicas: 8,
+						Replicas: 10,
+						Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+							V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+								ReadyReplicas:     8,
+								AvailableReplicas: 8,
+							},
+						},
 					},
 				},
 			},

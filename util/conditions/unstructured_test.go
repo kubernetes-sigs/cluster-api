@@ -32,17 +32,23 @@ func TestUnstructuredGetConditions(t *testing.T) {
 	g := NewWithT(t)
 
 	// GetConditions should return conditions from an unstructured object
-	c := &clusterv1.Cluster{}
-	c.SetConditions(conditionList(true1))
-	u := &unstructured.Unstructured{}
-	g.Expect(scheme.Scheme.Convert(c, u, nil)).To(Succeed())
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"status": map[string]interface{}{
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":   "true1",
+						"status": "True",
+					},
+				},
+			},
+		},
+	}
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(haveSameConditionsOf(conditionList(true1)))
 
 	// GetConditions should return nil for an unstructured object with empty conditions
-	c = &clusterv1.Cluster{}
 	u = &unstructured.Unstructured{}
-	g.Expect(scheme.Scheme.Convert(c, u, nil)).To(Succeed())
 
 	g.Expect(UnstructuredGetter(u).GetConditions()).To(BeNil())
 

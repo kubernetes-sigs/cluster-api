@@ -570,7 +570,12 @@ func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int
 	totalReadyReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
-			totalReadyReplicas += ms.Status.ReadyReplicas
+			// TODO (v1beta2)
+			readyReplicas := int32(0)
+			if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
+				readyReplicas = ms.Status.Deprecated.V1Beta1.ReadyReplicas
+			}
+			totalReadyReplicas += readyReplicas
 		}
 	}
 	return totalReadyReplicas
@@ -581,7 +586,11 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 	totalAvailableReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
-			totalAvailableReplicas += ms.Status.AvailableReplicas
+			availableReplicas := int32(0)
+			if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
+				availableReplicas = ms.Status.Deprecated.V1Beta1.AvailableReplicas
+			}
+			totalAvailableReplicas += availableReplicas
 		}
 	}
 	return totalAvailableReplicas
@@ -592,8 +601,8 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalReadyReplicas *int32
 	for _, ms := range machineSets {
-		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.ReadyReplicas != nil {
-			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.V1Beta2.ReadyReplicas)
+		if ms != nil && ms.Status.ReadyReplicas != nil {
+			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}
 	}
 	return totalReadyReplicas
@@ -604,8 +613,8 @@ func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineS
 func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalAvailableReplicas *int32
 	for _, ms := range machineSets {
-		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.AvailableReplicas != nil {
-			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.V1Beta2.AvailableReplicas)
+		if ms != nil && ms.Status.AvailableReplicas != nil {
+			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.AvailableReplicas)
 		}
 	}
 	return totalAvailableReplicas
@@ -616,8 +625,8 @@ func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.Mach
 func GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalUpToDateReplicas *int32
 	for _, ms := range machineSets {
-		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.UpToDateReplicas != nil {
-			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.V1Beta2.UpToDateReplicas)
+		if ms != nil && ms.Status.UpToDateReplicas != nil {
+			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
 	}
 	return totalUpToDateReplicas
@@ -631,9 +640,18 @@ func IsRollingUpdate(deployment *clusterv1.MachineDeployment) bool {
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
 // are updated and available, and no old machines are running.
 func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
-	return newStatus.UpdatedReplicas == *(deployment.Spec.Replicas) &&
+	// TODO (v1beta2)
+	updatedReplicas := int32(0)
+	if newStatus.Deprecated != nil && newStatus.Deprecated.V1Beta1 != nil {
+		updatedReplicas = newStatus.Deprecated.V1Beta1.UpdatedReplicas
+	}
+	availableReplicas := int32(0)
+	if newStatus.Deprecated != nil && newStatus.Deprecated.V1Beta1 != nil {
+		availableReplicas = newStatus.Deprecated.V1Beta1.AvailableReplicas
+	}
+	return updatedReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.Replicas == *(deployment.Spec.Replicas) &&
-		newStatus.AvailableReplicas == *(deployment.Spec.Replicas) &&
+		availableReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.ObservedGeneration >= deployment.Generation
 }
 
@@ -691,9 +709,14 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 	if err != nil {
 		return false
 	}
+	// TODO (v1beta2)
+	availableReplicas := int32(0)
+	if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
+		availableReplicas = ms.Status.Deprecated.V1Beta1.AvailableReplicas
+	}
 	return *(ms.Spec.Replicas) == *(deployment.Spec.Replicas) &&
 		int32(desired) == *(deployment.Spec.Replicas) &&
-		ms.Status.AvailableReplicas == *(deployment.Spec.Replicas)
+		availableReplicas == *(deployment.Spec.Replicas)
 }
 
 // ResolveFenceposts resolves both maxSurge and maxUnavailable. This needs to happen in one

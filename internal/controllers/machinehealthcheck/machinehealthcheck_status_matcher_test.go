@@ -59,7 +59,15 @@ func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool
 	if !ok {
 		return ok, err
 	}
-	ok, err = conditions.MatchConditions(m.expected.Conditions).Match(actualStatus.Conditions)
+	var mConditions clusterv1.Conditions
+	if m.expected.Deprecated != nil && m.expected.Deprecated.V1Beta1 != nil {
+		mConditions = m.expected.Deprecated.V1Beta1.Conditions
+	}
+	var actualConditions clusterv1.Conditions
+	if actualStatus.Deprecated != nil && actualStatus.Deprecated.V1Beta1 != nil {
+		actualConditions = actualStatus.Deprecated.V1Beta1.Conditions
+	}
+	ok, err = conditions.MatchConditions(mConditions).Match(actualConditions)
 	return ok, err
 }
 

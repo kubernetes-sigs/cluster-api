@@ -804,7 +804,7 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
-	if m.Status.FailureReason != nil || m.Status.FailureMessage != nil {
+	if m.Status.Deprecated != nil && m.Status.Deprecated.V1Beta1 != nil && (m.Status.Deprecated.V1Beta1.FailureReason != nil || m.Status.Deprecated.V1Beta1.FailureMessage != nil) {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseFailed)
 	}
 

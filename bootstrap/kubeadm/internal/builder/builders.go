@@ -82,13 +82,11 @@ func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 			Name:      k.name,
 		},
 		Status: bootstrapv1.KubeadmConfigStatus{
-			V1Beta2: &bootstrapv1.KubeadmConfigV1Beta2Status{
-				Conditions: []metav1.Condition{{
-					Type:   clusterv1.PausedV1Beta2Condition,
-					Status: metav1.ConditionFalse,
-					Reason: clusterv1.NotPausedV1Beta2Reason,
-				}},
-			},
+			Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}},
 		},
 	}
 	if k.initConfig != nil {

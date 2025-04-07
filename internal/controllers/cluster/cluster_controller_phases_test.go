@@ -759,7 +759,11 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
-					FailureReason:       &createClusterError,
+					Deprecated: &clusterv1.ClusterDeprecatedStatus{
+						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+							FailureReason: &createClusterError,
+						},
+					},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
@@ -776,7 +780,11 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
-					FailureMessage:      &failureMsg,
+					Deprecated: &clusterv1.ClusterDeprecatedStatus{
+						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+							FailureMessage: &failureMsg,
+						},
+					},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},

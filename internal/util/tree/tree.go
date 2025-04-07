@@ -528,27 +528,25 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 	case *clusterv1.Cluster:
 		// If the object is a cluster, returns all the replica counters (CP and worker replicas are summed for sake of simplicity);
 		// also, pick the available condition as the condition to show for this object in case not all the conditions are visualized.
-		if obj.Status.V1Beta2 != nil {
-			cp := obj.Status.V1Beta2.ControlPlane
-			if cp == nil {
-				cp = &clusterv1.ClusterControlPlaneStatus{}
-			}
-			w := obj.Status.V1Beta2.Workers
-			if w == nil {
-				w = &clusterv1.WorkersStatus{}
-			}
-			if cp.DesiredReplicas != nil || w.DesiredReplicas != nil || cp.Replicas != nil || w.Replicas != nil {
-				v.replicas = fmt.Sprintf("%d/%d", ptr.Deref(cp.Replicas, 0)+ptr.Deref(w.Replicas, 0), ptr.Deref(cp.DesiredReplicas, 0)+ptr.Deref(w.DesiredReplicas, 0))
-			}
-			if cp.AvailableReplicas != nil || w.AvailableReplicas != nil {
-				v.availableCounters = fmt.Sprintf("%d", ptr.Deref(cp.AvailableReplicas, 0)+ptr.Deref(w.AvailableReplicas, 0))
-			}
-			if cp.ReadyReplicas != nil || w.ReadyReplicas != nil {
-				v.readyCounters = fmt.Sprintf("%d", ptr.Deref(cp.ReadyReplicas, 0)+ptr.Deref(w.ReadyReplicas, 0))
-			}
-			if cp.UpToDateReplicas != nil || w.UpToDateReplicas != nil {
-				v.upToDateCounters = fmt.Sprintf("%d", ptr.Deref(cp.UpToDateReplicas, 0)+ptr.Deref(w.UpToDateReplicas, 0))
-			}
+		cp := obj.Status.ControlPlane
+		if cp == nil {
+			cp = &clusterv1.ClusterControlPlaneStatus{}
+		}
+		w := obj.Status.Workers
+		if w == nil {
+			w = &clusterv1.WorkersStatus{}
+		}
+		if cp.DesiredReplicas != nil || w.DesiredReplicas != nil || cp.Replicas != nil || w.Replicas != nil {
+			v.replicas = fmt.Sprintf("%d/%d", ptr.Deref(cp.Replicas, 0)+ptr.Deref(w.Replicas, 0), ptr.Deref(cp.DesiredReplicas, 0)+ptr.Deref(w.DesiredReplicas, 0))
+		}
+		if cp.AvailableReplicas != nil || w.AvailableReplicas != nil {
+			v.availableCounters = fmt.Sprintf("%d", ptr.Deref(cp.AvailableReplicas, 0)+ptr.Deref(w.AvailableReplicas, 0))
+		}
+		if cp.ReadyReplicas != nil || w.ReadyReplicas != nil {
+			v.readyCounters = fmt.Sprintf("%d", ptr.Deref(cp.ReadyReplicas, 0)+ptr.Deref(w.ReadyReplicas, 0))
+		}
+		if cp.UpToDateReplicas != nil || w.UpToDateReplicas != nil {
+			v.upToDateCounters = fmt.Sprintf("%d", ptr.Deref(cp.UpToDateReplicas, 0)+ptr.Deref(w.UpToDateReplicas, 0))
 		}
 
 		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
@@ -564,16 +562,14 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		if obj.Spec.Replicas != nil {
 			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, obj.Status.Replicas)
 		}
-		if obj.Status.V1Beta2 != nil {
-			if obj.Status.V1Beta2.ReadyReplicas != nil {
-				v.availableCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.AvailableReplicas)
-			}
-			if obj.Status.V1Beta2.ReadyReplicas != nil {
-				v.readyCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.ReadyReplicas)
-			}
-			if obj.Status.V1Beta2.UpToDateReplicas != nil {
-				v.upToDateCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.UpToDateReplicas)
-			}
+		if obj.Status.ReadyReplicas != nil {
+			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)
+		}
+		if obj.Status.ReadyReplicas != nil {
+			v.readyCounters = fmt.Sprintf("%d", *obj.Status.ReadyReplicas)
+		}
+		if obj.Status.UpToDateReplicas != nil {
+			v.upToDateCounters = fmt.Sprintf("%d", *obj.Status.UpToDateReplicas)
 		}
 
 		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
@@ -590,16 +586,14 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		if obj.Spec.Replicas != nil {
 			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, obj.Status.Replicas)
 		}
-		if obj.Status.V1Beta2 != nil {
-			if obj.Status.V1Beta2.ReadyReplicas != nil {
-				v.availableCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.AvailableReplicas)
-			}
-			if obj.Status.V1Beta2.ReadyReplicas != nil {
-				v.readyCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.ReadyReplicas)
-			}
-			if obj.Status.V1Beta2.UpToDateReplicas != nil {
-				v.upToDateCounters = fmt.Sprintf("%d", *obj.Status.V1Beta2.UpToDateReplicas)
-			}
+		if obj.Status.ReadyReplicas != nil {
+			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)
+		}
+		if obj.Status.ReadyReplicas != nil {
+			v.readyCounters = fmt.Sprintf("%d", *obj.Status.ReadyReplicas)
+		}
+		if obj.Status.UpToDateReplicas != nil {
+			v.upToDateCounters = fmt.Sprintf("%d", *obj.Status.UpToDateReplicas)
 		}
 
 	case *clusterv1.Machine:

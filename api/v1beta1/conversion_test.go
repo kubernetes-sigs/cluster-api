@@ -22,11 +22,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 
@@ -318,145 +316,5 @@ func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c fuzz.Continue
 		if in.V1Beta2.Conditions == nil {
 			in.V1Beta2 = nil
 		}
-	}
-}
-
-// FIXME: remove test below
-
-func TestHubSpokeHubCluster(t *testing.T) {
-	hubBefore := &clusterv1.Cluster{
-		Status: clusterv1.ClusterStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type: "v1beta2 Condition",
-				},
-			},
-			Deprecated: &clusterv1.ClusterDeprecatedStatus{
-				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-					Conditions: []clusterv1.Condition{
-						{
-							Type: "v1beta1 Condition",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	spoke := &Cluster{}
-	spoke.ConvertFrom(hubBefore)
-	hubAfter := &clusterv1.Cluster{}
-	spoke.ConvertTo(hubAfter)
-
-	hubAfter.Annotations = nil
-
-	if d := cmp.Diff(hubBefore, hubAfter); d != "" {
-		t.Errorf("-want, +got:\n%s", d)
-	}
-}
-
-func TestSpokeHubSpokeCluster(t *testing.T) {
-	spokeBefore := &Cluster{
-		Status: ClusterStatus{
-			Conditions: []Condition{
-				{
-					Type: "v1beta1 Condition",
-				},
-			},
-			V1Beta2: &ClusterV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type: "v1beta2 Condition",
-					},
-				},
-			},
-		},
-	}
-
-	hub := &clusterv1.Cluster{}
-	spokeBefore.ConvertTo(hub)
-	spokeAfter := &Cluster{}
-	spokeAfter.ConvertFrom(hub)
-
-	spokeAfter.Annotations = nil
-
-	if d := cmp.Diff(spokeBefore, spokeAfter); d != "" {
-		t.Errorf("-want, +got:\n%s", d)
-	}
-}
-
-func TestHubSpokeHubMachineDeployment(t *testing.T) {
-	hubBefore := &clusterv1.MachineDeployment{
-		Status: clusterv1.MachineDeploymentStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type: "v1beta2 Condition",
-				},
-			},
-			ReadyReplicas:     ptr.To[int32](11),
-			AvailableReplicas: ptr.To[int32](12),
-			UpToDateReplicas:  ptr.To[int32](13),
-			Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-					Conditions: []clusterv1.Condition{
-						{
-							Type: "v1beta1 Condition",
-						},
-					},
-					UpdatedReplicas:     1,
-					ReadyReplicas:       2,
-					AvailableReplicas:   3,
-					UnavailableReplicas: 4,
-				},
-			},
-		},
-	}
-
-	spoke := &MachineDeployment{}
-	spoke.ConvertFrom(hubBefore)
-	hubAfter := &clusterv1.MachineDeployment{}
-	spoke.ConvertTo(hubAfter)
-
-	hubAfter.Annotations = nil
-
-	if d := cmp.Diff(hubBefore, hubAfter); d != "" {
-		t.Errorf("-want, +got:\n%s", d)
-	}
-}
-
-func TestSpokeHubSpokeMachineDeployment(t *testing.T) {
-	spokeBefore := &MachineDeployment{
-		Status: MachineDeploymentStatus{
-			Conditions: []Condition{
-				{
-					Type: "v1beta1 Condition",
-				},
-			},
-			UpdatedReplicas:     1,
-			ReadyReplicas:       2,
-			AvailableReplicas:   3,
-			UnavailableReplicas: 4,
-			V1Beta2: &MachineDeploymentV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type: "v1beta2 Condition",
-					},
-				},
-				ReadyReplicas:     ptr.To[int32](11),
-				AvailableReplicas: ptr.To[int32](12),
-				UpToDateReplicas:  ptr.To[int32](13),
-			},
-		},
-	}
-
-	hub := &clusterv1.MachineDeployment{}
-	spokeBefore.ConvertTo(hub)
-	spokeAfter := &MachineDeployment{}
-	spokeAfter.ConvertFrom(hub)
-
-	spokeAfter.Annotations = nil
-
-	if d := cmp.Diff(spokeBefore, spokeAfter); d != "" {
-		t.Errorf("-want, +got:\n%s", d)
 	}
 }

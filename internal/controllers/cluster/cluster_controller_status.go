@@ -78,12 +78,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 }
 
 func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
-	if cluster.Status.V1Beta2 == nil {
-		cluster.Status.V1Beta2 = &clusterv1.ClusterV1Beta2Status{}
-	}
-
-	if cluster.Status.V1Beta2.ControlPlane == nil {
-		cluster.Status.V1Beta2.ControlPlane = &clusterv1.ClusterControlPlaneStatus{}
+	if cluster.Status.ControlPlane == nil {
+		cluster.Status.ControlPlane = &clusterv1.ClusterControlPlaneStatus{}
 	}
 
 	// If this cluster is using a control plane object, surface the replica counters reported by it.
@@ -92,28 +88,28 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	// corresponding replicas will be left empty.
 	if cluster.Spec.ControlPlaneRef != nil || cluster.Spec.Topology != nil {
 		if controlPlane == nil || controlPlaneIsNotFound {
-			cluster.Status.V1Beta2.ControlPlane.Replicas = nil
-			cluster.Status.V1Beta2.ControlPlane.ReadyReplicas = nil
-			cluster.Status.V1Beta2.ControlPlane.AvailableReplicas = nil
-			cluster.Status.V1Beta2.ControlPlane.UpToDateReplicas = nil
-			cluster.Status.V1Beta2.ControlPlane.DesiredReplicas = nil
+			cluster.Status.ControlPlane.Replicas = nil
+			cluster.Status.ControlPlane.ReadyReplicas = nil
+			cluster.Status.ControlPlane.AvailableReplicas = nil
+			cluster.Status.ControlPlane.UpToDateReplicas = nil
+			cluster.Status.ControlPlane.DesiredReplicas = nil
 			return
 		}
 
 		if replicas, err := contract.ControlPlane().Replicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.V1Beta2.ControlPlane.DesiredReplicas = ptr.To(int32(*replicas))
+			cluster.Status.ControlPlane.DesiredReplicas = ptr.To(int32(*replicas))
 		}
 		if replicas, err := contract.ControlPlane().StatusReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.V1Beta2.ControlPlane.Replicas = ptr.To(int32(*replicas))
+			cluster.Status.ControlPlane.Replicas = ptr.To(int32(*replicas))
 		}
 		if replicas, err := contract.ControlPlane().V1Beta2ReadyReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.V1Beta2.ControlPlane.ReadyReplicas = replicas
+			cluster.Status.ControlPlane.ReadyReplicas = replicas
 		}
 		if replicas, err := contract.ControlPlane().V1Beta2AvailableReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.V1Beta2.ControlPlane.AvailableReplicas = replicas
+			cluster.Status.ControlPlane.AvailableReplicas = replicas
 		}
 		if replicas, err := contract.ControlPlane().V1Beta2UpToDateReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.V1Beta2.ControlPlane.UpToDateReplicas = replicas
+			cluster.Status.ControlPlane.UpToDateReplicas = replicas
 		}
 		return
 	}
@@ -138,23 +134,19 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		}
 	}
 
-	cluster.Status.V1Beta2.ControlPlane.Replicas = replicas
-	cluster.Status.V1Beta2.ControlPlane.ReadyReplicas = readyReplicas
-	cluster.Status.V1Beta2.ControlPlane.AvailableReplicas = availableReplicas
-	cluster.Status.V1Beta2.ControlPlane.UpToDateReplicas = upToDateReplicas
+	cluster.Status.ControlPlane.Replicas = replicas
+	cluster.Status.ControlPlane.ReadyReplicas = readyReplicas
+	cluster.Status.ControlPlane.AvailableReplicas = availableReplicas
+	cluster.Status.ControlPlane.UpToDateReplicas = upToDateReplicas
 
 	// There is no concept of desired replicas for stand-alone machines, but for sake of consistency
 	// we consider the fact that the machine has been creates as equivalent to the intent to have one replica.
-	cluster.Status.V1Beta2.ControlPlane.DesiredReplicas = replicas
+	cluster.Status.ControlPlane.DesiredReplicas = replicas
 }
 
 func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, workerMachines collections.Machines, getDescendantsSucceeded bool) {
-	if cluster.Status.V1Beta2 == nil {
-		cluster.Status.V1Beta2 = &clusterv1.ClusterV1Beta2Status{}
-	}
-
-	if cluster.Status.V1Beta2.Workers == nil {
-		cluster.Status.V1Beta2.Workers = &clusterv1.WorkersStatus{}
+	if cluster.Status.Workers == nil {
+		cluster.Status.Workers = &clusterv1.WorkersStatus{}
 	}
 
 	// If there was some unexpected errors in listing descendants (this should never happen), do not update replica counters.
@@ -168,14 +160,14 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *mp.Spec.Replicas)
 		}
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + mp.Status.Replicas)
-		if mp.Status.V1Beta2 != nil && mp.Status.V1Beta2.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *mp.Status.V1Beta2.ReadyReplicas)
+		if mp.Status.ReadyReplicas != nil {
+			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *mp.Status.ReadyReplicas)
 		}
-		if mp.Status.V1Beta2 != nil && mp.Status.V1Beta2.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *mp.Status.V1Beta2.AvailableReplicas)
+		if mp.Status.AvailableReplicas != nil {
+			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *mp.Status.AvailableReplicas)
 		}
-		if mp.Status.V1Beta2 != nil && mp.Status.V1Beta2.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *mp.Status.V1Beta2.UpToDateReplicas)
+		if mp.Status.UpToDateReplicas != nil {
+			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *mp.Status.UpToDateReplicas)
 		}
 	}
 
@@ -184,14 +176,14 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *md.Spec.Replicas)
 		}
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + md.Status.Replicas)
-		if md.Status.V1Beta2 != nil && md.Status.V1Beta2.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *md.Status.V1Beta2.ReadyReplicas)
+		if md.Status.ReadyReplicas != nil {
+			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *md.Status.ReadyReplicas)
 		}
-		if md.Status.V1Beta2 != nil && md.Status.V1Beta2.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *md.Status.V1Beta2.AvailableReplicas)
+		if md.Status.AvailableReplicas != nil {
+			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *md.Status.AvailableReplicas)
 		}
-		if md.Status.V1Beta2 != nil && md.Status.V1Beta2.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *md.Status.V1Beta2.UpToDateReplicas)
+		if md.Status.UpToDateReplicas != nil {
+			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *md.Status.UpToDateReplicas)
 		}
 	}
 
@@ -203,14 +195,14 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *ms.Spec.Replicas)
 		}
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + ms.Status.Replicas)
-		if ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *ms.Status.V1Beta2.ReadyReplicas)
+		if ms.Status.ReadyReplicas != nil {
+			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}
-		if ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *ms.Status.V1Beta2.AvailableReplicas)
+		if ms.Status.AvailableReplicas != nil {
+			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *ms.Status.AvailableReplicas)
 		}
-		if ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *ms.Status.V1Beta2.UpToDateReplicas)
+		if ms.Status.UpToDateReplicas != nil {
+			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
 	}
 
@@ -234,11 +226,11 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + 1)
 	}
 
-	cluster.Status.V1Beta2.Workers.DesiredReplicas = desiredReplicas
-	cluster.Status.V1Beta2.Workers.Replicas = currentReplicas
-	cluster.Status.V1Beta2.Workers.ReadyReplicas = readyReplicas
-	cluster.Status.V1Beta2.Workers.AvailableReplicas = availableReplicas
-	cluster.Status.V1Beta2.Workers.UpToDateReplicas = upToDateReplicas
+	cluster.Status.Workers.DesiredReplicas = desiredReplicas
+	cluster.Status.Workers.Replicas = currentReplicas
+	cluster.Status.Workers.ReadyReplicas = readyReplicas
+	cluster.Status.Workers.AvailableReplicas = availableReplicas
+	cluster.Status.Workers.UpToDateReplicas = upToDateReplicas
 }
 
 func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Cluster, infraCluster *unstructured.Unstructured, infraClusterIsNotFound bool) {

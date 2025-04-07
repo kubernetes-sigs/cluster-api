@@ -783,9 +783,13 @@ func TestDeploymentComplete(t *testing.T) {
 				},
 			},
 			Status: clusterv1.MachineDeploymentStatus{
-				Replicas:          current,
-				UpdatedReplicas:   updated,
-				AvailableReplicas: available,
+				Replicas: current,
+				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+						UpdatedReplicas:   updated,
+						AvailableReplicas: available,
+					},
+				},
 			},
 		}
 	}
@@ -931,7 +935,11 @@ func TestAnnotationUtils(t *testing.T) {
 
 	// Test Case 2:  Check if annotations reflect deployments state
 	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
-	tMS.Status.AvailableReplicas = 1
+	tMS.Status.Deprecated = &clusterv1.MachineSetDeprecatedStatus{
+		V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+			AvailableReplicas: 1,
+		},
+	}
 	tMS.Spec.Replicas = new(int32)
 	*tMS.Spec.Replicas = 1
 

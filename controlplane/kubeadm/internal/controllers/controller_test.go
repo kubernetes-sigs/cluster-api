@@ -448,11 +448,11 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 			},
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
-			V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
@@ -2126,18 +2126,20 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialized: true,
-			Conditions: clusterv1.Conditions{
-				{Type: controlplanev1.AvailableCondition, Status: corev1.ConditionTrue,
-					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
-			},
-			V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:               controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
-						Status:             metav1.ConditionTrue,
-						Reason:             controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
-						LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)},
+			Deprecated: &controlplanev1.KubeadmControlPlaneDeprecatedStatus{
+				V1Beta1: &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{Type: controlplanev1.AvailableCondition, Status: corev1.ConditionTrue,
+							LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
 					},
+				},
+			},
+			Conditions: []metav1.Condition{
+				{
+					Type:               controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status:             metav1.ConditionTrue,
+					Reason:             controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)},
 				},
 			},
 		},
@@ -2388,14 +2390,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Conditions {
+					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
 						if condition.Type == controlplanev1.AvailableCondition {
-							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
-					for i, condition := range kcp.Status.V1Beta2.Conditions {
+					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
-							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
 					v1beta2conditions.Set(kcp, metav1.Condition{
@@ -2476,14 +2478,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Conditions {
+					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
 						if condition.Type == controlplanev1.AvailableCondition {
-							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
-					for i, condition := range kcp.Status.V1Beta2.Conditions {
+					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
-							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
 					return kcp
@@ -2565,14 +2567,14 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Conditions {
+					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
 						if condition.Type == controlplanev1.AvailableCondition {
-							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 						}
 					}
-					for i, condition := range kcp.Status.V1Beta2.Conditions {
+					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
-							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 						}
 					}
 					v1beta2conditions.Set(kcp, metav1.Condition{

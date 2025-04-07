@@ -491,9 +491,14 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Patches:   c.patches,
 		},
 		Status: clusterv1.ClusterClassStatus{
-			Conditions: c.conditions,
-			Variables:  c.statusVariables,
+			Variables: c.statusVariables,
 		},
+	}
+	// TODO (v1beta2)
+	if c.conditions != nil {
+		obj.Status.Deprecated = &clusterv1.ClusterClassDeprecatedStatus{
+			V1Beta1: &clusterv1.ClusterClassV1Beta1DeprecatedStatus{Conditions: c.conditions},
+		}
 	}
 	if c.infrastructureClusterTemplate != nil {
 		obj.Spec.Infrastructure = clusterv1.LocalObjectTemplate{

@@ -68,10 +68,22 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	}
 	if failureReason != "" {
 		machineStatusError := capierrors.MachineStatusError(failureReason)
-		m.Status.FailureReason = &machineStatusError
+		if m.Status.Deprecated == nil {
+			m.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+		}
+		if m.Status.Deprecated.V1Beta1 == nil {
+			m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+		}
+		m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusError
 	}
 	if failureMessage != "" {
-		m.Status.FailureMessage = ptr.To(
+		if m.Status.Deprecated == nil {
+			m.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+		}
+		if m.Status.Deprecated.V1Beta1 == nil {
+			m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+		}
+		m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -253,8 +265,14 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 			if m.Status.InfrastructureReady {
 				// Infra object went missing after the machine was up and running
 				log.Error(err, "Machine infrastructure reference has been deleted after provisioning was completed, setting failure state")
-				m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
-				m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after provisioning was completed",
+				if m.Status.Deprecated == nil {
+					m.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+				}
+				if m.Status.Deprecated.V1Beta1 == nil {
+					m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+				}
+				m.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
+				m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after provisioning was completed",
 					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 				return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 			}

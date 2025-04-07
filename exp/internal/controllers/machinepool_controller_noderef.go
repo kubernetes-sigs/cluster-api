@@ -64,7 +64,12 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	// Check that the Machine doesn't already have a NodeRefs.
 	// Return early if there is no work to do.
-	if mp.Status.Replicas == mp.Status.ReadyReplicas && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
+	// TODO (v1beta2)
+	readyReplicas := int32(0)
+	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
+		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
+	}
+	if mp.Status.Replicas == readyReplicas && len(mp.Status.NodeRefs) == int(readyReplicas) {
 		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
 	}
@@ -101,9 +106,15 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
 	}
 
-	mp.Status.ReadyReplicas = int32(nodeRefsResult.ready)
-	mp.Status.AvailableReplicas = int32(nodeRefsResult.available)
-	mp.Status.UnavailableReplicas = mp.Status.Replicas - mp.Status.AvailableReplicas
+	if mp.Status.Deprecated == nil {
+		mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+	}
+	if mp.Status.Deprecated.V1Beta1 == nil {
+		mp.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+	mp.Status.Deprecated.V1Beta1.ReadyReplicas = int32(nodeRefsResult.ready)
+	mp.Status.Deprecated.V1Beta1.AvailableReplicas = int32(nodeRefsResult.available)
+	mp.Status.Deprecated.V1Beta1.UnavailableReplicas = mp.Status.Replicas - mp.Status.Deprecated.V1Beta1.AvailableReplicas
 	mp.Status.NodeRefs = nodeRefsResult.references
 
 	log.Info("Set MachinePool's NodeRefs", "nodeRefs", mp.Status.NodeRefs)
@@ -115,7 +126,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, err
 	}
 
-	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
+	if mp.Status.Replicas != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
 		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", mp.Status.Replicas)
 		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil

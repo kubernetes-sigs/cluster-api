@@ -1486,7 +1486,13 @@ func withProviderID(providerID string) fakeMachineOption {
 
 func withMachineReadyCondition(status corev1.ConditionStatus, severity clusterv1.ConditionSeverity) fakeMachineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.Conditions = append(machine.Status.Conditions, clusterv1.Condition{
+		if machine.Status.Deprecated == nil {
+			machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+		}
+		if machine.Status.Deprecated.V1Beta1 == nil {
+			machine.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+		}
+		machine.Status.Deprecated.V1Beta1.Conditions = append(machine.Status.Deprecated.V1Beta1.Conditions, clusterv1.Condition{
 			Type:     clusterv1.MachinesReadyCondition,
 			Status:   status,
 			Severity: severity,
@@ -1496,10 +1502,7 @@ func withMachineReadyCondition(status corev1.ConditionStatus, severity clusterv1
 
 func withMachineReadyV1beta2Condition(status metav1.ConditionStatus) fakeMachineOption {
 	return func(machine *clusterv1.Machine) {
-		if machine.Status.V1Beta2 == nil {
-			machine.Status.V1Beta2 = &clusterv1.MachineV1Beta2Status{}
-		}
-		machine.Status.V1Beta2.Conditions = append(machine.Status.V1Beta2.Conditions, metav1.Condition{
+		machine.Status.Conditions = append(machine.Status.Conditions, metav1.Condition{
 			Type:    clusterv1.MachineReadyV1Beta2Condition,
 			Status:  status,
 			Reason:  "SomeReason",

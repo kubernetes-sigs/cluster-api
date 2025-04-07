@@ -62,8 +62,10 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
-	if cluster.Status.FailureReason != nil || cluster.Status.FailureMessage != nil {
+	failedMessage := ""
+	if cluster.Status.Deprecated != nil && cluster.Status.Deprecated.V1Beta1 != nil && (cluster.Status.Deprecated.V1Beta1.FailureReason != nil || cluster.Status.Deprecated.V1Beta1.FailureMessage != nil) {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseFailed)
+		failedMessage = ptr.Deref(cluster.Status.Deprecated.V1Beta1.FailureMessage, "unknown")
 	}
 
 	if !cluster.DeletionTimestamp.IsZero() {
@@ -74,7 +76,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 	if preReconcilePhase != cluster.Status.GetTypedPhase() {
 		// Failed clusters should get a Warning event
 		if cluster.Status.GetTypedPhase() == clusterv1.ClusterPhaseFailed {
-			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), ptr.Deref(cluster.Status.FailureMessage, "unknown"))
+			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), failedMessage)
 		} else {
 			r.recorder.Eventf(cluster, corev1.EventTypeNormal, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s", cluster.Name, string(cluster.Status.GetTypedPhase()))
 		}
@@ -114,10 +116,22 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	}
 	if failureReason != "" {
 		clusterStatusError := capierrors.ClusterStatusError(failureReason)
-		cluster.Status.FailureReason = &clusterStatusError
+		if cluster.Status.Deprecated == nil {
+			cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{}
+		}
+		if cluster.Status.Deprecated.V1Beta1 == nil {
+			cluster.Status.Deprecated.V1Beta1 = &clusterv1.ClusterV1Beta1DeprecatedStatus{}
+		}
+		cluster.Status.Deprecated.V1Beta1.FailureReason = &clusterStatusError
 	}
 	if failureMessage != "" {
-		cluster.Status.FailureMessage = ptr.To(
+		if cluster.Status.Deprecated == nil {
+			cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{}
+		}
+		if cluster.Status.Deprecated.V1Beta1 == nil {
+			cluster.Status.Deprecated.V1Beta1 = &clusterv1.ClusterV1Beta1DeprecatedStatus{}
+		}
+		cluster.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)

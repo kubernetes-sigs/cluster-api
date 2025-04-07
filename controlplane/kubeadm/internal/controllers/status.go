@@ -48,15 +48,21 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	controlPlane.KCP.Status.Selector = selector.String()
 
 	upToDateMachines := controlPlane.UpToDateMachines()
-	controlPlane.KCP.Status.UpdatedReplicas = int32(len(upToDateMachines))
+	if controlPlane.KCP.Status.Deprecated == nil {
+		controlPlane.KCP.Status.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
+	}
+	if controlPlane.KCP.Status.Deprecated.V1Beta1 == nil {
+		controlPlane.KCP.Status.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
+	}
+	controlPlane.KCP.Status.Deprecated.V1Beta1.UpdatedReplicas = int32(len(upToDateMachines))
 
 	replicas := int32(len(controlPlane.Machines))
 	desiredReplicas := *controlPlane.KCP.Spec.Replicas
 
 	// set basic data that does not require interacting with the workload cluster
 	controlPlane.KCP.Status.Replicas = replicas
-	controlPlane.KCP.Status.ReadyReplicas = 0
-	controlPlane.KCP.Status.UnavailableReplicas = replicas
+	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = 0
+	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas
 
 	// Return early if the deletion timestamp is set, because we don't want to try to connect to the workload cluster
 	// and we don't want to report resize condition (because it is set to deleting into reconcile delete).
@@ -100,8 +106,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	if err != nil {
 		return err
 	}
-	controlPlane.KCP.Status.ReadyReplicas = status.ReadyNodes
-	controlPlane.KCP.Status.UnavailableReplicas = replicas - status.ReadyNodes
+	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = status.ReadyNodes
+	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - status.ReadyNodes
 
 	// This only gets initialized once and does not change if the kubeadm config map goes away.
 	if status.HasKubeadmConfig {
@@ -109,7 +115,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 		conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
 	}
 
-	if controlPlane.KCP.Status.ReadyReplicas > 0 {
+	if controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas > 0 {
 		controlPlane.KCP.Status.Ready = true
 	}
 
@@ -185,13 +191,9 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 		}
 	}
 
-	if kcp.Status.V1Beta2 == nil {
-		kcp.Status.V1Beta2 = &controlplanev1.KubeadmControlPlaneV1Beta2Status{}
-	}
-
-	kcp.Status.V1Beta2.ReadyReplicas = ptr.To(readyReplicas)
-	kcp.Status.V1Beta2.AvailableReplicas = ptr.To(availableReplicas)
-	kcp.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
+	kcp.Status.ReadyReplicas = ptr.To(readyReplicas)
+	kcp.Status.AvailableReplicas = ptr.To(availableReplicas)
+	kcp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
 func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {

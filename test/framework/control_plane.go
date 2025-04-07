@@ -44,6 +44,11 @@ func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPl
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
 			return 0, err
 		}
-		return controlplane.Status.UpdatedReplicas, nil
+		// TODO (v1beta2)
+		updatedReplicas := int32(0)
+		if controlplane.Status.Deprecated != nil && controlplane.Status.Deprecated.V1Beta1 != nil {
+			updatedReplicas = controlplane.Status.Deprecated.V1Beta1.UpdatedReplicas
+		}
+		return updatedReplicas, nil
 	}, intervals...).Should(Equal(*input.ControlPlane.Spec.Replicas), "Timed waiting for all control plane replicas to be updated")
 }

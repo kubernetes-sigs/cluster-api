@@ -84,13 +84,9 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 		}
 	}
 
-	if ms.Status.V1Beta2 == nil {
-		ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
-	}
-
-	ms.Status.V1Beta2.ReadyReplicas = ptr.To(readyReplicas)
-	ms.Status.V1Beta2.AvailableReplicas = ptr.To(availableReplicas)
-	ms.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
+	ms.Status.ReadyReplicas = ptr.To(readyReplicas)
+	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
+	ms.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
 func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool, scaleUpPreflightCheckErrMessages []string) {

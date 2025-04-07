@@ -194,7 +194,10 @@ func TestWatches(t *testing.T) {
 		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
-		return machine.Status.FailureMessage != nil
+		if machine.Status.Deprecated == nil || machine.Status.Deprecated.V1Beta1 == nil {
+			return false
+		}
+		return machine.Status.Deprecated.V1Beta1.FailureMessage != nil
 	}, timeout).Should(BeTrue())
 }
 
@@ -647,11 +650,11 @@ func TestMachineOwnerReference(t *testing.T) {
 			ClusterName: "test-cluster",
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -678,11 +681,11 @@ func TestMachineOwnerReference(t *testing.T) {
 			ClusterName: "test-cluster",
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -1062,11 +1065,11 @@ func TestMachineConditions(t *testing.T) {
 				Name: "test",
 			},
 			ObservedGeneration: 1,
-			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -1300,11 +1303,11 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}

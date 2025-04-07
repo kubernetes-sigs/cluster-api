@@ -519,14 +519,14 @@ func Convert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, o
 func Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(in *clusterv1.Conditions, out *Conditions) {
 	*out = make(Conditions, len(*in))
 	for i := range *in {
-		(*out)[i] = *(*Condition)(unsafe.Pointer(&(*in)[i]))
+		(*out)[i] = *(*Condition)(unsafe.Pointer(&(*in)[i])) //nolint:gosec
 	}
 }
 
 func Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(in *Conditions, out *clusterv1.Conditions) {
 	*out = make(clusterv1.Conditions, len(*in))
 	for i := range *in {
-		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i]))
+		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i])) //nolint:gosec
 	}
 }
 

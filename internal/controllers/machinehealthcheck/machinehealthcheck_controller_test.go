@@ -235,19 +235,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -297,19 +299,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -356,19 +360,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -445,19 +451,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -515,19 +523,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -623,19 +633,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -732,23 +744,25 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 0,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.RemediationAllowedCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityWarning,
-					Reason:   clusterv1.TooManyUnhealthyReason,
-					Message:  "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:     clusterv1.RemediationAllowedCondition,
+							Status:   corev1.ConditionFalse,
+							Severity: clusterv1.ConditionSeverityWarning,
+							Reason:   clusterv1.TooManyUnhealthyReason,
+							Message:  "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
-						Message: "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
+					Message: "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
 				},
 			},
 		}))
@@ -807,19 +821,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -878,23 +894,25 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 0,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:     clusterv1.RemediationAllowedCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityWarning,
-					Reason:   clusterv1.TooManyUnhealthyReason,
-					Message:  "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:     clusterv1.RemediationAllowedCondition,
+							Status:   corev1.ConditionFalse,
+							Severity: clusterv1.ConditionSeverityWarning,
+							Reason:   clusterv1.TooManyUnhealthyReason,
+							Message:  "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
-						Message: "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
+					Message: "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
 				},
 			},
 		}))
@@ -960,19 +978,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1033,19 +1053,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1103,19 +1125,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 2,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1165,19 +1189,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 3,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1225,19 +1251,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 1,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1269,19 +1297,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			CurrentHealthy:     0,
 			ObservedGeneration: 1,
 			Targets:            targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1458,19 +1488,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			CurrentHealthy:     1,
 			ObservedGeneration: 1,
 			Targets:            targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1507,19 +1539,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 0,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1596,19 +1630,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 1,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1641,19 +1677,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 0,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1751,19 +1789,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 1,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1796,19 +1836,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 0,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -1841,19 +1883,21 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			RemediationsAllowed: 1,
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.RemediationAllowedCondition,
-					Status: corev1.ConditionTrue,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
 				},
 			},
-			V1Beta2: &clusterv1.MachineHealthCheckV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{
-						Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
-						Status: metav1.ConditionTrue,
-						Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
 			},
 		}))
@@ -2633,10 +2677,22 @@ func createMachinesWithNodes(
 
 		if o.failureReason != "" {
 			failureReason := capierrors.MachineStatusError(o.failureReason)
-			machine.Status.FailureReason = &failureReason
+			if machine.Status.Deprecated == nil {
+				machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+			}
+			if machine.Status.Deprecated.V1Beta1 == nil {
+				machine.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+			}
+			machine.Status.Deprecated.V1Beta1.FailureReason = &failureReason
 		}
 		if o.failureMessage != "" {
-			machine.Status.FailureMessage = ptr.To(o.failureMessage)
+			if machine.Status.Deprecated == nil {
+				machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+			}
+			if machine.Status.Deprecated.V1Beta1 == nil {
+				machine.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+			}
+			machine.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(o.failureMessage)
 		}
 
 		// Adding one second to ensure there is a difference from the

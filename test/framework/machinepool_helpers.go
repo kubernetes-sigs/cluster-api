@@ -87,7 +87,12 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 			return 0, err
 		}
 
-		return int(input.MachinePool.Status.ReadyReplicas), nil
+		// TODO (v1beta2)
+		readyReplicas := 0
+		if input.MachinePool.Status.Deprecated != nil && input.MachinePool.Status.Deprecated.V1Beta1 != nil {
+			readyReplicas = int(input.MachinePool.Status.Deprecated.V1Beta1.ReadyReplicas)
+		}
+		return readyReplicas, nil
 	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s", *input.MachinePool.Spec.Replicas, klog.KObj(input.MachinePool))
 }
 

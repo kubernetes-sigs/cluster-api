@@ -28,100 +28,106 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"sigs.k8s.io/cluster-api/api/v1beta2.APIEndpoint":                              schema_sigsk8sio_cluster_api_api_v1beta2_APIEndpoint(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.Bootstrap":                                schema_sigsk8sio_cluster_api_api_v1beta2_Bootstrap(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.Cluster":                                  schema_sigsk8sio_cluster_api_api_v1beta2_Cluster(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterAvailabilityGate":                  schema_sigsk8sio_cluster_api_api_v1beta2_ClusterAvailabilityGate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClass":                             schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassList":                         schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassPatch":                        schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassPatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassSpec":                         schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatus":                       schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariable":               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariable(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariableDefinition":     schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariableDefinition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta2Status":                schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariable":                     schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassVariable(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariableMetadata":             schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassVariableMetadata(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus":                schema_sigsk8sio_cluster_api_api_v1beta2_ClusterControlPlaneStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterList":                              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterNetwork":                           schema_sigsk8sio_cluster_api_api_v1beta2_ClusterNetwork(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterSpec":                              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterStatus":                            schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta2Status":                     schema_sigsk8sio_cluster_api_api_v1beta2_ClusterV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterVariable":                          schema_sigsk8sio_cluster_api_api_v1beta2_ClusterVariable(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.Condition":                                schema_sigsk8sio_cluster_api_api_v1beta2_Condition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClass":                        schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClassNamingStrategy":          schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneClassNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneTopology":                     schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneVariables":                    schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneVariables(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ExternalPatchDefinition":                  schema_sigsk8sio_cluster_api_api_v1beta2_ExternalPatchDefinition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec":                        schema_sigsk8sio_cluster_api_api_v1beta2_FailureDomainSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureNamingStrategy":             schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatch":                                schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatchValue":                           schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatchValue(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.JSONSchemaProps":                          schema_sigsk8sio_cluster_api_api_v1beta2_JSONSchemaProps(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.LocalObjectTemplate":                      schema_sigsk8sio_cluster_api_api_v1beta2_LocalObjectTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.Machine":                                  schema_sigsk8sio_cluster_api_api_v1beta2_Machine(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress":                           schema_sigsk8sio_cluster_api_api_v1beta2_MachineAddress(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeletionStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeployment":                        schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeployment(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClass":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClassNamingStrategy":     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClassNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClassTemplate":           schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClassTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentList":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentSpec":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentStatus":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentStrategy":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentTopology":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta2Status":           schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentVariables":               schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentVariables(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRule":                         schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRule(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleDrainConfig":              schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleDrainConfig(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleList":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleMachineSelector":          schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleMachineSelector(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRulePodSelector":              schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRulePodSelector(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleSpec":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheck":                       schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheck(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckClass":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckList":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckSpec":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckStatus":                 schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckTopology":               schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta2Status":          schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineList":                              schema_sigsk8sio_cluster_api_api_v1beta2_MachineList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineNamingStrategy":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClass":                         schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClassNamingStrategy":           schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClassNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClassTemplate":                 schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClassTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolTopology":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolVariables":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolVariables(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineReadinessGate":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineReadinessGate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineRollingUpdateDeployment":           schema_sigsk8sio_cluster_api_api_v1beta2_MachineRollingUpdateDeployment(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSet":                               schema_sigsk8sio_cluster_api_api_v1beta2_MachineSet(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetList":                           schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetSpec":                           schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetStatus":                         schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta2Status":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSpec":                              schema_sigsk8sio_cluster_api_api_v1beta2_MachineSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineStatus":                            schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineTemplateSpec":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachineTemplateSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta2Status":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineV1Beta2Status(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.NetworkRanges":                            schema_sigsk8sio_cluster_api_api_v1beta2_NetworkRanges(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ObjectMeta":                               schema_sigsk8sio_cluster_api_api_v1beta2_ObjectMeta(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.PatchDefinition":                          schema_sigsk8sio_cluster_api_api_v1beta2_PatchDefinition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelector":                            schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelector(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatch":                       schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatchMachineDeploymentClass": schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatchMachinePoolClass":       schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.RemediationStrategy":                      schema_sigsk8sio_cluster_api_api_v1beta2_RemediationStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.Topology":                                 schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition":                       schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyCondition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.ValidationRule":                           schema_sigsk8sio_cluster_api_api_v1beta2_ValidationRule(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchema":                           schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchema(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchemaMetadata":                   schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchemaMetadata(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersClass":                             schema_sigsk8sio_cluster_api_api_v1beta2_WorkersClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus":                            schema_sigsk8sio_cluster_api_api_v1beta2_WorkersStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersTopology":                          schema_sigsk8sio_cluster_api_api_v1beta2_WorkersTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.APIEndpoint":                               schema_sigsk8sio_cluster_api_api_v1beta2_APIEndpoint(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.Bootstrap":                                 schema_sigsk8sio_cluster_api_api_v1beta2_Bootstrap(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.Cluster":                                   schema_sigsk8sio_cluster_api_api_v1beta2_Cluster(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterAvailabilityGate":                   schema_sigsk8sio_cluster_api_api_v1beta2_ClusterAvailabilityGate(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClass":                              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassDeprecatedStatus":              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassList":                          schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassPatch":                         schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassPatch(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassSpec":                          schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatus":                        schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariable":                schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariable(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariableDefinition":      schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariableDefinition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta1DeprecatedStatus":       schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariable":                      schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassVariable(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariableMetadata":              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassVariableMetadata(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus":                 schema_sigsk8sio_cluster_api_api_v1beta2_ClusterControlPlaneStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus":                   schema_sigsk8sio_cluster_api_api_v1beta2_ClusterDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterList":                               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterNetwork":                            schema_sigsk8sio_cluster_api_api_v1beta2_ClusterNetwork(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterSpec":                               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterStatus":                             schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta1DeprecatedStatus":            schema_sigsk8sio_cluster_api_api_v1beta2_ClusterV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterVariable":                           schema_sigsk8sio_cluster_api_api_v1beta2_ClusterVariable(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.Condition":                                 schema_sigsk8sio_cluster_api_api_v1beta2_Condition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClass":                         schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClassNamingStrategy":           schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneTopology":                      schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneVariables":                     schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneVariables(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ExternalPatchDefinition":                   schema_sigsk8sio_cluster_api_api_v1beta2_ExternalPatchDefinition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec":                         schema_sigsk8sio_cluster_api_api_v1beta2_FailureDomainSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureNamingStrategy":              schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatch":                                 schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatch(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatchValue":                            schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatchValue(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.JSONSchemaProps":                           schema_sigsk8sio_cluster_api_api_v1beta2_JSONSchemaProps(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.LocalObjectTemplate":                       schema_sigsk8sio_cluster_api_api_v1beta2_LocalObjectTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.Machine":                                   schema_sigsk8sio_cluster_api_api_v1beta2_Machine(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress":                            schema_sigsk8sio_cluster_api_api_v1beta2_MachineAddress(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeletionStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeployment":                         schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeployment(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClass":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClassNamingStrategy":      schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentClassTemplate":            schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClassTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentDeprecatedStatus":         schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentList":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentSpec":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentStatus":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentStrategy":                 schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentTopology":                 schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus":  schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentVariables":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentVariables(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeprecatedStatus":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRule":                          schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRule(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleDrainConfig":               schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleDrainConfig(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleList":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleMachineSelector":           schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleMachineSelector(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRulePodSelector":               schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRulePodSelector(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineDrainRuleSpec":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachineDrainRuleSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheck":                        schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheck(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckClass":                   schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckDeprecatedStatus":        schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckList":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckSpec":                    schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckStatus":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckTopology":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus": schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineList":                               schema_sigsk8sio_cluster_api_api_v1beta2_MachineList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineNamingStrategy":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClass":                          schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClassNamingStrategy":            schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClassTemplate":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClassTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolTopology":                       schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolVariables":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolVariables(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineReadinessGate":                      schema_sigsk8sio_cluster_api_api_v1beta2_MachineReadinessGate(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineRollingUpdateDeployment":            schema_sigsk8sio_cluster_api_api_v1beta2_MachineRollingUpdateDeployment(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSet":                                schema_sigsk8sio_cluster_api_api_v1beta2_MachineSet(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetDeprecatedStatus":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetList":                            schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetSpec":                            schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetStatus":                          schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta1DeprecatedStatus":         schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineSpec":                               schema_sigsk8sio_cluster_api_api_v1beta2_MachineSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineStatus":                             schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineTemplateSpec":                       schema_sigsk8sio_cluster_api_api_v1beta2_MachineTemplateSpec(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta1DeprecatedStatus":            schema_sigsk8sio_cluster_api_api_v1beta2_MachineV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.NetworkRanges":                             schema_sigsk8sio_cluster_api_api_v1beta2_NetworkRanges(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ObjectMeta":                                schema_sigsk8sio_cluster_api_api_v1beta2_ObjectMeta(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.PatchDefinition":                           schema_sigsk8sio_cluster_api_api_v1beta2_PatchDefinition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelector":                             schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelector(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatch":                        schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatch(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatchMachineDeploymentClass":  schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatchMachinePoolClass":        schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.RemediationStrategy":                       schema_sigsk8sio_cluster_api_api_v1beta2_RemediationStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.Topology":                                  schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition":                        schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyCondition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ValidationRule":                            schema_sigsk8sio_cluster_api_api_v1beta2_ValidationRule(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchema":                            schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchema(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchemaMetadata":                    schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchemaMetadata(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersClass":                              schema_sigsk8sio_cluster_api_api_v1beta2_WorkersClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus":                             schema_sigsk8sio_cluster_api_api_v1beta2_WorkersStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.WorkersTopology":                           schema_sigsk8sio_cluster_api_api_v1beta2_WorkersTopology(ref),
 	}
 }
 
@@ -309,6 +315,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClass(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassSpec", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatus"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta1DeprecatedStatus"},
 	}
 }
 
@@ -520,6 +547,28 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref common.Refe
 				Description: "ClusterClassStatus defines the observed state of the ClusterClass.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a ClusterClass's current state. Known condition types are VariablesReady, RefVersionsUpToDate, Paused.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.",
@@ -534,20 +583,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref common.Refe
 							},
 						},
 					},
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current observed state of the ClusterClass.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "observedGeneration is the latest generation observed by the controller.",
@@ -555,17 +590,17 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref common.Refe
 							Format:      "int64",
 						},
 					},
-					"v1beta2": {
+					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in ClusterClass's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta2Status"),
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassDeprecatedStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariable", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassV1Beta2Status", "sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassDeprecatedStatus", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariable"},
 	}
 }
 
@@ -661,30 +696,22 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariableDefiniti
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"type",
-								},
-								"x-kubernetes-list-type": "map",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a ClusterClass's current state. Known condition types are VariablesReady, RefVersionsUpToDate, Paused.",
+							Description: "conditions defines current observed state of the ClusterClass.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
 									},
 								},
 							},
@@ -694,7 +721,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassV1Beta2Status(ref comm
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 
@@ -834,6 +861,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterControlPlaneStatus(ref comm
 				},
 			},
 		},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta1DeprecatedStatus"},
 	}
 }
 
@@ -1011,100 +1059,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref common.Reference
 				Description: "ClusterStatus defines the observed state of Cluster.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"failureDomains": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureDomains is a slice of failure domain objects synced from the infrastructure provider.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec"),
-									},
-								},
-							},
-						},
-					},
-					"failureReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"failureMessage": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"phase": {
-						SchemaProps: spec.SchemaProps{
-							Description: "phase represents the current phase of cluster actuation.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"infrastructureReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureReady is the state of the infrastructure provider.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"controlPlaneReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "controlPlaneReady denotes if the control plane became ready during initial provisioning to receive requests. NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed. Please use conditions to check the operational state of the control plane.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the cluster.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
-					"observedGeneration": {
-						SchemaProps: spec.SchemaProps{
-							Description: "observedGeneration is the latest generation observed by the controller.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"v1beta2": {
-						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in Cluster's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta2Status"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterV1Beta2Status", "sigs.k8s.io/cluster-api/api/v1beta2.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec"},
-	}
-}
-
-func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
 					"conditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -1139,11 +1093,105 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterV1Beta2Status(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus"),
 						},
 					},
+					"failureDomains": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureDomains is a slice of failure domain objects synced from the infrastructure provider.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec"),
+									},
+								},
+							},
+						},
+					},
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "phase represents the current phase of cluster actuation.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"infrastructureReady": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureReady is the state of the infrastructure provider.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"controlPlaneReady": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneReady denotes if the control plane became ready during initial provisioning to receive requests. NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed. Please use conditions to check the operational state of the control plane.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the latest generation observed by the controller.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"deprecated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus", "sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions defines current service state of the cluster.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"failureReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"failureMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 
@@ -2261,6 +2309,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentClassTemplate(ref
 	}
 }
 
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus"},
+	}
+}
+
 func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2410,6 +2479,28 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref common
 				Description: "MachineDeploymentStatus defines the observed state of MachineDeployment.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a MachineDeployment's current state. Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "observedGeneration is the generation observed by the deployment controller.",
@@ -2432,34 +2523,23 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref common
 							Format:      "int32",
 						},
 					},
-					"updatedReplicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "updatedReplicas is the total number of non-terminated machines targeted by this deployment that have the desired template spec.",
-							Default:     0,
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the total number of ready machines targeted by this deployment.",
-							Default:     0,
+							Description: "readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the total number of available machines (ready for at least minReadySeconds) targeted by this deployment.",
-							Default:     0,
+							Description: "availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
-					"unavailableReplicas": {
+					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unavailableReplicas is the total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Default:     0,
+							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2471,31 +2551,17 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref common
 							Format:      "",
 						},
 					},
-					"conditions": {
+					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineDeployment.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
-					"v1beta2": {
-						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta2Status"),
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentDeprecatedStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentV1Beta2Status"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeploymentDeprecatedStatus"},
 	}
 }
 
@@ -2651,52 +2717,55 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentTopology(ref comm
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"type",
-								},
-								"x-kubernetes-list-type": "map",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a MachineDeployment's current state. Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
+							Description: "conditions defines current service state of the MachineDeployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
 									},
 								},
 							},
 						},
 					},
+					"updatedReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "updatedReplicas is the total number of non-terminated machines targeted by this deployment that have the desired template spec.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.",
+							Description: "readyReplicas is the total number of ready machines targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.",
+							Description: "availableReplicas is the total number of available machines (ready for at least minReadySeconds) targeted by this deployment.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
-					"upToDateReplicas": {
+					"unavailableReplicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.",
+							Description: "unavailableReplicas is the total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2705,7 +2774,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentV1Beta2Status(ref
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 
@@ -2743,6 +2812,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentVariables(ref com
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterVariable"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta1DeprecatedStatus"},
 	}
 }
 
@@ -3089,6 +3179,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckClass(ref common
 	}
 }
 
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineHealthCheckDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus"},
+	}
+}
+
 func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3217,6 +3328,28 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckStatus(ref commo
 				Description: "MachineHealthCheckStatus defines the observed state of MachineHealthCheck.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a MachineHealthCheck's current state. Known condition types are RemediationAllowed, Paused.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
 					"expectedMachines": {
 						SchemaProps: spec.SchemaProps{
 							Description: "expectedMachines is the total number of machines counted by this machine health check",
@@ -3263,31 +3396,17 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckStatus(ref commo
 							},
 						},
 					},
-					"conditions": {
+					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineHealthCheck.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
-					"v1beta2": {
-						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in MachineHealthCheck's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta2Status"),
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckDeprecatedStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta2Status"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckDeprecatedStatus"},
 	}
 }
 
@@ -3352,30 +3471,22 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref com
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"type",
-								},
-								"x-kubernetes-list-type": "map",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a MachineHealthCheck's current state. Known condition types are RemediationAllowed, Paused.",
+							Description: "conditions defines current service state of the MachineHealthCheck.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
 									},
 								},
 							},
@@ -3385,7 +3496,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta2Status(re
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 
@@ -3836,6 +3947,27 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSet(ref common.ReferenceCal
 	}
 }
 
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineSetDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta1DeprecatedStatus"},
+	}
+}
+
 func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3959,101 +4091,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetStatus(ref common.Refere
 				Description: "MachineSetStatus defines the observed state of MachineSet.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"selector": {
-						SchemaProps: spec.SchemaProps{
-							Description: "selector is the same as the label selector but in the string format to avoid introspection by clients. The string will be in the same format as the query-param syntax. More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"replicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "replicas is the most recently observed number of replicas.",
-							Default:     0,
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"fullyLabeledReplicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Default:     0,
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"readyReplicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".",
-							Default:     0,
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"availableReplicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.",
-							Default:     0,
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"observedGeneration": {
-						SchemaProps: spec.SchemaProps{
-							Description: "observedGeneration reflects the generation of the most recently observed MachineSet.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"failureReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nIn the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"failureMessage": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the MachineSet.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
-					"v1beta2": {
-						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in MachineSet's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta2Status"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineSetV1Beta2Status"},
-	}
-}
-
-func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachineSetV1Beta2Status groups all the fields that will be added or modified in MachineSetStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
 					"conditions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -4074,6 +4111,21 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta2Status(ref common
 									},
 								},
 							},
+						},
+					},
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "selector is the same as the label selector but in the string format to avoid introspection by clients. The string will be in the same format as the query-param syntax. More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "replicas is the most recently observed number of replicas.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"readyReplicas": {
@@ -4097,11 +4149,91 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta2Status(ref common
 							Format:      "int32",
 						},
 					},
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration reflects the generation of the most recently observed MachineSet.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"deprecated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineSetDeprecatedStatus"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineSetDeprecatedStatus"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions defines current service state of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"failureReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nIn the event that there is a terminal problem reconciling the replicas, both FailureReason and FailureMessage will be set. FailureReason will be populated with a succinct value suitable for machine interpretation, while FailureMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"failureMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"fullyLabeledReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"availableReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 
@@ -4211,6 +4343,28 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 				Description: "MachineStatus defines the observed state of Machine.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Deleting, Paused. If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added. Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions: APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
 					"nodeRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeRef will point to the corresponding Node if it exists.",
@@ -4227,20 +4381,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 						SchemaProps: spec.SchemaProps{
 							Description: "lastUpdated identifies when the phase of the Machine last transitioned.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"failureReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"failureMessage": {
-						SchemaProps: spec.SchemaProps{
-							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
-							Type:        []string{"string"},
-							Format:      "",
 						},
 					},
 					"addresses": {
@@ -4293,37 +4433,23 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 							Format:      "int64",
 						},
 					},
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "conditions defines current service state of the Machine.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
-									},
-								},
-							},
-						},
-					},
 					"deletion": {
 						SchemaProps: spec.SchemaProps{
 							Description: "deletion contains information relating to removal of the Machine. Only present when the Machine has a deletionTimestamp and drain or wait for volume detach started.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus"),
 						},
 					},
-					"v1beta2": {
+					"deprecated": {
 						SchemaProps: spec.SchemaProps{
-							Description: "v1beta2 groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta2Status"),
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineDeprecatedStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/v1beta2.MachineV1Beta2Status"},
+			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeprecatedStatus"},
 	}
 }
 
@@ -4356,40 +4482,46 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineTemplateSpec(ref common.Ref
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_MachineV1Beta2Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineV1Beta2Status groups all the fields that will be added or modified in MachineStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Description: "MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": []interface{}{
-									"type",
-								},
-								"x-kubernetes-list-type": "map",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Deleting, Paused. If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added. Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions: APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.",
+							Description: "conditions defines current service state of the Machine.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.Condition"),
 									},
 								},
 							},
+						},
+					},
+					"failureReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureReason will be set in the event that there is a terminal problem reconciling the Machine and will contain a succinct value suitable for machine interpretation.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"failureMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureMessage will be set in the event that there is a terminal problem reconciling the Machine and will contain a more verbose string suitable for logging and human consumption.\n\nThis field should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the Machine object and/or logged in the controller's output.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+			"sigs.k8s.io/cluster-api/api/v1beta2.Condition"},
 	}
 }
 

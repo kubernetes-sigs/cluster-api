@@ -133,14 +133,15 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 
 ##### CoreDNS
 
-| CAPI Version        | Max CoreDNS Version for Upgrade |
-|---------------------|---------------------------------|
-| v1.5 (v1beta1)      | v1.10.1                         |
-| >= v1.5.1 (v1beta1) | v1.11.1                         |
-| v1.6 (v1beta1)      | v1.11.1                         |
-| v1.7 (v1beta1)      | v1.11.1                         |
-| v1.8 (v1beta1)      | v1.11.3                         |
-| >= v1.8.9 (v1beta1) | v1.12.0                         |
+| CAPI Version         | Max CoreDNS Version for Upgrade |
+|----------------------|---------------------------------|
+| v1.5 (v1beta1)       | v1.10.1                         |
+| >= v1.5.1 (v1beta1)  | v1.11.1                         |
+| v1.6 (v1beta1)       | v1.11.1                         |
+| v1.7 (v1beta1)       | v1.11.1                         |
+| v1.8 (v1beta1)       | v1.11.3                         |
+| >= v1.8.9 (v1beta1)  | v1.12.0                         |
+| >= v1.8.12 (v1beta1) | v1.12.1                         |
 
 #### Kubernetes version specific notes
 

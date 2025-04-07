@@ -38,28 +38,39 @@ type IPAddressClaimSpec struct {
 
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
 type IPAddressClaimStatus struct {
-	// addressRef is a reference to the address that was created for this claim.
-	// +optional
-	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
-
-	// conditions summarises the current state of the IPAddressClaim
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in IPAddressClaim's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *IPAddressClaimV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// IPAddressClaimV1Beta2Status groups all the fields that will be added or modified in IPAddressClaimStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type IPAddressClaimV1Beta2Status struct {
 	// conditions represents the observations of a IPAddressClaim's current state.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// addressRef is a reference to the address that was created for this claim.
+	// +optional
+	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *IPAddressClaimDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// IPAddressClaimDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type IPAddressClaimDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *IPAddressClaimV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// IPAddressClaimV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type IPAddressClaimV1Beta1DeprecatedStatus struct {
+	// conditions summarises the current state of the IPAddressClaim
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -88,28 +99,31 @@ type IPAddressClaim struct {
 
 // GetConditions returns the set of conditions for this object.
 func (m *IPAddressClaim) GetConditions() clusterv1.Conditions {
-	return m.Status.Conditions
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
-	m.Status.Conditions = conditions
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &IPAddressClaimDeprecatedStatus{}
+	}
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &IPAddressClaimV1Beta1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (m *IPAddressClaim) GetV1Beta2Conditions() []metav1.Condition {
-	if m.Status.V1Beta2 == nil {
-		return nil
-	}
-	return m.Status.V1Beta2.Conditions
+	return m.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (m *IPAddressClaim) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil {
-		m.Status.V1Beta2 = &IPAddressClaimV1Beta2Status{}
-	}
-	m.Status.V1Beta2.Conditions = conditions
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

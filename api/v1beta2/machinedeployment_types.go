@@ -451,6 +451,14 @@ type MachineNamingStrategy struct {
 
 // MachineDeploymentStatus defines the observed state of MachineDeployment.
 type MachineDeploymentStatus struct {
+	// conditions represents the observations of a MachineDeployment's current state.
+	// Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// observedGeneration is the generation observed by the deployment controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -468,56 +476,6 @@ type MachineDeploymentStatus struct {
 	// +optional
 	Replicas int32 `json:"replicas"`
 
-	// updatedReplicas is the total number of non-terminated machines targeted by this deployment
-	// that have the desired template spec.
-	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas"`
-
-	// readyReplicas is the total number of ready machines targeted by this deployment.
-	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
-
-	// availableReplicas is the total number of available machines (ready for at least minReadySeconds)
-	// targeted by this deployment.
-	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
-
-	// unavailableReplicas is the total number of unavailable machines targeted by this deployment.
-	// This is the total number of machines that are still required for
-	// the deployment to have 100% available capacity. They may either
-	// be machines that are running but not yet available or machines
-	// that still have not been created.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-	//
-	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas"`
-
-	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
-	// +optional
-	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
-	Phase string `json:"phase,omitempty"`
-
-	// conditions defines current service state of the MachineDeployment.
-	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *MachineDeploymentV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type MachineDeploymentV1Beta2Status struct {
-	// conditions represents the observations of a MachineDeployment's current state.
-	// Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
 	// readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
@@ -529,6 +487,68 @@ type MachineDeploymentV1Beta2Status struct {
 	// upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+	// +optional
+	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
+	Phase string `json:"phase,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *MachineDeploymentDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// MachineDeploymentDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineDeploymentDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *MachineDeploymentV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// MachineDeploymentV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineDeploymentV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the MachineDeployment.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
+
+	// updatedReplicas is the total number of non-terminated machines targeted by this deployment
+	// that have the desired template spec.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	UpdatedReplicas int32 `json:"updatedReplicas"`
+
+	// readyReplicas is the total number of ready machines targeted by this deployment.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas"`
+
+	// availableReplicas is the total number of available machines (ready for at least minReadySeconds)
+	// targeted by this deployment.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	AvailableReplicas int32 `json:"availableReplicas"`
+
+	// unavailableReplicas is the total number of unavailable machines targeted by this deployment.
+	// This is the total number of machines that are still required for
+	// the deployment to have 100% available capacity. They may either
+	// be machines that are running but not yet available or machines
+	// that still have not been created.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	UnavailableReplicas int32 `json:"unavailableReplicas"`
 }
 
 // ANCHOR_END: MachineDeploymentStatus
@@ -623,26 +643,29 @@ func init() {
 
 // GetConditions returns the set of conditions for the machinedeployment.
 func (m *MachineDeployment) GetConditions() Conditions {
-	return m.Status.Conditions
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions updates the set of conditions on the machinedeployment.
 func (m *MachineDeployment) SetConditions(conditions Conditions) {
-	m.Status.Conditions = conditions
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &MachineDeploymentDeprecatedStatus{}
+	}
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &MachineDeploymentV1Beta1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (m *MachineDeployment) GetV1Beta2Conditions() []metav1.Condition {
-	if m.Status.V1Beta2 == nil {
-		return nil
-	}
-	return m.Status.V1Beta2.Conditions
+	return m.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (m *MachineDeployment) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil {
-		m.Status.V1Beta2 = &MachineDeploymentV1Beta2Status{}
-	}
-	m.Status.V1Beta2.Conditions = conditions
+	m.Status.Conditions = conditions
 }

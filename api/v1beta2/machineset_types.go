@@ -283,6 +283,14 @@ const (
 
 // MachineSetStatus defines the observed state of MachineSet.
 type MachineSetStatus struct {
+	// conditions represents the observations of a MachineSet's current state.
+	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// selector is the same as the label selector but in the string format to avoid introspection
 	// by clients. The string will be in the same format as the query-param syntax.
 	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
@@ -295,24 +303,44 @@ type MachineSetStatus struct {
 	// +optional
 	Replicas int32 `json:"replicas"`
 
-	// fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-	//
+	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
-	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
+	// availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
-	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.
+	// upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *MachineSetDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// MachineSetDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineSetDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *MachineSetV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// MachineSetV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineSetV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the MachineSet.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 
 	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
@@ -337,7 +365,7 @@ type MachineSetStatus struct {
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
@@ -346,44 +374,33 @@ type MachineSetStatus struct {
 	// reconciling the Machine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// conditions defines current service state of the MachineSet.
+	// fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
+	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
-	// v1beta2 groups all the fields that will be added or modified in MachineSet's status with the V1Beta2 version.
+	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	V1Beta2 *MachineSetV1Beta2Status `json:"v1beta2,omitempty"`
-}
+	ReadyReplicas int32 `json:"readyReplicas"`
 
-// MachineSetV1Beta2Status groups all the fields that will be added or modified in MachineSetStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type MachineSetV1Beta2Status struct {
-	// conditions represents the observations of a MachineSet's current state.
-	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.
-	// +optional
-	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
-
-	// availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true.
-	// +optional
-	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
-
-	// upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true.
-	// +optional
-	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+	AvailableReplicas int32 `json:"availableReplicas"`
 }
 
 // ANCHOR_END: MachineSetStatus
@@ -442,28 +459,31 @@ type MachineSet struct {
 
 // GetConditions returns the set of conditions for the MachineSet.
 func (m *MachineSet) GetConditions() Conditions {
-	return m.Status.Conditions
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions updates the set of conditions on the MachineSet.
 func (m *MachineSet) SetConditions(conditions Conditions) {
-	m.Status.Conditions = conditions
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &MachineSetDeprecatedStatus{}
+	}
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &MachineSetV1Beta1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (m *MachineSet) GetV1Beta2Conditions() []metav1.Condition {
-	if m.Status.V1Beta2 == nil {
-		return nil
-	}
-	return m.Status.V1Beta2.Conditions
+	return m.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (m *MachineSet) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil {
-		m.Status.V1Beta2 = &MachineSetV1Beta2Status{}
-	}
-	m.Status.V1Beta2.Conditions = conditions
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

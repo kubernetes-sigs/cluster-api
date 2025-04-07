@@ -319,7 +319,7 @@ type KubeadmControlPlaneStatus struct {
 	// be machines that are running but not yet ready or machines
 	// that still have not been created.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"`
@@ -344,7 +344,7 @@ type KubeadmControlPlaneStatus struct {
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
@@ -352,7 +352,7 @@ type KubeadmControlPlaneStatus struct {
 	// failureMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1

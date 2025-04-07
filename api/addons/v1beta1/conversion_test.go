@@ -21,6 +21,10 @@ package v1beta1
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -29,11 +33,39 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for ClusterResourceSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &addonsv1.ClusterResourceSet{},
-		Spoke: &ClusterResourceSet{},
+		Hub:         &addonsv1.ClusterResourceSet{},
+		Spoke:       &ClusterResourceSet{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetFuzzFuncs},
 	}))
 	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &addonsv1.ClusterResourceSetBinding{},
 		Spoke: &ClusterResourceSetBinding{},
 	}))
+}
+
+func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubClusterResourceSetStatus,
+		spokeClusterResourceSetStatus,
+	}
+}
+
+func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || in.Deprecated.V1Beta1.Conditions == nil {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if in.V1Beta2.Conditions == nil {
+			in.V1Beta2 = nil
+		}
+	}
 }

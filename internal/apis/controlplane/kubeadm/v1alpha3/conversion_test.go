@@ -37,46 +37,59 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &controlplanev1.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	// This custom function is needed when ConvertTo/ConvertFrom functions
-	// uses the json package to unmarshal the bootstrap token string.
-	//
-	// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
-	// json string representation, in particular it supplies a customized
-	// UnmarshalJSON function that can return an error if the string
-	// isn't in the correct form.
-	//
-	// This function effectively disables any fuzzing for the token by setting
-	// the values for ID and Secret to working alphanumeric values.
+func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		kubeadmBootstrapTokenStringFuzzer,
-		cabpkBootstrapTokenStringFuzzer,
-		dnsFuzzer,
-		kubeadmClusterConfigurationFuzzer,
+		hubKubeadmControlPlaneStatus,
+		spokeDNS,
+		spokeKubeadmClusterConfiguration,
+		// This custom function is needed when ConvertTo/ConvertFrom functions
+		// uses the json package to unmarshal the bootstrap token string.
+		//
+		// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
+		// json string representation, in particular it supplies a customized
+		// UnmarshalJSON function that can return an error if the string
+		// isn't in the correct form.
+		//
+		// This function effectively disables any fuzzing for the token by setting
+		// the values for ID and Secret to working alphanumeric values.
+		hubBootstrapTokenString,
+		spokeKubeadmBootstrapTokenString,
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
+	}
 }
-func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
+func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
+	in.ID = "abcdef"
+	in.Secret = "abcdef0123456789"
+}
+
+func spokeDNS(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func kubeadmClusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
+func spokeKubeadmClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.

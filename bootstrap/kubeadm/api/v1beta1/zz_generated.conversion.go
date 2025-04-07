@@ -380,16 +380,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmConfigStatus)(nil), (*v1beta2.KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(a.(*KubeadmConfigStatus), b.(*v1beta2.KubeadmConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmConfigStatus)(nil), (*KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(a.(*v1beta2.KubeadmConfigStatus), b.(*KubeadmConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*KubeadmConfigTemplate)(nil), (*v1beta2.KubeadmConfigTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_KubeadmConfigTemplate_To_v1beta2_KubeadmConfigTemplate(a.(*KubeadmConfigTemplate), b.(*v1beta2.KubeadmConfigTemplate), scope)
 	}); err != nil {
@@ -427,16 +417,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmConfigTemplateSpec)(nil), (*KubeadmConfigTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTemplateSpec(a.(*v1beta2.KubeadmConfigTemplateSpec), b.(*KubeadmConfigTemplateSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmConfigV1Beta2Status)(nil), (*v1beta2.KubeadmConfigV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmConfigV1Beta2Status_To_v1beta2_KubeadmConfigV1Beta2Status(a.(*KubeadmConfigV1Beta2Status), b.(*v1beta2.KubeadmConfigV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmConfigV1Beta2Status)(nil), (*KubeadmConfigV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigV1Beta2Status_To_v1beta1_KubeadmConfigV1Beta2Status(a.(*v1beta2.KubeadmConfigV1Beta2Status), b.(*KubeadmConfigV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
@@ -540,8 +520,28 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*KubeadmConfigStatus)(nil), (*v1beta2.KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(a.(*KubeadmConfigStatus), b.(*v1beta2.KubeadmConfigStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*apiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*apiv1beta2.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.KubeadmConfigStatus)(nil), (*KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(a.(*v1beta2.KubeadmConfigStatus), b.(*KubeadmConfigStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1413,7 +1413,17 @@ func Convert_v1beta2_KubeadmConfig_To_v1beta1_KubeadmConfig(in *v1beta2.KubeadmC
 
 func autoConvert_v1beta1_KubeadmConfigList_To_v1beta2_KubeadmConfigList(in *KubeadmConfigList, out *v1beta2.KubeadmConfigList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.KubeadmConfig)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.KubeadmConfig, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_KubeadmConfig_To_v1beta2_KubeadmConfig(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1424,7 +1434,17 @@ func Convert_v1beta1_KubeadmConfigList_To_v1beta2_KubeadmConfigList(in *KubeadmC
 
 func autoConvert_v1beta2_KubeadmConfigList_To_v1beta1_KubeadmConfigList(in *v1beta2.KubeadmConfigList, out *KubeadmConfigList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]KubeadmConfig)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]KubeadmConfig, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_KubeadmConfig_To_v1beta1_KubeadmConfig(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1484,33 +1504,41 @@ func Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1beta2.
 func autoConvert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta2.KubeadmConfigStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.KubeadmConfigV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus is an autogenerated conversion function.
-func Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta2.KubeadmConfigStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *v1beta2.KubeadmConfigStatus, out *KubeadmConfigStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Ready = in.Ready
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*KubeadmConfigV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus is an autogenerated conversion function.
-func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *v1beta2.KubeadmConfigStatus, out *KubeadmConfigStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_KubeadmConfigTemplate_To_v1beta2_KubeadmConfigTemplate(in *KubeadmConfigTemplate, out *v1beta2.KubeadmConfigTemplate, s conversion.Scope) error {
@@ -1633,26 +1661,6 @@ func autoConvert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTempl
 // Convert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTemplateSpec is an autogenerated conversion function.
 func Convert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTemplateSpec(in *v1beta2.KubeadmConfigTemplateSpec, out *KubeadmConfigTemplateSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTemplateSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_KubeadmConfigV1Beta2Status_To_v1beta2_KubeadmConfigV1Beta2Status(in *KubeadmConfigV1Beta2Status, out *v1beta2.KubeadmConfigV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_KubeadmConfigV1Beta2Status_To_v1beta2_KubeadmConfigV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_KubeadmConfigV1Beta2Status_To_v1beta2_KubeadmConfigV1Beta2Status(in *KubeadmConfigV1Beta2Status, out *v1beta2.KubeadmConfigV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_KubeadmConfigV1Beta2Status_To_v1beta2_KubeadmConfigV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_KubeadmConfigV1Beta2Status_To_v1beta1_KubeadmConfigV1Beta2Status(in *v1beta2.KubeadmConfigV1Beta2Status, out *KubeadmConfigV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_KubeadmConfigV1Beta2Status_To_v1beta1_KubeadmConfigV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_KubeadmConfigV1Beta2Status_To_v1beta1_KubeadmConfigV1Beta2Status(in *v1beta2.KubeadmConfigV1Beta2Status, out *KubeadmConfigV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeadmConfigV1Beta2Status_To_v1beta1_KubeadmConfigV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1beta2.LocalEtcd, s conversion.Scope) error {

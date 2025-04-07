@@ -28,7 +28,6 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
 	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
 
@@ -126,6 +125,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.ResourceSetBinding)(nil), (*ResourceSetBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ResourceSetBinding_To_v1alpha4_ResourceSetBinding(a.(*v1beta2.ResourceSetBinding), b.(*ResourceSetBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1alpha4.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1alpha4_Condition(a.(*v1.Condition), b.(*corev1alpha4.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1alpha4.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Condition_To_v1_Condition(a.(*corev1alpha4.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -326,7 +335,17 @@ func Convert_v1beta2_ClusterResourceSetSpec_To_v1alpha4_ClusterResourceSetSpec(i
 
 func autoConvert_v1alpha4_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(in *ClusterResourceSetStatus, out *v1beta2.ClusterResourceSetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -336,9 +355,19 @@ func Convert_v1alpha4_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStat
 }
 
 func autoConvert_v1beta2_ClusterResourceSetStatus_To_v1alpha4_ClusterResourceSetStatus(in *v1beta2.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1alpha4.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
-	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
 

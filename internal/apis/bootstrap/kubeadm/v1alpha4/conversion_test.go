@@ -40,13 +40,30 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs, fuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
+}
+
+func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubKubeadmConfigStatus,
+	}
+}
+
+func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &bootstrapv1.KubeadmConfigV1Beta1DeprecatedStatus{}
+	}
 }
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

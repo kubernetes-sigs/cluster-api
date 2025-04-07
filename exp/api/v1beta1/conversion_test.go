@@ -21,6 +21,10 @@ package v1beta1
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -29,7 +33,36 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &expv1.MachinePool{},
-		Spoke: &MachinePool{},
+		Hub:         &expv1.MachinePool{},
+		Spoke:       &MachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
 	}))
+}
+
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachinePoolStatus,
+		spokeMachinePoolStatus,
+	}
+}
+
+func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeMachinePoolStatus(in *MachinePoolStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if in.V1Beta2.Conditions == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {
+			in.V1Beta2 = nil
+		}
+	}
 }

@@ -21,7 +21,9 @@ package v1beta1
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -33,12 +35,38 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &controlplanev1.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
 	}))
-
 	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &controlplanev1.KubeadmControlPlaneTemplate{},
-		Spoke:       &KubeadmControlPlaneTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		Hub:   &controlplanev1.KubeadmControlPlaneTemplate{},
+		Spoke: &KubeadmControlPlaneTemplate{},
 	}))
+}
+
+func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubKubeadmControlPlaneStatus,
+		spokeKubeadmControlPlaneStatus,
+	}
+}
+
+func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if in.V1Beta2.Conditions == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {
+			in.V1Beta2 = nil
+		}
+	}
 }

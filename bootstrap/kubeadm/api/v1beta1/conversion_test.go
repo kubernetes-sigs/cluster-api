@@ -21,7 +21,9 @@ package v1beta1
 import (
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -33,11 +35,38 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
-		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		Hub:   &bootstrapv1.KubeadmConfigTemplate{},
+		Spoke: &KubeadmConfigTemplate{},
 	}))
+}
+
+func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubKubeadmConfigStatus,
+		spokeKubeadmConfigStatus,
+	}
+}
+
+func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &bootstrapv1.KubeadmConfigV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if in.V1Beta2.Conditions == nil {
+			in.V1Beta2 = nil
+		}
+	}
 }

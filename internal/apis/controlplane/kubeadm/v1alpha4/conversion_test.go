@@ -44,45 +44,75 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &controlplanev1.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
 	}))
 
 	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &controlplanev1.KubeadmControlPlaneTemplate{},
 		Spoke:       &KubeadmControlPlaneTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneTemplateFuzzFuncs},
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	// This custom function is needed when ConvertTo/ConvertFrom functions
-	// uses the json package to unmarshal the bootstrap token string.
-	//
-	// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
-	// json string representation, in particular it supplies a customized
-	// UnmarshalJSON function that can return an error if the string
-	// isn't in the correct form.
-	//
-	// This function effectively disables any fuzzing for the token by setting
-	// the values for ID and Secret to working alphanumeric values.
+func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		cabpkBootstrapTokenStringFuzzer,
-		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
-		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
+		hubKubeadmControlPlaneStatus,
+		spokeKubeadmControlPlaneTemplateResource,
+		// This custom function is needed when ConvertTo/ConvertFrom functions
+		// uses the json package to unmarshal the bootstrap token string.
+		//
+		// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
+		// json string representation, in particular it supplies a customized
+		// UnmarshalJSON function that can return an error if the string
+		// isn't in the correct form.
+		//
+		// This function effectively disables any fuzzing for the token by setting
+		// the values for ID and Secret to working alphanumeric values.
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
 	}
 }
 
-func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
+	c.Fuzz(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
+	}
+}
+
+func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmControlPlaneTemplateResource,
+		// This custom function is needed when ConvertTo/ConvertFrom functions
+		// uses the json package to unmarshal the bootstrap token string.
+		//
+		// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
+		// json string representation, in particular it supplies a customized
+		// UnmarshalJSON function that can return an error if the string
+		// isn't in the correct form.
+		//
+		// This function effectively disables any fuzzing for the token by setting
+		// the values for ID and Secret to working alphanumeric values.
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+	}
+}
+
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *bootstrapv1alpha4.BootstrapTokenString, _ fuzz.Continue) {
+func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
+func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
 	c.Fuzz(in)
 
 	// Fields have been dropped in KCPTemplate.

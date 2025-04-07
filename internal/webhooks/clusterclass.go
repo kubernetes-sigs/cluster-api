@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -137,9 +139,11 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Obj
 	}
 
 	if len(clusters) > 0 {
-		// TODO(killianmuldoon): Improve error here to include the names of some clusters using the clusterClass.
+		clustersList := clog.ListToString(clusters, func(cluster clusterv1.Cluster) string {
+			return klog.KObj(&cluster).String()
+		}, 3)
 		return nil, apierrors.NewForbidden(clusterv1.GroupVersion.WithResource("ClusterClass").GroupResource(), clusterClass.Name,
-			fmt.Errorf("ClusterClass cannot be deleted because it is used by %d Cluster(s)", len(clusters)))
+			fmt.Errorf("ClusterClass cannot be deleted because it is used by Cluster(s): %s", clustersList))
 	}
 	return nil, nil
 }

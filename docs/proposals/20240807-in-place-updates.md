@@ -22,52 +22,41 @@ status: experimental
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [In-place updates in Cluster API](#in-place-updates-in-cluster-api)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Divide and conquer](#divide-and-conquer)
-    - [Tenets](#tenets)
-      - [Same UX](#same-ux)
-      - [Fallback to Immutable rollouts](#fallback-to-immutable-rollouts)
-      - [Clean separation of concern](#clean-separation-of-concern)
-    - [Goals](#goals)
-    - [Non-Goals/Future work](#non-goalsfuture-work)
-  - [Proposal](#proposal)
-    - [User Stories](#user-stories)
-      - [Story 1](#story-1)
-      - [Story 2](#story-2)
-      - [Story 3](#story-3)
-      - [Story 4](#story-4)
-      - [Story 5](#story-5)
-      - [Story 6](#story-6)
-      - [Story 7](#story-7)
-    - [High level flow](#high-level-flow)
-    - [Deciding the update strategy](#deciding-the-update-strategy)
-    - [MachineDeployment updates](#machinedeployment-updates)
-    - [KCP updates](#kcp-updates)
-    - [Machine updates](#machine-updates)
-    - [Infra Machine Template changes](#infra-machine-template-changes)
-    - [Remediation](#remediation)
-    - [Examples](#examples)
-      - [KCP kubernetes version update](#kcp-kubernetes-version-update)
-      - [Update worker node memory](#update-worker-node-memory)
-      - [Update worker nodes OS from Linux to Windows](#update-worker-nodes-os-from-linux-to-windows)
-    - [API Changes](#api-changes)
-      - [External Update RuntimeExtension](#external-update-runtimeextension)
-        - [`CanUpdateMachine` endpoint](#canupdatemachine-endpoint)
-        - [Request](#request)
-        - [Response](#response)
-        - [`UpdateMachine` endpoint](#updatemachine-endpoint)
-        - [Request](#request-1)
-        - [Response](#response-1)
-    - [Security Model](#security-model)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Additional Details](#additional-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-  - [Implementation History](#implementation-history)
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Divide and conquer](#divide-and-conquer)
+  - [Tenets](#tenets)
+    - [Same UX](#same-ux)
+    - [Fallback to Immutable rollouts](#fallback-to-immutable-rollouts)
+    - [Clean separation of concern](#clean-separation-of-concern)
+  - [Goals](#goals)
+  - [Non-Goals/Future work](#non-goalsfuture-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+    - [Story 3](#story-3)
+    - [Story 4](#story-4)
+    - [Story 5](#story-5)
+    - [Story 6](#story-6)
+  - [High level flow](#high-level-flow)
+  - [Deciding the update strategy](#deciding-the-update-strategy)
+  - [MachineDeployment updates](#machinedeployment-updates)
+  - [KCP updates](#kcp-updates)
+  - [Machine updates](#machine-updates)
+  - [Infra Machine Template changes](#infra-machine-template-changes)
+  - [Remediation](#remediation)
+  - [Examples](#examples)
+    - [KCP kubernetes version update](#kcp-kubernetes-version-update)
+    - [Update worker node memory](#update-worker-node-memory)
+    - [Update worker nodes OS from Linux to Windows](#update-worker-nodes-os-from-linux-to-windows)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Additional Details](#additional-details)
+  - [Test Plan](#test-plan)
+  - [Graduation Criteria](#graduation-criteria)
+- [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -79,7 +68,7 @@ __In-place Update__: any change to a Machine spec, including the Kubernetes Vers
 
 __External Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke external update extensions.
 
-__External Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
+__Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
 
 ## Summary
 
@@ -147,21 +136,20 @@ The responsibility to determine which machine should be rolled out as well as th
 
 - Enable the implementation of pluggable update extensions.
 - Allow users to update Kubernetes clusters using pluggable External Update Extension.
-- Maintain a coherent user experience for both rolling and in-place updates.
 - Support External Update Extensions for both Control Plane (KCP or others) and MachineDeployment controlled machines.
 
 ### Non-Goals/Future work
 
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
 - Introduce any changes to KCP (or any other control plane provider), MachineDeployment, MachineSet, Machine APIs.
-- Ammend the desired state to something that the registered updaters can cover or register additional updaters capable of handling the desired changes.
+- Maintain a coherent user experience for both rolling and in-place updates.
 - Allow in-place updates for single-node clusters without the requirement to reprovision hosts (future goal).
 
 ## Proposal
 
-We propose a pluggable update strategy architecture that allows the registration of External Update Extensions to optionally handle the update process.
+We propose to extend upgrade workflows to call External Update Extensions, if defined.
 
-Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. This means that any changes in behavior are controlled by the feature gate `InPlaceUpdates`, which must be enabled by users for the new in-place updates workflow to be available. It is disabled unless explicitly configured.
+Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true. It is disabled unless explicitly configured.
 
 This proposal introduces a Lifecycle Hook named `ExternalUpdate` for communication between CAPI and external update implementers. Multiple external updaters can be registered, each of them only covering a subset of machine changes. The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the reponse, compose and orchestrate them to achieve the desired state.
 
@@ -404,13 +392,11 @@ We might explore the ability to represent this "dirty" state at the API level. W
 
 Remediation can be used as the solution to recover machine when in-place update fails on a machine. The remediation process stays the same as today: the MachineHealthCheck controller monitors machine health status and marks it to be remediated based on pre-configured rules, then ControlPlane/MachineDeployment replaces the machine or call external remediation.
 
-However, in-place updates might cause Nodes to become unhealthy while the update is in progress. In addition, an in-place update might take more (or less) time than a fresh machine creation. Hence, in order to successfully use MHC to remediate in-place updated Machines, we require:
+However, in-place updates might cause Nodes to become unhealthy while the update is in progress. In addition, an in-place update might take more (or less) time than a fresh machine creation. Hence, in order to successfully use MHC to remediate in-place updated Machines, in a future iteration of this proposal we will consider:
 * A mechanism to identify if a Machine is being updated. We will surface this in the Machine status. API details will be added later.
 * A way to define different rules for Machines on-going an update. This might involve new fields in the MHC object. We will decouple these API changes from this proposal. For the first implementation of in-place updates, we might decide to just disable remediation for Machines that are on-going an update.
 
 ### Examples
-
-*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
 
 This section aims to showcase our vision for the In-Places Updates end state. It shows a high level picture of a few common usecases, specially around how the different components interact through the API.
 
@@ -420,6 +406,7 @@ Let's imagine a vSphere cluster with a KCP control plane that has two fictional 
 1. `vsphere-vm-memory-update`: The extension uses vSphere APIs to hot-add memory to VMs if "Memory Hot Add" is enabled or through a power cycle.
 2. `kcp-version-upgrade`: Updates the kubernetes version of KCP machines by using an agent that first updates the kubernetes related packages (`kubeadm`, `kubectl`, etc.) and then runs the `kubeadm upgrade` command. The In-place Update extension communicates with this agent, sending instructions with the kubernetes version a machine needs to be updated to.
 
+> Please note that exact Spec of messages will be defined during implementation; current examples are only meant to explain the flow.
 
 #### KCP kubernetes version update
 
@@ -535,10 +522,8 @@ spec:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
--     name: kcp-1-hfg374h-9wc29
--     uid: fc69d363-272a-4b91-aa35-72ccdaa7a427
-+     name: kcp-1-hfg374h-flkf3
-+     uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
+      name: kcp-1-hfg374h-9wc29
+      uid: fc69d363-272a-4b91-aa35-72ccdaa7a427
 status:
   conditions:
 + - lastTransitionTime: "2024-12-31T23:50:00Z"
@@ -630,8 +615,8 @@ spec:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
-      name: kcp-1-hfg374h-flkf3
-      uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
+      name: kcp-1-hfg374h-9wc29
+      uid: fc69d363-272a-4b91-aa35-72ccdaa7a427
 status:
   conditions:
   - lastTransitionTime: "2024-12-31T23:50:00Z"
@@ -652,8 +637,8 @@ spec:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
-      name: kcp-1-hfg374h-flkf3
-      uid: ddab8525-bb36-4a86-81e9-ef3eeeb33e18
+      name: kcp-1-hfg374h-9wc29
+      uid: fc69d363-272a-4b91-aa35-72ccdaa7a427
 status:
   conditions:
 - - lastTransitionTime: "2024-12-31T23:50:00Z"
@@ -676,6 +661,7 @@ sequenceDiagram
         participant capi as  MD controller
         participant msc as MachineSet Controller
         participant mach as Machine Controller
+        participant hook as KCP version <br>update extension
         participant hook as vSphere memory <br>update extension
     end
     
@@ -768,9 +754,6 @@ The Machine controller then creates a new MachineSet with the new spec and moves
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
-+ labels:
-+   cluster.x-k8s.io/cluster-name: cluster1
-+   cluster.x-k8s.io/deployment-name: md-1
 + annotations:
 +   runtime.cluster.x-k8s.io/pending-hooks: ExternalUpdate
   name: md-1-6bp6g
@@ -894,10 +877,6 @@ Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions inf
 
 Since the fallback to machine replacement is a default strategy and always enabled, the MachineDeployment controller proceeds with the rollout process as it does today, replacing the old machines with new ones.
 
-### API Changes
-
-*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
-
 ### Security Model
 
 On the core CAPI side, the security model for this feature is very straightforward: CAPI controllers only require to read/create/update CAPI resources and those controllers are the only ones that need to modify the CAPI resources. Moreover, the controllers that need to perform these actions already have the necessary permissions over the resources they need to modify.
@@ -906,7 +885,14 @@ However, each external updater should define their own security model. Depending
 
 ### Risks and Mitigations
 
-1. One of the risks for this process could be that during a single node cluster in-place update, extension implementation might decline the update and that would result in falling back to rolling update strategy by default, which could possibly lead to breaking a cluster. For the first iteration, users must ensure that the changes they make will be accepted by their updater.
+The main risk of this change is its complexity. This risk is mitigated by:
+
+1. Implementing the feature in incremental steps. 
+
+2. Avoiding user-facing changes in the first iteration, allowing us to gather feedback and validate the core functionality before making changes that are difficult to revert.
+
+3. Using a feature flag to control the availability of this functionality, ensuring it remains opt-in and can be disabled if issues arise.
+
 
 ## Additional Details
 

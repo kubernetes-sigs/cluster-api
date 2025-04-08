@@ -53,12 +53,11 @@ func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 
 func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
-	// Always create struct with at least one mandatory fields.
-	if in.Deprecated == nil {
-		in.Deprecated = &ipamv1.IPAddressClaimDeprecatedStatus{}
-	}
-	if in.Deprecated.V1Beta1 == nil {
-		in.Deprecated.V1Beta1 = &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
 	}
 }
 

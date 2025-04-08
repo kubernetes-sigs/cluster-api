@@ -326,9 +326,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	if src.Status.Conditions != nil {
 		dst.Status.Deprecated = &clusterv1.MachineHealthCheckDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}
-		if src.Status.Conditions != nil {
-			Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
-		}
+		Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 	}
 
 	// Manually restore data.

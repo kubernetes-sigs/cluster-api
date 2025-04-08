@@ -255,12 +255,10 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *boo
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
 
-func Convert_v1_Condition_To_v1alpha3_Condition(_ *metav1.Condition, _ *clusterv1alpha3.Condition, _ apimachineryconversion.Scope) error {
-	// NOTE: v1beta2 conditions should not be automatically converted into v1beta1 conditions.
-	return nil
+func Convert_v1_Condition_To_v1alpha3_Condition(in *metav1.Condition, out *clusterv1alpha3.Condition, s apimachineryconversion.Scope) error {
+	return clusterv1alpha3.Convert_v1_Condition_To_v1alpha3_Condition(in, out, s)
 }
 
-func Convert_v1alpha3_Condition_To_v1_Condition(_ *clusterv1alpha3.Condition, _ *metav1.Condition, _ apimachineryconversion.Scope) error {
-	// NOTE: v1beta1 conditions should not be automatically converted into v1beta2 conditions.
-	return nil
+func Convert_v1alpha3_Condition_To_v1_Condition(in *clusterv1alpha3.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
+	return clusterv1alpha3.Convert_v1alpha3_Condition_To_v1_Condition(in, out, s)
 }

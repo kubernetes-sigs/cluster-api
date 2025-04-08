@@ -89,6 +89,9 @@ func Convert_v1beta1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IP
 	}
 
 	// Move legacy conditions (v1beta1) to the deprecated field.
+	if in.Conditions == nil {
+		return nil
+	}
 	if out.Deprecated == nil {
 		out.Deprecated = &ipamv1.IPAddressClaimDeprecatedStatus{}
 	}

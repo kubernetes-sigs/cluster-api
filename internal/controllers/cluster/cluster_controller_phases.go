@@ -62,10 +62,10 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
-	failedMessage := ""
+	failureMessage := ""
 	if cluster.Status.Deprecated != nil && cluster.Status.Deprecated.V1Beta1 != nil && (cluster.Status.Deprecated.V1Beta1.FailureReason != nil || cluster.Status.Deprecated.V1Beta1.FailureMessage != nil) {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseFailed)
-		failedMessage = ptr.Deref(cluster.Status.Deprecated.V1Beta1.FailureMessage, "unknown")
+		failureMessage = ptr.Deref(cluster.Status.Deprecated.V1Beta1.FailureMessage, "unknown")
 	}
 
 	if !cluster.DeletionTimestamp.IsZero() {
@@ -76,7 +76,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 	if preReconcilePhase != cluster.Status.GetTypedPhase() {
 		// Failed clusters should get a Warning event
 		if cluster.Status.GetTypedPhase() == clusterv1.ClusterPhaseFailed {
-			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), failedMessage)
+			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), failureMessage)
 		} else {
 			r.recorder.Eventf(cluster, corev1.EventTypeNormal, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s", cluster.Name, string(cluster.Status.GetTypedPhase()))
 		}

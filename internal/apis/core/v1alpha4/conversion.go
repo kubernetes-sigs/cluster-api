@@ -418,9 +418,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	if src.Status.Conditions != nil {
 		dst.Status.Deprecated = &clusterv1.MachineHealthCheckDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}
-		if src.Status.Conditions != nil {
-			Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
-		}
+		Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 	}
 
 	// Manually restore data.
@@ -460,22 +458,6 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apimachineryconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
-
-	// v1beta1 conditions, failureReason, failureMessage moved to deprecated.
-	if in.Conditions == nil && in.FailureReason == nil && in.FailureMessage == nil {
-		return nil
-	}
-	if out.Deprecated == nil {
-		out.Deprecated = &clusterv1.MachineDeprecatedStatus{}
-	}
-	if out.Deprecated.V1Beta1 == nil {
-		out.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
-	}
-
-	out.Deprecated.V1Beta1.Conditions = *(*clusterv1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
-	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
-	return nil
 }
 
 func Convert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apimachineryconversion.Scope) error {

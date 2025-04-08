@@ -1,6 +1,6 @@
 # Controllers and Reconciliation
 
-Right now, you can create objects with our API types, but those objects doesn't make any impact on your mailgun infrastrucrure. 
+Right now, you can create objects with your API types, but those objects don't make any impact on your mailgun infrastructure. 
 Let's fix that by implementing controllers and reconciliation for your API objects.
 
 From the [kubebuilder book][controller]:

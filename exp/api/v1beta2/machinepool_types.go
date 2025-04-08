@@ -166,10 +166,16 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 

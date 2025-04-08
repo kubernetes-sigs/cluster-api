@@ -68,7 +68,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 	// Retrieve legacy conditions (v1beta1), failureReason, failureMessage and replica counters from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			clusterv1beta1.Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
@@ -118,7 +118,7 @@ func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneSta
 		out.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		clusterv1beta1.Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage

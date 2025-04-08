@@ -456,7 +456,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new conditions
 		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
 			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -475,7 +475,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new conditions
 		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
 			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -495,7 +495,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new conditions
 		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
 			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -518,7 +518,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new conditions
 		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
 			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -541,7 +541,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new conditions
 		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
 			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{

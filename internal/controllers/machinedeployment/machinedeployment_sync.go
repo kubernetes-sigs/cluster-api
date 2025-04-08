@@ -525,7 +525,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	// Calculate the label selector. We check the error in the MD reconcile function, ignore here.
 	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector)
 
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	var conditions clusterv1.Conditions
 	if deployment.Status.Deprecated != nil && deployment.Status.Deprecated.V1Beta1 != nil {
 		conditions = deployment.Status.Deprecated.V1Beta1.Conditions

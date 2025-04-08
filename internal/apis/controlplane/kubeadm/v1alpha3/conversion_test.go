@@ -62,7 +62,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}

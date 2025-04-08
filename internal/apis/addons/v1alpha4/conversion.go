@@ -39,7 +39,7 @@ func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated = &addonsv1.ClusterResourceSetDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &addonsv1.ClusterResourceSetV1Beta1DeprecatedStatus{}
 		if src.Status.Conditions != nil {
-			clusterv1alpha4.Convert_Deprecated_v1alpha4_Conditions_To_v1beta2_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
+			clusterv1alpha4.Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 		}
 	}
 
@@ -68,7 +68,7 @@ func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Deprecated != nil {
 		if src.Status.Deprecated.V1Beta1 != nil {
 			if src.Status.Deprecated.V1Beta1.Conditions != nil {
-				clusterv1alpha4.Convert_v1beta2_Conditions_To_Deprecated_v1alpha4_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
+				clusterv1alpha4.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha4_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 			}
 		}
 	}

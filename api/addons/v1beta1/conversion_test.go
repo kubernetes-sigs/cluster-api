@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -51,20 +52,20 @@ func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 }
 
 func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || in.Deprecated.V1Beta1.Conditions == nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &addonsv1.ClusterResourceSetV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}
 }
 
 func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil {
+		if reflect.DeepEqual(in.V1Beta2, &ClusterResourceSetV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

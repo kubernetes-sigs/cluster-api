@@ -174,7 +174,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 
 		desiredReplicas := controlplane.Spec.Replicas
 		statusReplicas := controlplane.Status.Replicas
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new replica counters
 		updatedReplicas := int32(0)
 		readyReplicas := int32(0)
 		unavailableReplicas := int32(0)

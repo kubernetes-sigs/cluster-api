@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -47,7 +48,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
@@ -58,10 +59,10 @@ func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
 }
 
 func spokeMachinePoolStatus(in *MachinePoolStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachinePoolV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

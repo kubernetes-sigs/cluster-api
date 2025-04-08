@@ -494,7 +494,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Variables: c.statusVariables,
 		},
 	}
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new conditions
 	if c.conditions != nil {
 		obj.Status.Deprecated = &clusterv1.ClusterClassDeprecatedStatus{
 			V1Beta1: &clusterv1.ClusterClassV1Beta1DeprecatedStatus{Conditions: c.conditions},

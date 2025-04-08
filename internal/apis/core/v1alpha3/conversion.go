@@ -40,7 +40,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &clusterv1.ClusterV1Beta1DeprecatedStatus{}
 		if src.Status.Conditions != nil {
-			Convert_Deprecated_v1alpha3_Conditions_To_v1beta2_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
+			Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 		}
 		dst.Status.Deprecated.V1Beta1.FailureReason = src.Status.FailureReason
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
@@ -85,7 +85,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Deprecated != nil {
 		if src.Status.Deprecated.V1Beta1 != nil {
 			if src.Status.Deprecated.V1Beta1.Conditions != nil {
-				Convert_v1beta2_Conditions_To_Deprecated_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
+				Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 			}
 			dst.Status.FailureReason = src.Status.Deprecated.V1Beta1.FailureReason
 			dst.Status.FailureMessage = src.Status.Deprecated.V1Beta1.FailureMessage
@@ -117,7 +117,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
 		if src.Status.Conditions != nil {
-			Convert_Deprecated_v1alpha3_Conditions_To_v1beta2_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
+			Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 		}
 		dst.Status.Deprecated.V1Beta1.FailureReason = src.Status.FailureReason
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
@@ -155,7 +155,7 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Deprecated != nil {
 		if src.Status.Deprecated.V1Beta1 != nil {
 			if src.Status.Deprecated.V1Beta1.Conditions != nil {
-				Convert_v1beta2_Conditions_To_Deprecated_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
+				Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 			}
 			dst.Status.FailureReason = src.Status.Deprecated.V1Beta1.FailureReason
 			dst.Status.FailureMessage = src.Status.Deprecated.V1Beta1.FailureMessage
@@ -327,7 +327,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated = &clusterv1.MachineHealthCheckDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}
 		if src.Status.Conditions != nil {
-			Convert_Deprecated_v1alpha3_Conditions_To_v1beta2_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
+			Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 		}
 	}
 
@@ -360,7 +360,7 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Deprecated != nil {
 		if src.Status.Deprecated.V1Beta1 != nil {
 			if src.Status.Deprecated.V1Beta1.Conditions != nil {
-				Convert_v1beta2_Conditions_To_Deprecated_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
+				Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 			}
 		}
 	}
@@ -467,14 +467,14 @@ func Convert_v1alpha3_Condition_To_v1_Condition(_ *Condition, _ *metav1.Conditio
 	return nil
 }
 
-func Convert_v1beta2_Conditions_To_Deprecated_v1alpha3_Conditions(in *clusterv1.Conditions, out *Conditions) {
+func Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(in *clusterv1.Conditions, out *Conditions) {
 	*out = make(Conditions, len(*in))
 	for i := range *in {
 		(*out)[i] = *(*Condition)(unsafe.Pointer(&(*in)[i]))
 	}
 }
 
-func Convert_Deprecated_v1alpha3_Conditions_To_v1beta2_Conditions(in *Conditions, out *clusterv1.Conditions) {
+func Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(in *Conditions, out *clusterv1.Conditions) {
 	*out = make(clusterv1.Conditions, len(*in))
 	for i := range *in {
 		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i]))

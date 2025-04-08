@@ -74,7 +74,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
@@ -113,7 +113,7 @@ func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ fuz
 }
 
 func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 
 	// Fields have been dropped in KCPTemplate.
 	in.Spec.Replicas = nil

@@ -87,7 +87,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 			return 0, err
 		}
 
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new replica counters
 		readyReplicas := 0
 		if input.MachinePool.Status.Deprecated != nil && input.MachinePool.Status.Deprecated.V1Beta1 != nil {
 			readyReplicas = int(input.MachinePool.Status.Deprecated.V1Beta1.ReadyReplicas)

@@ -318,7 +318,7 @@ func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
 	before := &clusterv1.Cluster{}
 	after := &clusterv1.Cluster{
 		Status: clusterv1.ClusterStatus{
-			// TODO (v1beta2)
+			// TODO (v1beta2) Use new conditions
 			Deprecated: &clusterv1.ClusterDeprecatedStatus{
 				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{

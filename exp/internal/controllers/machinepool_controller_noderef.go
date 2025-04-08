@@ -64,7 +64,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	// Check that the Machine doesn't already have a NodeRefs.
 	// Return early if there is no work to do.
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	readyReplicas := int32(0)
 	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas

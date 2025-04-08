@@ -69,7 +69,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the phase to "running" if the number of ready replicas is equal to desired replicas.
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	readyReplicas := int32(0)
 	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas

@@ -570,7 +570,7 @@ func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int
 	totalReadyReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
-			// TODO (v1beta2)
+			// TODO (v1beta2) Use new replica counters
 			readyReplicas := int32(0)
 			if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
 				readyReplicas = ms.Status.Deprecated.V1Beta1.ReadyReplicas
@@ -640,7 +640,7 @@ func IsRollingUpdate(deployment *clusterv1.MachineDeployment) bool {
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
 // are updated and available, and no old machines are running.
 func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	updatedReplicas := int32(0)
 	if newStatus.Deprecated != nil && newStatus.Deprecated.V1Beta1 != nil {
 		updatedReplicas = newStatus.Deprecated.V1Beta1.UpdatedReplicas
@@ -709,7 +709,7 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 	if err != nil {
 		return false
 	}
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	availableReplicas := int32(0)
 	if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
 		availableReplicas = ms.Status.Deprecated.V1Beta1.AvailableReplicas

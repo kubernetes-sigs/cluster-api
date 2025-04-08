@@ -110,7 +110,7 @@ func Convert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *cluste
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
 
@@ -149,7 +149,7 @@ func Convert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(in *Cluste
 		out.Deprecated.V1Beta1 = &clusterv1.ClusterClassV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
@@ -243,7 +243,7 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 		out.Deprecated.V1Beta1 = &clusterv1.ClusterV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
@@ -267,7 +267,7 @@ func Convert_v1beta2_MachineDeploymentStatus_To_v1beta1_MachineDeploymentStatus(
 	// Retrieve legacy conditions (v1beta1) and replica counters from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 		out.AvailableReplicas = in.Deprecated.V1Beta1.AvailableReplicas
 		out.UnavailableReplicas = in.Deprecated.V1Beta1.UnavailableReplicas
@@ -317,7 +317,7 @@ func Convert_v1beta1_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(
 		out.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	out.Deprecated.V1Beta1.AvailableReplicas = in.AvailableReplicas
 	out.Deprecated.V1Beta1.UnavailableReplicas = in.UnavailableReplicas
@@ -338,7 +338,7 @@ func Convert_v1beta2_MachineHealthCheckStatus_To_v1beta1_MachineHealthCheckStatu
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
 
@@ -377,7 +377,7 @@ func Convert_v1beta1_MachineHealthCheckStatus_To_v1beta2_MachineHealthCheckStatu
 		out.Deprecated.V1Beta1 = &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	return nil
 }
@@ -396,10 +396,10 @@ func Convert_v1beta2_MachineSetStatus_To_v1beta1_MachineSetStatus(in *clusterv1.
 	out.AvailableReplicas = 0
 	out.ReadyReplicas = 0
 
-	// Retrieve legacy conditions (v1beta1) and replica counters from the deprecated field.
+	// Retrieve legacy conditions (v1beta1), failureReason, failureMessage, and replica counters from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 		out.AvailableReplicas = in.Deprecated.V1Beta1.AvailableReplicas
 		out.FullyLabeledReplicas = in.Deprecated.V1Beta1.FullyLabeledReplicas
@@ -434,7 +434,7 @@ func Convert_v1beta1_MachineSetStatus_To_v1beta2_MachineSetStatus(in *MachineSet
 	out.AvailableReplicas = nil
 	out.ReadyReplicas = nil
 
-	// Retrieve new conditions (v1beta2) from the v1beta2 field.
+	// Retrieve new conditions (v1beta2) and replica counters from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
 		out.ReadyReplicas = in.V1Beta2.ReadyReplicas
@@ -442,7 +442,7 @@ func Convert_v1beta1_MachineSetStatus_To_v1beta2_MachineSetStatus(in *MachineSet
 		out.UpToDateReplicas = in.V1Beta2.UpToDateReplicas
 	}
 
-	// Move legacy conditions (v1beta1) to the deprecated field.
+	// Move legacy conditions (v1beta1), failureReason, failureMessage, and replica counters to the deprecated field.
 	if out.Deprecated == nil {
 		out.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
 	}
@@ -450,7 +450,7 @@ func Convert_v1beta1_MachineSetStatus_To_v1beta2_MachineSetStatus(in *MachineSet
 		out.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	out.Deprecated.V1Beta1.AvailableReplicas = in.AvailableReplicas
 	out.Deprecated.V1Beta1.FullyLabeledReplicas = in.FullyLabeledReplicas
@@ -469,11 +469,13 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 	// NOTE: v1beta2 conditions should not be automatically be converted into legacy conditions (v1beta1).
 	out.Conditions = nil
 
-	// Retrieve legacy conditions (v1beta1) from the deprecated field.
+	// Retrieve legacy conditions (v1beta1), failureReason and failureMessage from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
+		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
+		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -499,8 +501,8 @@ func Convert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, o
 		out.Conditions = in.V1Beta2.Conditions
 	}
 
-	// Move legacy conditions (v1beta1) to the deprecated field.
-	if in.Conditions == nil {
+	// Move legacy conditions (v1beta1), failureReason and failureMessage to the deprecated field.
+	if in.Conditions == nil && in.FailureReason == nil && in.FailureMessage == nil {
 		return nil
 	}
 
@@ -511,19 +513,21 @@ func Convert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, o
 		out.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
+	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 	return nil
 }
 
-func Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(in *clusterv1.Conditions, out *Conditions) {
+func Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(in *clusterv1.Conditions, out *Conditions) {
 	*out = make(Conditions, len(*in))
 	for i := range *in {
 		(*out)[i] = *(*Condition)(unsafe.Pointer(&(*in)[i])) //nolint:gosec
 	}
 }
 
-func Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(in *Conditions, out *clusterv1.Conditions) {
+func Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(in *Conditions, out *clusterv1.Conditions) {
 	*out = make(clusterv1.Conditions, len(*in))
 	for i := range *in {
 		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i])) //nolint:gosec

@@ -52,10 +52,10 @@ func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *expv1.Ma
 	out.ReadyReplicas = 0
 	out.AvailableReplicas = 0
 
-	// Retrieve legacy conditions (v1beta1), failureReason and failureMessage from the deprecated field.
+	// Retrieve legacy conditions (v1beta1), failureReason, failureMessage and replica counters from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			clusterv1beta1.Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
@@ -64,8 +64,8 @@ func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *expv1.Ma
 		out.UnavailableReplicas = in.Deprecated.V1Beta1.UnavailableReplicas
 	}
 
-	// Move new conditions (v1beta2) to the v1beta2 field.
-	if in.Conditions == nil {
+	// Move new conditions (v1beta2) and replica counters to the v1beta2 field.
+	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {
 		return nil
 	}
 	out.V1Beta2 = &MachinePoolV1Beta2Status{}
@@ -90,7 +90,7 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 	out.ReadyReplicas = nil
 	out.AvailableReplicas = nil
 
-	// Retrieve new conditions (v1beta2) from the v1beta2 field.
+	// Retrieve new conditions (v1beta2) and replica counters from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
 		out.ReadyReplicas = in.V1Beta2.ReadyReplicas
@@ -98,7 +98,7 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 		out.UpToDateReplicas = in.V1Beta2.UpToDateReplicas
 	}
 
-	// Move legacy conditions (v1beta1), failureReason and failureMessage to the deprecated field.
+	// Move legacy conditions (v1beta1), failureReason, failureMessage and replica counters to the deprecated field.
 	if out.Deprecated == nil {
 		out.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
 	}
@@ -106,7 +106,7 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 		out.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		clusterv1beta1.Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage

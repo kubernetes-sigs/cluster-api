@@ -61,7 +61,7 @@ func Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatu
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			clusterv1beta1.Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
+			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
 
@@ -100,7 +100,7 @@ func Convert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatu
 		out.Deprecated.V1Beta1 = &addonsv1.ClusterResourceSetV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		clusterv1beta1.Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	return nil
 }

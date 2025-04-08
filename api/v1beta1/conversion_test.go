@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -75,20 +76,20 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || (in.Deprecated.V1Beta1.Conditions == nil && in.Deprecated.V1Beta1.FailureReason == nil && in.Deprecated.V1Beta1.FailureMessage == nil) {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}
 }
 
 func spokeClusterStatus(in *ClusterStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil && in.V1Beta2.ControlPlane == nil && in.V1Beta2.Workers == nil {
+		if reflect.DeepEqual(in.V1Beta2, &ClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -104,10 +105,10 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubClusterClassStatus(in *clusterv1.ClusterClassStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || in.Deprecated.V1Beta1.Conditions == nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterClassV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}
@@ -157,10 +158,10 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil {
+		if reflect.DeepEqual(in.V1Beta2, &ClusterClassV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -217,20 +218,20 @@ func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || (in.Deprecated.V1Beta1.Conditions == nil && in.Deprecated.V1Beta1.FailureReason == nil && in.Deprecated.V1Beta1.FailureMessage == nil) {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}
 }
 
 func spokeMachineStatus(in *MachineStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -244,7 +245,7 @@ func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
@@ -255,10 +256,10 @@ func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
 }
 
 func spokeMachineSetStatus(in *MachineSetStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineSetV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -272,7 +273,7 @@ func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} 
 }
 
 func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}
@@ -283,10 +284,10 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Co
 }
 
 func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineDeploymentV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}
@@ -300,20 +301,20 @@ func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 }
 
 func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || in.Deprecated.V1Beta1.Conditions == nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}
 }
 
 func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineHealthCheckV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

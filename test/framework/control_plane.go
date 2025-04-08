@@ -44,7 +44,7 @@ func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPl
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
 			return 0, err
 		}
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new replica counters
 		updatedReplicas := int32(0)
 		if controlplane.Status.Deprecated != nil && controlplane.Status.Deprecated.V1Beta1 != nil {
 			updatedReplicas = controlplane.Status.Deprecated.V1Beta1.UpdatedReplicas

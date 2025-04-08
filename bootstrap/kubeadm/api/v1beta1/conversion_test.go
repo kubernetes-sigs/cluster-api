@@ -51,7 +51,7 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
@@ -62,7 +62,7 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue
 }
 
 func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if in.V1Beta2.Conditions == nil {

@@ -1212,7 +1212,7 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	}
 
 	newStatus.Replicas = int32(len(filteredMachines))
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{
 		V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{},
 	}
@@ -1260,7 +1260,7 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
-		// TODO (v1beta2)
+		// TODO (v1beta2) Use new replica counters
 		if newStatus.Deprecated.V1Beta1.ReadyReplicas == newStatus.Replicas {
 			if conditions.IsFalse(ms, clusterv1.ResizedCondition) {
 				log.Info("All the replicas are ready", "replicas", newStatus.Deprecated.V1Beta1.ReadyReplicas)
@@ -1288,7 +1288,7 @@ func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
 	// exceeds MinReadySeconds could be incorrect.
 	// To avoid an available replica stuck in the ready state, we force a reconcile after MinReadySeconds,
 	// at which point it should confirm any available replica to be available.
-	// TODO (v1beta2)
+	// TODO (v1beta2) Use new replica counters
 	if s.machineSet.Spec.MinReadySeconds > 0 &&
 		s.machineSet.Status.Deprecated.V1Beta1.ReadyReplicas == replicas &&
 		s.machineSet.Status.Deprecated.V1Beta1.AvailableReplicas != replicas {

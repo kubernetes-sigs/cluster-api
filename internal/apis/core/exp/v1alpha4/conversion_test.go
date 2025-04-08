@@ -46,7 +46,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}

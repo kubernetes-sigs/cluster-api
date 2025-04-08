@@ -83,14 +83,14 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
-	c.Fuzz(obj)
+	c.FuzzNoCustom(obj)
 
 	obj.CertificateKey = ""
 	obj.SkipPhases = nil
 }
 
 func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
-	c.Fuzz(obj)
+	c.FuzzNoCustom(obj)
 
 	obj.SkipPhases = nil
 }

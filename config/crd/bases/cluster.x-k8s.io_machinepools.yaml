@@ -2032,8 +2032,10 @@ spec:
                       and will be removed when support for v1beta1 will be dropped.
                     properties:
                       availableReplicas:
-                        description: availableReplicas is the number of available
-                          replicas (ready for at least minReadySeconds) for this MachinePool.
+                        description: |-
+                          availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         format: int32
                         type: integer
                       conditions:
@@ -2109,9 +2111,10 @@ spec:
                           Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         type: string
                       readyReplicas:
-                        description: readyReplicas is the number of ready replicas
-                          for this MachinePool. A machine is considered ready when
-                          the node has been created and is "Ready".
+                        description: |-
+                          readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                         format: int32
                         type: integer
                       unavailableReplicas:

@@ -50,7 +50,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
@@ -79,7 +79,7 @@ func spokeObjectMeta(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
 }
 
 func spokeMachinePoolSpec(in *MachinePoolSpec, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.

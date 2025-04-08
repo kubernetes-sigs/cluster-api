@@ -51,7 +51,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
@@ -62,7 +62,7 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 }
 
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if in.V1Beta2.Conditions == nil && in.V1Beta2.AvailableReplicas == nil && in.V1Beta2.ReadyReplicas == nil && in.V1Beta2.UpToDateReplicas == nil {

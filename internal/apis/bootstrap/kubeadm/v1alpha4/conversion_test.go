@@ -56,7 +56,7 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
-	c.Fuzz(in)
+	c.FuzzNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}

@@ -49,7 +49,7 @@ func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 	if src.Status.Conditions != nil {
 		dst.Status.Deprecated = &ipamv1.IPAddressClaimDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}
-		clusterv1beta1.Convert_Deprecated_v1beta1_Conditions_To_v1beta2_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 	}
 
 	if src.ObjectMeta.Labels != nil {
@@ -89,7 +89,7 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Deprecated != nil {
 		if src.Status.Deprecated.V1Beta1 != nil {
 			if src.Status.Deprecated.V1Beta1.Conditions != nil {
-				clusterv1beta1.Convert_v1beta2_Conditions_To_Deprecated_v1beta1_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
+				clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 			}
 		}
 	}

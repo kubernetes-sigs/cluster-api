@@ -106,7 +106,7 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setControlPlaneReplicas(ctx, tt.cluster, tt.controlPlane, tt.machines, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
+			setControlPlaneReplicas(ctx, tt.cluster, tt.controlPlane, contract.Version, tt.machines, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
 			g.Expect(tt.cluster.Status.ControlPlane).ToNot(BeNil())
 			g.Expect(tt.cluster.Status.ControlPlane.DesiredReplicas).To(Equal(tt.expectDesiredReplicas))
@@ -2968,7 +2968,7 @@ func (r currentReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 type v1beta2ReadyReplicas int32
 
 func (r v1beta2ReadyReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2ReadyReplicas().Set(cp, int64(r))
+	_ = contract.ControlPlane().V1Beta2ReadyReplicas(contract.Version).Set(cp, int64(r))
 }
 
 func (r v1beta2ReadyReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
@@ -2986,7 +2986,7 @@ func (r v1beta2ReadyReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 type v1beta2AvailableReplicas int32
 
 func (r v1beta2AvailableReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2AvailableReplicas().Set(cp, int64(r))
+	_ = contract.ControlPlane().V1Beta2AvailableReplicas(contract.Version).Set(cp, int64(r))
 }
 
 func (r v1beta2AvailableReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
@@ -3004,7 +3004,7 @@ func (r v1beta2AvailableReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 type v1beta2UpToDateReplicas int32
 
 func (r v1beta2UpToDateReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2UpToDateReplicas().Set(cp, int64(r))
+	_ = contract.ControlPlane().V1Beta2UpToDateReplicas(contract.Version).Set(cp, int64(r))
 }
 
 func (r v1beta2UpToDateReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {

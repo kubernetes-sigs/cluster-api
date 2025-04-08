@@ -562,7 +562,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		if obj.Spec.Replicas != nil {
 			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, obj.Status.Replicas)
 		}
-		if obj.Status.ReadyReplicas != nil {
+		if obj.Status.AvailableReplicas != nil {
 			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)
 		}
 		if obj.Status.ReadyReplicas != nil {
@@ -641,19 +641,21 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		}
 
 		if tree.GetObjectContract(obj) == "ControlPlane" {
+			contractVersion := tree.GetObjectContractVersion(obj)
+
 			if current, err := contract.ControlPlane().StatusReplicas().Get(obj); err == nil && current != nil {
 				if desired, err := contract.ControlPlane().Replicas().Get(obj); err == nil && desired != nil {
 					v.replicas = fmt.Sprintf("%d/%d", *current, *desired)
 				}
 			}
 
-			if c, err := contract.ControlPlane().V1Beta2AvailableReplicas().Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().V1Beta2AvailableReplicas(contractVersion).Get(obj); err == nil && c != nil {
 				v.availableCounters = fmt.Sprintf("%d", *c)
 			}
-			if c, err := contract.ControlPlane().V1Beta2ReadyReplicas().Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().V1Beta2ReadyReplicas(contractVersion).Get(obj); err == nil && c != nil {
 				v.readyCounters = fmt.Sprintf("%d", *c)
 			}
-			if c, err := contract.ControlPlane().V1Beta2UpToDateReplicas().Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().V1Beta2UpToDateReplicas(contractVersion).Get(obj); err == nil && c != nil {
 				v.upToDateCounters = fmt.Sprintf("%d", *c)
 			}
 		}

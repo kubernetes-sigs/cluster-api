@@ -60,6 +60,10 @@ const (
 	// Note: Currently this annotation is applied only to control plane objects.
 	ObjectContractAnnotation = "tree.cluster.x-k8s.io.io/object-contract"
 
+	// ObjectContractVersionAnnotation is added to unstructured objects to track which Cluster API contract version those objects abide to.
+	// Note: Currently this annotation is applied only to control plane objects.
+	ObjectContractVersionAnnotation = "tree.cluster.x-k8s.io.io/object-contract-version"
+
 	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation.
 	GroupItemsSeparator = ", "
 
@@ -144,6 +148,15 @@ func GetGroupItemsUpToDateCounter(obj client.Object) int {
 // Note: Currently this annotation is applied only to control plane objects.
 func GetObjectContract(obj client.Object) string {
 	if val, ok := getAnnotation(obj, ObjectContractAnnotation); ok {
+		return val
+	}
+	return ""
+}
+
+// GetObjectContractVersion returns which Cluster API contract version an unstructured object abides to.
+// Note: Currently this annotation is applied only to control plane objects.
+func GetObjectContractVersion(obj client.Object) string {
+	if val, ok := getAnnotation(obj, ObjectContractVersionAnnotation); ok {
 		return val
 	}
 	return ""

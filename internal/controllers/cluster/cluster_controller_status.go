@@ -36,12 +36,18 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
-func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// Always reconcile the Status.Phase field.
 	r.reconcilePhase(ctx, s.cluster)
+
+	controlPlaneContractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+	if err != nil {
+		return err
+	}
 
 	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters
 	// and Available, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
@@ -57,7 +63,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	unhealthyMachines := s.descendants.unhealthyMachines.Filter(collections.Not(isMachinePoolMachine))
 
 	// replica counters
-	setControlPlaneReplicas(ctx, s.cluster, s.controlPlane, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setControlPlaneReplicas(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setWorkersReplicas(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
 
 	// conditions
@@ -75,9 +81,11 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
 	setDeletingCondition(ctx, s.cluster, s.deletingReason, s.deletingMessage)
 	setAvailableCondition(ctx, s.cluster, s.clusterClass)
+
+	return nil
 }
 
-func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneContractVersion string, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
 	if cluster.Status.ControlPlane == nil {
 		cluster.Status.ControlPlane = &clusterv1.ClusterControlPlaneStatus{}
 	}
@@ -102,13 +110,13 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		if replicas, err := contract.ControlPlane().StatusReplicas().Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.Replicas = ptr.To(int32(*replicas))
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2ReadyReplicas().Get(controlPlane); err == nil && replicas != nil {
+		if replicas, err := contract.ControlPlane().V1Beta2ReadyReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.ReadyReplicas = replicas
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2AvailableReplicas().Get(controlPlane); err == nil && replicas != nil {
+		if replicas, err := contract.ControlPlane().V1Beta2AvailableReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.AvailableReplicas = replicas
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2UpToDateReplicas().Get(controlPlane); err == nil && replicas != nil {
+		if replicas, err := contract.ControlPlane().V1Beta2UpToDateReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.UpToDateReplicas = replicas
 		}
 		return

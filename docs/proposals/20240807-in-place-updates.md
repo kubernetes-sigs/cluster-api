@@ -66,7 +66,7 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 __In-place Update__: any change to a Machine spec, including the Kubernetes Version, that is performed without deleting the machines and creating a new one.
 
-__External Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke external update extensions.
+__Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke external update extensions.
 
 __Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
 
@@ -213,7 +213,7 @@ sequenceDiagram
 When configured, external updates will, roughly, follow these steps:
 1. CP/MD Controller: detect an update is required.
 2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, the update will be performed as of today (rollout).
-3. CP/MD Controller: mark machines as pending using `sigs.k8s.io/cluster-api/internal/hooks.MarkAsPending()` function to track that updaters should be called.
+3. CP/MD Controller: mark machines as pending to track that updaters should be called.
 4. Machine Controller: set `UpToDate` condition on machines to `False`.
 5. Machine Controller: invoke all registered updaters, sequentially, one by one.
 6. Machine Controller: once updaters finish use `sigs.k8s.io/cluster-api/internal/hooks.MarkAsDone()` to mark machine as done updating.
@@ -376,7 +376,7 @@ Once all of the updaters are complete, the Machine controller will mark machine 
 
 From this point on, the `KCP` or `MachineDeployment` controller will take over and set the `UpToDate` condition to `True`.
 
-Note: We might revisit which controller should set `UpToDate` during implementation, because we have to make sure there are no race conditions that can lead to reconcile failures, but apart from the ownership of this operation, the workflows described in this doc should not be impacted.
+*Note: We might revisit which controller should set `UpToDate` during implementation, because we have to make sure there are no race conditions that can lead to reconcile failures, but apart from the ownership of this operation, the workflows described in this doc should not be impacted.*
 
 ### Infra Machine Template changes
 
@@ -661,7 +661,7 @@ sequenceDiagram
         participant capi as  MD controller
         participant msc as MachineSet Controller
         participant mach as Machine Controller
-        participant hook as KCP version <br>update extension
+        participant hook2 as KCP version <br>update extension
         participant hook as vSphere memory <br>update extension
     end
     
@@ -673,6 +673,8 @@ sequenceDiagram
     apiserver->>-Operator: OK
     capi->>+hook: Can update [spec.memoryMiB]?
         hook->>capi: I can update [spec.memoryMiB]
+    capi->>+hook2: Can update []?
+        hook2->>capi: I can update []
     capi->>capi: Decide Update Strategy
     capi->>apiserver: Create new MachineSet
     loop For all Machines

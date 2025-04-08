@@ -99,7 +99,7 @@ and scheme registration (likely in `api/v1alpha1/*_types.go`) that looks like:
 
 ```go
 func init() {
-	SchemeBuilder.Register(&Captain{}, &CaptainList{})
+	SchemeBuilder.Register(&MailgunCluster{}, &MailgunClusterList{})
 }
 ```
 
@@ -141,7 +141,7 @@ and register types as below:
 
 ```go
 func init() {
-	objectTypes = append(objectTypes, &Captain{}, &CaptainList{})
+	objectTypes = append(objectTypes, &MailgunCluster{}, &MailgunClusterList{})
 }
 ```
 

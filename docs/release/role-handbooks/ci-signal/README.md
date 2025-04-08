@@ -85,3 +85,10 @@ To reduce the amount of flakes please periodically:
 2. Open issues using an appropriate template (flaking-test) for occurring flakes and ideally fix them or find someone who can.
 
    **Note**: Given resource limitations in the Prow cluster it might not be possible to fix all flakes. Let's just try to pragmatically keep the amount of flakes pretty low.
+
+### Post-release cleanup
+Once the new minor release (e.g., `v1.8.0`) has been officially cut, perform the following cleanup:
+
+- Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../../../CONTRIBUTING.md#support-and-guarantees).
+As we just added `release-1.8`, we can now drop test coverage for the `release-1.5` branch.
+

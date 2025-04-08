@@ -155,11 +155,11 @@ The responsibility to determine which machine should be rolled out as well as th
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
 - Introduce any changes to KCP (or any other control plane provider), MachineDeployment, MachineSet, Machine APIs.
 - Ammend the desired state to something that the registered updaters can cover or register additional updaters capable of handling the desired changes.
-- Allow in-place updates for single-node clusters without the requirement to reprovision hosts.
+- Allow in-place updates for single-node clusters without the requirement to reprovision hosts (future goal).
 
 ## Proposal
 
-We propose to extend upgrade workflows to call External Update Extensions, if defined.
+We propose a pluggable update strategy architecture that allows the registration of External Update Extensions to optionally handle the update process.
 
 Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. This means that any changes in behavior are controlled by the feature gate `InPlaceUpdates`, which must be enabled by users for the new in-place updates workflow to be available. It is disabled unless explicitly configured.
 
@@ -302,8 +302,6 @@ loop For all machines
     mach->>apiserver: Set UpToDate condition to True
 end
 ```
-
-The MachineDeployment controller updates machines in place in a very similar way to rolling updates: by creating a new MachineSet and moving the machines from the old MS to the new one. We want to stress that the Machine objects won't be deleted and recreated like in the current rolling strategy. The MachineDeployment will just update the OwnerRefs and labels, effectively moving the existing Machine object from one MS to another. The number of machines moved at once might be made configurable on the MachineDeployment in the same way `maxSurge` and `maxUnavailable` control this for rolling updates.
 
 ### KCP updates
 
@@ -895,6 +893,10 @@ Both the `kcp-version-upgrade` and the `vsphere-vm-memory-update` extensions inf
 ```
 
 Since the fallback to machine replacement is a default strategy and always enabled, the MachineDeployment controller proceeds with the rollout process as it does today, replacing the old machines with new ones.
+
+### API Changes
+
+*All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true.*
 
 ### Security Model
 

@@ -78,10 +78,16 @@ To enable clients to encode and decode your API, your types must be able to be r
 By default, Kubebuilder will provide you with a scheme builder like:
 
 ```go
-import "sigs.k8s.io/controller-runtime/pkg/scheme"
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
+)
 
 var (
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+	// GroupVersion is group version used to register these objects.
+	GroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
@@ -105,10 +111,17 @@ to be imported cleanly into other projects.
 To mitigate this, use the following schemebuilder pattern:
 
 ```go
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
 
 var (
-	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
+	// GroupVersion is group version used to register these objects.
+	GroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 
 	// AddToScheme adds the types in this group-version to the given scheme.

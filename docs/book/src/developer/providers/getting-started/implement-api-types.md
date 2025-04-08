@@ -41,6 +41,9 @@ const (
 
 // MailgunClusterSpec defines the desired state of MailgunCluster
 type MailgunClusterSpec struct {
+  // INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	
 	// Priority is how quickly you need this cluster
 	Priority Priority `json:"priority"`
 	// Request is where you ask extra nicely
@@ -51,12 +54,15 @@ type MailgunClusterSpec struct {
 
 // MailgunClusterStatus defines the observed state of MailgunCluster
 type MailgunClusterStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
 	// MessageID is set to the message ID from Mailgun when our message has been sent
 	MessageID *string `json:"response"`
 }
 ```
 
-As the deleted comments request, run `make manager manifests` to regenerate some of the generated data files afterwards.
+As the comments request, run `make manager manifests` to regenerate some of the generated data files afterwards.
 
 ```bash
 git add .

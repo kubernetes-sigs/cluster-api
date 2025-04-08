@@ -44,9 +44,13 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// Always reconcile the Status.Phase field.
 	r.reconcilePhase(ctx, s.cluster)
 
-	controlPlaneContractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
-	if err != nil {
-		return err
+	controlPlaneContractVersion := ""
+	if s.controlPlane != nil {
+		var err error
+		controlPlaneContractVersion, err = utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters

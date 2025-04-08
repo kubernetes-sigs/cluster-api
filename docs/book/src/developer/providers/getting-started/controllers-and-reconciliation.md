@@ -25,17 +25,16 @@ Kubebuilder has created our first controller in `controllers/mailguncluster_cont
 // MailgunClusterReconciler reconciles a MailgunCluster object
 type MailgunClusterReconciler struct {
 	client.Client
-	Log logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters/status,verbs=get;update;patch
 
 func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
+	_ = logf.FromContext(ctx)
 
-	// your logic here
+	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
 }
@@ -88,7 +87,7 @@ We're going to be sending mail, so let's add a few extra fields:
 // MailgunClusterReconciler reconciles a MailgunCluster object
 type MailgunClusterReconciler struct {
 	client.Client
-	Log       logr.Logger
+	Scheme *runtime.Scheme
 	Mailgun   mailgun.Mailgun
 	Recipient string
 }
@@ -102,7 +101,7 @@ Here's a naive example:
 ```go
 func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
+	_ = ctrl.LoggerFrom(ctx)
 
 	var cluster infrav1.MailgunCluster
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {

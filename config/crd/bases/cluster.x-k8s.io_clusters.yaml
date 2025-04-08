@@ -1512,7 +1512,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachineDeployment's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
-                              maxLength: 64
+                              maxLength: 63
                               minLength: 1
                               type: string
                             nodeDeletionTimeout:
@@ -1793,7 +1793,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachinePool's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
-                              maxLength: 64
+                              maxLength: 63
                               minLength: 1
                               type: string
                             nodeDeletionTimeout:
@@ -2941,7 +2941,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachineDeployment's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
-                              maxLength: 64
+                              maxLength: 63
                               minLength: 1
                               type: string
                             nodeDeletionTimeout:
@@ -3222,7 +3222,7 @@ spec:
                                 The value is used with other unique identifiers to create a MachinePool's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
-                              maxLength: 64
+                              maxLength: 63
                               minLength: 1
                               type: string
                             nodeDeletionTimeout:

@@ -75,7 +75,7 @@ To enable clients to encode and decode your API, your types must be able to be r
 
 [scheme]: https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme
 
-By default, Kubebuilder will provide you with a scheme builder like:
+By default, Kubebuilder will provide you with a scheme builder (likely in `api/v1alpha1/groupversion_info.go`) like:
 
 ```go
 import (
@@ -95,7 +95,7 @@ var (
 )
 ```
 
-and scheme registration that looks like:
+and scheme registration (likely in `api/v1alpha1/*_types.go`) that looks like:
 
 ```go
 func init() {

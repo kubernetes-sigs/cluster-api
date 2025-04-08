@@ -110,9 +110,6 @@ func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
 	}
-	
-	// conditions do not exist in v1beta3.
-	in.Deprecated.V1Beta1.Conditions = nil
 }
 
 func MachineDeploymentFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
@@ -132,9 +129,6 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Co
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
 	}
-
-	// conditions do not exist in v1beta3.
-	in.Deprecated.V1Beta1.Conditions = nil
 }
 
 func spokeObjectMeta(in *ObjectMeta, c fuzz.Continue) {

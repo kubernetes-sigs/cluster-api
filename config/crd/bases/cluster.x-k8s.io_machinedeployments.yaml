@@ -1827,16 +1827,16 @@ spec:
       name: Replicas
       type: integer
     - description: Total number of ready machines targeted by this MachineDeployment
-      jsonPath: .status.readyReplicas
+      jsonPath: .status.deprecated.v1beta1.readyReplicas
       name: Ready
       type: integer
     - description: Total number of non-terminated machines targeted by this deployment
         that have the desired template spec
-      jsonPath: .status.updatedReplicas
+      jsonPath: .status.deprecated.v1beta1.updatedReplicas
       name: Updated
       type: integer
     - description: Total number of unavailable machines targeted by this MachineDeployment
-      jsonPath: .status.unavailableReplicas
+      jsonPath: .status.deprecated.v1beta1.unavailableReplicas
       name: Unavailable
       type: integer
     - description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown

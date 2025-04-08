@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -65,7 +66,7 @@ func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
-		if in.V1Beta2.Conditions == nil {
+		if reflect.DeepEqual(in.V1Beta2, &KubeadmConfigV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
 	}

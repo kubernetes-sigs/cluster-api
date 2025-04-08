@@ -1213,8 +1213,11 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 
 	newStatus.Replicas = int32(len(filteredMachines))
 	// TODO (v1beta2) Use new replica counters
-	newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{
-		V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{},
+	if newStatus.Deprecated == nil {
+		newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
+	}
+	if newStatus.Deprecated.V1Beta1 == nil {
+		newStatus.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
 	}
 	newStatus.Deprecated.V1Beta1.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
 	newStatus.Deprecated.V1Beta1.ReadyReplicas = int32(readyReplicasCount)

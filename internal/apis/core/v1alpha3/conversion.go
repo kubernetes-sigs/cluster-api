@@ -194,6 +194,9 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
+		dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
+	}
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -277,6 +280,9 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+	if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
+		dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
+	}
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas

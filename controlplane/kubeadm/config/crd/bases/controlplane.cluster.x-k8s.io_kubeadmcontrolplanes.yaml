@@ -4991,16 +4991,16 @@ spec:
       name: Replicas
       type: integer
     - description: Total number of fully running and ready control plane machines
-      jsonPath: .status.readyReplicas
+      jsonPath: .status.deprecated.v1beta1.readyReplicas
       name: Ready
       type: integer
     - description: Total number of non-terminated machines targeted by this control
         plane that have the desired template spec
-      jsonPath: .status.updatedReplicas
+      jsonPath: .status.deprecated.v1beta1.updatedReplicas
       name: Updated
       type: integer
     - description: Total number of unavailable machines targeted by this control plane
-      jsonPath: .status.unavailableReplicas
+      jsonPath: .status.deprecated.v1beta1.unavailableReplicas
       name: Unavailable
       type: integer
     - description: Time duration since creation of KubeadmControlPlane

@@ -1593,11 +1593,11 @@ spec:
       name: Replicas
       type: integer
     - description: Total number of ready machines targeted by this machineset.
-      jsonPath: .status.readyReplicas
+      jsonPath: .status.deprecated.v1beta1.readyReplicas
       name: Ready
       type: integer
     - description: Total number of available machines (ready for at least minReadySeconds)
-      jsonPath: .status.availableReplicas
+      jsonPath: .status.deprecated.v1beta1.availableReplicas
       name: Available
       type: integer
     - description: Time duration since creation of MachineSet

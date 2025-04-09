@@ -277,7 +277,8 @@ func MachinePoolClassesAreUnique(clusterClass *clusterv1.ClusterClass) field.Err
 }
 
 // MachineDeploymentTopologiesAreValidAndDefinedInClusterClass checks that each MachineDeploymentTopology name is not empty,
-// is a valid Kubernetes resource name, is unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
+// is a valid Kubernetes resource name, is a valid label value, and is unique. It also checks that each class in use is defined
+// in ClusterClass.spec.Workers.MachineDeployments.
 func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if desired.Spec.Topology.Workers == nil {
@@ -298,7 +299,21 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 					field.Invalid(
 						field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("name"),
 						md.Name,
-						fmt.Sprintf("must be a valid label value %s", err),
+						fmt.Sprintf("must be a valid resource name: %s", err),
+					),
+				)
+			}
+		}
+
+		// The Name must also be a valid label value, because it is used in some label values.
+		if errs := validation.IsValidLabelValue(md.Name); len(errs) != 0 {
+			for _, err := range errs {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("name"),
+						md.Name,
+						fmt.Sprintf("must be a valid label value: %s", err),
 					),
 				)
 			}
@@ -342,7 +357,8 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 }
 
 // MachinePoolTopologiesAreValidAndDefinedInClusterClass checks that each MachinePoolTopology name is not empty,
-// is a valid Kubernetes resource name, is unique, and each class in use is defined in ClusterClass.spec.Workers.MachinePools.
+// is a valid Kubernetes resource name, is a valid label value, and is unique. It also checks that each class in use is defined
+// in ClusterClass.spec.Workers.MachinePools.
 func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if desired.Spec.Topology.Workers == nil {
@@ -355,7 +371,7 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 	machinePoolClasses := mpClassNamesFromWorkerClass(clusterClass.Spec.Workers)
 	names := sets.Set[string]{}
 	for i, mp := range desired.Spec.Topology.Workers.MachinePools {
-		// The Name must be a valid Kubernetes resource name, because it is used to generate the MachinePool name.
+		// The Name must be a valid Kubernetes resource name, because it is used to generate the MachineDeployment name.
 		if errs := validation.IsDNS1123Subdomain(mp.Name); len(errs) != 0 {
 			for _, err := range errs {
 				allErrs = append(
@@ -363,7 +379,21 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 					field.Invalid(
 						field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("name"),
 						mp.Name,
-						fmt.Sprintf("must be a valid label value %s", err),
+						fmt.Sprintf("must be a valid resource name: %s", err),
+					),
+				)
+			}
+		}
+
+		// The Name must also be a valid label value, because it is used in some label values.
+		if errs := validation.IsValidLabelValue(mp.Name); len(errs) != 0 {
+			for _, err := range errs {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("name"),
+						mp.Name,
+						fmt.Sprintf("must be a valid label value: %s", err),
 					),
 				)
 			}

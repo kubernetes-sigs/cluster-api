@@ -686,7 +686,7 @@ type MachineDeploymentTopology struct {
 	// the values are hashed together.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 
 	// failureDomain is the failure domain the machines will be created in.
@@ -797,7 +797,7 @@ type MachinePoolTopology struct {
 	// the values are hashed together.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.

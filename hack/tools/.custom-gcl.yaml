@@ -3,4 +3,4 @@ name: golangci-lint-kal-v1.63.4
 destination: ./bin
 plugins:
 - module: 'github.com/JoelSpeed/kal'
-  version: v0.0.0-20250305092907-abd233a9fed8
+  version: v0.0.0-20250407102514-379949d8df6f

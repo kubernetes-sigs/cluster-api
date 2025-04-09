@@ -23,6 +23,7 @@ linters-settings:
           - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
           - "nobools" # Bools do not evolve over time, should use enums instead.
           - "nofloats" # Ensure floats are not used.
+          - "nomaps" # Ensure maps are not used.
           - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
           - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
           - "statussubresource" # All root objects that have a `status` field should have a status subresource.

@@ -93,7 +93,7 @@ func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 }
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
-	c.Fuzz(obj)
+	c.FuzzNoCustom(obj)
 
 	obj.CertificateKey = ""
 }

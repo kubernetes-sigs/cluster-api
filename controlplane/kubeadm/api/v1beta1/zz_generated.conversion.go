@@ -28,12 +28,11 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	clusterapiapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterapiapiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
-	apiv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	kubeadmapiv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	apiv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
-	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 func init() {
@@ -80,16 +79,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmControlPlaneSpec)(nil), (*KubeadmControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(a.(*v1beta2.KubeadmControlPlaneSpec), b.(*KubeadmControlPlaneSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmControlPlaneStatus)(nil), (*v1beta2.KubeadmControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(a.(*KubeadmControlPlaneStatus), b.(*v1beta2.KubeadmControlPlaneStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmControlPlaneStatus)(nil), (*KubeadmControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(a.(*v1beta2.KubeadmControlPlaneStatus), b.(*KubeadmControlPlaneStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -153,16 +142,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmControlPlaneV1Beta2Status)(nil), (*v1beta2.KubeadmControlPlaneV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmControlPlaneV1Beta2Status_To_v1beta2_KubeadmControlPlaneV1Beta2Status(a.(*KubeadmControlPlaneV1Beta2Status), b.(*v1beta2.KubeadmControlPlaneV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmControlPlaneV1Beta2Status)(nil), (*KubeadmControlPlaneV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmControlPlaneV1Beta2Status_To_v1beta1_KubeadmControlPlaneV1Beta2Status(a.(*v1beta2.KubeadmControlPlaneV1Beta2Status), b.(*KubeadmControlPlaneV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*LastRemediationStatus)(nil), (*v1beta2.LastRemediationStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(a.(*LastRemediationStatus), b.(*v1beta2.LastRemediationStatus), scope)
 	}); err != nil {
@@ -223,23 +202,43 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.KubeadmConfigSpec)(nil), (*apiv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*apiv1beta1.KubeadmConfigSpec), b.(*apiv1beta2.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiapiv1beta1.ObjectMeta)(nil), (*clusterapiapiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*clusterapiapiv1beta1.ObjectMeta), b.(*clusterapiapiv1beta2.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.KubeadmConfigSpec)(nil), (*apiv1beta1.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*apiv1beta2.KubeadmConfigSpec), b.(*apiv1beta1.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*kubeadmapiv1beta1.KubeadmConfigSpec)(nil), (*apiv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*kubeadmapiv1beta1.KubeadmConfigSpec), b.(*apiv1beta2.KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiapiv1beta2.ObjectMeta)(nil), (*clusterapiapiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*clusterapiapiv1beta2.ObjectMeta), b.(*clusterapiapiv1beta1.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*KubeadmControlPlaneStatus)(nil), (*v1beta2.KubeadmControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(a.(*KubeadmControlPlaneStatus), b.(*v1beta2.KubeadmControlPlaneStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*clusterapiapiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*clusterapiapiv1beta2.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta2.KubeadmConfigSpec)(nil), (*kubeadmapiv1beta1.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*apiv1beta2.KubeadmConfigSpec), b.(*kubeadmapiv1beta1.KubeadmConfigSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.KubeadmControlPlaneStatus)(nil), (*KubeadmControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(a.(*v1beta2.KubeadmControlPlaneStatus), b.(*KubeadmControlPlaneStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiapiv1beta2.ObjectMeta)(nil), (*apiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*clusterapiapiv1beta2.ObjectMeta), b.(*apiv1beta1.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
@@ -342,7 +341,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmCo
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.ReadinessGates = *(*[]clusterapiapiv1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
+	out.ReadinessGates = *(*[]apiv1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
 	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
@@ -402,46 +401,58 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 	out.Selector = in.Selector
 	out.Replicas = in.Replicas
 	out.Version = (*string)(unsafe.Pointer(in.Version))
-	out.UpdatedReplicas = in.UpdatedReplicas
-	out.ReadyReplicas = in.ReadyReplicas
-	out.UnavailableReplicas = in.UnavailableReplicas
+	// WARNING: in.UpdatedReplicas requires manual conversion: does not exist in peer-type
+	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
+		return err
+	}
+	// WARNING: in.UnavailableReplicas requires manual conversion: does not exist in peer-type
 	out.Initialized = in.Initialized
 	out.Ready = in.Ready
-	out.FailureReason = errors.KubeadmControlPlaneStatusError(in.FailureReason)
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*clusterapiapiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.LastRemediation = (*v1beta2.LastRemediationStatus)(unsafe.Pointer(in.LastRemediation))
-	out.V1Beta2 = (*v1beta2.KubeadmControlPlaneV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus is an autogenerated conversion function.
-func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, out *v1beta2.KubeadmControlPlaneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in *v1beta2.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Selector = in.Selector
 	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
+		return err
+	}
+	// WARNING: in.AvailableReplicas requires manual conversion: does not exist in peer-type
+	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
 	out.Version = (*string)(unsafe.Pointer(in.Version))
-	out.UpdatedReplicas = in.UpdatedReplicas
-	out.ReadyReplicas = in.ReadyReplicas
-	out.UnavailableReplicas = in.UnavailableReplicas
 	out.Initialized = in.Initialized
 	out.Ready = in.Ready
-	out.FailureReason = errors.KubeadmControlPlaneStatusError(in.FailureReason)
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.LastRemediation = (*LastRemediationStatus)(unsafe.Pointer(in.LastRemediation))
-	out.V1Beta2 = (*KubeadmControlPlaneV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus is an autogenerated conversion function.
-func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in *v1beta2.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_KubeadmControlPlaneTemplate_To_v1beta2_KubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, out *v1beta2.KubeadmControlPlaneTemplate, s conversion.Scope) error {
@@ -646,32 +657,6 @@ func autoConvert_v1beta2_KubeadmControlPlaneTemplateSpec_To_v1beta1_KubeadmContr
 // Convert_v1beta2_KubeadmControlPlaneTemplateSpec_To_v1beta1_KubeadmControlPlaneTemplateSpec is an autogenerated conversion function.
 func Convert_v1beta2_KubeadmControlPlaneTemplateSpec_To_v1beta1_KubeadmControlPlaneTemplateSpec(in *v1beta2.KubeadmControlPlaneTemplateSpec, out *KubeadmControlPlaneTemplateSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_KubeadmControlPlaneTemplateSpec_To_v1beta1_KubeadmControlPlaneTemplateSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_KubeadmControlPlaneV1Beta2Status_To_v1beta2_KubeadmControlPlaneV1Beta2Status(in *KubeadmControlPlaneV1Beta2Status, out *v1beta2.KubeadmControlPlaneV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	return nil
-}
-
-// Convert_v1beta1_KubeadmControlPlaneV1Beta2Status_To_v1beta2_KubeadmControlPlaneV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_KubeadmControlPlaneV1Beta2Status_To_v1beta2_KubeadmControlPlaneV1Beta2Status(in *KubeadmControlPlaneV1Beta2Status, out *v1beta2.KubeadmControlPlaneV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_KubeadmControlPlaneV1Beta2Status_To_v1beta2_KubeadmControlPlaneV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_KubeadmControlPlaneV1Beta2Status_To_v1beta1_KubeadmControlPlaneV1Beta2Status(in *v1beta2.KubeadmControlPlaneV1Beta2Status, out *KubeadmControlPlaneV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	return nil
-}
-
-// Convert_v1beta2_KubeadmControlPlaneV1Beta2Status_To_v1beta1_KubeadmControlPlaneV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_KubeadmControlPlaneV1Beta2Status_To_v1beta1_KubeadmControlPlaneV1Beta2Status(in *v1beta2.KubeadmControlPlaneV1Beta2Status, out *KubeadmControlPlaneV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeadmControlPlaneV1Beta2Status_To_v1beta1_KubeadmControlPlaneV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(in *LastRemediationStatus, out *v1beta2.LastRemediationStatus, s conversion.Scope) error {

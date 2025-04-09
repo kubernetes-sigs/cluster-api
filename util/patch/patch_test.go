@@ -213,8 +213,8 @@ func TestPatchHelper(t *testing.T) {
 					if err := env.Get(ctx, key, objAfter); err != nil {
 						return clusterv1.Conditions{}
 					}
-					return objAfter.Status.Conditions
-				}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
+					return objAfter.Status.Deprecated.V1Beta1.Conditions
+				}, timeout).Should(conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
 			})
 
 			t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -403,8 +403,8 @@ func TestPatchHelper(t *testing.T) {
 						return false
 					}
 
-					for _, afterCondition := range objAfter.Status.Conditions {
-						ok, err := conditions.MatchCondition(objCopy.Status.Conditions[0]).Match(afterCondition)
+					for _, afterCondition := range objAfter.Status.Deprecated.V1Beta1.Conditions {
+						ok, err := conditions.MatchCondition(objCopy.Status.Deprecated.V1Beta1.Conditions[0]).Match(afterCondition)
 						if err == nil && ok {
 							return true
 						}
@@ -869,8 +869,8 @@ func TestPatchHelper(t *testing.T) {
 			obj.Spec.Replicas = ptr.To[int32](10)
 
 			t.Log("Updating the object status")
-			obj.Status.AvailableReplicas = 6
-			obj.Status.ReadyReplicas = 6
+			obj.Status.AvailableReplicas = ptr.To[int32](6)
+			obj.Status.ReadyReplicas = ptr.To[int32](6)
 
 			t.Log("Updating the object metadata")
 			obj.ObjectMeta.Annotations = map[string]string{

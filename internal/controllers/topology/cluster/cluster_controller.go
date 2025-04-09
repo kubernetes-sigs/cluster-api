@@ -172,10 +172,6 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 		// Drop metadata fields which are impacted by not relevant changes.
 		c.ObjectMeta.ManagedFields = nil
 		c.ObjectMeta.ResourceVersion = ""
-
-		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
-		// selectively drop changes not relevant for this controller.
-		c.Status.V1Beta2 = nil
 		return c
 	}
 
@@ -224,10 +220,6 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 		// Drop metadata fields which are impacted by not relevant changes.
 		md.ObjectMeta.ManagedFields = nil
 		md.ObjectMeta.ResourceVersion = ""
-
-		// Drop changes on v1beta2 conditions; when v1beta2 conditions will be moved top level, we will review this
-		// selectively drop changes not relevant for this controller.
-		md.Status.V1Beta2 = nil
 		return md
 	}
 

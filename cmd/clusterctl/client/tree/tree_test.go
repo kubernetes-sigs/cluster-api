@@ -514,12 +514,10 @@ func Test_createV1Beta2GroupNode(t *testing.T) {
 			Name:      "my-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
-					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+				{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -533,10 +531,8 @@ func Test_createV1Beta2GroupNode(t *testing.T) {
 			Name:      "sibling-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
 			},
 		},
 	}
@@ -599,8 +595,12 @@ func Test_createGroupNode(t *testing.T) {
 			Name:      "my-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			Conditions: clusterv1.Conditions{
-				clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+					},
+				},
 			},
 		},
 	}
@@ -614,8 +614,12 @@ func Test_createGroupNode(t *testing.T) {
 			Name:      "sibling-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			Conditions: clusterv1.Conditions{
-				clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+					},
+				},
 			},
 		},
 	}
@@ -698,12 +702,10 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 			Name:      "another-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			V1Beta2: &clusterv1.MachineV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
-					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+				{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -782,8 +784,12 @@ func Test_updateGroupNode(t *testing.T) {
 			Name:      "another-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			Conditions: clusterv1.Conditions{
-				clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+					},
+				},
 			},
 		},
 	}

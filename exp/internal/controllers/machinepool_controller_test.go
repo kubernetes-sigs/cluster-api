@@ -164,11 +164,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			ClusterName: "invalid",
 		},
 		Status: expv1.MachinePoolStatus{
-			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -189,11 +189,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			ClusterName: "test-cluster",
 		},
 		Status: expv1.MachinePoolStatus{
-			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -217,11 +217,11 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			ClusterName: "test-cluster",
 		},
 		Status: expv1.MachinePoolStatus{
-			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -366,17 +366,21 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					},
 				},
 				Status: expv1.MachinePoolStatus{
-					Replicas:      1,
-					ReadyReplicas: 1,
+					Replicas: 1,
+					Deprecated: &expv1.MachinePoolDeprecatedStatus{
+						V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+							ReadyReplicas: 1,
+						},
+					},
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "test"},
 					},
 					ObservedGeneration: 1,
-					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+					Conditions: []metav1.Condition{{
 						Type:   clusterv1.PausedV1Beta2Condition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
-					}}},
+					}},
 				},
 			},
 			expected: expected{
@@ -423,11 +427,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
-					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+					Conditions: []metav1.Condition{{
 						Type:   clusterv1.PausedV1Beta2Condition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
-					}}},
+					}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -486,11 +490,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
-					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+					Conditions: []metav1.Condition{{
 						Type:   clusterv1.PausedV1Beta2Condition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
-					}}},
+					}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -549,11 +553,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
-					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+					Conditions: []metav1.Condition{{
 						Type:   clusterv1.PausedV1Beta2Condition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
-					}}},
+					}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -880,11 +884,11 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 			},
 		},
 		Status: expv1.MachinePoolStatus{
-			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
@@ -981,11 +985,11 @@ func TestMachinePoolConditions(t *testing.T) {
 			},
 		},
 		Status: expv1.MachinePoolStatus{
-			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
-			}}},
+			}},
 		},
 	}
 
@@ -1031,7 +1035,13 @@ func TestMachinePoolConditions(t *testing.T) {
 					{Name: "azure-node-4"},
 				}
 				mp.Status.Replicas = 2
-				mp.Status.ReadyReplicas = 2
+				if mp.Status.Deprecated == nil {
+					mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+				}
+				if mp.Status.Deprecated.V1Beta1 == nil {
+					mp.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+				}
+				mp.Status.Deprecated.V1Beta1.ReadyReplicas = 2
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
 				t.Helper()

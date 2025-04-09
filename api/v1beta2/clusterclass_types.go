@@ -1140,27 +1140,6 @@ type LocalObjectTemplate struct {
 
 // ClusterClassStatus defines the observed state of the ClusterClass.
 type ClusterClassStatus struct {
-	// variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
-	// +optional
-	// +kubebuilder:validation:MaxItems=1000
-	Variables []ClusterClassStatusVariable `json:"variables,omitempty"`
-
-	// conditions defines current observed state of the ClusterClass.
-	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
-
-	// observedGeneration is the latest generation observed by the controller.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in ClusterClass's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *ClusterClassV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type ClusterClassV1Beta2Status struct {
 	// conditions represents the observations of a ClusterClass's current state.
 	// Known condition types are VariablesReady, RefVersionsUpToDate, Paused.
 	// +optional
@@ -1168,6 +1147,38 @@ type ClusterClassV1Beta2Status struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
+	// +optional
+	// +kubebuilder:validation:MaxItems=1000
+	Variables []ClusterClassStatusVariable `json:"variables,omitempty"`
+
+	// observedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *ClusterClassDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// ClusterClassDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ClusterClassDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *ClusterClassV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// ClusterClassV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ClusterClassV1Beta1DeprecatedStatus struct {
+	// conditions defines current observed state of the ClusterClass.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ClusterClassStatusVariable defines a variable which appears in the status of a ClusterClass.
@@ -1221,28 +1232,31 @@ type ClusterClassStatusVariableDefinition struct {
 
 // GetConditions returns the set of conditions for this object.
 func (c *ClusterClass) GetConditions() Conditions {
-	return c.Status.Conditions
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (c *ClusterClass) SetConditions(conditions Conditions) {
-	c.Status.Conditions = conditions
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &ClusterClassDeprecatedStatus{}
+	}
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &ClusterClassV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (c *ClusterClass) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
-		return nil
-	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &ClusterClassV1Beta2Status{}
-	}
-	c.Status.V1Beta2.Conditions = conditions
+	c.Status.Conditions = conditions
 }
 
 // ANCHOR_END: ClusterClassStatus

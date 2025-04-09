@@ -57,24 +57,24 @@ func TestSetReplicas(t *testing.T) {
 	c := &internal.ControlPlane{
 		KCP: kcp,
 		Machines: collections.FromMachines(
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}}},
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}}},
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateTrue}}}},
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableFalse, upToDateTrue}}}},
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateFalse}}}},
-			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m6"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyUnknown, availableUnknown, upToDateUnknown}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateTrue}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyTrue, availableFalse, upToDateTrue}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateFalse}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m6"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyUnknown, availableUnknown, upToDateUnknown}}},
 		),
 	}
 
 	setReplicas(ctx, c.KCP, c.Machines)
 
-	g.Expect(kcp.Status.V1Beta2).ToNot(BeNil())
-	g.Expect(kcp.Status.V1Beta2.ReadyReplicas).ToNot(BeNil())
-	g.Expect(*kcp.Status.V1Beta2.ReadyReplicas).To(Equal(int32(3)))
-	g.Expect(kcp.Status.V1Beta2.AvailableReplicas).ToNot(BeNil())
-	g.Expect(*kcp.Status.V1Beta2.AvailableReplicas).To(Equal(int32(2)))
-	g.Expect(kcp.Status.V1Beta2.UpToDateReplicas).ToNot(BeNil())
-	g.Expect(*kcp.Status.V1Beta2.UpToDateReplicas).To(Equal(int32(4)))
+	g.Expect(kcp.Status).ToNot(BeNil())
+	g.Expect(kcp.Status.ReadyReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.ReadyReplicas).To(Equal(int32(3)))
+	g.Expect(kcp.Status.AvailableReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.AvailableReplicas).To(Equal(int32(2)))
+	g.Expect(kcp.Status.UpToDateReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.UpToDateReplicas).To(Equal(int32(4)))
 }
 
 func Test_setInitializedCondition(t *testing.T) {
@@ -148,8 +148,8 @@ func Test_setRollingOutCondition(t *testing.T) {
 			name: "all machines are up to date",
 			kcp:  &controlplanev1.KubeadmControlPlane{},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{upToDateCondition}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{upToDateCondition}}},
 			},
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
@@ -161,15 +161,15 @@ func Test_setRollingOutCondition(t *testing.T) {
 			name: "one up-to-date, two not up-to-date, one reporting up-to-date unknown",
 			kcp:  &controlplanev1.KubeadmControlPlane{},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{upToDateCondition}}}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{upToDateCondition}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
 					{
 						Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 						Status: metav1.ConditionUnknown,
 						Reason: clusterv1.InternalErrorV1Beta2Reason,
 					},
-				}}}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+				}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
 					{
 						Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 						Status: metav1.ConditionFalse,
@@ -177,15 +177,15 @@ func Test_setRollingOutCondition(t *testing.T) {
 						Message: "* Failure domain failure-domain1, failure-domain2 required\n" +
 							"* InfrastructureMachine is not up-to-date",
 					},
-				}}}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{
+				}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
 						Message: "* Version v1.25.0, v1.26.0 required",
 					},
-				}}}},
+				}}},
 			},
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
@@ -478,19 +478,17 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})},
 						Status: clusterv1.MachineStatus{
-							V1Beta2: &clusterv1.MachineV1Beta2Status{
-								Conditions: []metav1.Condition{
-									{
-										Type:   clusterv1.MachineDeletingV1Beta2Condition,
-										Status: metav1.ConditionTrue,
-										Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
-										Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+							Conditions: []metav1.Condition{
+								{
+									Type:   clusterv1.MachineDeletingV1Beta2Condition,
+									Status: metav1.ConditionTrue,
+									Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+									Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
 * Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
 * Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
 * Pod pod-9-wait-completed: waiting for completion
 After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
-									},
 								},
 							},
 							Deletion: &clusterv1.MachineDeletionStatus{
@@ -617,11 +615,11 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateTrue}}}},
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateFalse}}}},
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, upToDateFalse}}}},
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse}}}},                                                                         // Machine without UpToDate condition
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5", CreationTimestamp: metav1.Time{Time: time.Now().Add(-5 * time.Second)}}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse}}}}, // New Machine without UpToDate condition (should be ignored)
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyTrue, upToDateTrue}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyTrue, upToDateFalse}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyFalse, upToDateFalse}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyFalse}}},                                                                         // Machine without UpToDate condition
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5", CreationTimestamp: metav1.Time{Time: time.Now().Add(-5 * time.Second)}}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{readyFalse}}}, // New Machine without UpToDate condition (should be ignored)
 				),
 			},
 			expectMachinesReadyCondition: metav1.Condition{
@@ -688,9 +686,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded, ownerRemediated}, V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{ownerRemediatedV1Beta2}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded, ownerRemediated}}}, Conditions: []metav1.Condition{ownerRemediatedV1Beta2}}},
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -705,9 +703,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -722,9 +720,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -822,17 +820,17 @@ func Test_shouldSurfaceWhenAvailableTrue(t *testing.T) {
 	}{
 		{
 			name:    "Machine doesn't have issues, it should not surface",
-			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, etcdMemberHealthy}}}},
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodHealthy, etcdMemberHealthy}}},
 			want:    false,
 		},
 		{
 			name:    "Machine has issue set by less than 10s it should not surface",
-			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, etcdMemberNotHealthy}}}},
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, etcdMemberNotHealthy}}},
 			want:    false,
 		},
 		{
 			name:    "Machine has at least one issue set by more than 10s it should surface",
-			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy11s, etcdMemberNotHealthy}}}},
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy11s, etcdMemberNotHealthy}}},
 			want:    true,
 		},
 	}
@@ -907,9 +905,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -917,8 +913,8 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -939,9 +935,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -949,24 +943,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -999,10 +993,8 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{
-								{Type: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
-							},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
 						},
 					},
 				},
@@ -1028,10 +1020,8 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{
-								{Type: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
-							},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
 						},
 					},
 				},
@@ -1074,9 +1064,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1084,24 +1072,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
 				),
@@ -1124,9 +1112,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1134,24 +1120,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 				),
@@ -1176,9 +1162,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1186,24 +1170,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
 				),
@@ -1227,9 +1211,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1237,15 +1219,15 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1267,9 +1249,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1277,32 +1257,32 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m4")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m4"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m4"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 				),
@@ -1328,9 +1308,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1338,24 +1316,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 					&clusterv1.Machine{
@@ -1365,7 +1343,7 @@ func Test_setAvailableCondition(t *testing.T) {
 							NodeRef: nil,
 							// Note this is not a real use case, but it helps to validate that machine m4 is bound to an etcd member and counted as healthy.
 							// If instead we use unknown or false conditions, it would not be possible to understand if the best effort binding happened or the etcd member was considered unhealthy because without a machine match.
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1391,9 +1369,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1401,32 +1377,32 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m4")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: nil,
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthyUnknown, schedulerPodHealthyUnknown, etcdPodHealthyUnknown, etcdMemberHealthyUnknown11s}},
+							NodeRef:    nil,
+							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthyUnknown, schedulerPodHealthyUnknown, etcdPodHealthyUnknown, etcdMemberHealthyUnknown11s},
 						},
 					},
 				),
@@ -1452,9 +1428,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1462,24 +1436,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3-does-not-exist"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3-does-not-exist"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1503,9 +1477,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1513,32 +1485,32 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m4")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m4"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s}},
+							NodeRef:    &corev1.ObjectReference{Name: "m4"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
 				),
@@ -1567,9 +1539,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1577,15 +1547,15 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1607,9 +1577,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1617,24 +1585,24 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m2"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m2"},
+							Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m3"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy11s, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m3"},
+							Conditions: []metav1.Condition{apiServerPodNotHealthy11s, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1658,26 +1626,24 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
 					},
 				),
 				EtcdMembers:                       []*etcd.Member{{}, {}, {}},
@@ -1706,26 +1672,24 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy11s, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy11s, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 				),
 				EtcdMembers:                       nil,
@@ -1751,26 +1715,24 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m2")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m3")},
-						Status:     clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}}},
+						Status:     clusterv1.MachineStatus{Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy}},
 					},
 				),
 				EtcdMembers:                       nil,
@@ -1792,9 +1754,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesNotReady},
-						},
+						Conditions:  []metav1.Condition{certificatesNotReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1802,8 +1762,8 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1831,9 +1791,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialized: true,
-						V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
-							Conditions: []metav1.Condition{certificatesReady},
-						},
+						Conditions:  []metav1.Condition{certificatesReady},
 					},
 				},
 				Machines: collections.FromMachines(
@@ -1841,8 +1799,8 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: ptr.To("m1")},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{Name: "m1"},
-							V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy}},
+							NodeRef:    &corev1.ObjectReference{Name: "m1"},
+							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 				),
@@ -1924,13 +1882,13 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Initialized).To(BeFalse())
 	g.Expect(kcp.Status.Ready).To(BeFalse())
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-	g.Expect(kcp.Status.FailureMessage).To(BeNil())
-	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 }
 
 func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testing.T) {
@@ -1997,11 +1955,11 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
-	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-	g.Expect(kcp.Status.FailureMessage).To(BeNil())
-	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeFalse())
 	g.Expect(kcp.Status.Ready).To(BeFalse())
 }
@@ -2076,11 +2034,11 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
-	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(3))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-	g.Expect(kcp.Status.FailureMessage).To(BeNil())
-	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
@@ -2158,11 +2116,11 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(5))
-	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(1))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(4))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(1))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(4))
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-	g.Expect(kcp.Status.FailureMessage).To(BeNil())
-	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
+	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
@@ -2239,8 +2197,8 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
-	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Ready).To(BeFalse())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 }

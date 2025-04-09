@@ -19,7 +19,12 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"reflect"
 	"testing"
+
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -29,11 +34,28 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for ClusterResourceSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &addonsv1.ClusterResourceSet{},
-		Spoke: &ClusterResourceSet{},
+		Hub:         &addonsv1.ClusterResourceSet{},
+		Spoke:       &ClusterResourceSet{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetFuzzFuncs},
 	}))
 	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &addonsv1.ClusterResourceSetBinding{},
 		Spoke: &ClusterResourceSetBinding{},
 	}))
+}
+
+func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubClusterResourceSetStatus,
+	}
+}
+
+func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &addonsv1.ClusterResourceSetV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
 }

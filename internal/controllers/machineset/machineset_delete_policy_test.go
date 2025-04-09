@@ -39,7 +39,14 @@ func TestMachineToDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	betterDeleteMachine := &clusterv1.Machine{
-		Status: clusterv1.MachineStatus{FailureMessage: &msg, NodeRef: nodeRef},
+		Status: clusterv1.MachineStatus{
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					FailureMessage: &msg,
+				},
+			},
+			NodeRef: nodeRef,
+		},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}},
@@ -49,10 +56,14 @@ func TestMachineToDelete(t *testing.T) {
 	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionFalse,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 		},
@@ -60,10 +71,14 @@ func TestMachineToDelete(t *testing.T) {
 	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionUnknown,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionUnknown,
+						},
+					},
 				},
 			},
 		},
@@ -71,10 +86,14 @@ func TestMachineToDelete(t *testing.T) {
 	healthCheckSucceededConditionFalseMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineHealthCheckSucceededCondition,
-					Status: corev1.ConditionFalse,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineHealthCheckSucceededCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 		},
@@ -82,10 +101,14 @@ func TestMachineToDelete(t *testing.T) {
 	healthCheckSucceededConditionUnknownMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineHealthCheckSucceededCondition,
-					Status: corev1.ConditionUnknown,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineHealthCheckSucceededCondition,
+							Status: corev1.ConditionUnknown,
+						},
+					},
 				},
 			},
 		},
@@ -310,7 +333,14 @@ func TestMachineNewestDelete(t *testing.T) {
 	}
 	unhealthyMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+		Status: clusterv1.MachineStatus{
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					FailureReason: &statusError,
+				},
+			},
+			NodeRef: nodeRef,
+		},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))},
@@ -319,10 +349,14 @@ func TestMachineNewestDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionFalse,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 		},
@@ -331,10 +365,14 @@ func TestMachineNewestDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionUnknown,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionUnknown,
+						},
+					},
 				},
 			},
 		},
@@ -452,7 +490,14 @@ func TestMachineOldestDelete(t *testing.T) {
 	}
 	unhealthyMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+		Status: clusterv1.MachineStatus{
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					FailureReason: &statusError,
+				},
+			},
+			NodeRef: nodeRef,
+		},
 	}
 	mustDeleteMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "b", DeletionTimestamp: &currentTime},
@@ -460,11 +505,25 @@ func TestMachineOldestDelete(t *testing.T) {
 	}
 	unhealthyMachineA := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "a", CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+		Status: clusterv1.MachineStatus{
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					FailureReason: &statusError,
+				},
+			},
+			NodeRef: nodeRef,
+		},
 	}
 	unhealthyMachineZ := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "z", CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+		Status: clusterv1.MachineStatus{
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					FailureReason: &statusError,
+				},
+			},
+			NodeRef: nodeRef,
+		},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
@@ -473,10 +532,14 @@ func TestMachineOldestDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionFalse,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 		},
@@ -485,10 +548,14 @@ func TestMachineOldestDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Conditions: clusterv1.Conditions{
-				{
-					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: corev1.ConditionUnknown,
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionUnknown,
+						},
+					},
 				},
 			},
 		},
@@ -712,14 +779,28 @@ func TestIsMachineHealthy(t *testing.T) {
 		{
 			desc: "when it has a FailureReason",
 			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+				Status: clusterv1.MachineStatus{
+					Deprecated: &clusterv1.MachineDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+							FailureReason: &statusError,
+						},
+					},
+					NodeRef: nodeRef,
+				},
 			},
 			expect: false,
 		},
 		{
 			desc: "when it has a FailureMessage",
 			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{FailureMessage: &msg, NodeRef: nodeRef},
+				Status: clusterv1.MachineStatus{
+					Deprecated: &clusterv1.MachineDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+							FailureMessage: &msg,
+						},
+					},
+					NodeRef: nodeRef,
+				},
 			},
 			expect: false,
 		},
@@ -728,10 +809,14 @@ func TestIsMachineHealthy(t *testing.T) {
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: nodeRef,
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
-							Status: corev1.ConditionFalse,
+					Deprecated: &clusterv1.MachineDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+							Conditions: clusterv1.Conditions{
+								{
+									Type:   clusterv1.MachineNodeHealthyCondition,
+									Status: corev1.ConditionFalse,
+								},
+							},
 						},
 					},
 				},
@@ -743,10 +828,14 @@ func TestIsMachineHealthy(t *testing.T) {
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
 					NodeRef: nodeRef,
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
-							Status: corev1.ConditionUnknown,
+					Deprecated: &clusterv1.MachineDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+							Conditions: clusterv1.Conditions{
+								{
+									Type:   clusterv1.MachineNodeHealthyCondition,
+									Status: corev1.ConditionUnknown,
+								},
+							},
 						},
 					},
 				},

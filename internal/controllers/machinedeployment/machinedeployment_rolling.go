@@ -157,8 +157,14 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 	// * The new MachineSet created must start with 0 replicas because allMachinesCount is already at 13.
 	// * However, newMSMachinesUnavailable would also be 0, so the 2 old MachineSets could be scaled down by 5 (13 - 8 - 0), which would then
 	// allow the new MachineSet to be scaled up by 5.
+	// TODO (v1beta2) Use new replica counters
+	availableReplicas := int32(0)
+	if newMS.Status.Deprecated != nil && newMS.Status.Deprecated.V1Beta1 != nil {
+		availableReplicas = newMS.Status.Deprecated.V1Beta1.AvailableReplicas
+	}
+
 	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
-	newMSUnavailableMachineCount := *(newMS.Spec.Replicas) - newMS.Status.AvailableReplicas
+	newMSUnavailableMachineCount := *(newMS.Spec.Replicas) - availableReplicas
 	maxScaledDown := allMachinesCount - minAvailable - newMSUnavailableMachineCount
 	if maxScaledDown <= 0 {
 		return nil
@@ -212,7 +218,11 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 			continue
 		}
 
-		oldMSAvailableReplicas := targetMS.Status.AvailableReplicas
+		// TODO (v1beta2) Use new replica counters
+		oldMSAvailableReplicas := int32(0)
+		if targetMS.Status.Deprecated != nil && targetMS.Status.Deprecated.V1Beta1 != nil {
+			oldMSAvailableReplicas = targetMS.Status.Deprecated.V1Beta1.AvailableReplicas
+		}
 		log.V(4).Info("Found available Machines in old MachineSet",
 			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(targetMS).String())
 		if oldMSReplicas == oldMSAvailableReplicas {

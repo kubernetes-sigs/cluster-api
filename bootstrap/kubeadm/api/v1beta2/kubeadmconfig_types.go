@@ -452,6 +452,14 @@ type ContainerLinuxConfig struct {
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
 type KubeadmConfigStatus struct {
+	// conditions represents the observations of a KubeadmConfig's current state.
+	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// ready indicates the BootstrapData field is ready to be consumed
 	// +optional
 	Ready bool `json:"ready"`
@@ -462,9 +470,36 @@ type KubeadmConfigStatus struct {
 	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 
+	// observedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *KubeadmConfigDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// KubeadmConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmConfigDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *KubeadmConfigV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// KubeadmConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmConfigV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the KubeadmConfig.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
 	// failureReason will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
@@ -473,36 +508,12 @@ type KubeadmConfigStatus struct {
 
 	// failureMessage will be set on non-retryable errors
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage string `json:"failureMessage,omitempty"`
-
-	// observedGeneration is the latest generation observed by the controller.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
-	// conditions defines current service state of the KubeadmConfig.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in KubeadmConfig's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *KubeadmConfigV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// KubeadmConfigV1Beta2Status groups all the fields that will be added or modified in KubeadmConfig with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type KubeadmConfigV1Beta2Status struct {
-	// conditions represents the observations of a KubeadmConfig's current state.
-	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -530,28 +541,31 @@ type KubeadmConfig struct {
 
 // GetConditions returns the set of conditions for this object.
 func (c *KubeadmConfig) GetConditions() clusterv1.Conditions {
-	return c.Status.Conditions
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
-	c.Status.Conditions = conditions
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &KubeadmConfigDeprecatedStatus{}
+	}
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &KubeadmConfigV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (c *KubeadmConfig) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
-		return nil
-	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (c *KubeadmConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &KubeadmConfigV1Beta2Status{}
-	}
-	c.Status.V1Beta2.Conditions = conditions
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

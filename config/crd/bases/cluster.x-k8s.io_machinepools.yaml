@@ -1408,7 +1408,7 @@ spec:
                   failureMessage indicates that there is a problem reconciling the state,
                   and will be set to a descriptive error message.
 
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 maxLength: 10240
                 minLength: 1
                 type: string
@@ -1417,7 +1417,7 @@ spec:
                   failureReason indicates that there is a problem reconciling the state, and
                   will be set to a token value suitable for programmatic interpretation.
 
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               infrastructureReady:
                 description: infrastructureReady is the state of the infrastructure
@@ -1509,7 +1509,7 @@ spec:
                   be machine instances that are running but not yet available or machine instances
                   that still have not been created.
 
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 format: int32
                 type: integer
               v1beta2:
@@ -1952,80 +1952,184 @@ spec:
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas
-                  (ready for at least minReadySeconds) for this MachinePool.
+                  for this MachinePool. A machine is considered available when Machine's
+                  Available condition is true.
                 format: int32
                 type: integer
               bootstrapReady:
                 description: bootstrapReady is the state of the bootstrap provider.
                 type: boolean
               conditions:
-                description: conditions define the current service state of the MachinePool.
+                description: |-
+                  conditions represents the observations of a MachinePool's current state.
+                  Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
+                  ScalingUp, ScalingDown, Remediating, Deleting, Paused.
                 items:
-                  description: Condition defines an observation of a Cluster API resource
-                    operational state.
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
                         lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed. If that is not known, then using the time when
-                        the API field changed is acceptable.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
                         message is a human readable message indicating details about the transition.
-                        This field may be empty.
-                      maxLength: 10240
-                      minLength: 1
+                        This may be an empty string.
+                      maxLength: 32768
                       type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
                     reason:
                       description: |-
-                        reason is the reason for the condition's last transition in CamelCase.
-                        The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may be empty.
-                      maxLength: 256
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
                       minLength: 1
-                      type: string
-                    severity:
-                      description: |-
-                        severity provides an explicit classification of Reason code, so the users or machines can immediately
-                        understand the current situation and act accordingly.
-                        The Severity field MUST be set only when Status=False.
-                      maxLength: 32
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
-                        can be useful (see .node.status.conditions), the ability to deconflict is important.
-                      maxLength: 256
-                      minLength: 1
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
                   required:
                   - lastTransitionTime
+                  - message
+                  - reason
                   - status
                   - type
                   type: object
+                maxItems: 32
                 type: array
-              failureMessage:
-                description: |-
-                  failureMessage indicates that there is a problem reconciling the state,
-                  and will be set to a descriptive error message.
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              deprecated:
+                description: deprecated groups all the status fields that are deprecated
+                  and will be removed when all the nested field are removed.
+                properties:
+                  v1beta1:
+                    description: v1beta1 groups all the status fields that are deprecated
+                      and will be removed when support for v1beta1 will be dropped.
+                    properties:
+                      availableReplicas:
+                        description: |-
+                          availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
 
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-                maxLength: 10240
-                minLength: 1
-                type: string
-              failureReason:
-                description: |-
-                  failureReason indicates that there is a problem reconciling the state, and
-                  will be set to a token value suitable for programmatic interpretation.
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                      conditions:
+                        description: |-
+                          conditions define the current service state of the MachinePool.
 
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-                type: string
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        items:
+                          description: Condition defines an observation of a Cluster
+                            API resource operational state.
+                          properties:
+                            lastTransitionTime:
+                              description: |-
+                                lastTransitionTime is the last time the condition transitioned from one status to another.
+                                This should be when the underlying condition changed. If that is not known, then using the time when
+                                the API field changed is acceptable.
+                              format: date-time
+                              type: string
+                            message:
+                              description: |-
+                                message is a human readable message indicating details about the transition.
+                                This field may be empty.
+                              maxLength: 10240
+                              minLength: 1
+                              type: string
+                            reason:
+                              description: |-
+                                reason is the reason for the condition's last transition in CamelCase.
+                                The specific API may choose whether or not this field is considered a guaranteed API.
+                                This field may be empty.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            severity:
+                              description: |-
+                                severity provides an explicit classification of Reason code, so the users or machines can immediately
+                                understand the current situation and act accordingly.
+                                The Severity field MUST be set only when Status=False.
+                              maxLength: 32
+                              type: string
+                            status:
+                              description: status of the condition, one of True, False,
+                                Unknown.
+                              type: string
+                            type:
+                              description: |-
+                                type of condition in CamelCase or in foo.example.com/CamelCase.
+                                Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                                can be useful (see .node.status.conditions), the ability to deconflict is important.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - lastTransitionTime
+                          - status
+                          - type
+                          type: object
+                        type: array
+                      failureMessage:
+                        description: |-
+                          failureMessage indicates that there is a problem reconciling the state,
+                          and will be set to a descriptive error message.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        maxLength: 10240
+                        minLength: 1
+                        type: string
+                      failureReason:
+                        description: |-
+                          failureReason indicates that there is a problem reconciling the state, and
+                          will be set to a token value suitable for programmatic interpretation.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        type: string
+                      readyReplicas:
+                        description: |-
+                          readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: |-
+                          unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.
+                          This is the total number of machine instances that are still required for
+                          the machine pool to have 100% available capacity. They may either
+                          be machine instances that are running but not yet available or machine instances
+                          that still have not been created.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               infrastructureReady:
                 description: infrastructureReady is the state of the infrastructure
                   provider.
@@ -2100,113 +2204,20 @@ spec:
                 type: string
               readyReplicas:
                 description: readyReplicas is the number of ready replicas for this
-                  MachinePool. A machine is considered ready when the node has been
-                  created and is "Ready".
+                  MachinePool. A machine is considered ready when Machine's Ready
+                  condition is true.
                 format: int32
                 type: integer
               replicas:
                 description: replicas is the most recently observed number of replicas.
                 format: int32
                 type: integer
-              unavailableReplicas:
-                description: |-
-                  unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.
-                  This is the total number of machine instances that are still required for
-                  the machine pool to have 100% available capacity. They may either
-                  be machine instances that are running but not yet available or machine instances
-                  that still have not been created.
-
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+              upToDateReplicas:
+                description: upToDateReplicas is the number of up-to-date replicas
+                  targeted by this MachinePool. A machine is considered up-to-date
+                  when Machine's UpToDate condition is true.
                 format: int32
                 type: integer
-              v1beta2:
-                description: v1beta2 groups all the fields that will be added or modified
-                  in MachinePool's status with the V1Beta2 version.
-                properties:
-                  availableReplicas:
-                    description: availableReplicas is the number of available replicas
-                      for this MachinePool. A machine is considered available when
-                      Machine's Available condition is true.
-                    format: int32
-                    type: integer
-                  conditions:
-                    description: |-
-                      conditions represents the observations of a MachinePool's current state.
-                      Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
-                      ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-                    items:
-                      description: Condition contains details for one aspect of the
-                        current state of this API Resource.
-                      properties:
-                        lastTransitionTime:
-                          description: |-
-                            lastTransitionTime is the last time the condition transitioned from one status to another.
-                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
-                          format: date-time
-                          type: string
-                        message:
-                          description: |-
-                            message is a human readable message indicating details about the transition.
-                            This may be an empty string.
-                          maxLength: 32768
-                          type: string
-                        observedGeneration:
-                          description: |-
-                            observedGeneration represents the .metadata.generation that the condition was set based upon.
-                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                            with respect to the current state of the instance.
-                          format: int64
-                          minimum: 0
-                          type: integer
-                        reason:
-                          description: |-
-                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                            Producers of specific condition types may define expected values and meanings for this field,
-                            and whether the values are considered a guaranteed API.
-                            The value should be a CamelCase string.
-                            This field may not be empty.
-                          maxLength: 1024
-                          minLength: 1
-                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
-                          type: string
-                        status:
-                          description: status of the condition, one of True, False,
-                            Unknown.
-                          enum:
-                          - "True"
-                          - "False"
-                          - Unknown
-                          type: string
-                        type:
-                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                          maxLength: 316
-                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                          type: string
-                      required:
-                      - lastTransitionTime
-                      - message
-                      - reason
-                      - status
-                      - type
-                      type: object
-                    maxItems: 32
-                    type: array
-                    x-kubernetes-list-map-keys:
-                    - type
-                    x-kubernetes-list-type: map
-                  readyReplicas:
-                    description: readyReplicas is the number of ready replicas for
-                      this MachinePool. A machine is considered ready when Machine's
-                      Ready condition is true.
-                    format: int32
-                    type: integer
-                  upToDateReplicas:
-                    description: upToDateReplicas is the number of up-to-date replicas
-                      targeted by this MachinePool. A machine is considered up-to-date
-                      when Machine's UpToDate condition is true.
-                    format: int32
-                    type: integer
-                type: object
             type: object
         type: object
     served: true

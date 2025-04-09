@@ -24,9 +24,9 @@ package v1alpha3
 import (
 	unsafe "unsafe"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	upstreamv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
@@ -181,6 +181,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*upstreamv1beta1.JoinConfiguration)(nil), (*v1beta2.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(a.(*upstreamv1beta1.JoinConfiguration), b.(*v1beta2.JoinConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1alpha3.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1alpha3_Condition(a.(*v1.Condition), b.(*corev1alpha3.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1alpha3.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Condition_To_v1_Condition(a.(*corev1alpha3.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -543,21 +553,39 @@ func autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in 
 	out.Ready = in.Ready
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
 	// WARNING: in.BootstrapData requires manual conversion: does not exist in peer-type
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
 func autoConvert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *v1beta2.KubeadmConfigStatus, out *KubeadmConfigStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1alpha3.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Ready = in.Ready
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*corev1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
-	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
 

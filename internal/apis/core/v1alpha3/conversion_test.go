@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -38,40 +39,53 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:                &clusterv1.Cluster{},
 		Spoke:              &Cluster{},
 		SpokeAfterMutation: clusterSpokeAfterMutation,
-		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterJSONFuzzFuncs},
+		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterFuncs},
 	}))
 
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Machine{},
 		Spoke:       &Machine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, MachineStatusFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineFuzzFunc},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineSet{},
 		Spoke:       &MachineSet{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSetFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineDeploymentFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineHealthCheck{},
-		Spoke: &MachineHealthCheck{},
+		Hub:         &clusterv1.MachineHealthCheck{},
+		Spoke:       &MachineHealthCheck{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineHealthCheckFuzzFunc},
 	}))
 }
 
-func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+func MachineFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		MachineStatusFuzzer,
+		hubMachineStatus,
+		spokeMachineStatus,
+		spokeBootstrap,
 	}
 }
 
-func MachineStatusFuzzer(in *MachineStatus, c fuzz.Continue) {
+func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeMachineStatus(in *MachineStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1beta1
@@ -79,13 +93,45 @@ func MachineStatusFuzzer(in *MachineStatus, c fuzz.Continue) {
 	in.Version = nil
 }
 
-func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+func MachineSetFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		CustomObjectMetaFuzzer,
+		hubMachineSetStatus,
+		spokeObjectMeta,
+		spokeBootstrap,
 	}
 }
 
-func CustomObjectMetaFuzzer(in *ObjectMeta, c fuzz.Continue) {
+func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
+	}
+}
+
+func MachineDeploymentFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineDeploymentStatus,
+		spokeObjectMeta,
+		spokeBootstrap,
+	}
+}
+
+func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeObjectMeta(in *ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1alpha4
@@ -96,13 +142,7 @@ func CustomObjectMetaFuzzer(in *ObjectMeta, c fuzz.Continue) {
 	in.OwnerReferences = nil
 }
 
-func BootstrapFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		BootstrapFuzzer,
-	}
-}
-
-func BootstrapFuzzer(obj *Bootstrap, c fuzz.Continue) {
+func spokeBootstrap(obj *Bootstrap, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
@@ -131,15 +171,42 @@ func clusterSpokeAfterMutation(c conversion.Convertible) {
 	cluster.Status.Conditions = tmp
 }
 
-func ClusterJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+func ClusterFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		ClusterVariableFuzzer,
+		hubClusterStatus,
+		hubClusterVariable,
 	}
 }
 
-func ClusterVariableFuzzer(in *clusterv1.ClusterVariable, c fuzz.Continue) {
+func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func hubClusterVariable(in *clusterv1.ClusterVariable, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
+}
+
+func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineHealthCheckStatus,
+	}
+}
+
+func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
 }

@@ -174,9 +174,15 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 
 		desiredReplicas := controlplane.Spec.Replicas
 		statusReplicas := controlplane.Status.Replicas
-		updatedReplicas := controlplane.Status.UpdatedReplicas
-		readyReplicas := controlplane.Status.ReadyReplicas
-		unavailableReplicas := controlplane.Status.UnavailableReplicas
+		// TODO (v1beta2) Use new replica counters
+		updatedReplicas := int32(0)
+		readyReplicas := int32(0)
+		unavailableReplicas := int32(0)
+		if controlplane.Status.Deprecated != nil && controlplane.Status.Deprecated.V1Beta1 != nil {
+			updatedReplicas = controlplane.Status.Deprecated.V1Beta1.UpdatedReplicas
+			readyReplicas = controlplane.Status.Deprecated.V1Beta1.ReadyReplicas
+			unavailableReplicas = controlplane.Status.Deprecated.V1Beta1.UnavailableReplicas
+		}
 
 		// Control plane is still rolling out (and thus not ready) if:
 		// * .spec.replicas, .status.replicas, .status.updatedReplicas,

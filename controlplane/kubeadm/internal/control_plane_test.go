@@ -260,12 +260,16 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "healthy"},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{Name: "healthy-node"},
-			Conditions: []clusterv1.Condition{
-				{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionTrue},
-				{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionTrue},
-				{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionTrue},
-				{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionTrue},
-				{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionTrue},
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionTrue},
+						{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionTrue},
+						{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionTrue},
+						{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionTrue},
+						{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionTrue},
+					},
+				},
 			},
 		},
 	}
@@ -274,12 +278,16 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nil,
-			Conditions: []clusterv1.Condition{
-				{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionUnknown},
-				{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionUnknown},
-				{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionUnknown},
-				{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionUnknown},
-				{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionFalse}, // not a real use case, but used to test a code branch.
+			Deprecated: &clusterv1.MachineDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{Type: controlplanev1.MachineAPIServerPodHealthyCondition, Status: corev1.ConditionUnknown},
+						{Type: controlplanev1.MachineControllerManagerPodHealthyCondition, Status: corev1.ConditionUnknown},
+						{Type: controlplanev1.MachineSchedulerPodHealthyCondition, Status: corev1.ConditionUnknown},
+						{Type: controlplanev1.MachineEtcdPodHealthyCondition, Status: corev1.ConditionUnknown},
+						{Type: controlplanev1.MachineEtcdMemberHealthyCondition, Status: corev1.ConditionFalse}, // not a real use case, but used to test a code branch.
+					},
+				},
 			},
 		},
 	}
@@ -294,7 +302,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 
 	machineMarkedForRemediation := healthyMachine.DeepCopy()
 	machineMarkedForRemediation.Name = "marked-for-remediation"
-	machineMarkedForRemediation.Status.Conditions = append(machineMarkedForRemediation.Status.Conditions,
+	machineMarkedForRemediation.Status.Deprecated.V1Beta1.Conditions = append(machineMarkedForRemediation.Status.Deprecated.V1Beta1.Conditions,
 		clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionFalse},
 		clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse},
 	)

@@ -388,7 +388,11 @@ func TestHealthCheckTargets(t *testing.T) {
 	// Target for when the machine has a failure reason
 	failureReason := errors.UpdateMachineError
 	testMachineFailureReason := testMachine.DeepCopy()
-	testMachineFailureReason.Status.FailureReason = &failureReason
+	testMachineFailureReason.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+		V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+			FailureReason: &failureReason,
+		},
+	}
 	machineFailureReason := healthCheckTarget{
 		Cluster: cluster,
 		MHC:     testMHC,
@@ -400,7 +404,11 @@ func TestHealthCheckTargets(t *testing.T) {
 	// Target for when the machine has a failure message
 	failureMsg := "some failure message"
 	testMachineFailureMsg := testMachine.DeepCopy()
-	testMachineFailureMsg.Status.FailureMessage = &failureMsg
+	testMachineFailureMsg.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
+		V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+			FailureMessage: &failureMsg,
+		},
+	}
 	machineFailureMsg := healthCheckTarget{
 		Cluster: cluster,
 		MHC:     testMHC,

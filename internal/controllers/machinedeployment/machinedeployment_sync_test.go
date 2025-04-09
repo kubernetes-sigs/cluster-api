@@ -55,10 +55,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  2,
-					ReadyReplicas:      2,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 2,
+							ReadyReplicas:     2,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			}},
@@ -67,10 +71,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  2,
-					ReadyReplicas:      2,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 2,
+							ReadyReplicas:     2,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			},
@@ -83,13 +91,17 @@ func TestCalculateStatus(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration:  2,
-				Replicas:            2,
-				UpdatedReplicas:     2,
-				ReadyReplicas:       2,
-				AvailableReplicas:   2,
-				UnavailableReplicas: 0,
-				Phase:               "Running",
+				ObservedGeneration: 2,
+				Replicas:           2,
+				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+						UpdatedReplicas:     2,
+						ReadyReplicas:       2,
+						AvailableReplicas:   2,
+						UnavailableReplicas: 0,
+					},
+				},
+				Phase: "Running",
 			},
 		},
 		"scaling up": {
@@ -98,10 +110,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  1,
-					ReadyReplicas:      1,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 1,
+							ReadyReplicas:     1,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			}},
@@ -110,10 +126,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  1,
-					ReadyReplicas:      1,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 1,
+							ReadyReplicas:     1,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			},
@@ -126,13 +146,17 @@ func TestCalculateStatus(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration:  2,
-				Replicas:            2,
-				UpdatedReplicas:     2,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 1,
-				Phase:               "ScalingUp",
+				ObservedGeneration: 2,
+				Replicas:           2,
+				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+						UpdatedReplicas:     2,
+						ReadyReplicas:       1,
+						AvailableReplicas:   1,
+						UnavailableReplicas: 1,
+					},
+				},
+				Phase: "ScalingUp",
 			},
 		},
 		"scaling down": {
@@ -141,10 +165,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  3,
-					ReadyReplicas:      2,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 3,
+							ReadyReplicas:     2,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			}},
@@ -153,10 +181,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  3,
-					ReadyReplicas:      2,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 3,
+							ReadyReplicas:     2,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			},
@@ -169,13 +201,17 @@ func TestCalculateStatus(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration:  2,
-				Replicas:            2,
-				UpdatedReplicas:     2,
-				ReadyReplicas:       2,
-				AvailableReplicas:   3,
-				UnavailableReplicas: 0,
-				Phase:               "ScalingDown",
+				ObservedGeneration: 2,
+				Replicas:           2,
+				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+						UpdatedReplicas:     2,
+						ReadyReplicas:       2,
+						AvailableReplicas:   3,
+						UnavailableReplicas: 0,
+					},
+				},
+				Phase: "ScalingDown",
 			},
 		},
 		"MachineSet failed": {
@@ -184,12 +220,16 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  0,
-					ReadyReplicas:      0,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 0,
+							ReadyReplicas:     0,
+							FailureReason:     &msStatusError,
+						},
+					},
 					ObservedGeneration: 1,
-					FailureReason:      &msStatusError,
 				},
 			}},
 			newMachineSet: &clusterv1.MachineSet{
@@ -197,10 +237,14 @@ func TestCalculateStatus(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Selector:           "",
-					AvailableReplicas:  0,
-					ReadyReplicas:      0,
-					Replicas:           2,
+					Selector: "",
+					Replicas: 2,
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 0,
+							ReadyReplicas:     0,
+						},
+					},
 					ObservedGeneration: 1,
 				},
 			},
@@ -213,13 +257,17 @@ func TestCalculateStatus(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration:  2,
-				Replicas:            2,
-				UpdatedReplicas:     2,
-				ReadyReplicas:       0,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 2,
-				Phase:               "Failed",
+				ObservedGeneration: 2,
+				Replicas:           2,
+				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+						UpdatedReplicas:     2,
+						ReadyReplicas:       0,
+						AvailableReplicas:   0,
+						UnavailableReplicas: 2,
+					},
+				},
+				Phase: "Failed",
 			},
 		},
 	}
@@ -420,10 +468,14 @@ func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedRepli
 			},
 		},
 		Status: clusterv1.MachineDeploymentStatus{
-			Replicas:          statusReplicas,
-			UpdatedReplicas:   updatedReplicas,
-			AvailableReplicas: availableReplicas,
-			Conditions:        conditions,
+			Replicas: statusReplicas,
+			Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+					UpdatedReplicas:   updatedReplicas,
+					AvailableReplicas: availableReplicas,
+					Conditions:        conditions,
+				},
+			},
 		},
 	}
 	return d
@@ -441,9 +493,13 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 			Replicas: ptr.To[int32](specReplicas),
 		},
 		Status: clusterv1.MachineSetStatus{
-			AvailableReplicas: availableReplicas,
-			Replicas:          statusReplicas,
-			Conditions:        conditions,
+			Replicas: statusReplicas,
+			Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+					AvailableReplicas: availableReplicas,
+					Conditions:        conditions,
+				},
+			},
 		},
 	}
 }

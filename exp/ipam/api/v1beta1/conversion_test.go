@@ -19,9 +19,12 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -31,13 +34,39 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for IPAddress", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &ipamv1.IPAddress{},
-		Spoke:       &IPAddress{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		Hub:   &ipamv1.IPAddress{},
+		Spoke: &IPAddress{},
 	}))
 	t.Run("for IPAddressClaim", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &ipamv1.IPAddressClaim{},
 		Spoke:       &IPAddressClaim{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{IPAddressClaimFuzzFuncs},
 	}))
+}
+
+func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubIPAddressClaimStatus,
+		spokeIPAddressClaimStatus,
+	}
+}
+
+func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeIPAddressClaimStatus(in *IPAddressClaimStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &IPAddressClaimV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }

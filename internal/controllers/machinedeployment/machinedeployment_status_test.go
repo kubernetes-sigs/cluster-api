@@ -74,10 +74,9 @@ func Test_setReplicas(t *testing.T) {
 			md := &clusterv1.MachineDeployment{}
 			setReplicas(md, tt.machineSets)
 
-			g.Expect(md.Status.V1Beta2).ToNot(BeNil())
-			g.Expect(md.Status.V1Beta2.ReadyReplicas).To(Equal(tt.expectReadyReplicas))
-			g.Expect(md.Status.V1Beta2.AvailableReplicas).To(Equal(tt.expectAvailableReplicas))
-			g.Expect(md.Status.V1Beta2.UpToDateReplicas).To(Equal(tt.expectUpToDateReplicas))
+			g.Expect(md.Status.ReadyReplicas).To(Equal(tt.expectReadyReplicas))
+			g.Expect(md.Status.AvailableReplicas).To(Equal(tt.expectAvailableReplicas))
+			g.Expect(md.Status.UpToDateReplicas).To(Equal(tt.expectUpToDateReplicas))
 		})
 	}
 }
@@ -137,7 +136,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(5))}},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(5))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -159,7 +158,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(4))}},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(4))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -181,7 +180,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(3))}},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(3))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -207,7 +206,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(0))}},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(0))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -650,19 +649,17 @@ func Test_setScalingDownCondition(t *testing.T) {
 				fakeMachine("m1"),
 				fakeMachine("stale-machine-1", withStaleDeletion(), func(m *clusterv1.Machine) {
 					m.Status = clusterv1.MachineStatus{
-						V1Beta2: &clusterv1.MachineV1Beta2Status{
-							Conditions: []metav1.Condition{
-								{
-									Type:   clusterv1.MachineDeletingV1Beta2Condition,
-									Status: metav1.ConditionTrue,
-									Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
-									Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
 * Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
 * Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
 * Pod pod-9-wait-completed: waiting for completion
 After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
-								},
 							},
 						},
 						Deletion: &clusterv1.MachineDeletionStatus{
@@ -1293,28 +1290,19 @@ func withStatusReplicas(n int32) fakeMachineSetOption {
 
 func withStatusV1beta2ReadyReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		if ms.Status.V1Beta2 == nil {
-			ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
-		}
-		ms.Status.V1Beta2.ReadyReplicas = ptr.To(n)
+		ms.Status.ReadyReplicas = ptr.To(n)
 	}
 }
 
 func withStatusV1beta2AvailableReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		if ms.Status.V1Beta2 == nil {
-			ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
-		}
-		ms.Status.V1Beta2.AvailableReplicas = ptr.To(n)
+		ms.Status.AvailableReplicas = ptr.To(n)
 	}
 }
 
 func withStatusV1beta2UpToDateReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		if ms.Status.V1Beta2 == nil {
-			ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
-		}
-		ms.Status.V1Beta2.UpToDateReplicas = ptr.To(n)
+		ms.Status.UpToDateReplicas = ptr.To(n)
 	}
 }
 
@@ -1346,15 +1334,18 @@ func withStaleDeletion() fakeMachinesOption {
 
 func withV1Beta2Condition(c metav1.Condition) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		if m.Status.V1Beta2 == nil {
-			m.Status.V1Beta2 = &clusterv1.MachineV1Beta2Status{}
-		}
 		v1beta2conditions.Set(m, c)
 	}
 }
 
 func withConditions(c ...clusterv1.Condition) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		m.Status.Conditions = append(m.Status.Conditions, c...)
+		if m.Status.Deprecated == nil {
+			m.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
+		}
+		if m.Status.Deprecated.V1Beta1 == nil {
+			m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
+		}
+		m.Status.Deprecated.V1Beta1.Conditions = append(m.Status.Deprecated.V1Beta1.Conditions, c...)
 	}
 }

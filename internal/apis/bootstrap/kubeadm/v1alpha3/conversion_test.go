@@ -36,20 +36,21 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		KubeadmConfigStatusFuzzer,
-		dnsFuzzer,
-		clusterConfigurationFuzzer,
+		spokeKubeadmConfigStatus,
+		spokeDNS,
+		spokeClusterConfiguration,
+		hubKubeadmConfigStatus,
 		// This custom functions are needed when ConvertTo/ConvertFrom functions
 		// uses the json package to unmarshal the bootstrap token string.
 		//
@@ -60,38 +61,69 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		//
 		// This function effectively disables any fuzzing for the token by setting
 		// the values for ID and Secret to working alphanumeric values.
-		kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1,
-		kubeadmBootstrapTokenStringFuzzerV1Beta1,
+		spokeKubeadmBootstrapTokenString,
+		hubKubeadmBootstrapTokenString,
 	}
 }
 
-func KubeadmConfigStatusFuzzer(obj *KubeadmConfigStatus, c fuzz.Continue) {
+func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &bootstrapv1.KubeadmConfigV1Beta1DeprecatedStatus{}
+	}
+}
+
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigStatus,
+		spokeDNS,
+		spokeClusterConfiguration,
+		// This custom functions are needed when ConvertTo/ConvertFrom functions
+		// uses the json package to unmarshal the bootstrap token string.
+		//
+		// The Kubeadm BootstrapTokenString type ships with a custom
+		// json string representation, in particular it supplies a customized
+		// UnmarshalJSON function that can return an error if the string
+		// isn't in the correct form.
+		//
+		// This function effectively disables any fuzzing for the token by setting
+		// the values for ID and Secret to working alphanumeric values.
+		spokeKubeadmBootstrapTokenString,
+		hubKubeadmBootstrapTokenString,
+	}
+}
+
+func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.BootstrapData = nil
 }
 
-func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
+func spokeDNS(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func clusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
+func spokeClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
+func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func hubKubeadmBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }

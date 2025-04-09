@@ -657,9 +657,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 		Status: clusterv1.ClusterStatus{
 			InfrastructureReady: true,
-			Conditions: clusterv1.Conditions{
-				{Type: clusterv1.ControlPlaneInitializedCondition, Status: corev1.ConditionTrue,
-					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{Type: clusterv1.ControlPlaneInitializedCondition, Status: corev1.ConditionTrue,
+							LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
+					},
+				},
 			},
 		},
 	}
@@ -936,9 +940,11 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, preserve conditions as they have been set before (remote conditions grace period not passed yet)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				for i, condition := range c.Status.Conditions {
-					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
-						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
+					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
+						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+						}
 					}
 				}
 				return c
@@ -982,9 +988,11 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, set conditions as they haven't been set before (remote conditions grace period not passed yet)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				for i, condition := range c.Status.Conditions {
-					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
-						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
+					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
+						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+						}
 					}
 				}
 				return c
@@ -1015,9 +1023,11 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, set conditions to unknown (remote conditions grace period passed)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				for i, condition := range c.Status.Conditions {
-					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
-						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
+					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
+						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+						}
 					}
 				}
 				return c
@@ -1180,14 +1190,12 @@ func TestDeletingCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:    clusterv1.MachineDeletingV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
-								Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineDeletingV1Beta2Condition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+							Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
 						},
 					},
 				},
@@ -1347,28 +1355,26 @@ func TestSetReadyCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 						},
 					},
 				},
@@ -1388,29 +1394,27 @@ func TestSetReadyCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineNodeDeletedV1Beta2Reason,
-							},
-							{
-								Type:    clusterv1.MachineDeletingV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
-								Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNodeDeletedV1Beta2Reason,
+						},
+						{
+							Type:    clusterv1.MachineDeletingV1Beta2Condition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+							Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
 						},
 					},
 				},
@@ -1431,28 +1435,27 @@ func TestSetReadyCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
-								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+							Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
 * Pods with eviction failed:
   * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
@@ -1461,7 +1464,6 @@ func TestSetReadyCondition(t *testing.T) {
   * some other error 3: pod-8-to-trigger-eviction-some-other-error
   * some other error 4: pod-9-to-trigger-eviction-some-other-error
   * ... (1 more error applying to 1 Pod)`,
-							},
 						},
 					},
 				},
@@ -1481,34 +1483,32 @@ func TestSetReadyCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some message",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Status:  metav1.ConditionFalse,
+							Reason:  "SomeReason",
+							Message: "Some message",
+						},
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 						},
 					},
 				},
@@ -1539,45 +1539,43 @@ func TestSetReadyCondition(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:    "MyReadinessGate",
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some message",
-							},
-							{
-								Type:    "MyReadinessGateGateWithNegativePolarity",
-								Status:  metav1.ConditionTrue,
-								Reason:  "SomeReason",
-								Message: "Some other message",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:    "MyReadinessGate",
+							Status:  metav1.ConditionFalse,
+							Reason:  "SomeReason",
+							Message: "Some message",
+						},
+						{
+							Type:    "MyReadinessGateGateWithNegativePolarity",
+							Status:  metav1.ConditionTrue,
+							Reason:  "SomeReason",
+							Message: "Some other message",
+						},
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 						},
 					},
 				},
@@ -1605,51 +1603,49 @@ func TestSetReadyCondition(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: "Foo",
-							},
-							{
-								Type:    "APIServerSomething",
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some control plane message",
-							},
-							{
-								Type:    "ControllerManagerSomething",
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some control plane message",
-							},
-							{
-								Type:    "EtcdSomething",
-								Status:  metav1.ConditionFalse,
-								Reason:  "SomeReason",
-								Message: "Some etcd message",
-							},
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:    "APIServerSomething",
+							Status:  metav1.ConditionFalse,
+							Reason:  "SomeReason",
+							Message: "Some control plane message",
+						},
+						{
+							Type:    "ControllerManagerSomething",
+							Status:  metav1.ConditionFalse,
+							Reason:  "SomeReason",
+							Message: "Some control plane message",
+						},
+						{
+							Type:    "EtcdSomething",
+							Status:  metav1.ConditionFalse,
+							Reason:  "SomeReason",
+							Message: "Some etcd message",
+						},
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
 						},
 					},
 				},
@@ -1691,9 +1687,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{},
-					},
+					Conditions: []metav1.Condition{},
 				},
 			},
 			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
@@ -1718,19 +1712,17 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineDeletingV1Beta2Condition,
-								Status: metav1.ConditionTrue,
-								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
-								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineDeletingV1Beta2Condition,
+							Status: metav1.ConditionTrue,
+							Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+							Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
 * Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
 * Pod pod-6-to-trigger-eviction-some-other-error: failed to evict Pod, some other error 1
 * Pod pod-9-wait-completed: waiting for completion
 After above Pods have been removed from the Node, the following Pods will be evicted: pod-7-eviction-later, pod-8-eviction-later`,
-							},
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1760,14 +1752,12 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:    clusterv1.MachineDeletingV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
-								Message: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineDeletingV1Beta2Condition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+							Message: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1796,14 +1786,12 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:    clusterv1.MachineDeletingV1Beta2Condition,
-								Status:  metav1.ConditionTrue,
-								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
-								Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineDeletingV1Beta2Condition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+							Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
 						},
 					},
 				},
@@ -1846,13 +1834,11 @@ func TestAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:   clusterv1.MachineReadyV1Beta2Condition,
-								Status: metav1.ConditionFalse,
-								Reason: "SomeReason",
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineReadyV1Beta2Condition,
+							Status: metav1.ConditionFalse,
+							Reason: "SomeReason",
 						},
 					},
 				},
@@ -1871,14 +1857,12 @@ func TestAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:               clusterv1.MachineReadyV1Beta2Condition,
-								Status:             metav1.ConditionTrue,
-								Reason:             clusterv1.MachineReadyV1Beta2Reason,
-								LastTransitionTime: metav1.Time{Time: time.Now().Add(10 * time.Second)},
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:               clusterv1.MachineReadyV1Beta2Condition,
+							Status:             metav1.ConditionTrue,
+							Reason:             clusterv1.MachineReadyV1Beta2Reason,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(10 * time.Second)},
 						},
 					},
 				},
@@ -1897,14 +1881,12 @@ func TestAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Status: clusterv1.MachineStatus{
-					V1Beta2: &clusterv1.MachineV1Beta2Status{
-						Conditions: []metav1.Condition{
-							{
-								Type:               clusterv1.MachineReadyV1Beta2Condition,
-								Status:             metav1.ConditionTrue,
-								Reason:             clusterv1.MachineReadyV1Beta2Reason,
-								LastTransitionTime: metav1.Time{Time: time.Now().Add(-10 * time.Second)},
-							},
+					Conditions: []metav1.Condition{
+						{
+							Type:               clusterv1.MachineReadyV1Beta2Condition,
+							Status:             metav1.ConditionTrue,
+							Reason:             clusterv1.MachineReadyV1Beta2Reason,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-10 * time.Second)},
 						},
 					},
 				},

@@ -29,7 +29,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 func init() {
@@ -99,26 +98,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterResourceSetStatus)(nil), (*v1beta2.ClusterResourceSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(a.(*ClusterResourceSetStatus), b.(*v1beta2.ClusterResourceSetStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterResourceSetStatus)(nil), (*ClusterResourceSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(a.(*v1beta2.ClusterResourceSetStatus), b.(*ClusterResourceSetStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ClusterResourceSetV1Beta2Status)(nil), (*v1beta2.ClusterResourceSetV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterResourceSetV1Beta2Status_To_v1beta2_ClusterResourceSetV1Beta2Status(a.(*ClusterResourceSetV1Beta2Status), b.(*v1beta2.ClusterResourceSetV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterResourceSetV1Beta2Status)(nil), (*ClusterResourceSetV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterResourceSetV1Beta2Status_To_v1beta1_ClusterResourceSetV1Beta2Status(a.(*v1beta2.ClusterResourceSetV1Beta2Status), b.(*ClusterResourceSetV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ResourceBinding)(nil), (*v1beta2.ResourceBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ResourceBinding_To_v1beta2_ResourceBinding(a.(*ResourceBinding), b.(*v1beta2.ResourceBinding), scope)
 	}); err != nil {
@@ -146,6 +125,26 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.ResourceSetBinding)(nil), (*ResourceSetBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ResourceSetBinding_To_v1beta1_ResourceSetBinding(a.(*v1beta2.ResourceSetBinding), b.(*ResourceSetBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ClusterResourceSetStatus)(nil), (*v1beta2.ClusterResourceSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(a.(*ClusterResourceSetStatus), b.(*v1beta2.ClusterResourceSetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterResourceSetStatus)(nil), (*ClusterResourceSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(a.(*v1beta2.ClusterResourceSetStatus), b.(*ClusterResourceSetStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -256,7 +255,17 @@ func Convert_v1beta2_ClusterResourceSetBindingSpec_To_v1beta1_ClusterResourceSet
 
 func autoConvert_v1beta1_ClusterResourceSetList_To_v1beta2_ClusterResourceSetList(in *ClusterResourceSetList, out *v1beta2.ClusterResourceSetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.ClusterResourceSet)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.ClusterResourceSet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ClusterResourceSet_To_v1beta2_ClusterResourceSet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -267,7 +276,17 @@ func Convert_v1beta1_ClusterResourceSetList_To_v1beta2_ClusterResourceSetList(in
 
 func autoConvert_v1beta2_ClusterResourceSetList_To_v1beta1_ClusterResourceSetList(in *v1beta2.ClusterResourceSetList, out *ClusterResourceSetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]ClusterResourceSet)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ClusterResourceSet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ClusterResourceSet_To_v1beta1_ClusterResourceSet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -302,46 +321,36 @@ func Convert_v1beta2_ClusterResourceSetSpec_To_v1beta1_ClusterResourceSetSpec(in
 
 func autoConvert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(in *ClusterResourceSetStatus, out *v1beta2.ClusterResourceSetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.ClusterResourceSetV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus is an autogenerated conversion function.
-func Convert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(in *ClusterResourceSetStatus, out *v1beta2.ClusterResourceSetStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in *v1beta2.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*ClusterResourceSetV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus is an autogenerated conversion function.
-func Convert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in *v1beta2.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in, out, s)
-}
-
-func autoConvert_v1beta1_ClusterResourceSetV1Beta2Status_To_v1beta2_ClusterResourceSetV1Beta2Status(in *ClusterResourceSetV1Beta2Status, out *v1beta2.ClusterResourceSetV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_ClusterResourceSetV1Beta2Status_To_v1beta2_ClusterResourceSetV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_ClusterResourceSetV1Beta2Status_To_v1beta2_ClusterResourceSetV1Beta2Status(in *ClusterResourceSetV1Beta2Status, out *v1beta2.ClusterResourceSetV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterResourceSetV1Beta2Status_To_v1beta2_ClusterResourceSetV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_ClusterResourceSetV1Beta2Status_To_v1beta1_ClusterResourceSetV1Beta2Status(in *v1beta2.ClusterResourceSetV1Beta2Status, out *ClusterResourceSetV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_ClusterResourceSetV1Beta2Status_To_v1beta1_ClusterResourceSetV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_ClusterResourceSetV1Beta2Status_To_v1beta1_ClusterResourceSetV1Beta2Status(in *v1beta2.ClusterResourceSetV1Beta2Status, out *ClusterResourceSetV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterResourceSetV1Beta2Status_To_v1beta1_ClusterResourceSetV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_ResourceBinding_To_v1beta2_ResourceBinding(in *ResourceBinding, out *v1beta2.ResourceBinding, s conversion.Scope) error {

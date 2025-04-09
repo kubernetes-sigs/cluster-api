@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // DiscoverOptions define options for the discovery process.
@@ -103,7 +104,13 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		// Keep track that this objects abides to the Cluster API control plane contract,
 		// so the consumers of the ObjectTree will know which info are available on this unstructured object
 		// and how to extract them.
+		contractVersion, err := utilconversion.GetContractVersion(ctx, c, controlPlane.GroupVersionKind())
+		if err != nil {
+			return nil, err
+		}
+
 		addAnnotation(controlPlane, ObjectContractAnnotation, "ControlPlane")
+		addAnnotation(controlPlane, ObjectContractVersionAnnotation, contractVersion)
 		addControlPlane(cluster, controlPlane, tree, options)
 	}
 

@@ -1859,9 +1859,13 @@ func TestComputeMachineDeployment(t *testing.T) {
 						WithStatus(clusterv1.MachineDeploymentStatus{
 							ObservedGeneration: 2,
 							Replicas:           2,
-							ReadyReplicas:      2,
-							UpdatedReplicas:    2,
-							AvailableReplicas:  2,
+							Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
+								V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
+									ReadyReplicas:     2,
+									UpdatedReplicas:   2,
+									AvailableReplicas: 2,
+								},
+							},
 						}).
 						Build()
 					mdsState = duplicateMachineDeploymentsState(mdsState)
@@ -2257,8 +2261,12 @@ func TestComputeMachinePool(t *testing.T) {
 						WithStatus(expv1.MachinePoolStatus{
 							ObservedGeneration: 2,
 							Replicas:           2,
-							ReadyReplicas:      2,
-							AvailableReplicas:  2,
+							Deprecated: &expv1.MachinePoolDeprecatedStatus{
+								V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									ReadyReplicas:     2,
+									AvailableReplicas: 2,
+								},
+							},
 						}).
 						Build()
 					mpsState = duplicateMachinePoolsState(mpsState)

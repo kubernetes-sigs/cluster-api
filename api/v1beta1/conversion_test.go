@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -38,45 +39,82 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Cluster{},
 		Spoke:       &Cluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterFuzzFuncs},
 	}))
 	t.Run("for ClusterClass", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.ClusterClass{},
 		Spoke:       &ClusterClass{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterClassJSONFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterClassFuncs},
 	}))
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Machine{},
 		Spoke:       &Machine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineFuzzFuncs},
 	}))
-
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineSet{},
 		Spoke:       &MachineSet{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSetFuzzFuncs},
 	}))
-
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineDeploymentFuzzFuncs},
 	}))
-
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineHealthCheck{},
-		Spoke: &MachineHealthCheck{},
+		Hub:         &clusterv1.MachineHealthCheck{},
+		Spoke:       &MachineHealthCheck{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineHealthCheckFuzzFuncs},
 	}))
 }
 
-func ClusterClassJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		JSONSchemaPropsFuzzer,
-		JSONSchemaPropsFuzzerV1beta1,
+		hubClusterStatus,
+		spokeClusterStatus,
 	}
 }
 
-func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
+func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeClusterStatus(in *ClusterStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &ClusterV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubClusterClassStatus,
+		hubJSONSchemaProps,
+		spokeClusterClassStatus,
+		spokeJSONSchemaProps,
+	}
+}
+
+func hubClusterClassStatus(in *clusterv1.ClusterClassStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterClassV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	// NOTE: We have to fuzz the individual fields manually,
 	// because we cannot call `FuzzNoCustom` as it would lead
 	// to an infinite recursion.
@@ -119,7 +157,17 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	in.Items = in2
 }
 
-func JSONSchemaPropsFuzzerV1beta1(in *JSONSchemaProps, c fuzz.Continue) {
+func spokeClusterClassStatus(in *ClusterClassStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &ClusterClassV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func spokeJSONSchemaProps(in *JSONSchemaProps, c fuzz.Continue) {
 	// NOTE: We have to fuzz the individual fields manually,
 	// because we cannot call `FuzzNoCustom` as it would lead
 	// to an infinite recursion.
@@ -160,4 +208,114 @@ func JSONSchemaPropsFuzzerV1beta1(in *JSONSchemaProps, c fuzz.Continue) {
 		in.Properties[c.RandString()] = *in2
 	}
 	in.Items = in2
+}
+
+func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineStatus,
+		spokeMachineStatus,
+	}
+}
+
+func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeMachineStatus(in *MachineStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineSetStatus,
+		spokeMachineSetStatus,
+	}
+}
+
+func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeMachineSetStatus(in *MachineSetStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineSetV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineDeploymentStatus,
+		spokeMachineDeploymentStatus,
+	}
+}
+
+func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineDeploymentV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
+}
+
+func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachineHealthCheckStatus,
+		spokeMachineHealthCheckStatus,
+	}
+}
+
+func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &MachineHealthCheckV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }

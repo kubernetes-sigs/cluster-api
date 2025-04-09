@@ -69,12 +69,17 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the phase to "running" if the number of ready replicas is equal to desired replicas.
-	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas == mp.Status.ReadyReplicas {
+	// TODO (v1beta2) Use new replica counters
+	readyReplicas := int32(0)
+	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
+		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
+	}
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas == readyReplicas {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being greater than the observed infrastructure replicas.
-	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas > readyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
@@ -85,7 +90,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being less than the observed infrastructure replicas.
-	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas < readyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
@@ -96,7 +101,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
-	if mp.Status.FailureReason != nil || mp.Status.FailureMessage != nil {
+	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil && (mp.Status.Deprecated.V1Beta1.FailureReason != nil || mp.Status.Deprecated.V1Beta1.FailureMessage != nil) {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseFailed)
 	}
 
@@ -159,10 +164,22 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *expv1.
 	}
 	if failureReason != "" {
 		machineStatusFailure := capierrors.MachinePoolStatusFailure(failureReason)
-		m.Status.FailureReason = &machineStatusFailure
+		if m.Status.Deprecated != nil {
+			m.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+		}
+		if m.Status.Deprecated.V1Beta1 != nil {
+			m.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+		}
+		m.Status.Deprecated.V1Beta1.FailureReason = &machineStatusFailure
 	}
 	if failureMessage != "" {
-		m.Status.FailureMessage = ptr.To(
+		if m.Status.Deprecated != nil {
+			m.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+		}
+		if m.Status.Deprecated.V1Beta1 != nil {
+			m.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+		}
+		m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -244,8 +261,14 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 			if mp.Status.InfrastructureReady {
 				// Infra object went missing after the machine pool was up and running
 				log.Error(err, "infrastructure reference has been deleted after being ready, setting failure state")
-				mp.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachinePoolError)
-				mp.Status.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
+				if mp.Status.Deprecated == nil {
+					mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+				}
+				if mp.Status.Deprecated.V1Beta1 == nil {
+					mp.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+				}
+				mp.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachinePoolError)
+				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
 					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
 			}
 			conditions.MarkFalse(mp, clusterv1.InfrastructureReadyCondition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
@@ -312,9 +335,15 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 
 	if !reflect.DeepEqual(mp.Spec.ProviderIDList, providerIDList) {
 		mp.Spec.ProviderIDList = providerIDList
-		mp.Status.ReadyReplicas = 0
-		mp.Status.AvailableReplicas = 0
-		mp.Status.UnavailableReplicas = mp.Status.Replicas
+		if mp.Status.Deprecated == nil {
+			mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+		}
+		if mp.Status.Deprecated.V1Beta1 == nil {
+			mp.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+		}
+		mp.Status.Deprecated.V1Beta1.ReadyReplicas = 0
+		mp.Status.Deprecated.V1Beta1.AvailableReplicas = 0
+		mp.Status.Deprecated.V1Beta1.UnavailableReplicas = mp.Status.Replicas
 	}
 
 	return ctrl.Result{}, nil

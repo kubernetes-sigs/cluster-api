@@ -39,7 +39,9 @@ import (
 	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
+	contractutil "sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1415,9 +1417,10 @@ func fakeCRD(group string, kind string, versions []string) *apiextensionsv1.Cust
 			APIVersion: "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s.%s", strings.ToLower(kind), group), // NB. this technically should use plural(kind), but for the sake of test what really matters is to generate a unique name
+			Name: contractutil.CalculateCRDName(group, kind),
 			Labels: map[string]string{
-				clusterctlv1.ClusterctlLabel: "",
+				clusterctlv1.ClusterctlLabel:                                         "",
+				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, contract.Version): strings.Join(versions, "_"),
 			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{ // NB. the spec contains only what is strictly required by the move test

@@ -143,7 +143,7 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	if machine.Status.NodeRef == nil {
 		return false
 	}
-	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+	if machine.Status.Deprecated != nil && machine.Status.Deprecated.V1Beta1 != nil && (machine.Status.Deprecated.V1Beta1.FailureReason != nil || machine.Status.Deprecated.V1Beta1.FailureMessage != nil) {
 		return false
 	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.

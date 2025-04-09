@@ -24,13 +24,12 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
-	errors "sigs.k8s.io/cluster-api/errors"
 	v1beta2 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 )
 
@@ -71,28 +70,28 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolStatus)(nil), (*v1beta2.MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*MachinePoolStatus)(nil), (*v1beta2.MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(a.(*MachinePoolStatus), b.(*v1beta2.MachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolStatus)(nil), (*MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(a.(*v1beta2.MachinePoolStatus), b.(*MachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolV1Beta2Status)(nil), (*v1beta2.MachinePoolV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachinePoolV1Beta2Status_To_v1beta2_MachinePoolV1Beta2Status(a.(*MachinePoolV1Beta2Status), b.(*v1beta2.MachinePoolV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolV1Beta2Status)(nil), (*MachinePoolV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolV1Beta2Status_To_v1beta1_MachinePoolV1Beta2Status(a.(*v1beta2.MachinePoolV1Beta2Status), b.(*MachinePoolV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
 	if err := s.AddConversionFunc((*apiv1beta1.MachineTemplateSpec)(nil), (*apiv1beta2.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(a.(*apiv1beta1.MachineTemplateSpec), b.(*apiv1beta2.MachineTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolStatus)(nil), (*MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(a.(*v1beta2.MachinePoolStatus), b.(*MachinePoolStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -213,71 +212,61 @@ func Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *v1beta2.Mach
 }
 
 func autoConvert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachinePoolStatus, out *v1beta2.MachinePoolStatus, s conversion.Scope) error {
-	out.NodeRefs = *(*[]v1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
+	out.NodeRefs = *(*[]corev1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
 	out.Replicas = in.Replicas
-	out.ReadyReplicas = in.ReadyReplicas
-	out.AvailableReplicas = in.AvailableReplicas
-	out.UnavailableReplicas = in.UnavailableReplicas
-	out.FailureReason = (*errors.MachinePoolStatusFailure)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_int32_To_Pointer_int32(&in.AvailableReplicas, &out.AvailableReplicas, s); err != nil {
+		return err
+	}
+	// WARNING: in.UnavailableReplicas requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
 	out.BootstrapReady = in.BootstrapReady
 	out.InfrastructureReady = in.InfrastructureReady
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.MachinePoolV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachinePoolStatus, out *v1beta2.MachinePoolStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *v1beta2.MachinePoolStatus, out *MachinePoolStatus, s conversion.Scope) error {
-	out.NodeRefs = *(*[]v1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.NodeRefs = *(*[]corev1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
 	out.Replicas = in.Replicas
-	out.ReadyReplicas = in.ReadyReplicas
-	out.AvailableReplicas = in.AvailableReplicas
-	out.UnavailableReplicas = in.UnavailableReplicas
-	out.FailureReason = (*errors.MachinePoolStatusFailure)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_int32_To_int32(&in.AvailableReplicas, &out.AvailableReplicas, s); err != nil {
+		return err
+	}
+	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
 	out.BootstrapReady = in.BootstrapReady
 	out.InfrastructureReady = in.InfrastructureReady
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*MachinePoolV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *v1beta2.MachinePoolStatus, out *MachinePoolStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in, out, s)
-}
-
-func autoConvert_v1beta1_MachinePoolV1Beta2Status_To_v1beta2_MachinePoolV1Beta2Status(in *MachinePoolV1Beta2Status, out *v1beta2.MachinePoolV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	return nil
-}
-
-// Convert_v1beta1_MachinePoolV1Beta2Status_To_v1beta2_MachinePoolV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolV1Beta2Status_To_v1beta2_MachinePoolV1Beta2Status(in *MachinePoolV1Beta2Status, out *v1beta2.MachinePoolV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolV1Beta2Status_To_v1beta2_MachinePoolV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_MachinePoolV1Beta2Status_To_v1beta1_MachinePoolV1Beta2Status(in *v1beta2.MachinePoolV1Beta2Status, out *MachinePoolV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.ReadyReplicas = (*int32)(unsafe.Pointer(in.ReadyReplicas))
-	out.AvailableReplicas = (*int32)(unsafe.Pointer(in.AvailableReplicas))
-	out.UpToDateReplicas = (*int32)(unsafe.Pointer(in.UpToDateReplicas))
-	return nil
-}
-
-// Convert_v1beta2_MachinePoolV1Beta2Status_To_v1beta1_MachinePoolV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolV1Beta2Status_To_v1beta1_MachinePoolV1Beta2Status(in *v1beta2.MachinePoolV1Beta2Status, out *MachinePoolV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolV1Beta2Status_To_v1beta1_MachinePoolV1Beta2Status(in, out, s)
 }

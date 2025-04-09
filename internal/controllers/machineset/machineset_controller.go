@@ -1212,21 +1212,37 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	}
 
 	newStatus.Replicas = int32(len(filteredMachines))
-	newStatus.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
-	newStatus.ReadyReplicas = int32(readyReplicasCount)
-	newStatus.AvailableReplicas = int32(availableReplicasCount)
+	// TODO (v1beta2) Use new replica counters
+	if newStatus.Deprecated == nil {
+		newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
+	}
+	if newStatus.Deprecated.V1Beta1 == nil {
+		newStatus.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
+	}
+	newStatus.Deprecated.V1Beta1.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
+	newStatus.Deprecated.V1Beta1.ReadyReplicas = int32(readyReplicasCount)
+	newStatus.Deprecated.V1Beta1.AvailableReplicas = int32(availableReplicasCount)
+
+	fullyLabeledReplicas := int32(0)
+	readyReplicas := int32(0)
+	availableReplicas := int32(0)
+	if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
+		fullyLabeledReplicas = ms.Status.Deprecated.V1Beta1.FullyLabeledReplicas
+		readyReplicas = ms.Status.Deprecated.V1Beta1.ReadyReplicas
+		availableReplicas = ms.Status.Deprecated.V1Beta1.AvailableReplicas
+	}
 
 	// Copy the newly calculated status into the machineset
 	if ms.Status.Replicas != newStatus.Replicas ||
-		ms.Status.FullyLabeledReplicas != newStatus.FullyLabeledReplicas ||
-		ms.Status.ReadyReplicas != newStatus.ReadyReplicas ||
-		ms.Status.AvailableReplicas != newStatus.AvailableReplicas ||
+		fullyLabeledReplicas != newStatus.Deprecated.V1Beta1.FullyLabeledReplicas ||
+		readyReplicas != newStatus.Deprecated.V1Beta1.ReadyReplicas ||
+		availableReplicas != newStatus.Deprecated.V1Beta1.AvailableReplicas ||
 		ms.Generation != ms.Status.ObservedGeneration {
 		log.V(4).Info("Updating status: " +
 			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
-			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
-			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +
-			fmt.Sprintf("availableReplicas %d->%d, ", ms.Status.AvailableReplicas, newStatus.AvailableReplicas) +
+			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", fullyLabeledReplicas, newStatus.Deprecated.V1Beta1.FullyLabeledReplicas) +
+			fmt.Sprintf("readyReplicas %d->%d, ", readyReplicas, newStatus.Deprecated.V1Beta1.ReadyReplicas) +
+			fmt.Sprintf("availableReplicas %d->%d, ", availableReplicas, newStatus.Deprecated.V1Beta1.AvailableReplicas) +
 			fmt.Sprintf("observedGeneration %v->%v", ms.Status.ObservedGeneration, ms.Generation))
 
 		// Save the generation number we acted on, otherwise we might wrongfully indicate
@@ -1247,9 +1263,10 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
-		if newStatus.ReadyReplicas == newStatus.Replicas {
+		// TODO (v1beta2) Use new replica counters
+		if newStatus.Deprecated.V1Beta1.ReadyReplicas == newStatus.Replicas {
 			if conditions.IsFalse(ms, clusterv1.ResizedCondition) {
-				log.Info("All the replicas are ready", "replicas", newStatus.ReadyReplicas)
+				log.Info("All the replicas are ready", "replicas", newStatus.Deprecated.V1Beta1.ReadyReplicas)
 			}
 			conditions.MarkTrue(ms, clusterv1.ResizedCondition)
 		}
@@ -1274,15 +1291,16 @@ func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
 	// exceeds MinReadySeconds could be incorrect.
 	// To avoid an available replica stuck in the ready state, we force a reconcile after MinReadySeconds,
 	// at which point it should confirm any available replica to be available.
+	// TODO (v1beta2) Use new replica counters
 	if s.machineSet.Spec.MinReadySeconds > 0 &&
-		s.machineSet.Status.ReadyReplicas == replicas &&
-		s.machineSet.Status.AvailableReplicas != replicas {
+		s.machineSet.Status.Deprecated.V1Beta1.ReadyReplicas == replicas &&
+		s.machineSet.Status.Deprecated.V1Beta1.AvailableReplicas != replicas {
 		minReadyResult := ctrl.Result{RequeueAfter: time.Duration(s.machineSet.Spec.MinReadySeconds) * time.Second}
 		return minReadyResult
 	}
 
 	// Quickly reconcile until the nodes become Ready.
-	if s.machineSet.Status.ReadyReplicas != replicas {
+	if s.machineSet.Status.Deprecated.V1Beta1.ReadyReplicas != replicas {
 		return ctrl.Result{RequeueAfter: 15 * time.Second}
 	}
 

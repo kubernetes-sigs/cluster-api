@@ -282,6 +282,15 @@ type MachineNamingStrategy struct {
 
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
 type KubeadmControlPlaneStatus struct {
+	// conditions represents the observations of a KubeadmControlPlane's current state.
+	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
+	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
 	// scale subresource and additional integrations for things like kubectl
@@ -297,32 +306,24 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Replicas int32 `json:"replicas"`
 
+	// readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
 	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
-
-	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
-	// that have the desired template spec.
-	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas"`
-
-	// readyReplicas is the total number of fully running and ready control plane machines.
-	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
-
-	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
-	// This is the total number of machines that are still required for
-	// the deployment to have 100% available capacity. They may either
-	// be machines that are running but not yet ready or machines
-	// that still have not been created.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-	//
-	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
 	// initialized denotes that the KubeadmControlPlane API Server is initialized and thus
 	// it can accept requests.
@@ -340,11 +341,42 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
+	// observedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// lastRemediation stores info about last remediation performed.
+	// +optional
+	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *KubeadmControlPlaneDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// KubeadmControlPlaneDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmControlPlaneDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *KubeadmControlPlaneV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// KubeadmControlPlaneV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the KubeadmControlPlane.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
 	// failureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
@@ -352,53 +384,38 @@ type KubeadmControlPlaneStatus struct {
 	// failureMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// observedGeneration is the latest generation observed by the controller.
+	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
+	// that have the desired template spec.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	UpdatedReplicas int32 `json:"updatedReplicas"`
 
-	// conditions defines current service state of the KubeadmControlPlane.
+	// readyReplicas is the total number of fully running and ready control plane machines.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 
-	// lastRemediation stores info about last remediation performed.
+	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
+	// This is the total number of machines that are still required for
+	// the deployment to have 100% available capacity. They may either
+	// be machines that are running but not yet ready or machines
+	// that still have not been created.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *KubeadmControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// KubeadmControlPlaneV1Beta2Status Groups all the fields that will be added or modified in KubeadmControlPlane with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type KubeadmControlPlaneV1Beta2Status struct {
-	// conditions represents the observations of a KubeadmControlPlane's current state.
-	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
-	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true.
-	// +optional
-	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
-
-	// availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true.
-	// +optional
-	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
-
-	// upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
-	// +optional
-	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+	UnavailableReplicas int32 `json:"unavailableReplicas"`
 }
 
 // LastRemediationStatus  stores info about last remediation performed.
@@ -431,9 +448,9 @@ type LastRemediationStatus struct {
 // +kubebuilder:printcolumn:name="API Server Available",type=boolean,JSONPath=".status.ready",description="KubeadmControlPlane API Server is ready to receive requests"
 // +kubebuilder:printcolumn:name="Desired",type=integer,JSONPath=".spec.replicas",description="Total number of machines desired by this control plane",priority=10
 // +kubebuilder:printcolumn:name="Replicas",type=integer,JSONPath=".status.replicas",description="Total number of non-terminated machines targeted by this control plane"
-// +kubebuilder:printcolumn:name="Ready",type=integer,JSONPath=".status.readyReplicas",description="Total number of fully running and ready control plane machines"
-// +kubebuilder:printcolumn:name="Updated",type=integer,JSONPath=".status.updatedReplicas",description="Total number of non-terminated machines targeted by this control plane that have the desired template spec"
-// +kubebuilder:printcolumn:name="Unavailable",type=integer,JSONPath=".status.unavailableReplicas",description="Total number of unavailable machines targeted by this control plane"
+// +kubebuilder:printcolumn:name="Ready",type=integer,JSONPath=".status.deprecated.v1beta1.readyReplicas",description="Total number of fully running and ready control plane machines"
+// +kubebuilder:printcolumn:name="Updated",type=integer,JSONPath=".status.deprecated.v1beta1.updatedReplicas",description="Total number of non-terminated machines targeted by this control plane that have the desired template spec"
+// +kubebuilder:printcolumn:name="Unavailable",type=integer,JSONPath=".status.deprecated.v1beta1.unavailableReplicas",description="Total number of unavailable machines targeted by this control plane"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmControlPlane"
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=".spec.version",description="Kubernetes version associated with this control plane"
 
@@ -455,28 +472,31 @@ type KubeadmControlPlane struct {
 
 // GetConditions returns the set of conditions for this object.
 func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
-	return in.Status.Conditions
+	if in.Status.Deprecated == nil || in.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return in.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
-	in.Status.Conditions = conditions
+	if in.Status.Deprecated == nil {
+		in.Status.Deprecated = &KubeadmControlPlaneDeprecatedStatus{}
+	}
+	if in.Status.Deprecated.V1Beta1 == nil {
+		in.Status.Deprecated.V1Beta1 = &KubeadmControlPlaneV1Beta1DeprecatedStatus{}
+	}
+	in.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (in *KubeadmControlPlane) GetV1Beta2Conditions() []metav1.Condition {
-	if in.Status.V1Beta2 == nil {
-		return nil
-	}
-	return in.Status.V1Beta2.Conditions
+	return in.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (in *KubeadmControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if in.Status.V1Beta2 == nil {
-		in.Status.V1Beta2 = &KubeadmControlPlaneV1Beta2Status{}
-	}
-	in.Status.V1Beta2.Conditions = conditions
+	in.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

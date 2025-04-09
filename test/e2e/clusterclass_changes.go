@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -347,6 +348,9 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
 		g.Expect(err).ToNot(HaveOccurred())
 
+		contractVersion, err := utilconversion.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+		g.Expect(err).ToNot(HaveOccurred())
+
 		// Verify that the fields from Cluster topology are set on the control plane.
 		assertControlPlaneTopologyFields(g, controlPlane, controlPlaneTopology)
 
@@ -365,7 +369,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		if ok {
 			g.Expect(controlPlane.GetGeneration()).To(BeComparableTo(observedGeneration))
 		}
-		scaling, err := contract.ControlPlane().IsScaling(controlPlane)
+		scaling, err := contract.ControlPlane().IsScaling(controlPlane, contractVersion)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(scaling).To(BeFalse())
 
@@ -843,6 +847,9 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			g.Expect(controlPlane.GetGeneration()).ToNot(Equal(beforeControlPlane.GetGeneration()),
 				"ControlPlane generation should be incremented during the rebase because ControlPlane expected to be changed.")
 
+			contractVersion, err := utilconversion.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+			g.Expect(err).ToNot(HaveOccurred())
+
 			// Ensure KCP recognized the change and finished scaling.
 			// Note: This is to ensure to not hit https://github.com/kubernetes-sigs/cluster-api/issues/11772
 			observedGeneration, ok, err := unstructured.NestedInt64(controlPlane.Object, "status", "observedGeneration")
@@ -851,7 +858,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 				g.Expect(controlPlane.GetGeneration()).To(BeComparableTo(observedGeneration))
 			}
 
-			scaling, err := contract.ControlPlane().IsScaling(controlPlane)
+			scaling, err := contract.ControlPlane().IsScaling(controlPlane, contractVersion)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(scaling).To(BeFalse())
 		}, input.WaitForControlPlaneIntervals...).Should(Succeed())

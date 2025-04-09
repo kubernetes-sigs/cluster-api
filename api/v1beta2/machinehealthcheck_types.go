@@ -152,6 +152,14 @@ type UnhealthyCondition struct {
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
 type MachineHealthCheckStatus struct {
+	// conditions represents the observations of a MachineHealthCheck's current state.
+	// Known condition types are RemediationAllowed, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// expectedMachines is the total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
@@ -179,25 +187,28 @@ type MachineHealthCheckStatus struct {
 	// +kubebuilder:validation:items:MaxLength=253
 	Targets []string `json:"targets,omitempty"`
 
-	// conditions defines current service state of the MachineHealthCheck.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in MachineHealthCheck's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *MachineHealthCheckV1Beta2Status `json:"v1beta2,omitempty"`
+	Deprecated *MachineHealthCheckDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version.
+// MachineHealthCheckDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type MachineHealthCheckV1Beta2Status struct {
-	// conditions represents the observations of a MachineHealthCheck's current state.
-	// Known condition types are RemediationAllowed, Paused.
+type MachineHealthCheckDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	V1Beta1 *MachineHealthCheckV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// MachineHealthCheckV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineHealthCheckV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the MachineHealthCheck.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus
@@ -231,28 +242,31 @@ type MachineHealthCheck struct {
 
 // GetConditions returns the set of conditions for this object.
 func (m *MachineHealthCheck) GetConditions() Conditions {
-	return m.Status.Conditions
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (m *MachineHealthCheck) SetConditions(conditions Conditions) {
-	m.Status.Conditions = conditions
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &MachineHealthCheckDeprecatedStatus{}
+	}
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &MachineHealthCheckV1Beta1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (m *MachineHealthCheck) GetV1Beta2Conditions() []metav1.Condition {
-	if m.Status.V1Beta2 == nil {
-		return nil
-	}
-	return m.Status.V1Beta2.Conditions
+	return m.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (m *MachineHealthCheck) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if m.Status.V1Beta2 == nil {
-		m.Status.V1Beta2 = &MachineHealthCheckV1Beta2Status{}
-	}
-	m.Status.V1Beta2.Conditions = conditions
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

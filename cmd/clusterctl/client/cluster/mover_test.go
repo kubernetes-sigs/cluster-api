@@ -1483,8 +1483,12 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: false,
-							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							Deprecated: &clusterv1.ClusterDeprecatedStatus{
+								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+									Conditions: clusterv1.Conditions{
+										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+									},
+								},
 							},
 						},
 					},
@@ -1528,8 +1532,12 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: true,
-							Conditions: clusterv1.Conditions{
-								*conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
+							Deprecated: &clusterv1.ClusterDeprecatedStatus{
+								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+									Conditions: clusterv1.Conditions{
+										*conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
+									},
+								},
 							},
 						},
 					},
@@ -1555,8 +1563,12 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: true,
-							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							Deprecated: &clusterv1.ClusterDeprecatedStatus{
+								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+									Conditions: clusterv1.Conditions{
+										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+									},
+								},
 							},
 							ControlPlaneReady: false,
 						},
@@ -1581,8 +1593,12 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: true,
-							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							Deprecated: &clusterv1.ClusterDeprecatedStatus{
+								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+									Conditions: clusterv1.Conditions{
+										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+									},
+								},
 							},
 						},
 					},
@@ -1627,8 +1643,12 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							InfrastructureReady: true,
-							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+							Deprecated: &clusterv1.ClusterDeprecatedStatus{
+								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+									Conditions: clusterv1.Conditions{
+										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+									},
+								},
 							},
 						},
 					},

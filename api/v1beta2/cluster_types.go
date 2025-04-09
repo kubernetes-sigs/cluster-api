@@ -956,28 +956,27 @@ func (n NetworkRanges) String() string {
 
 // ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
+	// conditions represents the observations of a Cluster's current state.
+	// Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
+	// MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// controlPlane groups all the observations about Cluster's ControlPlane current state.
+	// +optional
+	ControlPlane *ClusterControlPlaneStatus `json:"controlPlane,omitempty"`
+
+	// workers groups all the observations about Cluster's Workers current state.
+	// +optional
+	Workers *WorkersStatus `json:"workers,omitempty"`
+
 	// failureDomains is a slice of failure domain objects synced from the infrastructure provider.
 	// +optional
 	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
-
-	// failureReason indicates that there is a fatal problem reconciling the
-	// state, and will be set to a token value suitable for
-	// programmatic interpretation.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-	//
-	// +optional
-	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
-
-	// failureMessage indicates that there is a fatal problem reconciling the
-	// state, and will be set to a descriptive error message.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
-	//
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
 	// +optional
@@ -996,39 +995,51 @@ type ClusterStatus struct {
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady"`
 
-	// conditions defines current service state of the cluster.
-	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
-
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in Cluster's status with the V1Beta2 version.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
-	V1Beta2 *ClusterV1Beta2Status `json:"v1beta2,omitempty"`
+	Deprecated *ClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version.
+// ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type ClusterV1Beta2Status struct {
-	// conditions represents the observations of a Cluster's current state.
-	// Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
-	// MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-	// Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
+type ClusterDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	V1Beta1 *ClusterV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
 
-	// controlPlane groups all the observations about Cluster's ControlPlane current state.
+// ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ClusterV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the cluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	ControlPlane *ClusterControlPlaneStatus `json:"controlPlane,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 
-	// workers groups all the observations about Cluster's Workers current state.
+	// failureReason indicates that there is a fatal problem reconciling the
+	// state, and will be set to a token value suitable for
+	// programmatic interpretation.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
-	Workers *WorkersStatus `json:"workers,omitempty"`
+	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
+
+	// failureMessage indicates that there is a fatal problem reconciling the
+	// state, and will be set to a descriptive error message.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=10240
+	FailureMessage *string `json:"failureMessage,omitempty"`
 }
 
 // ClusterControlPlaneStatus groups all the observations about control plane current state.
@@ -1171,28 +1182,31 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 
 // GetConditions returns the set of conditions for this object.
 func (c *Cluster) GetConditions() Conditions {
-	return c.Status.Conditions
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (c *Cluster) SetConditions(conditions Conditions) {
-	c.Status.Conditions = conditions
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &ClusterDeprecatedStatus{}
+	}
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &ClusterV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
 func (c *Cluster) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
-		return nil
-	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
 func (c *Cluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &ClusterV1Beta2Status{}
-	}
-	c.Status.V1Beta2.Conditions = conditions
+	c.Status.Conditions = conditions
 }
 
 // GetIPFamily returns a ClusterIPFamily from the configuration provided.

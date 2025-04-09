@@ -36,26 +36,38 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &expv1.MachinePool{},
 		Spoke:       &MachinePool{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		BootstrapFuzzer,
-		MachinePoolSpecFuzzer,
-		ObjectMetaFuzzer,
+		spokeBootstrap,
+		spokeObjectMeta,
+		spokeMachinePoolSpec,
+		hubMachinePoolStatus,
 	}
 }
 
-func BootstrapFuzzer(in *clusterv1alpha3.Bootstrap, c fuzz.Continue) {
+func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+}
+
+func spokeBootstrap(in *clusterv1alpha3.Bootstrap, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	in.Data = nil
 }
 
-func ObjectMetaFuzzer(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
+func spokeObjectMeta(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1beta1
@@ -66,8 +78,8 @@ func ObjectMetaFuzzer(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
 	in.OwnerReferences = nil
 }
 
-func MachinePoolSpecFuzzer(in *MachinePoolSpec, c fuzz.Continue) {
-	c.Fuzz(in)
+func spokeMachinePoolSpec(in *MachinePoolSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.

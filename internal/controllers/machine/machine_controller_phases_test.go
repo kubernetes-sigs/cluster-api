@@ -433,8 +433,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
-				g.Expect(m.Status.FailureMessage).To(BeNil())
-				g.Expect(m.Status.FailureReason).To(BeNil())
+				g.Expect(m.Status.Deprecated).To(BeNil())
 			},
 		},
 		{
@@ -853,8 +852,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.FailureMessage).To(BeNil())
-				g.Expect(m.Status.FailureReason).To(BeNil())
+				g.Expect(m.Status.Deprecated).To(BeNil())
 			},
 		},
 		{
@@ -883,8 +881,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
-				g.Expect(m.Status.FailureReason).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
 			},
 		},
 		{

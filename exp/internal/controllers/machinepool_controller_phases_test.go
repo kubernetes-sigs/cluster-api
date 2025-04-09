@@ -292,7 +292,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
-		machinepool.Status.ReadyReplicas = 1
+		machinepool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 1,
+			},
+		}
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
@@ -360,7 +364,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
-		machinepool.Status.ReadyReplicas = 1
+		machinepool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 1,
+			},
+		}
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
@@ -459,7 +467,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
-		machinepool.Status.ReadyReplicas = 1
+		machinepool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 1,
+			},
+		}
 
 		// Scale up
 		machinepool.Spec.Replicas = ptr.To[int32](5)
@@ -525,7 +537,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(res.Requeue).To(BeFalse())
 
 		// Set ReadyReplicas
-		machinepool.Status.ReadyReplicas = 4
+		machinepool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 4,
+			},
+		}
 
 		// Scale down
 		machinepool.Spec.Replicas = ptr.To[int32](1)
@@ -642,7 +658,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		// Set replicas to fully reconciled
 		machinePool.Spec.ProviderIDList = []string{"test://id-1"}
-		machinePool.Status.ReadyReplicas = 1
+		machinePool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 1,
+			},
+		}
 		machinePool.Status.Replicas = 1
 
 		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
@@ -734,7 +754,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		// Set replicas to fully reconciled
 		machinePool.Spec.ProviderIDList = []string{"test://id-1"}
-		machinePool.Status.ReadyReplicas = 1
+		machinePool.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{
+			V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+				ReadyReplicas: 1,
+			},
+		}
 		machinePool.Status.Replicas = 1
 
 		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
@@ -1234,8 +1258,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			expectRequeueAfter: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
-				g.Expect(m.Status.FailureReason).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).ToNot(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseFailed))
 			},
 		},
@@ -1314,11 +1338,11 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			expectRequeueAfter: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.ReadyReplicas).To(Equal(int32(0)))
-				g.Expect(m.Status.AvailableReplicas).To(Equal(int32(0)))
-				g.Expect(m.Status.UnavailableReplicas).To(Equal(int32(0)))
-				g.Expect(m.Status.FailureMessage).To(BeNil())
-				g.Expect(m.Status.FailureReason).To(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.Deprecated.V1Beta1.AvailableReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.Deprecated.V1Beta1.UnavailableReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
+				g.Expect(m.Status.Deprecated.V1Beta1.FailureReason).To(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
 			},
 		},

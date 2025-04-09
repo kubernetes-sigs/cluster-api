@@ -181,7 +181,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 
 	defer func() {
 		// Always reconcile the Status.
-		r.updateStatus(ctx, s)
+		if err := r.updateStatus(ctx, s); err != nil {
+			retRes = ctrl.Result{}
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+			return
+		}
 
 		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully

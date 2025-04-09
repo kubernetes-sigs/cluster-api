@@ -1901,6 +1901,62 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should return error when MachineDeploymentTopology name is not a valid Kubernetes label value",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("forward/slash").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when MachinePoolTopology name is not a valid Kubernetes label value",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("forward/slash").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when MachineDeploymentTopology name exceeds 63 characters (the maximum length of a Kubernetes label value)",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when MachinePoolTopology name exceeds 63 characters (the maximum length of a Kubernetes label value)",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
 			name:      "should update",
 			expectErr: false,
 			old: builder.Cluster("fooboo", "cluster1").

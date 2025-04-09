@@ -291,7 +291,7 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 	names := sets.Set[string]{}
 	for i, md := range desired.Spec.Topology.Workers.MachineDeployments {
 		// The Name must be a valid Kubernetes resource name, because it is used to generate the MachineDeployment name.
-		if errs := validation.IsDNS1123Label(md.Name); len(errs) != 0 {
+		if errs := validation.IsDNS1123Subdomain(md.Name); len(errs) != 0 {
 			for _, err := range errs {
 				allErrs = append(
 					allErrs,
@@ -356,7 +356,7 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 	names := sets.Set[string]{}
 	for i, mp := range desired.Spec.Topology.Workers.MachinePools {
 		// The Name must be a valid Kubernetes resource name, because it is used to generate the MachinePool name.
-		if errs := validation.IsDNS1123Label(mp.Name); len(errs) != 0 {
+		if errs := validation.IsDNS1123Subdomain(mp.Name); len(errs) != 0 {
 			for _, err := range errs {
 				allErrs = append(
 					allErrs,

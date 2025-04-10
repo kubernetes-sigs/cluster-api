@@ -10,29 +10,12 @@ make docker-push IMG=ghcr.io/your-org/your-repo:dev
 
 ## Deployment
 
-### cert-manager
-
-Cluster API uses [cert-manager] to manage the certificates it needs for its webhooks.
-Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-install]
-
-[cert-manager]: https://github.com/cert-manager/cert-manager
-[cm-install]: https://cert-manager.io/docs/installation/
-
-```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<version>/cert-manager.yaml
-```
-
 ### Cluster API
 
 Before you can deploy the infrastructure controller, you'll need to deploy Cluster API itself to the management cluster.
 
-You can use a precompiled manifest from the [release page][releases], run `clusterctl init`, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`:
+Follow the [quick start guide](https://cluster-api.sigs.k8s.io/user/quick-start) up to and including the step of [creating the management cluster](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster). We will proceed presuming you created a cluster with kind and initalized cluster-api with `clusterctl init`.
 
-```bash
-cd cluster-api
-make envsubst
-kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-```
 
 Check the status of the manager to make sure it's running properly:
 
@@ -41,11 +24,11 @@ kubectl describe -n capi-system pod | grep -A 5 Conditions
 ```
 ```bash
 Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       True
+  ContainersReady             True
 ```
 
 [capi]: https://github.com/kubernetes-sigs/cluster-api

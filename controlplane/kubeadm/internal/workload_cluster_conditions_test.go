@@ -624,8 +624,8 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 
 			for _, m := range tt.machines {
 				g.Expect(tt.expectedMachineConditions).To(HaveKey(m.Name))
-				g.Expect(m.GetConditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]), "unexpected conditions for Machine %s", m.Name)
-				g.Expect(m.GetV1Beta2Conditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)), "unexpected conditions for Machine %s", m.Name)
+				g.Expect(m.GetV1Beta1Conditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]), "unexpected conditions for Machine %s", m.Name)
+				g.Expect(m.GetConditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)), "unexpected conditions for Machine %s", m.Name)
 			}
 
 			g.Expect(controlPane.EtcdMembersAndMachinesAreMatching).To(Equal(tt.expectedEtcdMembersAndMachinesAreMatching), "EtcdMembersAndMachinesAreMatching does not match")
@@ -1108,8 +1108,8 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 
 			for _, m := range tt.machines {
 				g.Expect(tt.expectedMachineConditions).To(HaveKey(m.Name))
-				g.Expect(m.GetConditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]))
-				g.Expect(m.GetV1Beta2Conditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)))
+				g.Expect(m.GetV1Beta1Conditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]))
+				g.Expect(m.GetConditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)))
 			}
 		})
 	}

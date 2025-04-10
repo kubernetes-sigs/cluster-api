@@ -133,13 +133,13 @@ type DockerMachinePool struct {
 	Status DockerMachinePoolStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (d *DockerMachinePool) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (d *DockerMachinePool) GetV1Beta1Conditions() clusterv1.Conditions {
 	return d.Status.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (d *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (d *DockerMachinePool) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	d.Status.Conditions = conditions
 }
 

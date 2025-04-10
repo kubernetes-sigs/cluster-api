@@ -31,7 +31,7 @@ import (
 func TestUnstructuredGetConditions(t *testing.T) {
 	g := NewWithT(t)
 
-	// GetConditions should return conditions from an unstructured object
+	// GetV1Beta1Conditions should return conditions from an unstructured object
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": map[string]interface{}{
@@ -45,21 +45,21 @@ func TestUnstructuredGetConditions(t *testing.T) {
 		},
 	}
 
-	g.Expect(UnstructuredGetter(u).GetConditions()).To(haveSameConditionsOf(conditionList(true1)))
+	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(haveSameConditionsOf(conditionList(true1)))
 
-	// GetConditions should return nil for an unstructured object with empty conditions
+	// GetV1Beta1Conditions should return nil for an unstructured object with empty conditions
 	u = &unstructured.Unstructured{}
 
-	g.Expect(UnstructuredGetter(u).GetConditions()).To(BeNil())
+	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(BeNil())
 
-	// GetConditions should return nil for an unstructured object without conditions
+	// GetV1Beta1Conditions should return nil for an unstructured object without conditions
 	e := &corev1.Endpoints{}
 	u = &unstructured.Unstructured{}
 	g.Expect(scheme.Scheme.Convert(e, u, nil)).To(Succeed())
 
-	g.Expect(UnstructuredGetter(u).GetConditions()).To(BeNil())
+	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(BeNil())
 
-	// GetConditions should return conditions from an unstructured object with a different type of conditions.
+	// GetV1Beta1Conditions should return conditions from an unstructured object with a different type of conditions.
 	p := &corev1.Pod{Status: corev1.PodStatus{
 		Conditions: []corev1.PodCondition{
 			{
@@ -75,7 +75,7 @@ func TestUnstructuredGetConditions(t *testing.T) {
 	u = &unstructured.Unstructured{}
 	g.Expect(scheme.Scheme.Convert(p, u, nil)).To(Succeed())
 
-	g.Expect(UnstructuredGetter(u).GetConditions()).To(HaveLen(1))
+	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(HaveLen(1))
 }
 
 func TestUnstructuredSetConditions(t *testing.T) {
@@ -89,6 +89,6 @@ func TestUnstructuredSetConditions(t *testing.T) {
 	conditions := conditionList(true1, falseInfo1)
 
 	s := UnstructuredSetter(u)
-	s.SetConditions(conditions)
-	g.Expect(s.GetConditions()).To(BeComparableTo(conditions))
+	s.SetV1Beta1Conditions(conditions)
+	g.Expect(s.GetV1Beta1Conditions()).To(BeComparableTo(conditions))
 }

@@ -201,11 +201,11 @@ func TestHealthCheckTargets(t *testing.T) {
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
 	conds := clusterv1.Conditions{}
-	for _, condition := range cluster.GetConditions() {
+	for _, condition := range cluster.GetV1Beta1Conditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
 		conds = append(conds, condition)
 	}
-	cluster.SetConditions(conds)
+	cluster.SetV1Beta1Conditions(conds)
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
@@ -242,7 +242,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 	testMachineWithInfraReady := testMachine.DeepCopy()
 	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
-	testMachineWithInfraReady.SetConditions(clusterv1.Conditions{
+	testMachineWithInfraReady.SetV1Beta1Conditions(clusterv1.Conditions{
 		{
 			Type:               clusterv1.InfrastructureReadyCondition,
 			Status:             corev1.ConditionTrue,
@@ -609,12 +609,12 @@ func TestHealthCheckTargets(t *testing.T) {
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
 			for i, expectedMachineCondition := range tc.expectedNeedsRemediationCondition {
-				actualConditions := unhealthy[i].Machine.GetConditions()
+				actualConditions := unhealthy[i].Machine.GetV1Beta1Conditions()
 				conditionsMatcher := WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineCondition))
 				gs.Expect(actualConditions).To(conditionsMatcher)
 			}
 			for i, expectedMachineCondition := range tc.expectedNeedsRemediationV1Beta2Condition {
-				actualConditions := unhealthy[i].Machine.GetV1Beta2Conditions()
+				actualConditions := unhealthy[i].Machine.GetConditions()
 				conditionsMatcher := WithTransform(removeLastTransitionTimesV1Beta2, ContainElements(expectedMachineCondition))
 				gs.Expect(actualConditions).To(conditionsMatcher)
 			}

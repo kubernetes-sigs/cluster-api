@@ -350,7 +350,7 @@ func TestApply(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			gotConditions := tt.latest.GetV1Beta2Conditions()
+			gotConditions := tt.latest.GetConditions()
 			g.Expect(gotConditions).To(MatchConditions(tt.want))
 		})
 	}

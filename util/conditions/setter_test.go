@@ -231,5 +231,5 @@ func TestDelete(t *testing.T) {
 	Delete(obj, "trueCondition")
 	Delete(obj, "trueCondition") // no-op
 
-	g.Expect(obj.GetV1Beta2Conditions()).To(MatchConditions([]metav1.Condition{{Type: "falseCondition", Status: metav1.ConditionFalse}}, IgnoreLastTransitionTime(true)))
+	g.Expect(obj.GetConditions()).To(MatchConditions([]metav1.Condition{{Type: "falseCondition", Status: metav1.ConditionFalse}}, IgnoreLastTransitionTime(true)))
 }

@@ -1096,7 +1096,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			g := NewWithT(t)
 
 			setNodeHealthyAndReadyConditions(ctx, tc.cluster, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
-			g.Expect(tc.machine.GetV1Beta2Conditions()).To(conditions.MatchConditions(tc.expectConditions, conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(tc.machine.GetConditions()).To(conditions.MatchConditions(tc.expectConditions, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

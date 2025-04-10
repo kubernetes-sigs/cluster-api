@@ -31,7 +31,7 @@ import (
 // use the conditions package for setting conditions.
 type Setter interface {
 	Getter
-	SetConditions(clusterv1.Conditions)
+	SetV1Beta1Conditions(clusterv1.Conditions)
 }
 
 // Set sets the given condition.
@@ -45,7 +45,7 @@ func Set(to Setter, condition *clusterv1.Condition) {
 
 	// Check if the new conditions already exists, and change it only if there is a status
 	// transition (otherwise we should preserve the current last transition time)-
-	conditions := to.GetConditions()
+	conditions := to.GetV1Beta1Conditions()
 	exists := false
 	for i := range conditions {
 		existingCondition := conditions[i]
@@ -74,7 +74,7 @@ func Set(to Setter, condition *clusterv1.Condition) {
 		return lexicographicLess(&conditions[i], &conditions[j])
 	})
 
-	to.SetConditions(conditions)
+	to.SetV1Beta1Conditions(conditions)
 }
 
 // SetWithCustomLastTransitionTime is similar to Set function which sets the given condition but following changes for LastTransitionTime.
@@ -89,7 +89,7 @@ func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) 
 
 	// Check if the new conditions already exists, and change it only if there is a status
 	// transition (otherwise we should preserve the current last transition time)-
-	conditions := to.GetConditions()
+	conditions := to.GetV1Beta1Conditions()
 	exists := false
 	for i := range conditions {
 		existingCondition := conditions[i]
@@ -122,7 +122,7 @@ func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) 
 		return lexicographicLess(&conditions[i], &conditions[j])
 	})
 
-	to.SetConditions(conditions)
+	to.SetV1Beta1Conditions(conditions)
 }
 
 // TrueCondition returns a condition with Status=True and the given type.
@@ -224,14 +224,14 @@ func Delete(to Setter, t clusterv1.ConditionType) {
 		return
 	}
 
-	conditions := to.GetConditions()
+	conditions := to.GetV1Beta1Conditions()
 	newConditions := make(clusterv1.Conditions, 0, len(conditions))
 	for _, condition := range conditions {
 		if condition.Type != t {
 			newConditions = append(newConditions, condition)
 		}
 	}
-	to.SetConditions(newConditions)
+	to.SetV1Beta1Conditions(newConditions)
 }
 
 // lexicographicLess returns true if a condition is less than another in regard to

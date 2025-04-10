@@ -307,7 +307,7 @@ func TestApply(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(tt.latest.GetConditions()).To(haveSameConditionsOf(tt.want))
+			g.Expect(tt.latest.GetV1Beta1Conditions()).To(haveSameConditionsOf(tt.want))
 		})
 	}
 }
@@ -342,5 +342,5 @@ func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
 	err = diff.Apply(latest)
 
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(latest.GetConditions()).To(BeComparableTo(after.GetConditions()))
+	g.Expect(latest.GetV1Beta1Conditions()).To(BeComparableTo(after.GetV1Beta1Conditions()))
 }

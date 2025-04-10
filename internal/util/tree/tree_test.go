@@ -581,9 +581,9 @@ func withCondition(c *clusterv1.Condition) func(ctrlclient.Object) {
 func withV1Beta2Condition(c metav1.Condition) func(ctrlclient.Object) {
 	return func(m ctrlclient.Object) {
 		cluster := m.(*clusterv1.Cluster)
-		conds := cluster.GetV1Beta2Conditions()
+		conds := cluster.GetConditions()
 		conds = append(conds, c)
-		cluster.SetV1Beta2Conditions(conds)
+		cluster.SetConditions(conds)
 	}
 }
 

@@ -62,7 +62,7 @@ func NewPatch(before Getter, after Getter) (Patch, error) {
 	}
 
 	// Identify AddCondition and ModifyCondition changes.
-	targetConditions := after.GetConditions()
+	targetConditions := after.GetV1Beta1Conditions()
 	for i := range targetConditions {
 		targetCondition := targetConditions[i]
 		currentCondition := Get(before, targetCondition.Type)
@@ -77,7 +77,7 @@ func NewPatch(before Getter, after Getter) (Patch, error) {
 	}
 
 	// Identify RemoveCondition changes.
-	baseConditions := before.GetConditions()
+	baseConditions := before.GetV1Beta1Conditions()
 	for i := range baseConditions {
 		baseCondition := baseConditions[i]
 		targetCondition := Get(after, baseCondition.Type)

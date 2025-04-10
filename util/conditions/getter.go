@@ -35,9 +35,8 @@ const (
 // Getter interface defines methods that an API object should implement in order to
 // use the conditions package for getting conditions.
 type Getter interface {
-	// GetV1Beta2Conditions returns the list of conditions for a cluster API object.
-	// Note: GetV1Beta2Conditions will be renamed to GetConditions in a later stage of the transition to V1Beta2.
-	GetV1Beta2Conditions() []metav1.Condition
+	// GetConditions returns the list of conditions for a cluster API object.
+	GetConditions() []metav1.Condition
 }
 
 // Get returns a condition from the object implementing the Getter interface.
@@ -52,7 +51,7 @@ func Get(sourceObj Getter, sourceConditionType string) *metav1.Condition {
 	}
 
 	// Otherwise get the requested condition.
-	return meta.FindStatusCondition(sourceObj.GetV1Beta2Conditions(), sourceConditionType)
+	return meta.FindStatusCondition(sourceObj.GetConditions(), sourceConditionType)
 }
 
 // Has returns true if a condition with the given type exists.

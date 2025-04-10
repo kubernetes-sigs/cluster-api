@@ -90,7 +90,7 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 // GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
 func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
-		return getter.GetV1Beta2Conditions()
+		return getter.GetConditions()
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
@@ -111,7 +111,7 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 		return nil
 	}
 	var conditions []*clusterv1.Condition
-	for _, c := range getter.GetConditions() {
+	for _, c := range getter.GetV1Beta1Conditions() {
 		if c.Type != clusterv1.ReadyCondition {
 			conditions = append(conditions, &c)
 		}

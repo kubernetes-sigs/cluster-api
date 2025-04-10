@@ -1180,16 +1180,16 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.Class}
 }
 
-// GetConditions returns the set of conditions for this object.
-func (c *Cluster) GetConditions() Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *Cluster) GetV1Beta1Conditions() Conditions {
 	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (c *Cluster) SetConditions(conditions Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *Cluster) SetV1Beta1Conditions(conditions Conditions) {
 	if c.Status.Deprecated == nil {
 		c.Status.Deprecated = &ClusterDeprecatedStatus{}
 	}
@@ -1199,13 +1199,13 @@ func (c *Cluster) SetConditions(conditions Conditions) {
 	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *Cluster) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (c *Cluster) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *Cluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (c *Cluster) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 

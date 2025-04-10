@@ -30,13 +30,13 @@ type Getter interface {
 	client.Object
 
 	// GetConditions returns the list of conditions for a cluster API object.
-	GetConditions() clusterv1.Conditions
+	GetV1Beta1Conditions() clusterv1.Conditions
 }
 
 // Get returns the condition with the given type, if the condition does not exist,
 // it returns nil.
 func Get(from Getter, t clusterv1.ConditionType) *clusterv1.Condition {
-	conditions := from.GetConditions()
+	conditions := from.GetV1Beta1Conditions()
 	if conditions == nil {
 		return nil
 	}
@@ -119,7 +119,7 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 // on an object. If the object does not have other conditions, no summary condition is generated.
 // NOTE: The resulting Ready condition will have positive polarity; the conditions we are starting from might have positive or negative polarity.
 func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
-	conditions := from.GetConditions()
+	conditions := from.GetV1Beta1Conditions()
 
 	mergeOpt := &mergeOptions{}
 	for _, o := range options {

@@ -637,10 +637,10 @@ type objectWithValueGetterStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func (o objectWithValueGetter) GetV1Beta2Conditions() []metav1.Condition {
+func (o objectWithValueGetter) GetConditions() []metav1.Condition {
 	return o.Status.Conditions
 }
 
-func (o *objectWithValueGetter) SetV1Beta2Conditions(conditions []metav1.Condition) {
+func (o *objectWithValueGetter) SetConditions(conditions []metav1.Condition) {
 	o.Status.Conditions = conditions
 }

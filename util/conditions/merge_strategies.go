@@ -598,7 +598,7 @@ func indentIfMultiline(m string) string {
 // getConditionsWithOwnerInfo return all the conditions from an object each one with the corresponding ConditionOwnerInfo.
 func getConditionsWithOwnerInfo(obj Getter) []ConditionWithOwnerInfo {
 	ret := make([]ConditionWithOwnerInfo, 0, 10)
-	conditions := obj.GetV1Beta2Conditions()
+	conditions := obj.GetConditions()
 	ownerInfo := getConditionOwnerInfo(obj)
 	for _, condition := range conditions {
 		ret = append(ret, ConditionWithOwnerInfo{

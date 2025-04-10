@@ -1196,7 +1196,7 @@ func (w aggregationWrapper) DeepCopyObject() runtime.Object {
 	panic("not supported")
 }
 
-func (w aggregationWrapper) GetV1Beta2Conditions() []metav1.Condition {
+func (w aggregationWrapper) GetConditions() []metav1.Condition {
 	switch {
 	case w.cp != nil:
 		if c, err := conditions.UnstructuredGetAll(w.cp); err == nil && c != nil {
@@ -1204,11 +1204,11 @@ func (w aggregationWrapper) GetV1Beta2Conditions() []metav1.Condition {
 		}
 		return nil
 	case w.mp != nil:
-		return w.mp.GetV1Beta2Conditions()
+		return w.mp.GetConditions()
 	case w.md != nil:
-		return w.md.GetV1Beta2Conditions()
+		return w.md.GetConditions()
 	case w.ms != nil:
-		return w.ms.GetV1Beta2Conditions()
+		return w.ms.GetConditions()
 	}
 	panic("not supported")
 }

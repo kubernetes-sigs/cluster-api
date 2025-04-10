@@ -466,7 +466,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 	kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(&kcp.GetConditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
+	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedCondition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,

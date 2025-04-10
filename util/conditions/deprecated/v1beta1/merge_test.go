@@ -265,7 +265,7 @@ func TestMergeRespectPriority(t *testing.T) {
 }
 
 func conditionsWithSource(obj Setter, conditions ...*clusterv1.Condition) []localizedCondition {
-	obj.SetConditions(conditionList(conditions...))
+	obj.SetV1Beta1Conditions(conditionList(conditions...))
 
 	ret := []localizedCondition{}
 	for i := range conditions {

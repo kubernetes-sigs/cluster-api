@@ -145,7 +145,7 @@ func TestSet(t *testing.T) {
 
 			Set(tt.to, tt.condition)
 
-			g.Expect(tt.to.GetConditions()).To(haveSameConditionsOf(tt.want))
+			g.Expect(tt.to.GetV1Beta1Conditions()).To(haveSameConditionsOf(tt.want))
 		})
 	}
 }
@@ -380,7 +380,7 @@ func TestSetAggregate(t *testing.T) {
 
 func setterWithConditions(conditions ...*clusterv1.Condition) Setter {
 	obj := &clusterv1.Cluster{}
-	obj.SetConditions(conditionList(conditions...))
+	obj.SetV1Beta1Conditions(conditionList(conditions...))
 	return obj
 }
 

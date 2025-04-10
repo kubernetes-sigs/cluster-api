@@ -457,16 +457,16 @@ type MachineSet struct {
 	Status MachineSetStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for the MachineSet.
-func (m *MachineSet) GetConditions() Conditions {
+// GetV1Beta1Conditions returns the set of conditions for the MachineSet.
+func (m *MachineSet) GetV1Beta1Conditions() Conditions {
 	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions updates the set of conditions on the MachineSet.
-func (m *MachineSet) SetConditions(conditions Conditions) {
+// SetV1Beta1Conditions updates the set of conditions on the MachineSet.
+func (m *MachineSet) SetV1Beta1Conditions(conditions Conditions) {
 	if m.Status.Deprecated == nil {
 		m.Status.Deprecated = &MachineSetDeprecatedStatus{}
 	}
@@ -476,13 +476,13 @@ func (m *MachineSet) SetConditions(conditions Conditions) {
 	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (m *MachineSet) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (m *MachineSet) GetConditions() []metav1.Condition {
 	return m.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (m *MachineSet) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (m *MachineSet) SetConditions(conditions []metav1.Condition) {
 	m.Status.Conditions = conditions
 }
 

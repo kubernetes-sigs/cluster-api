@@ -157,16 +157,16 @@ type ClusterResourceSetV1Beta1DeprecatedStatus struct {
 
 // ANCHOR_END: ClusterResourceSetStatus
 
-// GetConditions returns the set of conditions for this object.
-func (m *ClusterResourceSet) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (m *ClusterResourceSet) GetV1Beta1Conditions() clusterv1.Conditions {
 	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (m *ClusterResourceSet) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	if m.Status.Deprecated == nil {
 		m.Status.Deprecated = &ClusterResourceSetDeprecatedStatus{}
 	}
@@ -176,13 +176,13 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (m *ClusterResourceSet) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (m *ClusterResourceSet) GetConditions() []metav1.Condition {
 	return m.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (m *ClusterResourceSet) SetConditions(conditions []metav1.Condition) {
 	m.Status.Conditions = conditions
 }
 

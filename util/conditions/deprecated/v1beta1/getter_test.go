@@ -49,7 +49,7 @@ func TestGetAndHas(t *testing.T) {
 	g.Expect(Has(cluster, "conditionBaz")).To(BeFalse())
 	g.Expect(Get(cluster, "conditionBaz")).To(BeNil())
 
-	cluster.SetConditions(conditionList(TrueCondition("conditionBaz")))
+	cluster.SetV1Beta1Conditions(conditionList(TrueCondition("conditionBaz")))
 
 	g.Expect(Has(cluster, "conditionBaz")).To(BeTrue())
 	g.Expect(Get(cluster, "conditionBaz")).To(HaveSameStateOf(TrueCondition("conditionBaz")))
@@ -330,7 +330,7 @@ func TestAggregate(t *testing.T) {
 
 func getterWithConditions(conditions ...*clusterv1.Condition) Getter {
 	obj := &clusterv1.Cluster{}
-	obj.SetConditions(conditionList(conditions...))
+	obj.SetV1Beta1Conditions(conditionList(conditions...))
 	return obj
 }
 

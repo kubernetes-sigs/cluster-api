@@ -3498,11 +3498,11 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 // adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
-	if cs := v1beta1conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {
+	if cs := v1beta1conditions.UnstructuredGetter(u).GetV1Beta1Conditions(); len(cs) != 0 {
 		existingConditions = cs
 	}
 	existingConditions = append(existingConditions, newConditions...)
-	v1beta1conditions.UnstructuredSetter(u).SetConditions(existingConditions)
+	v1beta1conditions.UnstructuredSetter(u).SetV1Beta1Conditions(existingConditions)
 }
 
 // asserts the conditions set on the Getter object.

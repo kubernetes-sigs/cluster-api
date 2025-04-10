@@ -31,9 +31,8 @@ import (
 type Setter interface {
 	Getter
 
-	// SetV1Beta2Conditions sets conditions for an API object.
-	// Note: SetV1Beta2Conditions will be renamed to SetConditions in a later stage of the transition to V1Beta2.
-	SetV1Beta2Conditions([]metav1.Condition)
+	// SetConditions sets conditions for an API object.
+	SetConditions([]metav1.Condition)
 }
 
 // SetOption is some configuration that modifies options for a Set request.
@@ -85,7 +84,7 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 		condition.ObservedGeneration = objMeta.GetGeneration()
 	}
 
-	conditions := targetObj.GetV1Beta2Conditions()
+	conditions := targetObj.GetConditions()
 	if changed := setStatusCondition(&conditions, condition); !changed {
 		return
 	}
@@ -96,7 +95,7 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 		})
 	}
 
-	targetObj.SetV1Beta2Conditions(conditions)
+	targetObj.SetConditions(conditions)
 }
 
 func setStatusCondition(conditions *[]metav1.Condition, condition metav1.Condition) bool {
@@ -116,12 +115,12 @@ func Delete(to Setter, conditionType string) {
 		return
 	}
 
-	conditions := to.GetV1Beta2Conditions()
+	conditions := to.GetConditions()
 	newConditions := make([]metav1.Condition, 0, len(conditions)-1)
 	for _, condition := range conditions {
 		if condition.Type != conditionType {
 			newConditions = append(newConditions, condition)
 		}
 	}
-	to.SetV1Beta2Conditions(newConditions)
+	to.SetConditions(newConditions)
 }

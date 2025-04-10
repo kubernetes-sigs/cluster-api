@@ -59,12 +59,12 @@ func NewPatch(before, after Getter) (Patch, error) {
 	if util.IsNil(before) {
 		return nil, errors.New("error creating patch: before object is nil")
 	}
-	beforeConditions := before.GetV1Beta2Conditions()
+	beforeConditions := before.GetConditions()
 
 	if util.IsNil(after) {
 		return nil, errors.New("error creating patch: after object is nil")
 	}
-	afterConditions := after.GetV1Beta2Conditions()
+	afterConditions := after.GetConditions()
 
 	// Identify AddCondition and ModifyCondition changes.
 	for i := range afterConditions {
@@ -135,7 +135,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 	if util.IsNil(latest) {
 		return errors.New("error patching conditions: latest object is nil")
 	}
-	latestConditions := latest.GetV1Beta2Conditions()
+	latestConditions := latest.GetConditions()
 
 	applyOpt := &PatchApplyOptions{
 		// By default, sort conditions by the default condition order: available and ready always first, deleting and paused always last, all the other conditions in alphabetical order.
@@ -222,7 +222,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 		})
 	}
 
-	latest.SetV1Beta2Conditions(latestConditions)
+	latest.SetConditions(latestConditions)
 	return nil
 }
 

@@ -2817,9 +2817,9 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 
-			g.Expect(tc.controlPlane.KCP.GetV1Beta2Conditions()).To(conditions.MatchConditions(tc.expectKCPConditions, conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(tc.controlPlane.KCP.GetConditions()).To(conditions.MatchConditions(tc.expectKCPConditions, conditions.IgnoreLastTransitionTime(true)))
 			for _, machine := range tc.controlPlane.Machines {
-				g.Expect(machine.GetV1Beta2Conditions()).To(conditions.MatchConditions(tc.expectMachineConditions, conditions.IgnoreLastTransitionTime(true)))
+				g.Expect(machine.GetConditions()).To(conditions.MatchConditions(tc.expectMachineConditions, conditions.IgnoreLastTransitionTime(true)))
 			}
 		})
 	}

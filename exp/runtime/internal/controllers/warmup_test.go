@@ -95,7 +95,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			g.Expect(handlers[1].Name).To(Equal(fmt.Sprintf("second.ext%d", i+1)))
 			g.Expect(handlers[2].Name).To(Equal(fmt.Sprintf("third.ext%d", i+1)))
 
-			conditions := config.GetConditions()
+			conditions := config.GetV1Beta1Conditions()
 			g.Expect(conditions).To(HaveLen(1))
 			g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
 			g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
@@ -157,7 +157,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 
 		for i, config := range list.Items {
 			handlers := config.Status.Handlers
-			conditions := config.GetConditions()
+			conditions := config.GetV1Beta1Conditions()
 
 			// Expect no handlers and a failed condition for the broken extension.
 			if config.Name == brokenExtension {

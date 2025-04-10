@@ -1913,7 +1913,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.1").
 					WithMachineDeployment(
-						builder.MachineDeploymentTopology("thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").
+						builder.MachineDeploymentTopology("thisnameisreallymuchlongerthanthemaximumlengthofsixtythreecharacters").
 							WithClass("aa").
 							Build()).
 					Build()).
@@ -1927,7 +1927,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithClass("foo").
 					WithVersion("v1.19.1").
 					WithMachinePool(
-						builder.MachinePoolTopology("thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").
+						builder.MachinePoolTopology("thisnameisreallymuchlongerthanthemaximumlengthofsixtythreecharacters").
 							WithClass("aa").
 							Build()).
 					Build()).

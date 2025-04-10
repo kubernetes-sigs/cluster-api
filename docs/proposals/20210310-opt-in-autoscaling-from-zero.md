@@ -195,19 +195,20 @@ type DockerMachineTemplate struct {
 ```
 _Note: the `ResourceList` and `ResourceName` referenced are from k8s.io/api/core/v1`_
 
-`platform.NodeInfo` is a struct that contains the architecture and operating system information of the node, to 
-implement in the `util` package of the `cluster-api` project. The defined types and constants are exported for use by the 
-cluster-api providers integrations.
+`platform.NodeInfo` is a struct that contains the architecture and operating system information of the node, to implement 
+in the providers integration code.
 Its definition would look like this:
 
 ```go
 package platform
 
-// Architecture represents the architecture of the node. Its underlying type is a string.
+// Architecture represents the CPU architecture of the node. Its underlying type is a string.
+// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+// +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
 // +enum
 type Architecture string
 
-// Architecture constants defined for clarity and to be used by the cluster-api providers.
+// Architecture constants defined for clarity.
 const (
     ArchitectureAmd64 Architecture = "amd64"
     ArchitectureArm64 Architecture = "arm64"
@@ -217,11 +218,11 @@ const (
 
 // NodeInfo contains information about the node's architecture and operating system.
 type NodeInfo struct {
-    // Architecture is the architecture of the node. It is a string that can be any of (amd64, arm64, s390x, ppc64le).
+    // architecture is the CPU architecture of the node. 
+    // Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
     // +optional
-    // +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
     Architecture Architecture `json:"architecture,omitempty"`
-    // OperatingSystem is a string representing the operating system of the node. 
+    // operatingSystem is a string representing the operating system of the node. 
     // +optional
     OperatingSystem string `json:"operatingSystem,omitempty"`
 }

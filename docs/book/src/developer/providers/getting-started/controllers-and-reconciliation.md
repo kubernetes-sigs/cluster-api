@@ -260,7 +260,7 @@ Right now, it probably looks like this:
 ```go
     if err = (&controllers.MailgunClusterReconciler{
         Client: mgr.GetClient(),
-        Log:    ctrl.Log.WithName("controllers").WithName("MailgunCluster"),
+        Scheme: mgr.GetScheme(),
     }).SetupWithManager(mgr); err != nil {
         setupLog.Error(err, "Unable to create controller", "controller", "MailgunCluster")
         os.Exit(1)
@@ -293,7 +293,7 @@ We're going to use environment variables for this:
     
     if err = (&controllers.MailgunClusterReconciler{
         Client:    mgr.GetClient(),
-        Log:       ctrl.Log.WithName("controllers").WithName("MailgunCluster"),
+        Scheme: mgr.GetScheme(),
         Mailgun:   mg,
         Recipient: recipient,
     }).SetupWithManager(mgr); err != nil {

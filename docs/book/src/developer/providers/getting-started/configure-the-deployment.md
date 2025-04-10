@@ -53,7 +53,7 @@ As you might have noticed, we are reading variable values from a `ConfigMap` and
 You now have to add those to the manifest, but how to inject configuration in production?
 The convention many Cluster-API projects use is environment variables.
 
-`config/manager/configuration.yaml`
+`config/manager/credentials.yaml`
 
 ```yaml
 ---

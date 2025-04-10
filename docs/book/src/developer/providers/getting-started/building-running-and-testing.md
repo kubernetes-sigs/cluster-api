@@ -45,24 +45,36 @@ labels:
     cluster.x-k8s.io/provider: infrastructure-mailgun
 ```
 
+If you're using kind for your management cluster, you can use the following command to build and push your image to the kind cluster's local registry. We need to use the IMG variable to override the default `controller:latest` image name with a specific version like `controller:0.1` to avoid having kubernetes try to pull the latest version of `controller` from docker hub.
+
+```bash
+cd cluster-api-provider-mailgun
+
+# Build the Docker image
+make docker-build IMG=controller:dev
+
+# Load the Docker image into the kind cluster
+kind load docker-image controller:dev
+```
+
 Now you can apply your provider as well:
 
 ```bash
 cd cluster-api-provider-mailgun
 
 # Install CRD and controller to current kubectl context
-make install deploy
+make install deploy IMG=controller:dev
 
 kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions
 ```
 
 ```text
 Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
 ```
 
 [label_prefix]: https://github.com/kubernetes-sigs/cluster-api/search?q=%22infrastructure-%22

@@ -93,6 +93,7 @@ config:
   image: controller:latest # change to remote image name if desired
   label: CAPM
   live_reload_deps: ["main.go", "go.mod", "go.sum", "api", "controllers", "pkg"]
+  go_main: cmd/main.go # kubebuilder puts main.go under the cmd directory
 ```
 
 - Create file `tilt-settings.yaml` in the cluster-api directory:
@@ -107,15 +108,11 @@ enable_providers:
   - mailgun
 ```
 
-- Create a kind cluster. By default, Tiltfile assumes the kind cluster is named `capi-test`.
+- Bring tilt up by using the `make tilt-up` command in the cluster-api directory. This will ensure tilt is set up correctly to use a local registry for your image. You may need to `make tilt-clean` before this if you've been using tilt with other providers.
 
 ```bash
-kind create cluster --name capi-test
-
-# If you want a more sophisticated setup of kind cluster + image registry, try:
-# ---
-# cd cluster-api
-# hack/kind-install-for-capd.sh
+cd cluster-api
+make tilt-up
 ```
 
 - Run `tilt up` in the cluster-api folder

@@ -162,23 +162,16 @@ const minimumCertificatesExpiryDays = 7
 func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
+	// For example, {"spec"} will allow "spec" to also be unset.
 	allowedPaths := [][]string{
 		// metadata
 		{"metadata", "*"},
 		// spec.kubeadmConfigSpec.clusterConfiguration
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageRepository"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "extraArgs"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "extraArgs", "*"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "dataDir"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "peerCertSANs"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "serverCertSANs"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "endpoints"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "caFile"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "certFile"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "keyFile"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
-		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "dns"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, featureGates},
 		{spec, kubeadmConfigSpec, clusterConfiguration, featureGates, "*"},
@@ -552,21 +545,11 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 
 	// update validations
 	if oldClusterConfiguration != nil {
-		if newClusterConfiguration.Etcd.External != nil && oldClusterConfiguration.Etcd.Local != nil {
+		if (newClusterConfiguration.Etcd.External != nil && oldClusterConfiguration.Etcd.External == nil) || (newClusterConfiguration.Etcd.External == nil && oldClusterConfiguration.Etcd.External != nil) {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
 					pathPrefix.Child("etcd", "external"),
-					"cannot change between external and local etcd",
-				),
-			)
-		}
-
-		if newClusterConfiguration.Etcd.Local != nil && oldClusterConfiguration.Etcd.External != nil {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					pathPrefix.Child("etcd", "local"),
 					"cannot change between external and local etcd",
 				),
 			)

@@ -222,7 +222,8 @@ type NodeInfo struct {
     // Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
     // +optional
     Architecture Architecture `json:"architecture,omitempty"`
-    // operatingSystem is a string representing the operating system of the node. 
+    // operatingSystem is a string representing the operating system of the node.
+    // This may be a string like 'linux' or 'windows'.
     // +optional
     OperatingSystem string `json:"operatingSystem,omitempty"`
 }

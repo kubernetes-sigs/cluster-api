@@ -47,7 +47,7 @@ import (
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -316,7 +316,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	if len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas) && len(dockerMachineList.Items) == int(*machinePool.Spec.Replicas) {
 		dockerMachinePool.Status.Ready = true
-		conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyCondition)
+		v1beta1conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyCondition)
 
 		return ctrl.Result{}, nil
 	}
@@ -407,39 +407,39 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 	switch {
 	// We are scaling up
 	case readyReplicaCount < desiredReplicas:
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	// We are scaling down
 	case readyReplicaCount > desiredReplicas:
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	default:
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
 		if len(dockerMachines) == readyReplicaCount {
-			if conditions.IsFalse(dockerMachinePool, clusterv1.ResizedCondition) {
+			if v1beta1conditions.IsFalse(dockerMachinePool, clusterv1.ResizedCondition) {
 				log.Info("All the replicas are ready", "replicas", readyReplicaCount)
 			}
-			conditions.MarkTrue(dockerMachinePool, clusterv1.ResizedCondition)
+			v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.ResizedCondition)
 		}
 		// This means that there was no error in generating the desired number of machine objects
-		conditions.MarkTrue(dockerMachinePool, clusterv1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.MachinesCreatedCondition)
 	}
 
-	getters := make([]conditions.Getter, 0, len(dockerMachines))
+	getters := make([]v1beta1conditions.Getter, 0, len(dockerMachines))
 	for i := range dockerMachines {
 		getters = append(getters, &dockerMachines[i])
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(dockerMachinePool, expv1.ReplicasReadyCondition, getters, conditions.AddSourceRef())
+	v1beta1conditions.SetAggregate(dockerMachinePool, expv1.ReplicasReadyCondition, getters, v1beta1conditions.AddSourceRef())
 
 	return ctrl.Result{}, nil
 }
 
 func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
-	conditions.SetSummary(dockerMachinePool,
-		conditions.WithConditions(
+	v1beta1conditions.SetSummary(dockerMachinePool,
+		v1beta1conditions.WithConditions(
 			expv1.ReplicasReadyCondition,
 		),
 	)

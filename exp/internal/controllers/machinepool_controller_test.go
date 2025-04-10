@@ -46,7 +46,7 @@ import (
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1022,7 +1022,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		infrastructureReady bool
 		expectError         bool
 		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
-		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
+		conditionAssertFunc func(t *testing.T, getter v1beta1conditions.Getter)
 	}{
 		{
 			name:                "all conditions true",
@@ -1043,7 +1043,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				}
 				mp.Status.Deprecated.V1Beta1.ReadyReplicas = 2
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 				g := NewWithT(t)
 
@@ -1067,12 +1067,12 @@ func TestMachinePoolConditions(t *testing.T) {
 					},
 				})
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyCondition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
 			},
@@ -1081,16 +1081,16 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "bootstrap not ready with fallback condition",
 			bootstrapReady:      false,
 			infrastructureReady: true,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				bootstrapReadyCondition := conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
+				bootstrapReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyCondition)
 				g.Expect(bootstrapReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 
-				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
+				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
@@ -1108,13 +1108,13 @@ func TestMachinePoolConditions(t *testing.T) {
 					},
 				})
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 
 				g := NewWithT(t)
 
-				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
 			},
@@ -1123,16 +1123,16 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "infrastructure not ready with fallback condition",
 			bootstrapReady:      true,
 			infrastructureReady: false,
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 
-				g.Expect(conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
+				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
@@ -1147,12 +1147,12 @@ func TestMachinePoolConditions(t *testing.T) {
 					Name:       "does-not-exist",
 				}
 			},
-			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
+			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
@@ -1211,9 +1211,9 @@ func TestMachinePoolConditions(t *testing.T) {
 // adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}
-	if cs := conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {
+	if cs := v1beta1conditions.UnstructuredGetter(u).GetConditions(); len(cs) != 0 {
 		existingConditions = cs
 	}
 	existingConditions = append(existingConditions, newConditions...)
-	conditions.UnstructuredSetter(u).SetConditions(existingConditions)
+	v1beta1conditions.UnstructuredSetter(u).SetConditions(existingConditions)
 }

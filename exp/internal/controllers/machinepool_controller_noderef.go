@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -70,7 +70,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
 	}
 	if mp.Status.Replicas == readyReplicas && len(mp.Status.NodeRefs) == int(readyReplicas) {
-		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
+		v1beta1conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -128,12 +128,12 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	if mp.Status.Replicas != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
 		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", mp.Status.Replicas)
-		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// At this point, the required number of replicas are ready
-	conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
+	v1beta1conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 	return ctrl.Result{}, nil
 }
 

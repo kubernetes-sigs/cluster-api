@@ -411,7 +411,7 @@ func createGroupNode(sibling client.Object, siblingReady *clusterv1.Condition, o
 	if objReady != nil {
 		objReady.LastTransitionTime = minLastTransitionTime(objReady, siblingReady)
 		objReady.Message = ""
-		setReadyCondition(groupNode, objReady)
+		setReadyV1Beta1Condition(groupNode, objReady)
 	}
 	return groupNode
 }
@@ -487,7 +487,7 @@ func updateGroupNode(groupObj client.Object, groupReady *clusterv1.Condition, ob
 	if groupReady != nil {
 		groupReady.LastTransitionTime = minLastTransitionTime(objReady, groupReady)
 		groupReady.Message = ""
-		setReadyCondition(groupObj, groupReady)
+		setReadyV1Beta1Condition(groupObj, groupReady)
 	}
 }
 

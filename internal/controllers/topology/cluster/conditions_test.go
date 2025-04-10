@@ -34,7 +34,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -978,7 +978,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 
-				actualCondition := conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
+				actualCondition := v1beta1conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
 				g.Expect(actualCondition).ToNot(BeNil())
 				g.Expect(actualCondition.Status).To(BeEquivalentTo(tt.wantConditionStatus))
 				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantConditionReason))

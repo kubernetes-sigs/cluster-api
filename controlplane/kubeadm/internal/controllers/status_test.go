@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -2040,8 +2040,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
@@ -2200,7 +2200,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Ready).To(BeFalse())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 }
 
 func kubeadmConfigMap() *corev1.ConfigMap {

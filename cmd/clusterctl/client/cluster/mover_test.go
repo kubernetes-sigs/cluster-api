@@ -42,7 +42,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 type moveTestsFields struct {
@@ -1486,7 +1486,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
 									},
 								},
 							},
@@ -1535,7 +1535,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
+										*v1beta1conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
 									},
 								},
 							},
@@ -1566,7 +1566,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
 									},
 								},
 							},
@@ -1596,7 +1596,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
 									},
 								},
 							},
@@ -1646,7 +1646,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
 									},
 								},
 							},

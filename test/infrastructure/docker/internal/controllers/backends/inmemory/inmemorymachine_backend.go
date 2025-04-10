@@ -45,7 +45,7 @@ import (
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -94,7 +94,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
 	if !cluster.Status.InfrastructureReady {
-		conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -109,8 +109,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// NOTE: we are not using bootstrap data, but we wait for it in order to simulate a real machine
 	// provisioning workflow.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-			conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingControlPlaneInitializedReason, clusterv1.ConditionSeverityInfo, "")
+		// TODO (v1beta2): test for v1beta2 conditions
+		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+			v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingControlPlaneInitializedReason, clusterv1.ConditionSeverityInfo, "")
 			v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 				Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -121,7 +122,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			return ctrl.Result{}, nil
 		}
 
-		conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -216,7 +217,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 	start := cloudMachine.CreationTimestamp
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.VMWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.VMWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -229,7 +230,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 	inMemoryMachine.Spec.ProviderID = ptr.To(calculateProviderID(inMemoryMachine))
 	inMemoryMachine.Status.Ready = true
-	conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
+	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -240,7 +241,8 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (_ ctrl.Result, retErr error) {
 	// No-op if the VM is not provisioned yet
-	if !conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryNodeProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -277,10 +279,11 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 		}
 	}
 
-	start := conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime
+	// TODO (v1beta2): test for v1beta2 conditions
+	start := v1beta1conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(inMemoryMachine, infrav1.NodeProvisionedCondition, infrav1.NodeWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.NodeProvisionedCondition, infrav1.NodeWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryNodeProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -350,7 +353,7 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 		}
 	}
 
-	conditions.MarkTrue(inMemoryMachine, infrav1.NodeProvisionedCondition)
+	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.NodeProvisionedCondition)
 	v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryNodeProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -370,7 +373,8 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	}
 
 	// No-op if the VM is not provisioned yet
-	if !conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -380,7 +384,8 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	}
 
 	// No-op if the Node is not provisioned yet
-	if !conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -417,10 +422,11 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 		}
 	}
 
-	start := conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
+	// TODO (v1beta2): test for v1beta2 conditions
+	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(inMemoryMachine, infrav1.EtcdProvisionedCondition, infrav1.EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.EtcdProvisionedCondition, infrav1.EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -540,7 +546,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 		}
 	}
 
-	conditions.MarkTrue(inMemoryMachine, infrav1.EtcdProvisionedCondition)
+	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.EtcdProvisionedCondition)
 	v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryEtcdProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -611,7 +617,8 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	}
 
 	// No-op if the VM is not provisioned yet
-	if !conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -621,7 +628,8 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	}
 
 	// No-op if the Node is not provisioned yet
-	if !conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -658,10 +666,11 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 		}
 	}
 
-	start := conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
+	// TODO (v1beta2): test for v1beta2 conditions
+	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(inMemoryMachine, infrav1.APIServerProvisionedCondition, infrav1.APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.APIServerProvisionedCondition, infrav1.APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -746,7 +755,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 		}
 	}
 
-	conditions.MarkTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition)
+	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition)
 	v1beta2conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryAPIServerProvisionedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -765,7 +774,8 @@ func (r *MachineBackendReconciler) reconcileNormalScheduler(ctx context.Context,
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the scheduler as soon as the API server is provisioned;
 	// also, the scheduler is immediately marked as ready.
-	if !conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -812,7 +822,8 @@ func (r *MachineBackendReconciler) reconcileNormalControllerManager(ctx context.
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the controller manager as soon as the API server is provisioned;
 	// also, the controller manager is immediately marked as ready.
-	if !conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -1237,9 +1248,9 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	}
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
-	conditions.SetSummary(inMemoryMachine,
-		conditions.WithConditions(inMemoryMachineConditions...),
-		conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
+	v1beta1conditions.SetSummary(inMemoryMachine,
+		v1beta1conditions.WithConditions(inMemoryMachineConditions...),
+		v1beta1conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
 	)
 	if err := v1beta2conditions.SetSummaryCondition(inMemoryMachine, inMemoryMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		inMemoryMachineV1Beta2Conditions,

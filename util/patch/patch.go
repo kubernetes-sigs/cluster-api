@@ -35,7 +35,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -124,7 +124,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Check if the object satisfies the Cluster API contract setter interfaces; if not, ignore condition field path entirely.
-	if _, canInterfaceConditions := obj.(conditions.Setter); !canInterfaceConditions {
+	if _, canInterfaceConditions := obj.(v1beta1conditions.Setter); !canInterfaceConditions {
 		h.clusterv1ConditionsFieldPath = nil
 	}
 	if _, canInterfaceV1Beta2Conditions := obj.(v1beta2conditions.Setter); !canInterfaceV1Beta2Conditions {
@@ -237,16 +237,16 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 		//
 		// NOTE: The checks and error below are done so that we don't panic if any of the objects don't satisfy the
 		// interface any longer, although this shouldn't happen because we already check when creating the patcher.
-		before, ok := h.beforeObject.(conditions.Getter)
+		before, ok := h.beforeObject.(v1beta1conditions.Getter)
 		if !ok {
 			return errors.Errorf("%s %s doesn't satisfy conditions.Getter, cannot patch", h.gvk.Kind, klog.KObj(h.beforeObject))
 		}
-		after, ok := obj.(conditions.Getter)
+		after, ok := obj.(v1beta1conditions.Getter)
 		if !ok {
 			return errors.Errorf("%s %s doesn't satisfy conditions.Getter, cannot compute patch", h.gvk.Kind, klog.KObj(obj))
 		}
 
-		diff, err := conditions.NewPatch(
+		diff, err := v1beta1conditions.NewPatch(
 			before,
 			after,
 		)
@@ -255,12 +255,12 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 		}
 		if !diff.IsZero() {
 			clusterv1ApplyPatch = func(latest client.Object) error {
-				latestSetter, ok := latest.(conditions.Setter)
+				latestSetter, ok := latest.(v1beta1conditions.Setter)
 				if !ok {
 					return errors.Errorf("%s %s doesn't satisfy conditions.Setter, cannot apply patch", h.gvk.Kind, klog.KObj(latest))
 				}
 
-				return diff.Apply(latestSetter, conditions.WithForceOverwrite(forceOverwrite), conditions.WithOwnedConditions(ownedConditions...))
+				return diff.Apply(latestSetter, v1beta1conditions.WithForceOverwrite(forceOverwrite), v1beta1conditions.WithOwnedConditions(ownedConditions...))
 			}
 		}
 	}

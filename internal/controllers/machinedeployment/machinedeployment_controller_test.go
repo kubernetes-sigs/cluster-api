@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -470,7 +470,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
 			g.Expect(env.Get(ctx, key, deployment)).To(Succeed())
-			return conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableCondition)
+			return v1beta1conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableCondition)
 		}, timeout).Should(BeTrue())
 
 		// Validate that the controller set the cluster name label in selector.

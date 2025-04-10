@@ -28,7 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 // Func is the functon definition for a filter.
@@ -155,7 +155,8 @@ func IsUnhealthyAndOwnerRemediated(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
-	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
+	// TODO (v1beta2): test for v1beta2 conditions
+	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
 }
 
 // IsUnhealthy returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
@@ -164,7 +165,8 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
-	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	// TODO (v1beta2): test for v1beta2 conditions
+	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition)
 }
 
 // HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
@@ -195,7 +197,8 @@ func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 			// Do not return true when the condition is not set or is set to Unknown because
 			// it means a transient state and can not be considered as unhealthy.
 			// preflightCheckCondition() can cover these two cases and skip the scaling up/down.
-			if conditions.IsFalse(machine, condition) {
+			// TODO (v1beta2): test for v1beta2 conditions
+			if v1beta1conditions.IsFalse(machine, condition) {
 				return true
 			}
 		}
@@ -209,7 +212,8 @@ func IsReady() Func {
 		if machine == nil {
 			return false
 		}
-		return conditions.IsTrue(machine, clusterv1.ReadyCondition)
+		// TODO (v1beta2): test for v1beta2 conditions
+		return v1beta1conditions.IsTrue(machine, clusterv1.ReadyCondition)
 	}
 }
 

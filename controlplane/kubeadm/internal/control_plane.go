@@ -35,7 +35,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -423,11 +423,12 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 			notes = append(notes, "marked for remediation")
 		}
 
+		// TODO (v1beta2): test for v1beta2 conditions
 		for _, condition := range controlPlaneMachineHealthConditions {
-			if conditions.IsUnknown(m, condition) {
+			if v1beta1conditions.IsUnknown(m, condition) {
 				notes = append(notes, strings.Replace(string(condition), "Healthy", " health unknown", -1))
 			}
-			if conditions.IsFalse(m, condition) {
+			if v1beta1conditions.IsFalse(m, condition) {
 				notes = append(notes, strings.Replace(string(condition), "Healthy", " not healthy", -1))
 			}
 		}

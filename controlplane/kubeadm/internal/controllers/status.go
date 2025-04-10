@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
@@ -78,24 +78,24 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	switch {
 	// We are scaling up
 	case replicas < desiredReplicas:
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up control plane to %d replicas (actual %d)", desiredReplicas, replicas)
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 	// We are scaling down
 	case replicas > desiredReplicas:
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 
 		// This means that there was no error in generating the desired number of machine objects
-		conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
 	default:
 		// make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created).
 		readyMachines := controlPlane.Machines.Filter(collections.IsReady())
 		if int32(len(readyMachines)) == replicas {
-			conditions.MarkTrue(controlPlane.KCP, controlplanev1.ResizedCondition)
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.ResizedCondition)
 		}
 
 		// This means that there was no error in generating the desired number of machine objects
-		conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
@@ -112,7 +112,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	// This only gets initialized once and does not change if the kubeadm config map goes away.
 	if status.HasKubeadmConfig {
 		controlPlane.KCP.Status.Initialized = true
-		conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
 	}
 
 	if controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas > 0 {

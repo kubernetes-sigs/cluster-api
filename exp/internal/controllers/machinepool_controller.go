@@ -47,7 +47,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -194,8 +194,8 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// TODO(jpang): add support for metrics.
 
 		// Always update the readyCondition with the summary of the machinepool conditions.
-		conditions.SetSummary(mp,
-			conditions.WithConditions(
+		v1beta1conditions.SetSummary(mp,
+			v1beta1conditions.WithConditions(
 				clusterv1.BootstrapReadyCondition,
 				clusterv1.InfrastructureReadyCondition,
 				expv1.ReplicasReadyCondition,
@@ -363,7 +363,8 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, mac
 func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
 		return nil
 	}

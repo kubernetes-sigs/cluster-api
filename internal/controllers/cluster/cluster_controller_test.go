@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -226,7 +226,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -237,7 +237,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			return v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
 		}, timeout).Should(BeTrue())
 	})
 
@@ -418,7 +418,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
-			return conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+			return v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		}, timeout).Should(BeTrue())
 	})
 }
@@ -922,5 +922,5 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	res, err := r.reconcileControlPlaneInitialized(ctx, s)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(conditions.Has(c, clusterv1.ControlPlaneInitializedCondition)).To(BeFalse())
+	g.Expect(v1beta1conditions.Has(c, clusterv1.ControlPlaneInitializedCondition)).To(BeFalse())
 }

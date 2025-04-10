@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,15 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package conditions
-
-import (
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-)
-
-func init() {
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-}
+// Package v1beta1 implements condition utilities.
+package v1beta1

@@ -34,7 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -263,7 +263,8 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		return
 	}
 
-	controlPlaneInitialized := conditions.Get(cluster, clusterv1.ControlPlaneInitializedCondition)
+	// TODO (v1beta2): test for v1beta2 conditions
+	controlPlaneInitialized := v1beta1conditions.Get(cluster, clusterv1.ControlPlaneInitializedCondition)
 	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedV1Beta2Reason,

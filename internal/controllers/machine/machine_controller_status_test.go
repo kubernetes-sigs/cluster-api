@@ -32,7 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
@@ -704,7 +704,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "Cluster control plane is not initialized",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
+				v1beta1conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
 				return c
 			}(),
 			machine: defaultMachine.DeepCopy(),
@@ -2534,7 +2534,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
-			nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+			nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
 			g.Expect(nodeHealthyCondition).ToNot(BeNil())
 			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))

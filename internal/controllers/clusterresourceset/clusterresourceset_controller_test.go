@@ -35,7 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -893,7 +893,7 @@ metadata:
 			crs := &addonsv1.ClusterResourceSet{}
 			g.Expect(env.Get(ctx, clusterResourceSetKey, crs)).To(Succeed())
 
-			appliedCondition := conditions.Get(crs, addonsv1.ResourcesAppliedCondition)
+			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedCondition)
 			g.Expect(appliedCondition).NotTo(BeNil())
 			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))

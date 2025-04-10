@@ -34,7 +34,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	dockerbackend "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends/docker"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -153,11 +153,11 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCluster *infrav1.DockerCluster) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding it during the deletion process).
-	conditions.SetSummary(dockerCluster,
-		conditions.WithConditions(
+	v1beta1conditions.SetSummary(dockerCluster,
+		v1beta1conditions.WithConditions(
 			infrav1.LoadBalancerAvailableCondition,
 		),
-		conditions.WithStepCounterIf(dockerCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+		v1beta1conditions.WithStepCounterIf(dockerCluster.ObjectMeta.DeletionTimestamp.IsZero()),
 	)
 	if err := v1beta2conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyV1Beta2Condition,
 		v1beta2conditions.ForConditionTypes{

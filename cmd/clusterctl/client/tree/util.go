@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -84,7 +84,7 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 	if getter == nil {
 		return nil
 	}
-	return conditions.Get(getter, clusterv1.ReadyCondition)
+	return v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
 }
 
 // GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
@@ -140,16 +140,16 @@ func setUpToDateV1Beta2Condition(obj client.Object, upToDate *metav1.Condition) 
 	}
 }
 
-func setReadyCondition(obj client.Object, ready *clusterv1.Condition) {
+func setReadyV1Beta1Condition(obj client.Object, ready *clusterv1.Condition) {
 	setter := objToSetter(obj)
 	if setter == nil {
 		return
 	}
-	conditions.Set(setter, ready)
+	v1beta1conditions.Set(setter, ready)
 }
 
-func objToGetter(obj client.Object) conditions.Getter {
-	if getter, ok := obj.(conditions.Getter); ok {
+func objToGetter(obj client.Object) v1beta1conditions.Getter {
+	if getter, ok := obj.(v1beta1conditions.Getter); ok {
 		return getter
 	}
 
@@ -157,12 +157,12 @@ func objToGetter(obj client.Object) conditions.Getter {
 	if !ok {
 		return nil
 	}
-	getter := conditions.UnstructuredGetter(objUnstructured)
+	getter := v1beta1conditions.UnstructuredGetter(objUnstructured)
 	return getter
 }
 
-func objToSetter(obj client.Object) conditions.Setter {
-	if setter, ok := obj.(conditions.Setter); ok {
+func objToSetter(obj client.Object) v1beta1conditions.Setter {
+	if setter, ok := obj.(v1beta1conditions.Setter); ok {
 		return setter
 	}
 
@@ -170,7 +170,7 @@ func objToSetter(obj client.Object) conditions.Setter {
 	if !ok {
 		return nil
 	}
-	setter := conditions.UnstructuredSetter(objUnstructured)
+	setter := v1beta1conditions.UnstructuredSetter(objUnstructured)
 	return setter
 }
 

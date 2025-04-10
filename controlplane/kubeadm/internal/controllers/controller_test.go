@@ -62,7 +62,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -1382,7 +1382,7 @@ kubernetesVersion: metav1.16.1
 
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
-		g.Expect(conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 		g.Expect(v1beta2conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)).To(BeTrue())
 
 		s, err := secret.GetFromNamespacedName(ctx, env, client.ObjectKey{Namespace: cluster.Namespace, Name: "foo"}, secret.ClusterCA)
@@ -1623,7 +1623,7 @@ kubernetesVersion: metav1.16.1`,
 
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
-		g.Expect(conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 
 		// Verify that the kubeconfig is using the custom CA
 		kBytes, err := kubeconfig.FromSecret(ctx, env, util.ObjectKey(cluster))
@@ -2160,7 +2160,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
 					kcp.Status.Initialized = false
-					conditions.MarkFalse(kcp, controlplanev1.AvailableCondition, "", clusterv1.ConditionSeverityError, "")
+					v1beta1conditions.MarkFalse(kcp, controlplanev1.AvailableCondition, "", clusterv1.ConditionSeverityError, "")
 					v1beta2conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
 						Status: metav1.ConditionFalse,
@@ -2965,7 +2965,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
+						v1beta1conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
 						return m
 					}(),
 				},
@@ -2987,7 +2987,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, "some-other-reason", clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, "some-other-reason", clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 				},
@@ -3011,7 +3011,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					machine.Name: machine, // Leadership will be forwarded to this Machine.
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 				},
@@ -3037,13 +3037,13 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
 						m.DeletionTimestamp.Time = m.DeletionTimestamp.Add(-1 * time.Duration(1) * time.Second) // Make sure this (the oldest) Machine is selected to run the pre-terminate hook.
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 					deletingMachineWithKCPPreTerminateHook.Name + "-2": func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
 						m.Name += "-2"
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 				},
@@ -3068,7 +3068,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 				},
@@ -3102,7 +3102,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					machine.Name: machine,
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
 						return m
 					}(),
 				},
@@ -3846,8 +3846,9 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 }
 
 func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
-	conditions.MarkTrue(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition)
-	conditions.MarkTrue(kcp, controlplanev1.EtcdClusterHealthyCondition)
+	// TODO (v1beta2):use v1beta2 conditions
+	v1beta1conditions.MarkTrue(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition)
+	v1beta1conditions.MarkTrue(kcp, controlplanev1.EtcdClusterHealthyCondition)
 }
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
@@ -3911,11 +3912,12 @@ func setMachineHealthy(m *clusterv1.Machine) {
 		Kind: "Node",
 		Name: "node-1",
 	}
-	conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyCondition)
-	conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyCondition)
-	conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyCondition)
-	conditions.MarkTrue(m, controlplanev1.MachineEtcdPodHealthyCondition)
-	conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyCondition)
+	// TODO (v1beta2):use v1beta2 conditions
+	v1beta1conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyCondition)
+	v1beta1conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyCondition)
+	v1beta1conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyCondition)
+	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdPodHealthyCondition)
+	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyCondition)
 }
 
 // newCluster return a CAPI cluster object.

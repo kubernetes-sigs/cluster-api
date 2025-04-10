@@ -31,7 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -195,8 +195,8 @@ func TestHealthCheckTargets(t *testing.T) {
 			Name:      clusterName,
 		},
 	}
-	conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
-	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
@@ -689,7 +689,7 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 }
 
 func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
-	return *conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
+	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }
 
 func newFailedHealthCheckV1Beta2Condition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {

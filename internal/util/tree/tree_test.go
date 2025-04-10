@@ -32,7 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func Test_getRowName(t *testing.T) {
@@ -88,27 +88,27 @@ func Test_newConditionDescriptor_readyColor(t *testing.T) {
 	}{
 		{
 			name:             "True condition should be green",
-			condition:        conditions.TrueCondition("C"),
+			condition:        v1beta1conditions.TrueCondition("C"),
 			expectReadyColor: green,
 		},
 		{
 			name:             "Unknown condition should be white",
-			condition:        conditions.UnknownCondition("C", "", ""),
+			condition:        v1beta1conditions.UnknownCondition("C", "", ""),
 			expectReadyColor: white,
 		},
 		{
 			name:             "False condition, severity error should be red",
-			condition:        conditions.FalseCondition("C", "", clusterv1.ConditionSeverityError, ""),
+			condition:        v1beta1conditions.FalseCondition("C", "", clusterv1.ConditionSeverityError, ""),
 			expectReadyColor: red,
 		},
 		{
 			name:             "False condition, severity warning should be yellow",
-			condition:        conditions.FalseCondition("C", "", clusterv1.ConditionSeverityWarning, ""),
+			condition:        v1beta1conditions.FalseCondition("C", "", clusterv1.ConditionSeverityWarning, ""),
 			expectReadyColor: yellow,
 		},
 		{
 			name:             "False condition, severity info should be white",
-			condition:        conditions.FalseCondition("C", "", clusterv1.ConditionSeverityInfo, ""),
+			condition:        v1beta1conditions.FalseCondition("C", "", clusterv1.ConditionSeverityInfo, ""),
 			expectReadyColor: white,
 		},
 		{
@@ -134,12 +134,12 @@ func Test_newConditionDescriptor_truncateMessages(t *testing.T) {
 	}{
 		{
 			name:          "Short messages are not changed",
-			condition:     conditions.UnknownCondition("C", "", "short message"),
+			condition:     v1beta1conditions.UnknownCondition("C", "", "short message"),
 			expectMessage: "short message",
 		},
 		{
 			name:          "Long message are truncated",
-			condition:     conditions.UnknownCondition("C", "", strings.Repeat("s", 150)),
+			condition:     v1beta1conditions.UnknownCondition("C", "", strings.Repeat("s", 150)),
 			expectMessage: fmt.Sprintf("%s ...", strings.Repeat("s", 100)),
 		},
 	}
@@ -215,13 +215,13 @@ func Test_TreePrefix(t *testing.T) {
 
 				o1 := fakeObject("child1",
 					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
-					withCondition(conditions.TrueCondition("C1.1")),
-					withCondition(conditions.TrueCondition("C1.2")),
+					withCondition(v1beta1conditions.TrueCondition("C1.1")),
+					withCondition(v1beta1conditions.TrueCondition("C1.2")),
 				)
 				o2 := fakeObject("child2",
 					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
-					withCondition(conditions.TrueCondition("C2.1")),
-					withCondition(conditions.TrueCondition("C2.2")),
+					withCondition(v1beta1conditions.TrueCondition("C2.1")),
+					withCondition(v1beta1conditions.TrueCondition("C2.2")),
 				)
 				obectjTree.Add(root, o1)
 				obectjTree.Add(root, o2)
@@ -245,15 +245,15 @@ func Test_TreePrefix(t *testing.T) {
 
 				o1 := fakeObject("child1",
 					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
-					withCondition(conditions.TrueCondition("C1.1")),
-					withCondition(conditions.TrueCondition("C1.2")),
+					withCondition(v1beta1conditions.TrueCondition("C1.1")),
+					withCondition(v1beta1conditions.TrueCondition("C1.2")),
 				)
 				o1_1 := fakeObject("child1.1")
 
 				o2 := fakeObject("child2",
 					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
-					withCondition(conditions.TrueCondition("C2.1")),
-					withCondition(conditions.TrueCondition("C2.2")),
+					withCondition(v1beta1conditions.TrueCondition("C2.1")),
+					withCondition(v1beta1conditions.TrueCondition("C2.2")),
 				)
 				o2_1 := fakeObject("child2.1")
 				obectjTree.Add(root, o1)
@@ -573,8 +573,8 @@ func withAnnotation(name, value string) func(ctrlclient.Object) {
 
 func withCondition(c *clusterv1.Condition) func(ctrlclient.Object) {
 	return func(m ctrlclient.Object) {
-		setter := m.(conditions.Setter)
-		conditions.Set(setter, c)
+		setter := m.(v1beta1conditions.Setter)
+		v1beta1conditions.Set(setter, c)
 	}
 }
 

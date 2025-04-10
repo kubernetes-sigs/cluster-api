@@ -183,6 +183,8 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
         alias: runtimewebhooks
       # CAPI utils
+      - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
+        alias: v1beta1conditions
       - pkg: sigs.k8s.io/cluster-api/util/conditions/v1beta2
         alias: v1beta2conditions
       - pkg: sigs.k8s.io/cluster-api/internal/topology/names
@@ -386,4 +388,4 @@ issues:
     # Ignore non-constant format string in call to condition utils
   - linters:
       - govet
-    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."
+    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\/deprecated\\/v1beta1\\."

@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
@@ -213,9 +213,9 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		}
 
 		// Report a summary of current status of the bootstrap object defined for this machine pool.
-		conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
-			conditions.UnstructuredGetter(bootstrapConfig),
-			conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+		v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
+			v1beta1conditions.UnstructuredGetter(bootstrapConfig),
+			v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 		)
 
 		if !ready {
@@ -240,7 +240,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 	// If dataSecretName is set without a ConfigRef, this means the user brought their own bootstrap data.
 	if m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
-		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -271,7 +271,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
 					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
 			}
-			conditions.MarkFalse(mp, clusterv1.InfrastructureReadyCondition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
+			v1beta1conditions.MarkFalse(mp, clusterv1.InfrastructureReadyCondition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
 		return ctrl.Result{}, err
 	}
@@ -289,9 +289,9 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	mp.Status.InfrastructureReady = ready
 
 	// Report a summary of current status of the infrastructure object defined for this machine pool.
-	conditions.SetMirror(mp, clusterv1.InfrastructureReadyCondition,
-		conditions.UnstructuredGetter(infraConfig),
-		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+	v1beta1conditions.SetMirror(mp, clusterv1.InfrastructureReadyCondition,
+		v1beta1conditions.UnstructuredGetter(infraConfig),
+		v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
 	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))

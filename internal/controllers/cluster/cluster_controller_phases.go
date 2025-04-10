@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
 			cluster.Status.InfrastructureReady = true
-			conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -220,12 +220,12 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this cluster.
-	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(cluster, clusterv1.InfrastructureReadyCondition,
-		conditions.UnstructuredGetter(s.infraCluster),
+	v1beta1conditions.SetMirror(cluster, clusterv1.InfrastructureReadyCondition,
+		v1beta1conditions.UnstructuredGetter(s.infraCluster),
 		fallBack,
 	)
 
@@ -306,12 +306,12 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// Report a summary of current status of the control plane object defined for this cluster.
-	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyCondition,
-		conditions.UnstructuredGetter(s.controlPlane),
+	v1beta1conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyCondition,
+		v1beta1conditions.UnstructuredGetter(s.controlPlane),
 		fallBack,
 	)
 
@@ -322,15 +322,15 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 
 	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set
 	// Determine if the control plane provider is initialized.
-	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		initialized, err := external.IsInitialized(s.controlPlane)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		if initialized {
-			conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		} else {
-			conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
 		}
 	}
 

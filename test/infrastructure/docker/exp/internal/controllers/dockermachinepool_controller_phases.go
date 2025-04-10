@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
@@ -201,7 +201,8 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	totalReadyMachines := 0
 	for i := range orderedDockerMachines {
 		dockerMachine := orderedDockerMachines[i]
-		if dockerMachine.Status.Ready || conditions.IsTrue(&dockerMachine, clusterv1.ReadyCondition) {
+		// TODO (v1beta2): test for v1beta2 conditions
+		if dockerMachine.Status.Ready || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyCondition) {
 			totalReadyMachines++
 		}
 	}
@@ -386,9 +387,10 @@ func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context,
 			return nil, nil, errors.Errorf("failed to find externalMachine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 
+		// TODO (v1beta2): test for v1beta2 conditions
 		if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
 			outdatedMachines = append(outdatedMachines, dockerMachine)
-		} else if dockerMachine.Status.Ready || conditions.IsTrue(&dockerMachine, clusterv1.ReadyCondition) {
+		} else if dockerMachine.Status.Ready || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyCondition) {
 			readyMatchingMachines = append(readyMatchingMachines, dockerMachine)
 		}
 	}

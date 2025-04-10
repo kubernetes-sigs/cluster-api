@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -247,10 +247,10 @@ func Test_hasSameAvailableReadyUptoDateStatusAndReason(t *testing.T) {
 }
 
 func Test_hasSameReadyStatusSeverityAndReason(t *testing.T) {
-	readyTrue := conditions.TrueCondition(clusterv1.ReadyCondition)
-	readyFalseReasonInfo := conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	readyFalseAnotherReasonInfo := conditions.FalseCondition(clusterv1.ReadyCondition, "AnotherReason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	readyFalseReasonWarning := conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityWarning, "message falseInfo1")
+	readyTrue := v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)
+	readyFalseReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	readyFalseAnotherReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "AnotherReason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	readyFalseReasonWarning := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityWarning, "message falseInfo1")
 
 	type args struct {
 		a *clusterv1.Condition
@@ -1083,7 +1083,7 @@ func Test_Add_NoEcho_v1Beta2(t *testing.T) {
 
 func Test_Add_NoEcho(t *testing.T) {
 	parent := fakeCluster("parent",
-		withClusterCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+		withClusterV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 	)
 
 	type args struct {
@@ -1102,7 +1102,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  nil,
 				obj: fakeMachine("my-machine",
-					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 				),
 			},
 			wantNode: true,
@@ -1113,7 +1113,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 				),
 			},
 			wantNode: false,
@@ -1124,7 +1124,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(conditions.FalseCondition(clusterv1.ReadyCondition, "", clusterv1.ConditionSeverityInfo, "")),
+					withMachineCondition(v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "", clusterv1.ConditionSeverityInfo, "")),
 				),
 			},
 			wantNode: true,
@@ -1135,7 +1135,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{Echo: true},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 				),
 			},
 			wantNode: true,
@@ -1304,11 +1304,11 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 					),
 				},
 				obj: fakeMachine("second-machine",
-					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1320,14 +1320,14 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 					),
 					fakeMachine("second-machine",
-						withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 					),
 				},
 				obj: fakeMachine("third-machine",
-					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1339,10 +1339,10 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 					),
 					fakeMachine("second-machine",
-						withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineCondition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
 					),
 				},
 				obj: VirtualObject("ns", "NotAMachine", "other-object"),
@@ -1414,9 +1414,9 @@ func withClusterAnnotation(name, value string) func(*clusterv1.Cluster) {
 	}
 }
 
-func withClusterCondition(c *clusterv1.Condition) func(*clusterv1.Cluster) {
+func withClusterV1Beta1Condition(c *clusterv1.Condition) func(*clusterv1.Cluster) {
 	return func(m *clusterv1.Cluster) {
-		conditions.Set(m, c)
+		v1beta1conditions.Set(m, c)
 	}
 }
 
@@ -1447,7 +1447,7 @@ func fakeMachine(name string, options ...machineOption) *clusterv1.Machine {
 
 func withMachineCondition(c *clusterv1.Condition) func(*clusterv1.Machine) {
 	return func(m *clusterv1.Machine) {
-		conditions.Set(m, c)
+		v1beta1conditions.Set(m, c)
 	}
 }
 

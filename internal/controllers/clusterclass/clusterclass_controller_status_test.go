@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestSetRefVersionsUpToDateCondition(t *testing.T) {
@@ -106,9 +106,9 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 
 			setRefVersionsUpToDateCondition(ctx, cc, tc.outdatedExternalReferences, tc.reconcileExternalReferencesError)
 
-			condition := v1beta2conditions.Get(cc, clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition)
+			condition := conditions.Get(cc, clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -149,9 +149,9 @@ func TestSetVariablesReconciledCondition(t *testing.T) {
 
 			setVariablesReconciledCondition(ctx, cc, tc.variableDiscoveryError)
 
-			condition := v1beta2conditions.Get(cc, clusterv1.ClusterClassVariablesReadyV1Beta2Condition)
+			condition := conditions.Get(cc, clusterv1.ClusterClassVariablesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

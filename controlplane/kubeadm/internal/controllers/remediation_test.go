@@ -38,8 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -173,7 +173,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			if c := v1beta1conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition); c != nil {
 				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedCondition)
 			}
-			if c := v1beta2conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition); c != nil {
+			if c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition); c != nil {
 				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 			}
 			return nil
@@ -2034,12 +2034,12 @@ func withMachineHealthCheckFailed() machineOption {
 		v1beta1conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		v1beta1conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
 		})
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
@@ -2053,12 +2053,12 @@ func withStuckRemediation() machineOption {
 		v1beta1conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSucceededCondition)
 		v1beta1conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 		})
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
@@ -2199,7 +2199,7 @@ func assertMachineV1beta2Condition(ctx context.Context, g *WithT, m *clusterv1.M
 		if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
 			return err
 		}
-		c := v1beta2conditions.Get(m, t)
+		c := conditions.Get(m, t)
 		if c == nil {
 			return errors.Errorf("condition %q was nil", t)
 		}

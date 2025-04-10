@@ -46,7 +46,7 @@ type HelperOptions struct {
 	// Please note that the default value for this option is inferred from the object struct.
 	// This means, that if the correct path cannot be detected, this option has to be specified. One example
 	// is if you pass a wrapper to unstructured.
-	// The override for this option is considered only if the object implements the v1beta2conditions.Setter interface.
+	// The override for this option is considered only if the object implements the conditions.Setter interface.
 	Metav1ConditionsFieldPath []string
 
 	// Clusterv1ConditionsFieldPath allows to override the path for the field hosting clusterv1.Conditions.
@@ -99,7 +99,7 @@ func (w WithOwnedV1Beta2Conditions) ApplyToHelper(in *HelperOptions) {
 
 // Metav1ConditionsFieldPath allows to override the path for the field hosting []metav1.Condition.
 // Please note that the default value for this option is inferred from the object struct.
-// The override for this option is considered only if the object implements the v1beta2conditions.Setter interface.
+// The override for this option is considered only if the object implements the conditions.Setter interface.
 type Metav1ConditionsFieldPath []string
 
 // ApplyToHelper applies this configuration to the given HelperOptions.

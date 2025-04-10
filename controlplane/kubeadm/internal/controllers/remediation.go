@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -57,7 +57,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 
 		shouldCleanup := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
-		shouldCleanupV1Beta2 := v1beta2conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && v1beta2conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		shouldCleanupV1Beta2 := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 
 		if !(shouldCleanup || shouldCleanupV1Beta2) {
 			continue
@@ -74,7 +74,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 
 		if shouldCleanupV1Beta2 {
-			v1beta2conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+			conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		}
 
 		if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
@@ -180,7 +180,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				clusterv1.ConditionSeverityWarning,
 				message)
 
-			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
@@ -213,7 +213,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "replicas", controlPlane.Machines.Len())
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if current replicas are less or equal to 1")
 
-			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
@@ -227,7 +227,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			log.Info("A control plane machine needs remediation, but there are other control-plane machines being provisioned. Skipping remediation")
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
 
-			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
@@ -241,7 +241,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			log.Info("A control plane machine needs remediation, but there are other control-plane machines being deleted. Skipping remediation")
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine deletion to complete before triggering remediation")
 
-			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
@@ -257,7 +257,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			if err != nil {
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 
-				v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+				conditions.Set(machineToBeRemediated, metav1.Condition{
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason,
@@ -269,7 +269,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				log.Info("A control plane machine needs remediation, but removing this machine could result in etcd quorum loss. Skipping remediation")
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
 
-				v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+				conditions.Set(machineToBeRemediated, metav1.Condition{
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
@@ -300,7 +300,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
 					"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
 
-				v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+				conditions.Set(machineToBeRemediated, metav1.Condition{
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
@@ -312,7 +312,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				log.Error(err, "Failed to move etcd leadership to candidate machine", "candidate", klog.KObj(etcdLeaderCandidate))
 				v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 
-				v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+				conditions.Set(machineToBeRemediated, metav1.Condition{
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason,
@@ -329,7 +329,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	if err := r.Client.Delete(ctx, machineToBeRemediated); err != nil {
 		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 
-		v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+		conditions.Set(machineToBeRemediated, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationInternalErrorV1Beta2Reason,
@@ -345,7 +345,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		Info("Deleting Machine (remediating unhealthy Machine)")
 	v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 
-	v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+	conditions.Set(machineToBeRemediated, metav1.Condition{
 		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason,
@@ -532,7 +532,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed in the latest %s. Skipping remediation", retryPeriod))
 		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest %s (RetryPeriod)", retryPeriod)
 
-		v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+		conditions.Set(machineToBeRemediated, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
@@ -548,7 +548,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 			log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed %d times (MaxRetry %d). Skipping remediation", remediationInProgressData.RetryCount, maxRetry))
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed %d times (MaxRetry)", maxRetry)
 
-			v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
+			conditions.Set(machineToBeRemediated, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,

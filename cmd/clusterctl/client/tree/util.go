@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 // GroupVersionVirtualObject is the group version for VirtualObject.
@@ -37,12 +37,12 @@ var GroupVersionVirtualObject = schema.GroupVersion{Group: "virtual.cluster.x-k8
 
 // GetReadyV1Beta2Condition returns the ReadyCondition for an object, if defined.
 func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
-	if getter, ok := obj.(v1beta2conditions.Getter); ok {
-		return v1beta2conditions.Get(getter, clusterv1.ReadyV1Beta2Condition)
+	if getter, ok := obj.(conditions.Getter); ok {
+		return conditions.Get(getter, clusterv1.ReadyV1Beta2Condition)
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
-		c, err := v1beta2conditions.UnstructuredGet(objUnstructured, clusterv1.ReadyV1Beta2Condition)
+		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.ReadyV1Beta2Condition)
 		if err != nil {
 			return nil
 		}
@@ -54,12 +54,12 @@ func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
 
 // GetAvailableV1Beta2Condition returns the AvailableCondition for an object, if defined.
 func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
-	if getter, ok := obj.(v1beta2conditions.Getter); ok {
-		return v1beta2conditions.Get(getter, clusterv1.AvailableV1Beta2Condition)
+	if getter, ok := obj.(conditions.Getter); ok {
+		return conditions.Get(getter, clusterv1.AvailableV1Beta2Condition)
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
-		c, err := v1beta2conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableV1Beta2Condition)
+		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableV1Beta2Condition)
 		if err != nil {
 			return nil
 		}
@@ -72,8 +72,8 @@ func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
 // GetMachineUpToDateV1Beta2Condition returns machine's UpToDate condition, if defined.
 // Note: The UpToDate condition only exist on machines, so no need to support reading from unstructured.
 func GetMachineUpToDateV1Beta2Condition(obj client.Object) *metav1.Condition {
-	if getter, ok := obj.(v1beta2conditions.Getter); ok {
-		return v1beta2conditions.Get(getter, clusterv1.MachineUpToDateV1Beta2Condition)
+	if getter, ok := obj.(conditions.Getter); ok {
+		return conditions.Get(getter, clusterv1.MachineUpToDateV1Beta2Condition)
 	}
 	return nil
 }
@@ -89,12 +89,12 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 
 // GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
 func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
-	if getter, ok := obj.(v1beta2conditions.Getter); ok {
+	if getter, ok := obj.(conditions.Getter); ok {
 		return getter.GetV1Beta2Conditions()
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
-		conditionList, err := v1beta2conditions.UnstructuredGetAll(objUnstructured)
+		conditionList, err := conditions.UnstructuredGetAll(objUnstructured)
 		if err != nil {
 			return nil
 		}
@@ -123,20 +123,20 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 }
 
 func setAvailableV1Beta2Condition(obj client.Object, available *metav1.Condition) {
-	if setter, ok := obj.(v1beta2conditions.Setter); ok {
-		v1beta2conditions.Set(setter, *available)
+	if setter, ok := obj.(conditions.Setter); ok {
+		conditions.Set(setter, *available)
 	}
 }
 
 func setReadyV1Beta2Condition(obj client.Object, ready *metav1.Condition) {
-	if setter, ok := obj.(v1beta2conditions.Setter); ok {
-		v1beta2conditions.Set(setter, *ready)
+	if setter, ok := obj.(conditions.Setter); ok {
+		conditions.Set(setter, *ready)
 	}
 }
 
 func setUpToDateV1Beta2Condition(obj client.Object, upToDate *metav1.Condition) {
-	if setter, ok := obj.(v1beta2conditions.Setter); ok {
-		v1beta2conditions.Set(setter, *upToDate)
+	if setter, ok := obj.(conditions.Setter); ok {
+		conditions.Set(setter, *upToDate)
 	}
 }
 

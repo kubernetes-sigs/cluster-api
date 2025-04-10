@@ -46,7 +46,7 @@ import (
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestExtensionReconciler_Reconcile(t *testing.T) {
@@ -116,7 +116,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			conf := &runtimev1.ExtensionConfig{}
 			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), conf)).To(Succeed())
-			pausedCondition := v1beta2conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
+			pausedCondition := conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
 			g.Expect(pausedCondition).ToNot(BeNil())
 			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
 		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())

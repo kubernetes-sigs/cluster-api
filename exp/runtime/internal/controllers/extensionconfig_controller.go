@@ -39,8 +39,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -232,7 +232,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
-		v1beta2conditions.Set(modifiedExtensionConfig, metav1.Condition{
+		conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
@@ -242,7 +242,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	}
 
 	v1beta1conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
-	v1beta2conditions.Set(discoveredExtension, metav1.Condition{
+	conditions.Set(discoveredExtension, metav1.Condition{
 		Type:   runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: runtimev1.ExtensionConfigDiscoveredV1Beta2Reason,

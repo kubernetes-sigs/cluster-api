@@ -56,8 +56,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels/format"
@@ -514,7 +514,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 
 			// Set machine's up to date condition
 			if upToDateCondition != nil {
-				v1beta2conditions.Set(m, *upToDateCondition)
+				conditions.Set(m, *upToDateCondition)
 			}
 
 			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
@@ -531,7 +531,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			v1beta2conditions.Set(m, *upToDateCondition)
+			conditions.Set(m, *upToDateCondition)
 			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -1339,7 +1339,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 
 		shouldCleanup := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
-		shouldCleanupV1Beta2 := v1beta2conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && v1beta2conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		shouldCleanupV1Beta2 := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 
 		if !(shouldCleanup || shouldCleanupV1Beta2) {
 			continue
@@ -1356,7 +1356,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 
 		if shouldCleanupV1Beta2 {
-			v1beta2conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+			conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		}
 
 		if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
@@ -1549,7 +1549,7 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 		if condition != nil {
 			v1beta1conditions.Set(m, condition)
 		}
-		v1beta2conditions.Set(m, v1beta2Condition)
+		conditions.Set(m, v1beta2Condition)
 
 		if err := patchHelper.Patch(ctx, m,
 			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{

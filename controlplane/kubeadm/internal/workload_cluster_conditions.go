@@ -38,8 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
@@ -74,7 +74,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		for _, m := range controlPlane.Machines {
 			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to get the Node which is hosting the etcd member")
 
-			v1beta2conditions.Set(m, metav1.Condition{
+			conditions.Set(m, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
@@ -84,7 +84,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 
 		v1beta1conditions.MarkUnknown(controlPlane.KCP, controlplanev1.EtcdClusterHealthyCondition, controlplanev1.EtcdClusterInspectionFailedReason, "Failed to list Nodes which are hosting the etcd members")
 
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
@@ -105,7 +105,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
 			msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
 		}
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
@@ -117,7 +117,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	for _, machine := range controlPlane.Machines.Filter(collections.HasDeletionTimestamp) {
 		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason,
@@ -139,7 +139,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			if member == nil {
 				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member reports the cluster is composed by members %s, but the member hosted on this Machine is not included", etcdutil.MemberNames(currentMembers))
 
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
@@ -165,7 +165,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			if len(alarmList) > 0 {
 				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member reports alarms: %s", strings.Join(alarmList, ", "))
 
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
@@ -177,7 +177,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			// Otherwise consider the member healthy
 			v1beta1conditions.MarkTrue(machine, controlplanev1.MachineEtcdMemberHealthyCondition)
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Reason,
@@ -263,7 +263,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 		for _, m := range machines {
 			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to etcd: %s", err)
 
-			v1beta2conditions.Set(m, metav1.Condition{
+			conditions.Set(m, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
@@ -279,7 +279,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 		for _, m := range machines {
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
 
-			v1beta2conditions.Set(m, metav1.Condition{
+			conditions.Set(m, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
@@ -295,7 +295,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 		for _, m := range machines {
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed to get etcd members")
 
-			v1beta2conditions.Set(m, metav1.Condition{
+			conditions.Set(m, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
@@ -311,7 +311,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 		for _, m := range machines {
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed to get etcd alarms")
 
-			v1beta2conditions.Set(m, metav1.Condition{
+			conditions.Set(m, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
@@ -409,7 +409,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 			// The same info will also surface into the EtcdClusterHealthy condition on kcp.
 			v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Missing etcd member")
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
@@ -500,7 +500,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 			}
 
 			for _, condition := range allMachinePodV1beta2Conditions {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -511,7 +511,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 
 		v1beta1conditions.MarkUnknown(controlPlane.KCP, controlplanev1.ControlPlaneComponentsHealthyCondition, controlplanev1.ControlPlaneComponentsInspectionFailedReason, "Failed to list Nodes which are hosting control plane components: %v", err)
 
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
@@ -535,7 +535,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 				// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
 				msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
 			}
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -572,7 +572,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 			}
 
 			for _, condition := range allMachinePodV1beta2Conditions {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodDeletingV1Beta2Reason,
@@ -591,7 +591,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 			}
 
 			for _, condition := range allMachinePodV1beta2Conditions {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -629,7 +629,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 			}
 
 			for _, condition := range allMachinePodV1beta2Conditions {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -683,7 +683,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 	if nodeReadyUnknown(node) {
 		v1beta1conditions.MarkUnknown(machine, staticPodCondition, controlplanev1.PodInspectionFailedReason, "Node Ready condition is Unknown, Pod data might be stale")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -703,7 +703,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		if apierrors.IsNotFound(err) {
 			v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodMissingReason, clusterv1.ConditionSeverityError, "Pod %s is missing", podKey.Name)
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodDoesNotExistV1Beta2Reason,
@@ -713,7 +713,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		}
 		v1beta1conditions.MarkUnknown(machine, staticPodCondition, controlplanev1.PodInspectionFailedReason, "Failed to get Pod status")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -734,7 +734,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		if podCondition(pod, corev1.PodScheduled) != corev1.ConditionTrue {
 			v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Waiting to be scheduled")
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason,
@@ -748,7 +748,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		if podCondition(pod, corev1.PodInitialized) != corev1.ConditionTrue {
 			v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Running init containers")
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason,
@@ -760,7 +760,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// If there are no error from containers, report provisioning without further details.
 		v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   staticPodV1beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: controlplanev1.KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason,
@@ -775,7 +775,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		if podCondition(pod, corev1.PodReady) == corev1.ConditionTrue {
 			v1beta1conditions.MarkTrue(machine, staticPodCondition)
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:   staticPodV1beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
@@ -800,7 +800,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 			if terminatedWithError {
 				v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, strings.Join(containerWaitingMessages, ", "))
 
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    staticPodV1beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodFailedV1Beta2Reason,
@@ -812,7 +812,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 			// e.g., "waiting.reason: ErrImagePull" is an error, but since LastTerminationState does not exist, this cannot be differentiated from "PodProvisioningReason"
 			v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, strings.Join(containerWaitingMessages, ", "))
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason,
@@ -831,7 +831,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		if len(containerTerminatedMessages) > 0 {
 			v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, strings.Join(containerTerminatedMessages, ", "))
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodV1beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachinePodFailedV1Beta2Reason,
@@ -844,7 +844,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// Report this as part of the provisioning process because the corresponding control plane component is not ready yet.
 		v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodProvisioningReason, clusterv1.ConditionSeverityInfo, "Waiting for startup or readiness probes")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason,
@@ -856,7 +856,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// NOTE: This should never happen for the static pods running control plane components.
 		v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "All the containers have been terminated")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodFailedV1Beta2Reason,
@@ -868,7 +868,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// NOTE: This should never happen for the static pods running control plane components.
 		v1beta1conditions.MarkFalse(machine, staticPodCondition, controlplanev1.PodFailedReason, clusterv1.ConditionSeverityError, "All the containers have been terminated")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodFailedV1Beta2Reason,
@@ -879,7 +879,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		// to an error in communicating with the host of the pod.
 		v1beta1conditions.MarkUnknown(machine, staticPodCondition, controlplanev1.PodInspectionFailedReason, "Pod is reporting Unknown status")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    staticPodV1beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
@@ -1000,7 +1000,7 @@ type aggregateV1Beta2ConditionsFromMachinesToKCPInput struct {
 }
 
 // aggregateV1Beta2ConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
-// Note: the aggregation is computed in way that is similar to how v1beta2conditions.NewAggregateCondition works, but in this case the
+// Note: the aggregation is computed in way that is similar to how conditions.NewAggregateCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
 func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2ConditionsFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.
@@ -1016,7 +1016,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 		conditionCount := 0
 		conditionMessages := sets.Set[string]{}
 		for _, condition := range input.machineConditions {
-			if machineCondition := v1beta2conditions.Get(machine, condition); machineCondition != nil {
+			if machineCondition := conditions.Get(machine, condition); machineCondition != nil {
 				conditionCount++
 				conditionMessages.Insert(machineCondition.Message)
 				switch machineCondition.Status {
@@ -1098,7 +1098,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 
 	// In case of at least one machine with errors or KCP level errors (nodes without machines), report false.
 	if len(input.kcpErrors) > 0 || len(kcpMachinesWithErrors) > 0 {
-		v1beta2conditions.Set(input.controlPlane.KCP, metav1.Condition{
+		conditions.Set(input.controlPlane.KCP, metav1.Condition{
 			Type:    input.condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  input.falseReason,
@@ -1109,7 +1109,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 
 	// Otherwise, if there is at least one machine with unknown, report unknown.
 	if len(kcpMachinesWithUnknown) > 0 {
-		v1beta2conditions.Set(input.controlPlane.KCP, metav1.Condition{
+		conditions.Set(input.controlPlane.KCP, metav1.Condition{
 			Type:    input.condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.unknownReason,
@@ -1120,7 +1120,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 
 	// In case of no errors, no unknown, and at least one machine with info, report true.
 	if len(kcpMachinesWithInfo) > 0 {
-		v1beta2conditions.Set(input.controlPlane.KCP, metav1.Condition{
+		conditions.Set(input.controlPlane.KCP, metav1.Condition{
 			Type:   input.condition,
 			Status: metav1.ConditionTrue,
 			Reason: input.trueReason,
@@ -1129,7 +1129,7 @@ func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2Condition
 	}
 
 	// This last case should happen only if there are no provisioned machines.
-	v1beta2conditions.Set(input.controlPlane.KCP, metav1.Condition{
+	conditions.Set(input.controlPlane.KCP, metav1.Condition{
 		Type:    input.condition,
 		Status:  metav1.ConditionUnknown,
 		Reason:  input.unknownReason,

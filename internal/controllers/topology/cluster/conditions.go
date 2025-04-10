@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 func (r *Reconciler) reconcileConditions(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
@@ -64,7 +64,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				strings.Join(messages, ", "),
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterTopologyReconcilePausedV1Beta2Reason,
@@ -83,7 +83,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				"",
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterTopologyReconciledDeletingV1Beta2Reason,
@@ -104,7 +104,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				reconcileErr.Error(),
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason,
@@ -127,7 +127,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
@@ -149,7 +149,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				s.HookResponseTracker.AggregateMessage(),
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
@@ -257,7 +257,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				msgBuilder.String(),
 			),
 		)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  v1beta2Reason,
@@ -272,7 +272,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	v1beta1conditions.Set(cluster,
 		v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledCondition),
 	)
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.ClusterTopologyReconcileSucceededV1Beta2Reason,

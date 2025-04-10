@@ -40,8 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	fake2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 func TestUpdateEtcdConditions(t *testing.T) {
@@ -619,13 +619,13 @@ func TestUpdateManagedEtcdConditions(t *testing.T) {
 				g.Expect(*v1beta1conditions.Get(tt.kcp, controlplanev1.EtcdClusterHealthyCondition)).To(v1beta1conditions.MatchCondition(*tt.expectedKCPCondition))
 			}
 			if tt.expectedKCPV1Beta2Condition != nil {
-				g.Expect(*v1beta2conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)).To(v1beta2conditions.MatchCondition(*tt.expectedKCPV1Beta2Condition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+				g.Expect(*conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)).To(conditions.MatchCondition(*tt.expectedKCPV1Beta2Condition, conditions.IgnoreLastTransitionTime(true)))
 			}
 
 			for _, m := range tt.machines {
 				g.Expect(tt.expectedMachineConditions).To(HaveKey(m.Name))
 				g.Expect(m.GetConditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]), "unexpected conditions for Machine %s", m.Name)
-				g.Expect(m.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], v1beta2conditions.IgnoreLastTransitionTime(true)), "unexpected conditions for Machine %s", m.Name)
+				g.Expect(m.GetV1Beta2Conditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)), "unexpected conditions for Machine %s", m.Name)
 			}
 
 			g.Expect(controlPane.EtcdMembersAndMachinesAreMatching).To(Equal(tt.expectedEtcdMembersAndMachinesAreMatching), "EtcdMembersAndMachinesAreMatching does not match")
@@ -680,7 +680,7 @@ func TestUpdateExternalEtcdConditions(t *testing.T) {
 				g.Expect(*v1beta1conditions.Get(tt.kcp, controlplanev1.EtcdClusterHealthyCondition)).To(v1beta1conditions.MatchCondition(*tt.expectedKCPCondition))
 			}
 			if tt.expectedKCPV1Beta2Condition != nil {
-				g.Expect(*v1beta2conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)).To(v1beta2conditions.MatchCondition(*tt.expectedKCPV1Beta2Condition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+				g.Expect(*conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)).To(conditions.MatchCondition(*tt.expectedKCPV1Beta2Condition, conditions.IgnoreLastTransitionTime(true)))
 			}
 		})
 	}
@@ -1104,12 +1104,12 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			if tt.expectedKCPCondition != nil {
 				g.Expect(*v1beta1conditions.Get(tt.kcp, controlplanev1.ControlPlaneComponentsHealthyCondition)).To(v1beta1conditions.MatchCondition(*tt.expectedKCPCondition))
 			}
-			g.Expect(*v1beta2conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)).To(v1beta2conditions.MatchCondition(tt.expectedKCPV1Beta2Condition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)).To(conditions.MatchCondition(tt.expectedKCPV1Beta2Condition, conditions.IgnoreLastTransitionTime(true)))
 
 			for _, m := range tt.machines {
 				g.Expect(tt.expectedMachineConditions).To(HaveKey(m.Name))
 				g.Expect(m.GetConditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineConditions[m.Name]))
-				g.Expect(m.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], v1beta2conditions.IgnoreLastTransitionTime(true)))
+				g.Expect(m.GetV1Beta2Conditions()).To(conditions.MatchConditions(tt.expectedMachineV1Beta2Conditions[m.Name], conditions.IgnoreLastTransitionTime(true)))
 			}
 		})
 	}
@@ -1409,7 +1409,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 			w.updateStaticPodCondition(ctx, machine, *tt.node, component, condition, v1beta2Condition)
 
 			g.Expect(*v1beta1conditions.Get(machine, condition)).To(v1beta1conditions.MatchCondition(tt.expectedCondition))
-			g.Expect(*v1beta2conditions.Get(machine, v1beta2Condition)).To(v1beta2conditions.MatchCondition(tt.expectedV1Beta2Condition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*conditions.Get(machine, v1beta2Condition)).To(conditions.MatchCondition(tt.expectedV1Beta2Condition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1745,7 +1745,7 @@ func TestAggregateV1Beta2ConditionsFromMachinesToKCP(t *testing.T) {
 			}
 			aggregateV1Beta2ConditionsFromMachinesToKCP(input)
 
-			g.Expect(*v1beta2conditions.Get(input.controlPlane.KCP, conditionType)).To(v1beta2conditions.MatchCondition(tt.expectedCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*conditions.Get(input.controlPlane.KCP, conditionType)).To(conditions.MatchCondition(tt.expectedCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

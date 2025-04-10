@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 func Test_hasSameAvailableReadyUptoDateStatusAndReason(t *testing.T) {
@@ -1422,7 +1422,7 @@ func withClusterV1Beta1Condition(c *clusterv1.Condition) func(*clusterv1.Cluster
 
 func withClusterV1Beta2Condition(c metav1.Condition) func(*clusterv1.Cluster) {
 	return func(m *clusterv1.Cluster) {
-		v1beta2conditions.Set(m, c)
+		conditions.Set(m, c)
 	}
 }
 
@@ -1453,6 +1453,6 @@ func withMachineCondition(c *clusterv1.Condition) func(*clusterv1.Machine) {
 
 func withMachineV1Beta2Condition(c metav1.Condition) func(*clusterv1.Machine) {
 	return func(m *clusterv1.Machine) {
-		v1beta2conditions.Set(m, c)
+		conditions.Set(m, c)
 	}
 }

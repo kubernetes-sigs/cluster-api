@@ -33,8 +33,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -90,7 +90,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.HasRemediateMachineAnnotationReason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
 		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
 
-		v1beta2conditions.Set(t.Machine, metav1.Condition{
+		conditions.Set(t.Machine, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
@@ -116,7 +116,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		logger.V(3).Info("Target is unhealthy: node is missing")
 		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 
-		v1beta2conditions.Set(t.Machine, metav1.Condition{
+		conditions.Set(t.Machine, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
@@ -178,7 +178,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutDuration)
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutDuration)
 
-			v1beta2conditions.Set(t.Machine, metav1.Condition{
+			conditions.Set(t.Machine, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason,
@@ -209,7 +209,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.UnhealthyNodeConditionReason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String())
 			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", c.Timeout.Duration.String())
 
-			v1beta2conditions.Set(t.Machine, metav1.Condition{
+			conditions.Set(t.Machine, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason,
@@ -349,7 +349,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
 			v1beta1conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
 
-			v1beta2conditions.Set(t.Machine, metav1.Condition{
+			conditions.Set(t.Machine, metav1.Condition{
 				Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,

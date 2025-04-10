@@ -30,7 +30,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestSetControlPlaneReplicas(t *testing.T) {
@@ -364,9 +364,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 
 			setInfrastructureReadyCondition(ctx, tc.cluster, tc.infraCluster, tc.infraClusterIsNotFound)
 
-			condition := v1beta2conditions.Get(tc.cluster, clusterv1.ClusterInfrastructureReadyV1Beta2Condition)
+			condition := conditions.Get(tc.cluster, clusterv1.ClusterInfrastructureReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -529,9 +529,9 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 
 			setControlPlaneAvailableCondition(ctx, tc.cluster, tc.controlPlane, tc.controlPlaneIsNotFound)
 
-			condition := v1beta2conditions.Get(tc.cluster, clusterv1.ClusterControlPlaneAvailableV1Beta2Condition)
+			condition := conditions.Get(tc.cluster, clusterv1.ClusterControlPlaneAvailableV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -666,9 +666,9 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 
 			setControlPlaneInitializedCondition(ctx, tt.cluster, tt.controlPlane, tt.machines, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneInitializedV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneInitializedV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -756,9 +756,9 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 
 			setWorkersAvailableCondition(ctx, tt.cluster, tt.machinePools, tt.machineDeployments, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterWorkersAvailableV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterWorkersAvailableV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -874,9 +874,9 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			}
 			setControlPlaneMachinesReadyCondition(ctx, tt.cluster, machines, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -992,9 +992,9 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			}
 			setWorkerMachinesReadyCondition(ctx, tt.cluster, machines, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterWorkerMachinesReadyV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterWorkerMachinesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1151,9 +1151,9 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			}
 			setControlPlaneMachinesUpToDateCondition(ctx, tt.cluster, machines, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1309,9 +1309,9 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			}
 			setWorkerMachinesUpToDateCondition(ctx, tt.cluster, machines, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1504,9 +1504,9 @@ func TestSetRollingOutCondition(t *testing.T) {
 
 			setRollingOutCondition(ctx, tt.cluster, tt.controlPlane, tt.machinePools, tt.machineDeployments, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterRollingOutV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterRollingOutV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1755,9 +1755,9 @@ func TestSetScalingUpCondition(t *testing.T) {
 
 			setScalingUpCondition(ctx, tt.cluster, tt.controlPlane, tt.machinePools, tt.machineDeployments, tt.machineSets, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterScalingUpV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2006,9 +2006,9 @@ func TestSetScalingDownCondition(t *testing.T) {
 
 			setScalingDownCondition(ctx, tt.cluster, tt.controlPlane, tt.machinePools, tt.machineDeployments, tt.machineSets, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterScalingDownV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterScalingDownV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2113,9 +2113,9 @@ func TestSetRemediatingCondition(t *testing.T) {
 			}
 			setRemediatingCondition(ctx, tt.cluster, machinesToBeRemediated, unHealthyMachines, tt.getDescendantsSucceeded)
 
-			condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterRemediatingV1Beta2Condition)
+			condition := conditions.Get(tt.cluster, clusterv1.ClusterRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2165,9 +2165,9 @@ func TestDeletingCondition(t *testing.T) {
 
 			setDeletingCondition(ctx, tc.cluster, tc.deletingReason, tc.deletingMessage)
 
-			deletingCondition := v1beta2conditions.Get(tc.cluster, clusterv1.ClusterDeletingV1Beta2Condition)
+			deletingCondition := conditions.Get(tc.cluster, clusterv1.ClusterDeletingV1Beta2Condition)
 			g.Expect(deletingCondition).ToNot(BeNil())
-			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*deletingCondition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2776,9 +2776,9 @@ func TestSetAvailableCondition(t *testing.T) {
 
 			setAvailableCondition(ctx, tc.cluster, tc.clusterClass)
 
-			condition := v1beta2conditions.Get(tc.cluster, clusterv1.ClusterAvailableV1Beta2Condition)
+			condition := conditions.Get(tc.cluster, clusterv1.ClusterAvailableV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -3032,23 +3032,23 @@ func (s deleted) ApplyToCluster(c *clusterv1.Cluster) {
 type v1beta2Condition metav1.Condition
 
 func (c v1beta2Condition) ApplyToCluster(cluster *clusterv1.Cluster) {
-	v1beta2conditions.Set(cluster, metav1.Condition(c))
+	conditions.Set(cluster, metav1.Condition(c))
 }
 
 func (c v1beta2Condition) ApplyToMachinePool(mp *expv1.MachinePool) {
-	v1beta2conditions.Set(mp, metav1.Condition(c))
+	conditions.Set(mp, metav1.Condition(c))
 }
 
 func (c v1beta2Condition) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	v1beta2conditions.Set(md, metav1.Condition(c))
+	conditions.Set(md, metav1.Condition(c))
 }
 
 func (c v1beta2Condition) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	v1beta2conditions.Set(ms, metav1.Condition(c))
+	conditions.Set(ms, metav1.Condition(c))
 }
 
 func (c v1beta2Condition) ApplyToMachine(m *clusterv1.Machine) {
-	v1beta2conditions.Set(m, metav1.Condition(c))
+	conditions.Set(m, metav1.Condition(c))
 }
 
 type condition clusterv1.Condition

@@ -24,8 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 func updateStatus(ctx context.Context, s *scope) {
@@ -40,7 +40,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 			clusterv1.ClusterClassRefVersionsUpToDateInternalErrorReason,
 			"Please check controller logs for errors",
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason,
@@ -62,7 +62,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 				strings.Join(msg, "\n"),
 			),
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterClassRefVersionsNotUpToDateV1Beta2Reason,
@@ -74,7 +74,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	v1beta1conditions.Set(clusterClass,
 		v1beta1conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
 	)
-	v1beta2conditions.Set(clusterClass, metav1.Condition{
+	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Reason,
@@ -89,7 +89,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 			clusterv1.ConditionSeverityError,
 			variableDiscoveryError.Error(),
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason,
@@ -99,7 +99,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 	}
 
 	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
-	v1beta2conditions.Set(clusterClass, metav1.Condition{
+	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.ClusterClassVariablesReadyV1Beta2Reason,

@@ -34,8 +34,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 // updateStatus update Machine's status.
@@ -75,7 +75,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
 	if machine.Spec.Bootstrap.ConfigRef == nil {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineBootstrapDataSecretProvidedV1Beta2Reason,
@@ -84,17 +84,17 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	}
 
 	if bootstrapConfig != nil {
-		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			bootstrapConfig,
-			contract.Bootstrap().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
-			v1beta2conditions.FallbackCondition{
-				Status:  v1beta2conditions.BoolToStatus(machine.Status.BootstrapReady),
+			contract.Bootstrap().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyV1Beta2Condition),
+			conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(machine.Status.BootstrapReady),
 				Reason:  fallbackReason(machine.Status.BootstrapReady, clusterv1.MachineBootstrapConfigReadyV1Beta2Reason, clusterv1.MachineBootstrapConfigNotReadyV1Beta2Reason),
 				Message: bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, machine.Status.BootstrapReady),
 			},
 		)
 		if err != nil {
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason,
@@ -105,16 +105,16 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.
-		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
 			ready.Reason = clusterv1.MachineBootstrapConfigReadyV1Beta2Reason
 		}
-		v1beta2conditions.Set(machine, *ready)
+		conditions.Set(machine, *ready)
 		return
 	}
 
 	// If we got unexpected errors in reading the bootstrap config (this should happen rarely), surface them
 	if !bootstrapConfigIsNotFound {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineBootstrapConfigInternalErrorV1Beta2Reason,
@@ -126,7 +126,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 
 	// Bootstrap config missing when the machine is deleting and we know that the BootstrapConfig actually existed.
 	if !machine.DeletionTimestamp.IsZero() && machine.Status.BootstrapReady {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason,
@@ -139,7 +139,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	// surface this fact. This could happen when:
 	// - when applying the yaml file with the machine and all the objects referenced by it (provisioning yet to start/started, but status.nodeRef not yet set).
 	// - when the machine has been provisioned
-	v1beta2conditions.Set(machine, metav1.Condition{
+	conditions.Set(machine, metav1.Condition{
 		Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
@@ -163,17 +163,17 @@ func bootstrapConfigReadyFallBackMessage(kind string, ready bool) string {
 
 func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured, infraMachineIsNotFound bool) {
 	if infraMachine != nil {
-		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			infraMachine,
-			contract.InfrastructureMachine().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyV1Beta2Condition),
-			v1beta2conditions.FallbackCondition{
-				Status:  v1beta2conditions.BoolToStatus(machine.Status.InfrastructureReady),
+			contract.InfrastructureMachine().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyV1Beta2Condition),
+			conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(machine.Status.InfrastructureReady),
 				Reason:  fallbackReason(machine.Status.InfrastructureReady, clusterv1.MachineInfrastructureReadyV1Beta2Reason, clusterv1.MachineInfrastructureNotReadyV1Beta2Reason),
 				Message: infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, machine.Status.InfrastructureReady),
 			},
 		)
 		if err != nil {
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedV1Beta2Reason,
@@ -184,16 +184,16 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.
-		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
 			ready.Reason = clusterv1.MachineInfrastructureReadyV1Beta2Reason
 		}
-		v1beta2conditions.Set(machine, *ready)
+		conditions.Set(machine, *ready)
 		return
 	}
 
 	// If we got errors in reading the infra machine (this should happen rarely), surface them
 	if !infraMachineIsNotFound {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineInfrastructureInternalErrorV1Beta2Reason,
@@ -208,7 +208,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	// will be considered unreachable Machine deletion will complete.
 	if !machine.DeletionTimestamp.IsZero() {
 		if machine.Status.InfrastructureReady {
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
@@ -217,7 +217,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 			return
 		}
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
@@ -228,7 +228,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 
 	// Report an issue if infra machine missing after the machine has been initialized (and the machine is still running).
 	if machine.Status.InfrastructureReady {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
@@ -240,7 +240,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	// If the machine is not deleting, and infra machine object does not exist yet,
 	// surface this fact. This could happen when:
 	// - when applying the yaml file with the machine and all the objects referenced by it (provisioning yet to start/started, but status.InfrastructureReady not yet set).
-	v1beta2conditions.Set(machine, metav1.Condition{
+	conditions.Set(machine, metav1.Condition{
 		Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
@@ -286,8 +286,8 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 			// If conditions are not set, set them to ConnectionDown.
 			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
 			// However, if connection errors persist more than remoteConditionsGracePeriod, conditions will be overridden.
-			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) ||
-				!v1beta2conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
+			if !conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) ||
+				!conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
 				setNodeConditions(machine, metav1.ConditionUnknown,
 					clusterv1.MachineNodeConnectionDownV1Beta2Reason,
 					lastProbeSuccessMessage(lastProbeSuccessTime))
@@ -341,10 +341,10 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 				Message: "* Node.Ready: Condition not yet reported",
 			}
 		}
-		v1beta2conditions.Set(machine, *nodeReady)
+		conditions.Set(machine, *nodeReady)
 
 		status, reason, message := summarizeNodeV1Beta2Conditions(ctx, node)
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 			Status:  status,
 			Reason:  reason,
@@ -398,7 +398,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 
 func setNodeConditions(machine *clusterv1.Machine, status metav1.ConditionStatus, reason, msg string) {
 	for _, conditionType := range []string{clusterv1.MachineNodeReadyV1Beta2Condition, clusterv1.MachineNodeHealthyV1Beta2Condition} {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    conditionType,
 			Status:  status,
 			Reason:  reason,
@@ -422,7 +422,7 @@ func maxTime(t1, t2 time.Time) time.Time {
 }
 
 // summarizeNodeV1Beta2Conditions summarizes a Node's conditions (NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure).
-// the summary is computed in way that is similar to how v1beta2conditions.NewSummaryCondition works, but in this case the
+// the summary is computed in way that is similar to how conditions.NewSummaryCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
 func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav1.ConditionStatus, string, string) {
 	semanticallyFalseStatus := 0
@@ -497,33 +497,33 @@ type machineConditionCustomMergeStrategy struct {
 	negativePolarityConditionTypes []string
 }
 
-func (c machineConditionCustomMergeStrategy) Merge(operation v1beta2conditions.MergeOperation, conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
-	return v1beta2conditions.DefaultMergeStrategy(
+func (c machineConditionCustomMergeStrategy) Merge(operation conditions.MergeOperation, mergeConditions []conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
+	return conditions.DefaultMergeStrategy(
 		// While machine is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
-		v1beta2conditions.GetPriorityFunc(func(condition metav1.Condition) v1beta2conditions.MergePriority {
+		conditions.GetPriorityFunc(func(condition metav1.Condition) conditions.MergePriority {
 			if !c.machine.DeletionTimestamp.IsZero() {
 				if condition.Type == clusterv1.MachineBootstrapConfigReadyV1Beta2Condition && (condition.Reason == clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason) {
-					return v1beta2conditions.InfoMergePriority
+					return conditions.InfoMergePriority
 				}
 				if condition.Type == clusterv1.MachineInfrastructureReadyV1Beta2Condition && (condition.Reason == clusterv1.MachineInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason) {
-					return v1beta2conditions.InfoMergePriority
+					return conditions.InfoMergePriority
 				}
 				if condition.Type == clusterv1.MachineNodeHealthyV1Beta2Condition && (condition.Reason == clusterv1.MachineNodeDeletedV1Beta2Reason || condition.Reason == clusterv1.MachineNodeDoesNotExistV1Beta2Reason) {
-					return v1beta2conditions.InfoMergePriority
+					return conditions.InfoMergePriority
 				}
 				// Note: MachineNodeReadyV1Beta2Condition is not relevant for the summary.
 			}
-			return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
+			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
 		// Group readiness gates for control plane and etcd conditions when they have the same messages.
-		v1beta2conditions.SummaryMessageTransformFunc(transformControlPlaneAndEtcdConditions),
+		conditions.SummaryMessageTransformFunc(transformControlPlaneAndEtcdConditions),
 		// Use custom reasons.
-		v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 			clusterv1.MachineNotReadyV1Beta2Reason,
 			clusterv1.MachineReadyUnknownV1Beta2Reason,
 			clusterv1.MachineReadyV1Beta2Reason,
 		)),
-	).Merge(operation, conditions, conditionTypes)
+	).Merge(operation, mergeConditions, conditionTypes)
 }
 
 // transformControlPlaneAndEtcdConditions Group readiness gates for control plane conditions when they have the same messages.
@@ -599,7 +599,7 @@ func transformControlPlaneAndEtcdConditions(messages []string) []string {
 
 func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconcileDeleteExecuted bool, deletingReason, deletingMessage string) {
 	if machine.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotDeletingV1Beta2Reason,
@@ -613,7 +613,7 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 		return
 	}
 
-	v1beta2conditions.Set(machine, metav1.Condition{
+	conditions.Set(machine, metav1.Condition{
 		Type:    clusterv1.MachineDeletingV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  deletingReason,
@@ -624,7 +624,7 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	log := ctrl.LoggerFrom(ctx)
 
-	forConditionTypes := v1beta2conditions.ForConditionTypes{
+	forConditionTypes := conditions.ForConditionTypes{
 		clusterv1.MachineDeletingV1Beta2Condition,
 		clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 		clusterv1.MachineInfrastructureReadyV1Beta2Condition,
@@ -639,15 +639,15 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		}
 	}
 
-	summaryOpts := []v1beta2conditions.SummaryOption{
+	summaryOpts := []conditions.SummaryOption{
 		forConditionTypes,
 		// Tolerate HealthCheckSucceeded to not exist.
-		v1beta2conditions.IgnoreTypesIfMissing{
+		conditions.IgnoreTypesIfMissing{
 			clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge and to ignore some
 		// info message so the ready condition aggregation in other resources is less noisy.
-		v1beta2conditions.CustomMergeStrategy{
+		conditions.CustomMergeStrategy{
 			MergeStrategy: machineConditionCustomMergeStrategy{
 				machine: machine,
 				// Instruct merge to consider Deleting condition with negative polarity,
@@ -655,14 +655,14 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 			},
 		},
 		// Instruct summary to consider Deleting condition with negative polarity.
-		v1beta2conditions.NegativePolarityConditionTypes{
+		conditions.NegativePolarityConditionTypes{
 			clusterv1.MachineDeletingV1Beta2Condition,
 		},
 	}
 
 	// Add overrides for conditions we want to surface in the Ready condition with slightly different messages,
 	// mostly to improve when we will aggregate the Ready condition from many machines on MS, MD etc.
-	var overrideConditions v1beta2conditions.OverrideConditions
+	var overrideConditions conditions.OverrideConditions
 	if !machine.DeletionTimestamp.IsZero() {
 		overrideConditions = append(overrideConditions, calculateDeletingConditionForSummary(machine))
 	}
@@ -671,7 +671,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		summaryOpts = append(summaryOpts, overrideConditions)
 	}
 
-	readyCondition, err := v1beta2conditions.NewSummaryCondition(machine, clusterv1.MachineReadyV1Beta2Condition, summaryOpts...)
+	readyCondition, err := conditions.NewSummaryCondition(machine, clusterv1.MachineReadyV1Beta2Condition, summaryOpts...)
 
 	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
@@ -685,7 +685,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		}
 	}
 
-	v1beta2conditions.Set(machine, *readyCondition)
+	conditions.Set(machine, *readyCondition)
 }
 
 // calculateDeletingConditionForSummary calculates a Deleting condition for the calculation of the Ready condition
@@ -696,8 +696,8 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 // For the same reason we are only surfacing messages with "more than 15m" instead of using the exact durations.
 // 15 minutes is a duration after which we assume it makes sense to emphasize that Node drains and waiting for volume
 // detach are still in progress.
-func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2conditions.ConditionWithOwnerInfo {
-	deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
+func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions.ConditionWithOwnerInfo {
+	deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
 
 	msg := "Machine deletion in progress"
 	if deletingCondition != nil {
@@ -725,8 +725,8 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 		}
 	}
 
-	return v1beta2conditions.ConditionWithOwnerInfo{
-		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+	return conditions.ConditionWithOwnerInfo{
+		OwnerResource: conditions.ConditionOwnerInfo{
 			Kind: "Machine",
 			Name: machine.Name,
 		},
@@ -741,13 +741,13 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 
 func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 	log := ctrl.LoggerFrom(ctx)
-	readyCondition := v1beta2conditions.Get(machine, clusterv1.MachineReadyV1Beta2Condition)
+	readyCondition := conditions.Get(machine, clusterv1.MachineReadyV1Beta2Condition)
 
 	if readyCondition == nil {
 		// NOTE: this should never happen given that setReadyCondition is called before this method and
 		// it always add a ready condition.
 		log.Error(errors.New("Ready condition must be set before setting the available condition"), "Failed to set Available condition")
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineAvailableInternalErrorV1Beta2Reason,
@@ -757,7 +757,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 	}
 
 	if readyCondition.Status != metav1.ConditionTrue {
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineAvailableV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotReadyV1Beta2Reason,
@@ -766,7 +766,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 	}
 
 	if time.Since(readyCondition.LastTransitionTime.Time) >= 0*time.Second { // TODO: use MinReadySeconds as soon as it is available (and fix corresponding unit test)
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineAvailableV1Beta2Reason,
@@ -774,7 +774,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 		return
 	}
 
-	v1beta2conditions.Set(machine, metav1.Condition{
+	conditions.Set(machine, metav1.Condition{
 		Type:   clusterv1.MachineAvailableV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: clusterv1.MachineWaitingForMinReadySecondsV1Beta2Reason,

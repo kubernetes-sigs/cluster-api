@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -88,7 +88,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := v1beta2conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
@@ -100,7 +100,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := v1beta2conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))

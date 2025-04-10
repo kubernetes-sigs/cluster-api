@@ -51,8 +51,8 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -210,14 +210,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		} else {
 			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", lastProbeSuccessTime.Format(time.RFC3339))
 		}
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason,
 			Message: msg,
 		})
 	} else {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,

@@ -2,15 +2,11 @@
 
 ## Docker Image Name
 
-The patch in `config/manager/manager_image_patch.yaml` will be applied to the manager pod.
-Right now there is a placeholder `IMAGE_URL`, which you will need to change to your actual image.
+The IMG variable is used to build the Docker image and push it to a registry. The default value is `controller:latest`, which is a local image. You can change it to a remote image if you want to push it to a registry.
 
-### Development Images
-It's likely that you will want one location and tag for release development, and another during development.
-
-The approach most Cluster API projects is using [a `Makefile` that uses `sed` to replace the image URL][sed] on demand during development.
-
-[sed]: https://github.com/kubernetes-sigs/cluster-api/blob/e0fb83a839b2755b14fbefbe6f93db9a58c76952/Makefile#L201-L204
+```bash
+make docker-push IMG=ghcr.io/your-org/your-repo:dev
+```
 
 ## Deployment
 

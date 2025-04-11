@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -95,7 +95,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(conditions.IsTrue(in, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
 			},
 		},
 		{
@@ -461,8 +461,8 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
-				g.Expect(conditions.IsTrue(in, clusterv1.ControlPlaneReadyCondition)).To(BeTrue())
-				g.Expect(conditions.IsTrue(in, clusterv1.ControlPlaneInitializedCondition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneReadyCondition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneInitializedCondition)).To(BeTrue())
 			},
 		},
 		{

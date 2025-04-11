@@ -28,7 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func Test_setReplicas(t *testing.T) {
@@ -223,9 +223,9 @@ func Test_setAvailableCondition(t *testing.T) {
 
 			setAvailableCondition(ctx, tt.machineDeployment, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentAvailableV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentAvailableV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -327,9 +327,9 @@ func Test_setRollingOutCondition(t *testing.T) {
 			}
 			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -546,9 +546,9 @@ func Test_setScalingUpCondition(t *testing.T) {
 
 			setScalingUpCondition(ctx, tt.machineDeployment, tt.machineSets, tt.bootstrapTemplateNotFound, tt.infrastructureTemplateNotFound, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingUpV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -755,9 +755,9 @@ After above Pods have been removed from the Node, the following Pods will be evi
 
 			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded, true)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingDownV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingDownV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -873,9 +873,9 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			}
 			setMachinesReadyCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1032,9 +1032,9 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			}
 			setMachinesUpToDateCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1139,9 +1139,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			}
 			setRemediatingCondition(ctx, tt.machineDeployment, machinesToBeRemediated, unHealthyMachines, tt.getMachinesSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRemediatingV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1261,9 +1261,9 @@ func Test_setDeletingCondition(t *testing.T) {
 			}
 			setDeletingCondition(ctx, tt.machineDeployment, tt.machineSets, machines, tt.getAndAdoptMachineSetsForDeploymentSucceeded, tt.getMachinesSucceeded)
 
-			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentDeletingV1Beta2Condition)
+			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentDeletingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1334,7 +1334,7 @@ func withStaleDeletion() fakeMachinesOption {
 
 func withV1Beta2Condition(c metav1.Condition) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		v1beta2conditions.Set(m, c)
+		conditions.Set(m, c)
 	}
 }
 

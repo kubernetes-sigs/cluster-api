@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,92 +21,92 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestNewPatch(t *testing.T) {
-	fooTrue := TrueCondition("foo")
-	fooFalse := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
+	now := metav1.Now()
+	fooTrue := metav1.Condition{Type: "foo", Status: metav1.ConditionTrue, LastTransitionTime: now}
+	fooFalse := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, LastTransitionTime: now}
 
 	tests := []struct {
 		name    string
-		before  Getter
-		after   Getter
+		before  Setter
+		after   Setter
 		want    Patch
 		wantErr bool
 	}{
 		{
 			name:    "nil before return error",
 			before:  nil,
-			after:   getterWithConditions(),
+			after:   objectWithConditions(),
 			wantErr: true,
 		},
 		{
 			name:    "nil after return error",
-			before:  getterWithConditions(),
+			before:  objectWithConditions(),
 			after:   nil,
 			wantErr: true,
 		},
 		{
 			name:    "nil Interface before return error",
-			before:  nilGetter(),
-			after:   getterWithConditions(),
+			before:  nilObject(),
+			after:   objectWithConditions(),
 			wantErr: true,
 		},
 		{
 			name:    "nil Interface after return error",
-			before:  getterWithConditions(),
-			after:   nilGetter(),
+			before:  objectWithConditions(),
+			after:   nilObject(),
 			wantErr: true,
 		},
 		{
 			name:    "No changes return empty patch",
-			before:  getterWithConditions(),
-			after:   getterWithConditions(),
+			before:  objectWithConditions(),
+			after:   objectWithConditions(),
 			want:    nil,
 			wantErr: false,
 		},
 
 		{
 			name:   "No changes return empty patch",
-			before: getterWithConditions(fooTrue),
-			after:  getterWithConditions(fooTrue),
+			before: objectWithConditions(fooTrue),
+			after:  objectWithConditions(fooTrue),
 			want:   nil,
 		},
 		{
 			name:   "Detects AddConditionPatch",
-			before: getterWithConditions(),
-			after:  getterWithConditions(fooTrue),
+			before: objectWithConditions(),
+			after:  objectWithConditions(fooTrue),
 			want: Patch{
 				{
 					Before: nil,
-					After:  fooTrue,
+					After:  &fooTrue,
 					Op:     AddConditionPatch,
 				},
 			},
 		},
 		{
 			name:   "Detects ChangeConditionPatch",
-			before: getterWithConditions(fooTrue),
-			after:  getterWithConditions(fooFalse),
+			before: objectWithConditions(fooTrue),
+			after:  objectWithConditions(fooFalse),
 			want: Patch{
 				{
-					Before: fooTrue,
-					After:  fooFalse,
+					Before: &fooTrue,
+					After:  &fooFalse,
 					Op:     ChangeConditionPatch,
 				},
 			},
 		},
 		{
 			name:   "Detects RemoveConditionPatch",
-			before: getterWithConditions(fooTrue),
-			after:  getterWithConditions(),
+			before: objectWithConditions(fooTrue),
+			after:  objectWithConditions(),
 			want: Patch{
 				{
-					Before: fooTrue,
+					Before: &fooTrue,
 					After:  nil,
 					Op:     RemoveConditionPatch,
 				},
@@ -130,165 +130,208 @@ func TestNewPatch(t *testing.T) {
 }
 
 func TestApply(t *testing.T) {
-	fooTrue := TrueCondition("foo")
-	fooFalse := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	fooWarning := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityWarning, "message foo")
+	now := metav1.Now().Rfc3339Copy()
+	fooTrue := metav1.Condition{Type: "foo", Status: metav1.ConditionTrue, LastTransitionTime: now}
+	fooFalse := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, LastTransitionTime: now}
+	fooFalse2 := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, Reason: "Something else", LastTransitionTime: now}
+
+	addMilliseconds := func(c metav1.Condition) metav1.Condition {
+		c1 := c.DeepCopy()
+		c1.LastTransitionTime.Time = c1.LastTransitionTime.Add(10 * time.Millisecond)
+		return *c1
+	}
 
 	tests := []struct {
 		name    string
-		before  Getter
-		after   Getter
+		before  Setter
+		after   Setter
 		latest  Setter
-		options []ApplyOption
-		want    clusterv1.Conditions
+		options []PatchApplyOption
+		want    []metav1.Condition
 		wantErr bool
 	}{
 		{
-			name:    "error with nil interface Setter",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
-			latest:  nilSetter(),
-			want:    conditionList(fooTrue),
+			name:    "error with nil interface object",
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
+			latest:  nilObject(),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: true,
 		},
 		{
-			name:    "error with nil Setter",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
+			name:    "error with nil latest object",
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
 			latest:  nil,
-			want:    conditionList(fooTrue),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: true,
 		},
 		{
 			name:    "No patch return same list",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(fooTrue),
-			want:    conditionList(fooTrue),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooTrue),
+			latest:  objectWithConditions(fooTrue),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition does not exists, it should add",
-			before:  getterWithConditions(),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(),
-			want:    conditionList(fooTrue),
+			before:  objectWithConditions(),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition already exists but without conflicts, it should add",
-			before:  getterWithConditions(),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(fooTrue),
-			want:    conditionList(fooTrue),
+			before:  objectWithConditions(),
+			after:   objectWithConditions(fooTrue),
+			latest:  objectWithConditions(fooTrue),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: false,
 		},
 		{
 			name:    "Add: When a condition already exists but with conflicts, it should error",
-			before:  getterWithConditions(),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(fooFalse),
+			before:  objectWithConditions(),
+			after:   objectWithConditions(fooTrue),
+			latest:  objectWithConditions(fooFalse),
 			want:    nil,
 			wantErr: true,
 		},
 		{
+			name:    "Add: When a condition already exists but with conflicts, it should not error if force override is set",
+			before:  objectWithConditions(),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(fooFalse),
+			options: []PatchApplyOption{ForceOverwrite(true)},
+			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
+			wantErr: false,
+		},
+		{
 			name:    "Add: When a condition already exists but with conflicts, it should not error if the condition is owned",
-			before:  getterWithConditions(),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(fooFalse),
-			options: []ApplyOption{WithOwnedConditions("foo")},
-			want:    conditionList(fooTrue), // after condition should be kept in case of error
+			before:  objectWithConditions(),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(fooFalse),
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
+			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
 			wantErr: false,
 		},
 		{
 			name:    "Remove: When a condition was already deleted, it should pass",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(),
-			latest:  setterWithConditions(),
-			want:    conditionList(),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(),
+			latest:  objectWithConditions(),
+			want:    []metav1.Condition{},
 			wantErr: false,
 		},
 		{
 			name:    "Remove: When a condition already exists but without conflicts, it should delete",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(),
-			latest:  setterWithConditions(fooTrue),
-			want:    conditionList(),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(),
+			latest:  objectWithConditions(fooTrue),
+			want:    []metav1.Condition{},
 			wantErr: false,
 		},
 		{
 			name:    "Remove: When a condition already exists but with conflicts, it should error",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(),
-			latest:  setterWithConditions(fooFalse),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(),
+			latest:  objectWithConditions(fooFalse),
 			want:    nil,
 			wantErr: true,
 		},
 		{
+			name:    "Remove: When a condition already exists but with conflicts, it should not error if force override is set",
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(),
+			latest:  objectWithConditions(fooFalse),
+			options: []PatchApplyOption{ForceOverwrite(true)},
+			want:    []metav1.Condition{},
+			wantErr: false,
+		},
+		{
 			name:    "Remove: When a condition already exists but with conflicts, it should not error if the condition is owned",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(),
-			latest:  setterWithConditions(fooFalse),
-			options: []ApplyOption{WithOwnedConditions("foo")},
-			want:    conditionList(), // after condition should be kept in case of error
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(),
+			latest:  objectWithConditions(fooFalse),
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
+			want:    []metav1.Condition{},
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists without conflicts, it should change",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(fooTrue),
-			want:    conditionList(fooFalse),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(addMilliseconds(fooFalse)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(fooTrue),
+			want:    []metav1.Condition{fooFalse},
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists with conflicts but there is agreement on the final state, it should change",
-			before:  getterWithConditions(fooFalse),
-			after:   getterWithConditions(fooTrue),
-			latest:  setterWithConditions(fooTrue),
-			want:    conditionList(fooTrue),
+			before:  objectWithConditions(fooFalse),
+			after:   objectWithConditions(fooTrue),
+			latest:  objectWithConditions(fooTrue),
+			want:    []metav1.Condition{fooTrue},
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should error",
-			before:  getterWithConditions(fooWarning),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(fooTrue),
+			before:  objectWithConditions(fooFalse),
+			after:   objectWithConditions(fooFalse2),
+			latest:  objectWithConditions(fooTrue),
 			want:    nil,
 			wantErr: true,
 		},
 		{
+			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should not error if force override is set",
+			before:  objectWithConditions(fooFalse),
+			after:   objectWithConditions(addMilliseconds(fooFalse2)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(fooTrue),
+			options: []PatchApplyOption{ForceOverwrite(true)},
+			want:    []metav1.Condition{fooFalse2},
+			wantErr: false,
+		},
+		{
 			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should not error if the condition is owned",
-			before:  getterWithConditions(fooWarning),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(fooTrue),
-			options: []ApplyOption{WithOwnedConditions("foo")},
-			want:    conditionList(fooFalse), // after condition should be kept in case of error
+			before:  objectWithConditions(fooFalse),
+			after:   objectWithConditions(addMilliseconds(fooFalse2)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
+			latest:  objectWithConditions(fooTrue),
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
+			want:    []metav1.Condition{fooFalse2},
 			wantErr: false,
 		},
 		{
 			name:    "Change: When a condition was deleted, it should error",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(),
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
+			latest:  objectWithConditions(),
 			want:    nil,
 			wantErr: true,
 		},
 		{
+			name:    "Change: When a condition was deleted, it should not error if force override is set",
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
+			latest:  objectWithConditions(),
+			options: []PatchApplyOption{ForceOverwrite(true)},
+			want:    []metav1.Condition{fooFalse},
+			wantErr: false,
+		},
+		{
 			name:    "Change: When a condition was deleted, it should not error if the condition is owned",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(),
-			options: []ApplyOption{WithOwnedConditions("foo")},
-			want:    conditionList(fooFalse), // after condition should be kept in case of error
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
+			latest:  objectWithConditions(),
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
+			want:    []metav1.Condition{fooFalse},
 			wantErr: false,
 		},
 		{
 			name:    "Error when nil passed as an ApplyOption",
-			before:  getterWithConditions(fooTrue),
-			after:   getterWithConditions(fooFalse),
-			latest:  setterWithConditions(),
-			options: []ApplyOption{nil},
+			before:  objectWithConditions(fooTrue),
+			after:   objectWithConditions(fooFalse),
+			latest:  objectWithConditions(),
+			options: []PatchApplyOption{nil},
 			wantErr: true,
 		},
 	}
@@ -307,40 +350,19 @@ func TestApply(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(tt.latest.GetConditions()).To(haveSameConditionsOf(tt.want))
+			gotConditions := tt.latest.GetConditions()
+			g.Expect(gotConditions).To(MatchConditions(tt.want))
 		})
 	}
 }
 
-func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
-	g := NewWithT(t)
+func objectWithConditions(conditions ...metav1.Condition) Setter {
+	obj := &builder.Phase3Obj{}
+	obj.Status.Conditions = conditions
+	return obj
+}
 
-	before := &clusterv1.Cluster{}
-	after := &clusterv1.Cluster{
-		Status: clusterv1.ClusterStatus{
-			// TODO (v1beta2) Use new conditions
-			Deprecated: &clusterv1.ClusterDeprecatedStatus{
-				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						clusterv1.Condition{
-							Type:               "foo",
-							Status:             corev1.ConditionTrue,
-							LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
-						},
-					},
-				},
-			},
-		},
-	}
-	latest := &clusterv1.Cluster{}
-
-	// latest has no conditions, so we are actually adding the condition but in this case we should not set the LastTransition Time
-	// but we should preserve the LastTransition set in after
-
-	diff, err := NewPatch(before, after)
-	g.Expect(err).ToNot(HaveOccurred())
-	err = diff.Apply(latest)
-
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(latest.GetConditions()).To(BeComparableTo(after.GetConditions()))
+func nilObject() Setter {
+	var obj *builder.Phase3Obj
+	return obj
 }

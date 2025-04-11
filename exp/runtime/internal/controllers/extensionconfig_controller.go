@@ -40,7 +40,7 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -179,10 +179,10 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 	}
 
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			runtimev1.RuntimeExtensionDiscoveredCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 		}},
@@ -231,8 +231,8 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	discoveredExtension, err := runtimeClient.Discover(ctx, extensionConfig.DeepCopy())
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
-		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
-		v1beta2conditions.Set(modifiedExtensionConfig, metav1.Condition{
+		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
+		conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
@@ -241,8 +241,8 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
 	}
 
-	conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
-	v1beta2conditions.Set(discoveredExtension, metav1.Condition{
+	v1beta1conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
+	conditions.Set(discoveredExtension, metav1.Condition{
 		Type:   runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: runtimev1.ExtensionConfigDiscoveredV1Beta2Reason,

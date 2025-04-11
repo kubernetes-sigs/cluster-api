@@ -56,7 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -227,23 +227,23 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
 	defer func() {
 		// always update the readyCondition; the summary is represented using the "1 of x completed" notation.
-		conditions.SetSummary(config,
-			conditions.WithConditions(
+		v1beta1conditions.SetSummary(config,
+			v1beta1conditions.WithConditions(
 				bootstrapv1.DataSecretAvailableCondition,
 				bootstrapv1.CertificatesAvailableCondition,
 			),
 		)
-		if err := v1beta2conditions.SetSummaryCondition(config, config, bootstrapv1.KubeadmConfigReadyV1Beta2Condition,
-			v1beta2conditions.ForConditionTypes{
+		if err := conditions.SetSummaryCondition(config, config, bootstrapv1.KubeadmConfigReadyV1Beta2Condition,
+			conditions.ForConditionTypes{
 				bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 				bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			},
 			// Using a custom merge strategy to override reasons applied during merge and to ignore some
 			// info message so the ready condition aggregation in other resources is less noisy.
-			v1beta2conditions.CustomMergeStrategy{
-				MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+			conditions.CustomMergeStrategy{
+				MergeStrategy: conditions.DefaultMergeStrategy(
 					// Use custom reasons.
-					v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 						bootstrapv1.KubeadmConfigNotReadyV1Beta2Reason,
 						bootstrapv1.KubeadmConfigReadyUnknownV1Beta2Reason,
 						bootstrapv1.KubeadmConfigReadyV1Beta2Reason,
@@ -255,12 +255,12 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ReadyCondition,
 				bootstrapv1.DataSecretAvailableCondition,
 				bootstrapv1.CertificatesAvailableCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 				bootstrapv1.KubeadmConfigReadyV1Beta2Condition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
@@ -294,8 +294,8 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	// Wait for the infrastructure to be ready.
 	case !cluster.Status.InfrastructureReady:
 		log.Info("Cluster infrastructure is not ready, waiting")
-		conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -307,13 +307,13 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
 		config.Status.Ready = true
 		config.Status.DataSecretName = configOwner.DataSecretName()
-		conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:   bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Reason,
 		})
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
@@ -324,15 +324,15 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	case config.Status.Ready:
 		// Based on existing code paths status.Ready is only true if status.dataSecretName is set
 		// So we can assume that the DataSecret is available.
-		conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:   bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Reason,
 		})
 		// Same applies for the CertificatesAvailable, which must have been the case to generate
 		// the DataSecret.
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
@@ -355,7 +355,8 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 
 	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
-	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
 	}
 
@@ -479,9 +480,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// initialize the DataSecretAvailableCondition if missing.
 	// this is required in order to avoid the condition's LastTransitionTime to flicker in case of errors surfacing
 	// using the DataSecretGeneratedFailedReason
-	if conditions.GetReason(scope.Config, bootstrapv1.DataSecretAvailableCondition) != bootstrapv1.DataSecretGenerationFailedReason {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+	// TODO (v1beta2): test for v1beta2 conditions
+	if v1beta1conditions.GetReason(scope.Config, bootstrapv1.DataSecretAvailableCondition) != bootstrapv1.DataSecretGenerationFailedReason {
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -589,8 +591,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			util.ObjectKey(scope.Cluster))
 	}
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  bootstrapv1.KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason,
@@ -599,8 +601,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
-	conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
-	v1beta2conditions.Set(scope.Config, metav1.Condition{
+	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
+	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
@@ -613,8 +615,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -625,8 +627,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	users, err := r.resolveUsers(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -688,8 +690,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		util.ObjectKey(scope.Cluster),
 	)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  bootstrapv1.KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason,
@@ -698,8 +700,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return ctrl.Result{}, err
 	}
 	if err := certificates.EnsureAllExist(); err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  bootstrapv1.KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason,
@@ -707,8 +709,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		})
 		return ctrl.Result{}, err
 	}
-	conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
-	v1beta2conditions.Set(scope.Config, metav1.Condition{
+	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
+	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
@@ -755,8 +757,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -767,8 +769,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	users, err := r.resolveUsers(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -780,8 +782,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	if discoveryFile := scope.Config.Spec.JoinConfiguration.Discovery.File; discoveryFile != nil && discoveryFile.KubeConfig != nil {
 		kubeconfig, err := r.resolveDiscoveryKubeConfig(discoveryFile)
 		if err != nil {
-			conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-			v1beta2conditions.Set(scope.Config, metav1.Condition{
+			v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.Set(scope.Config, metav1.Condition{
 				Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -853,8 +855,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		util.ObjectKey(scope.Cluster),
 	)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  bootstrapv1.KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason,
@@ -863,8 +865,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 	if err := certificates.EnsureAllExist(); err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesCorruptedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  bootstrapv1.KubeadmConfigCertificatesAvailableInternalErrorV1Beta2Reason,
@@ -873,8 +875,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
-	conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
-	v1beta2conditions.Set(scope.Config, metav1.Condition{
+	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
+	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Reason,
@@ -908,8 +910,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 	files, err := r.resolveFiles(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -920,8 +922,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 
 	users, err := r.resolveUsers(ctx, scope.Config)
 	if err != nil {
-		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(scope.Config, metav1.Condition{
+		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -933,8 +935,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	if discoveryFile := scope.Config.Spec.JoinConfiguration.Discovery.File; discoveryFile != nil && discoveryFile.KubeConfig != nil {
 		kubeconfig, err := r.resolveDiscoveryKubeConfig(discoveryFile)
 		if err != nil {
-			conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-			v1beta2conditions.Set(scope.Config, metav1.Condition{
+			v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.Set(scope.Config, metav1.Condition{
 				Type:    bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableV1Beta2Reason,
@@ -1415,8 +1417,8 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	}
 	scope.Config.Status.DataSecretName = ptr.To(secret.Name)
 	scope.Config.Status.Ready = true
-	conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
-	v1beta2conditions.Set(scope.Config, metav1.Condition{
+	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
+	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Reason,

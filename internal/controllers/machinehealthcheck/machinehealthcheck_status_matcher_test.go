@@ -23,7 +23,7 @@ import (
 	"github.com/onsi/gomega/types"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 // MatchMachineHealthCheckStatus returns a custom matcher to check equality of clusterv1.MachineHealthCheckStatus.
@@ -67,7 +67,7 @@ func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool
 	if actualStatus.Deprecated != nil && actualStatus.Deprecated.V1Beta1 != nil {
 		actualConditions = actualStatus.Deprecated.V1Beta1.Conditions
 	}
-	ok, err = conditions.MatchConditions(mConditions).Match(actualConditions)
+	ok, err = v1beta1conditions.MatchConditions(mConditions).Match(actualConditions)
 	return ok, err
 }
 

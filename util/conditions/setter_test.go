@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,406 +20,216 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/format"
-	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-func TestHasSameState(t *testing.T) {
-	g := NewWithT(t)
-
-	// two nils
-	var nil2 *clusterv1.Condition
-	g.Expect(HasSameState(nil1, nil2)).To(BeTrue())
-
-	// nil condition 1
-	g.Expect(HasSameState(nil1, true1)).To(BeFalse())
-
-	// nil condition 2
-	g.Expect(HasSameState(true1, nil2)).To(BeFalse())
-
-	// same condition
-	falseInfo2 := falseInfo1.DeepCopy()
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
-
-	// different LastTransitionTime does not impact state
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.LastTransitionTime = metav1.NewTime(time.Date(1900, time.November, 10, 23, 0, 0, 0, time.UTC))
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
-
-	// different Type, Status, Reason, Severity and Message determine different state
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.Type = "another type"
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
-
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.Status = corev1.ConditionTrue
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
-
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.Severity = clusterv1.ConditionSeverityWarning
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
-
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.Reason = "another severity"
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
-
-	falseInfo2 = falseInfo1.DeepCopy()
-	falseInfo2.Message = "another message"
-	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
-}
-
-func TestLexicographicLess(t *testing.T) {
-	g := NewWithT(t)
-
-	// alphabetical order of Type is respected
-	a := TrueCondition("A")
-	b := TrueCondition("B")
-	g.Expect(lexicographicLess(a, b)).To(BeTrue())
-
-	a = TrueCondition("B")
-	b = TrueCondition("A")
-	g.Expect(lexicographicLess(a, b)).To(BeFalse())
-
-	// Ready condition is treated as an exception and always goes first
-	a = TrueCondition(clusterv1.ReadyCondition)
-	b = TrueCondition("A")
-	g.Expect(lexicographicLess(a, b)).To(BeTrue())
-
-	a = TrueCondition("A")
-	b = TrueCondition(clusterv1.ReadyCondition)
-	g.Expect(lexicographicLess(a, b)).To(BeFalse())
-
-	a = TrueCondition("A")
-	g.Expect(lexicographicLess(a, nil1)).To(BeFalse())
-
-	b = TrueCondition("A")
-	g.Expect(lexicographicLess(nil1, b)).To(BeTrue())
-}
-
 func TestSet(t *testing.T) {
-	a := TrueCondition("a")
-	b := TrueCondition("b")
-	ready := TrueCondition(clusterv1.ReadyCondition)
+	now := metav1.Now().Rfc3339Copy()
 
-	tests := []struct {
-		name      string
-		to        Setter
-		condition *clusterv1.Condition
-		want      clusterv1.Conditions
-	}{
-		{
-			name:      "Set adds a condition",
-			to:        setterWithConditions(),
-			condition: a,
-			want:      conditionList(a),
-		},
-		{
-			name:      "Set adds more conditions",
-			to:        setterWithConditions(a),
-			condition: b,
-			want:      conditionList(a, b),
-		},
-		{
-			name:      "Set does not duplicate existing conditions",
-			to:        setterWithConditions(a, b),
-			condition: a,
-			want:      conditionList(a, b),
-		},
-		{
-			name:      "Set sorts conditions in lexicographic order",
-			to:        setterWithConditions(b, a),
-			condition: ready,
-			want:      conditionList(ready, a, b),
-		},
+	condition := metav1.Condition{
+		Type:               "fooCondition",
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: 0, // NOTE: this is a dedicated tests about inferring ObservedGeneration.
+		LastTransitionTime: now,
+		Reason:             "FooReason",
+		Message:            "FooMessage",
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			Set(tt.to, tt.condition)
-
-			g.Expect(tt.to.GetConditions()).To(haveSameConditionsOf(tt.want))
-		})
-	}
-}
-
-func TestSetLastTransitionTime(t *testing.T) {
-	x := metav1.Date(2012, time.January, 1, 12, 15, 30, 5e8, time.UTC)
-
-	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	fooWithLastTransitionTime := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	fooWithLastTransitionTime.LastTransitionTime = x
-	fooWithAnotherState := TrueCondition("foo")
-
-	tests := []struct {
-		name                    string
-		to                      Setter
-		new                     *clusterv1.Condition
-		LastTransitionTimeCheck func(*WithT, metav1.Time)
-	}{
-		{
-			name: "Set a condition that does not exists should set the last transition time if not defined",
-			to:   setterWithConditions(),
-			new:  foo,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).ToNot(BeZero())
-			},
-		},
-		{
-			name: "Set a condition that does not exists should preserve the last transition time if defined",
-			to:   setterWithConditions(),
-			new:  fooWithLastTransitionTime,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists with the same state should preserves the last transition time",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  foo,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists but with different state should changes the last transition time",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  fooWithAnotherState,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).ToNot(Equal(x))
-			},
-		},
+	cloneCondition := func() metav1.Condition {
+		return *condition.DeepCopy()
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
+	t.Run("no-op with nil", func(_ *testing.T) {
+		condition := cloneCondition()
+		Set(nil, condition)
+	})
 
-			Set(tt.to, tt.new)
+	t.Run("handles pointer to nil object", func(_ *testing.T) {
+		var foo *builder.Phase1Obj
+		condition := cloneCondition()
+		Set(foo, condition)
+	})
 
-			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
-		})
-	}
-}
-
-func TestSetWithCustomLastTransitionTime(t *testing.T) {
-	x := metav1.Date(2012, time.January, 1, 12, 15, 30, 5e8, time.UTC)
-	y := metav1.Date(2012, time.January, 2, 12, 15, 30, 5e8, time.UTC)
-
-	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	fooWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
-	fooWithLastTransitionTime := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	fooWithLastTransitionTime.LastTransitionTime = x
-	fooWithLastTransitionTimeWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
-	fooWithLastTransitionTimeWithBarMessage.LastTransitionTime = y
-
-	fooWithAnotherState := TrueCondition("foo")
-	fooWithAnotherStateWithLastTransitionTime := TrueCondition("foo")
-	fooWithAnotherStateWithLastTransitionTime.LastTransitionTime = y
-
-	tests := []struct {
-		name                    string
-		to                      Setter
-		new                     *clusterv1.Condition
-		LastTransitionTimeCheck func(*WithT, metav1.Time)
-	}{
-		{
-			name: "Set a condition that does not exists should set the last transition time if not defined",
-			to:   setterWithConditions(),
-			new:  foo,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).ToNot(BeZero())
+	t.Run("Phase1Obj object with both legacy and v1beta2 conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase1Obj{
+			Status: builder.Phase1ObjStatus{
+				Conditions: clusterv1.Conditions{
+					{
+						Type:               "bazCondition",
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: now,
+					},
+				},
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
+					Conditions: []metav1.Condition{
+						{
+							Type:               "barCondition",
+							Status:             metav1.ConditionTrue,
+							LastTransitionTime: now,
+						},
+					},
+				},
 			},
-		},
-		{
-			name: "Set a condition that does not exists should preserve the last transition time if defined",
-			to:   setterWithConditions(),
-			new:  fooWithLastTransitionTime,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists with the same state should preserves the last transition time",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  foo,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists but with different state should changes the last transition time",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  fooWithAnotherState,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).ToNot(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists but with different state should preserve the last transition time if defined",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  fooWithAnotherStateWithLastTransitionTime,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(y))
-			},
-		},
-		{
-			name: "Set a condition that already exists but with different Message should preserve the last transition time",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  fooWithBarMessage,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-		{
-			name: "Set a condition that already exists, with different state but same Status should ignore the last transition even if defined",
-			to:   setterWithConditions(fooWithLastTransitionTime),
-			new:  fooWithLastTransitionTimeWithBarMessage,
-			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
-				g.Expect(lastTransitionTime).To(Equal(x))
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			SetWithCustomLastTransitionTime(tt.to, tt.new)
-
-			tt.LastTransitionTimeCheck(g, Get(tt.to, "foo").LastTransitionTime)
-		})
-	}
-}
-
-func TestMarkMethods(t *testing.T) {
-	g := NewWithT(t)
-
-	cluster := &clusterv1.Cluster{}
-
-	// test MarkTrue
-	MarkTrue(cluster, "conditionFoo")
-	g.Expect(Get(cluster, "conditionFoo")).To(HaveSameStateOf(&clusterv1.Condition{
-		Type:   "conditionFoo",
-		Status: corev1.ConditionTrue,
-	}))
-
-	// test MarkFalse
-	MarkFalse(cluster, "conditionBar", "reasonBar", clusterv1.ConditionSeverityError, "messageBar")
-	g.Expect(Get(cluster, "conditionBar")).To(HaveSameStateOf(&clusterv1.Condition{
-		Type:     "conditionBar",
-		Status:   corev1.ConditionFalse,
-		Severity: clusterv1.ConditionSeverityError,
-		Reason:   "reasonBar",
-		Message:  "messageBar",
-	}))
-
-	// test MarkUnknown
-	MarkUnknown(cluster, "conditionBaz", "reasonBaz", "messageBaz")
-	g.Expect(Get(cluster, "conditionBaz")).To(HaveSameStateOf(&clusterv1.Condition{
-		Type:    "conditionBaz",
-		Status:  corev1.ConditionUnknown,
-		Reason:  "reasonBaz",
-		Message: "messageBaz",
-	}))
-
-	// test MarkFalseWithNegativePolarity
-	MarkFalseWithNegativePolarity(cluster, "conditionFoo")
-	g.Expect(Get(cluster, "conditionFoo")).To(HaveSameStateOf(&clusterv1.Condition{
-		Type:   "conditionFoo",
-		Status: corev1.ConditionFalse,
-	}))
-
-	// test MarkTrueWithNegativePolarity
-	MarkTrueWithNegativePolarity(cluster, "conditionBar", "reasonBar", clusterv1.ConditionSeverityError, "messageBar")
-	g.Expect(Get(cluster, "conditionBar")).To(HaveSameStateOf(&clusterv1.Condition{
-		Type:     "conditionBar",
-		Status:   corev1.ConditionTrue,
-		Severity: clusterv1.ConditionSeverityError,
-		Reason:   "reasonBar",
-		Message:  "messageBar",
-	}))
-}
-
-func TestSetSummary(t *testing.T) {
-	g := NewWithT(t)
-	target := setterWithConditions(TrueCondition("foo"))
-
-	SetSummary(target)
-
-	g.Expect(Has(target, clusterv1.ReadyCondition)).To(BeTrue())
-}
-
-func TestSetMirror(t *testing.T) {
-	g := NewWithT(t)
-	source := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
-	target := setterWithConditions()
-
-	SetMirror(target, "foo", source)
-
-	g.Expect(Has(target, "foo")).To(BeTrue())
-}
-
-func TestSetAggregate(t *testing.T) {
-	g := NewWithT(t)
-	source1 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
-	source2 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
-	target := setterWithConditions()
-
-	SetAggregate(target, "foo", []Getter{source1, source2})
-
-	g.Expect(Has(target, "foo")).To(BeTrue())
-}
-
-func setterWithConditions(conditions ...*clusterv1.Condition) Setter {
-	obj := &clusterv1.Cluster{}
-	obj.SetConditions(conditionList(conditions...))
-	return obj
-}
-
-func nilSetter() Setter {
-	var obj *clusterv1.Cluster
-	return obj
-}
-
-func haveSameConditionsOf(expected clusterv1.Conditions) types.GomegaMatcher {
-	return &ConditionsMatcher{
-		Expected: expected,
-	}
-}
-
-type ConditionsMatcher struct {
-	Expected clusterv1.Conditions
-}
-
-func (matcher *ConditionsMatcher) Match(actual interface{}) (success bool, err error) {
-	actualConditions, ok := actual.(clusterv1.Conditions)
-	if !ok {
-		return false, errors.New("Value should be a conditions list")
-	}
-
-	if len(actualConditions) != len(matcher.Expected) {
-		return false, nil
-	}
-
-	for i := range actualConditions {
-		if !HasSameState(&actualConditions[i], &matcher.Expected[i]) {
-			return false, nil
 		}
-	}
-	return true, nil
+
+		condition := cloneCondition()
+		expected := []metav1.Condition{
+			foo.Status.V1Beta2.Conditions[0],
+			condition,
+		}
+
+		Set(foo, condition)
+		g.Expect(foo.Status.V1Beta2.Conditions).To(Equal(expected), cmp.Diff(foo.Status.V1Beta2.Conditions, expected))
+	})
+
+	t.Run("Phase2Obj object with conditions and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+					},
+				},
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "barCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		condition := cloneCondition()
+		expected := []metav1.Condition{
+			foo.Status.Conditions[0],
+			condition,
+		}
+
+		Set(foo, condition)
+		g.Expect(foo.Status.Conditions).To(Equal(expected), cmp.Diff(foo.Status.Conditions, expected))
+	})
+
+	t.Run("Phase3Obj object with conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+					},
+					{
+						Type:               "zzzCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+					},
+				},
+			},
+		}
+
+		condition := cloneCondition()
+		expected := []metav1.Condition{
+			foo.Status.Conditions[0],
+			condition,
+			foo.Status.Conditions[1],
+		}
+
+		Set(foo, condition)
+		g.Expect(foo.Status.Conditions).To(Equal(expected), cmp.Diff(foo.Status.Conditions, expected))
+	})
+
+	t.Run("Set infers ObservedGeneration", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			ObjectMeta: metav1.ObjectMeta{Generation: 123},
+			Status: builder.Phase3ObjStatus{
+				Conditions: nil,
+			},
+		}
+
+		condition := metav1.Condition{
+			Type:               "fooCondition",
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: now,
+			Reason:             "FooReason",
+			Message:            "FooMessage",
+		}
+
+		Set(foo, condition)
+
+		condition.ObservedGeneration = foo.Generation
+		expected := []metav1.Condition{condition}
+		g.Expect(foo.Status.Conditions).To(Equal(expected), cmp.Diff(foo.Status.Conditions, expected))
+	})
+
+	t.Run("Set drops milliseconds", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			ObjectMeta: metav1.ObjectMeta{Generation: 123},
+			Status: builder.Phase3ObjStatus{
+				Conditions: nil,
+			},
+		}
+
+		condition := metav1.Condition{
+			Type:    "fooCondition",
+			Status:  metav1.ConditionTrue,
+			Reason:  "FooReason",
+			Message: "FooMessage",
+		}
+
+		// Check LastTransitionTime after setting a condition for the first time
+		Set(foo, condition)
+		ltt1 := foo.Status.Conditions[0].LastTransitionTime.Time
+		g.Expect(ltt1).To(Equal(ltt1.Truncate(1*time.Second)), cmp.Diff(ltt1, ltt1.Truncate(1*time.Second)))
+
+		// Check LastTransitionTime after changing an existing condition
+		condition.Status = metav1.ConditionFalse     // this will force set to change the LastTransitionTime
+		condition.LastTransitionTime = metav1.Time{} // this will force set to compute a new LastTransitionTime
+		Set(foo, condition)
+		ltt2 := foo.Status.Conditions[0].LastTransitionTime.Time
+		g.Expect(ltt2).To(Equal(ltt2.Truncate(1*time.Second)), cmp.Diff(ltt2, ltt2.Truncate(1*time.Second)))
+
+		// Check LastTransitionTime after setting a Time with milliseconds
+		condition.Status = metav1.ConditionTrue     // this will force set to change the LastTransitionTime
+		condition.LastTransitionTime = metav1.Now() // this will force set to not default LastTransitionTime
+		Set(foo, condition)
+		ltt3 := foo.Status.Conditions[0].LastTransitionTime.Time
+		g.Expect(ltt3).To(Equal(ltt3.Truncate(1*time.Second)), cmp.Diff(ltt3, ltt3.Truncate(1*time.Second)))
+	})
 }
 
-func (matcher *ConditionsMatcher) FailureMessage(actual interface{}) (message string) {
-	return format.Message(actual, "to have the same conditions of", matcher.Expected)
-}
-func (matcher *ConditionsMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return format.Message(actual, "not to have the same conditions of", matcher.Expected)
+func TestDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	obj := &builder.Phase2Obj{
+		Status: builder.Phase2ObjStatus{
+			Conditions: []metav1.Condition{
+				{Type: "trueCondition", Status: metav1.ConditionTrue},
+				{Type: "falseCondition", Status: metav1.ConditionFalse},
+			},
+		},
+	}
+
+	Delete(nil, "foo") // no-op
+	Delete(obj, "trueCondition")
+	Delete(obj, "trueCondition") // no-op
+
+	g.Expect(obj.GetConditions()).To(MatchConditions([]metav1.Condition{{Type: "falseCondition", Status: metav1.ConditionFalse}}, IgnoreLastTransitionTime(true)))
 }

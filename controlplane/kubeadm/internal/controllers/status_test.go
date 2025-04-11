@@ -36,7 +36,7 @@ import (
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestSetReplicas(t *testing.T) {
@@ -114,9 +114,9 @@ func Test_setInitializedCondition(t *testing.T) {
 
 			setInitializedCondition(ctx, tt.controlPlane.KCP)
 
-			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)
+			condition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -208,9 +208,9 @@ func Test_setRollingOutCondition(t *testing.T) {
 			}
 			setRollingOutCondition(ctx, tt.kcp, machines)
 
-			condition := v1beta2conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition)
+			condition := conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -379,9 +379,9 @@ func Test_setScalingUpCondition(t *testing.T) {
 
 			setScalingUpCondition(ctx, tt.controlPlane.Cluster, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.InfraMachineTemplateIsNotFound, tt.controlPlane.PreflightCheckResults)
 
-			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition)
+			condition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -573,9 +573,9 @@ After above Pods have been removed from the Node, the following Pods will be evi
 
 			setScalingDownCondition(ctx, tt.controlPlane.Cluster, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.PreflightCheckResults)
 
-			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition)
+			condition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -644,13 +644,13 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 			setMachinesReadyCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines)
 			setMachinesUpToDateCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines)
 
-			readyCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition)
+			readyCondition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition)
 			g.Expect(readyCondition).ToNot(BeNil())
-			g.Expect(*readyCondition).To(v1beta2conditions.MatchCondition(tt.expectMachinesReadyCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*readyCondition).To(conditions.MatchCondition(tt.expectMachinesReadyCondition, conditions.IgnoreLastTransitionTime(true)))
 
-			upToDateCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition)
+			upToDateCondition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition)
 			g.Expect(upToDateCondition).ToNot(BeNil())
-			g.Expect(*upToDateCondition).To(v1beta2conditions.MatchCondition(tt.expectMachinesUpToDateCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*upToDateCondition).To(conditions.MatchCondition(tt.expectMachinesUpToDateCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -739,9 +739,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 
 			setRemediatingCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.MachinesToBeRemediatedByKCP(), tt.controlPlane.UnhealthyMachines())
 
-			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition)
+			condition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -796,9 +796,9 @@ func TestDeletingCondition(t *testing.T) {
 
 			setDeletingCondition(ctx, tc.kcp, tc.deletingReason, tc.deletingMessage)
 
-			deletingCondition := v1beta2conditions.Get(tc.kcp, controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition)
+			deletingCondition := conditions.Get(tc.kcp, controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition)
 			g.Expect(deletingCondition).ToNot(BeNil())
-			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*deletingCondition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1821,9 +1821,9 @@ func Test_setAvailableCondition(t *testing.T) {
 
 			setAvailableCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.IsEtcdManaged(), tt.controlPlane.EtcdMembers, tt.controlPlane.EtcdMembersAndMachinesAreMatching, tt.controlPlane.Machines)
 
-			availableCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition)
+			availableCondition := conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition)
 			g.Expect(availableCondition).ToNot(BeNil())
-			g.Expect(*availableCondition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*availableCondition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2040,8 +2040,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
@@ -2200,7 +2200,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Ready).To(BeFalse())
-	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
 }
 
 func kubeadmConfigMap() *corev1.ConfigMap {

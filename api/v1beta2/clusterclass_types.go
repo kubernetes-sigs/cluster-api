@@ -1230,16 +1230,16 @@ type ClusterClassStatusVariableDefinition struct {
 	Schema VariableSchema `json:"schema"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (c *ClusterClass) GetConditions() Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *ClusterClass) GetV1Beta1Conditions() Conditions {
 	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (c *ClusterClass) SetConditions(conditions Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *ClusterClass) SetV1Beta1Conditions(conditions Conditions) {
 	if c.Status.Deprecated == nil {
 		c.Status.Deprecated = &ClusterClassDeprecatedStatus{}
 	}
@@ -1249,13 +1249,13 @@ func (c *ClusterClass) SetConditions(conditions Conditions) {
 	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *ClusterClass) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (c *ClusterClass) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (c *ClusterClass) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 

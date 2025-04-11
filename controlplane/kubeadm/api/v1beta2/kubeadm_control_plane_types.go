@@ -470,16 +470,16 @@ type KubeadmControlPlane struct {
 	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (in *KubeadmControlPlane) GetV1Beta1Conditions() clusterv1.Conditions {
 	if in.Status.Deprecated == nil || in.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return in.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (in *KubeadmControlPlane) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	if in.Status.Deprecated == nil {
 		in.Status.Deprecated = &KubeadmControlPlaneDeprecatedStatus{}
 	}
@@ -489,13 +489,13 @@ func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	in.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (in *KubeadmControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (in *KubeadmControlPlane) GetConditions() []metav1.Condition {
 	return in.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (in *KubeadmControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (in *KubeadmControlPlane) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,45 +18,43 @@ package conditions
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 func TestMatchConditions(t *testing.T) {
+	t0 := metav1.Now()
+
 	testCases := []struct {
 		name        string
 		actual      interface{}
-		expected    clusterv1.Conditions
+		expected    []metav1.Condition
 		expectMatch bool
 	}{
 		{
 			name:        "with an empty conditions",
-			actual:      clusterv1.Conditions{},
-			expected:    clusterv1.Conditions{},
+			actual:      []metav1.Condition{},
+			expected:    []metav1.Condition{},
 			expectMatch: true,
 		},
 		{
 			name: "with matching conditions",
-			actual: clusterv1.Conditions{
+			actual: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 			},
-			expected: clusterv1.Conditions{
+			expected: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
@@ -65,38 +63,34 @@ func TestMatchConditions(t *testing.T) {
 		},
 		{
 			name: "with non-matching conditions",
-			actual: clusterv1.Conditions{
+			actual: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 			},
-			expected: clusterv1.Conditions{
+			expected: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 				{
-					Type:               clusterv1.ConditionType("different"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "different",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "different",
 					Message:            "different",
 				},
@@ -105,30 +99,27 @@ func TestMatchConditions(t *testing.T) {
 		},
 		{
 			name: "with a different number of conditions",
-			actual: clusterv1.Conditions{
+			actual: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
 			},
-			expected: clusterv1.Conditions{
+			expected: []metav1.Condition{
 				{
-					Type:               clusterv1.ConditionType("type"),
-					Status:             corev1.ConditionTrue,
-					Severity:           clusterv1.ConditionSeverityNone,
-					LastTransitionTime: metav1.Now(),
+					Type:               "type",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: t0,
 					Reason:             "reason",
 					Message:            "message",
 				},
@@ -150,156 +141,175 @@ func TestMatchConditions(t *testing.T) {
 }
 
 func TestMatchCondition(t *testing.T) {
+	t0 := metav1.Now()
+	t1 := metav1.NewTime(t0.Add(1 * -time.Minute))
+
 	testCases := []struct {
 		name        string
 		actual      interface{}
-		expected    clusterv1.Condition
+		expected    metav1.Condition
+		options     []MatchOption
 		expectMatch bool
 	}{
 		{
 			name:        "with an empty condition",
-			actual:      clusterv1.Condition{},
-			expected:    clusterv1.Condition{},
+			actual:      metav1.Condition{},
+			expected:    metav1.Condition{},
+			options:     []MatchOption{},
 			expectMatch: true,
 		},
 		{
 			name: "with a matching condition",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
+			options:     []MatchOption{},
 			expectMatch: true,
 		},
 		{
-			name: "with a different time",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			name: "with a different LastTransitionTime",
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Time{},
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t1,
 				Reason:             "reason",
 				Message:            "message",
 			},
+			options:     []MatchOption{},
+			expectMatch: false,
+		},
+		{
+			name: "with a different LastTransitionTime but with IgnoreLastTransitionTime",
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
+				Reason:             "reason",
+				Message:            "message",
+			},
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t1,
+				Reason:             "reason",
+				Message:            "message",
+			},
+			options:     []MatchOption{IgnoreLastTransitionTime(true)},
 			expectMatch: true,
 		},
 		{
 			name: "with a different type",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("different"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "different",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
+			options:     []MatchOption{},
 			expectMatch: false,
 		},
 		{
 			name: "with a different status",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionFalse,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
+			options:     []MatchOption{},
 			expectMatch: false,
 		},
 		{
-			name: "with a different severity",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			name: "with a different ObservedGeneration",
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
+				ObservedGeneration: 1,
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityInfo,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
+				ObservedGeneration: 2,
 			},
+			options:     []MatchOption{},
 			expectMatch: false,
 		},
 		{
 			name: "with a different reason",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "different",
 				Message:            "message",
 			},
+			options:     []MatchOption{},
 			expectMatch: false,
 		},
 		{
 			name: "with a different message",
-			actual: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			actual: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "message",
 			},
-			expected: clusterv1.Condition{
-				Type:               clusterv1.ConditionType("type"),
-				Status:             corev1.ConditionTrue,
-				Severity:           clusterv1.ConditionSeverityNone,
-				LastTransitionTime: metav1.Now(),
+			expected: metav1.Condition{
+				Type:               "type",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: t0,
 				Reason:             "reason",
 				Message:            "different",
 			},
+			options:     []MatchOption{},
 			expectMatch: false,
 		},
 	}
@@ -308,9 +318,9 @@ func TestMatchCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			if tc.expectMatch {
-				g.Expect(tc.actual).To(MatchCondition(tc.expected))
+				g.Expect(tc.actual).To(MatchCondition(tc.expected, tc.options...))
 			} else {
-				g.Expect(tc.actual).ToNot(MatchCondition(tc.expected))
+				g.Expect(tc.actual).ToNot(MatchCondition(tc.expected, tc.options...))
 			}
 		})
 	}

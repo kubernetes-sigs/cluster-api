@@ -38,7 +38,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -189,7 +189,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
-		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -206,11 +206,11 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
-	fallBack := conditions.WithFallbackValue(*dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(*dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(*dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(*dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition, conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyCondition, v1beta1conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
 
 	if !s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
@@ -299,11 +299,11 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Report a summary of current status of the InfrastructureMachine for this Machine.
-	fallBack := conditions.WithFallbackValue(*provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(*provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = conditions.WithFallbackValue(*provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(*provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition, conditions.UnstructuredGetter(s.infraMachine), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition, v1beta1conditions.UnstructuredGetter(s.infraMachine), fallBack)
 
 	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil

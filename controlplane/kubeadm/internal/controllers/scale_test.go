@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
@@ -613,11 +613,11 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
-								*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
-								*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+								*v1beta1conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
 							},
 						}},
 					},
@@ -643,11 +643,11 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
-								*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+								*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
 							},
 						}},
 					},
@@ -667,8 +667,8 @@ func TestPreflightChecks(t *testing.T) {
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Deprecated: &controlplanev1.KubeadmControlPlaneDeprecatedStatus{V1Beta1: &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{
 						Conditions: clusterv1.Conditions{
-							*conditions.TrueCondition(controlplanev1.ControlPlaneComponentsHealthyCondition),
-							*conditions.TrueCondition(controlplanev1.EtcdClusterHealthyCondition),
+							*v1beta1conditions.TrueCondition(controlplanev1.ControlPlaneComponentsHealthyCondition),
+							*v1beta1conditions.TrueCondition(controlplanev1.EtcdClusterHealthyCondition),
 						},
 					}},
 				},
@@ -682,11 +682,11 @@ func TestPreflightChecks(t *testing.T) {
 						},
 						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
-								*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
-								*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
 							},
 						}},
 					},
@@ -744,7 +744,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 				Status: clusterv1.MachineStatus{
 					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 						Conditions: clusterv1.Conditions{
-							*conditions.FalseCondition(condition, "fooReason", clusterv1.ConditionSeverityError, ""),
+							*v1beta1conditions.FalseCondition(condition, "fooReason", clusterv1.ConditionSeverityError, ""),
 						},
 					}},
 				},
@@ -757,7 +757,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 				Status: clusterv1.MachineStatus{
 					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 						Conditions: clusterv1.Conditions{
-							*conditions.UnknownCondition(condition, "fooReason", ""),
+							*v1beta1conditions.UnknownCondition(condition, "fooReason", ""),
 						},
 					}},
 				},
@@ -770,7 +770,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 				Status: clusterv1.MachineStatus{
 					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 						Conditions: clusterv1.Conditions{
-							*conditions.TrueCondition(condition),
+							*v1beta1conditions.TrueCondition(condition),
 						},
 					}},
 				},

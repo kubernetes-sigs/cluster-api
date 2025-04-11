@@ -220,7 +220,7 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 }
 
 func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
-	for _, condition := range cluster.GetConditions() {
+	for _, condition := range cluster.GetV1Beta1Conditions() {
 		if condition.Type == clusterv1.ControlPlaneInitializedCondition {
 			if condition.Status == corev1.ConditionTrue {
 				return true

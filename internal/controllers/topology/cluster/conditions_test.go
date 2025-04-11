@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -978,13 +978,13 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 
-				actualCondition := conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
+				actualCondition := v1beta1conditions.Get(tt.cluster, clusterv1.TopologyReconciledCondition)
 				g.Expect(actualCondition).ToNot(BeNil())
 				g.Expect(actualCondition.Status).To(BeEquivalentTo(tt.wantConditionStatus))
 				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantConditionReason))
 				g.Expect(actualCondition.Message).To(BeEquivalentTo(tt.wantConditionMessage))
 
-				actualV1Beta2Condition := v1beta2conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledV1Beta2Condition)
+				actualV1Beta2Condition := conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledV1Beta2Condition)
 				g.Expect(actualV1Beta2Condition).ToNot(BeNil())
 				g.Expect(actualV1Beta2Condition.Status).To(BeEquivalentTo(tt.wantV1Beta2ConditionStatus))
 				g.Expect(actualV1Beta2Condition.Reason).To(BeEquivalentTo(tt.wantV1Beta2ConditionReason))

@@ -46,7 +46,7 @@ import (
 	resourcepredicates "sigs.k8s.io/cluster-api/internal/controllers/clusterresourceset/predicates"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
@@ -156,7 +156,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully.
 		patchOpts := []patch.Option{
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 				addonsv1.ResourcesAppliedV1Beta2Condition,
 			}},
@@ -172,8 +172,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	clusters, err := r.getClustersByClusterResourceSetSelector(ctx, clusterResourceSet)
 	if err != nil {
 		log.Error(err, "Failed fetching clusters that matches ClusterResourceSet labels", "ClusterResourceSet", klog.KObj(clusterResourceSet))
-		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ClusterMatchFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ClusterMatchFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.Set(clusterResourceSet, metav1.Condition{
 			Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
@@ -314,16 +314,16 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
 			if err == ErrSecretTypeNotSupported {
-				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
-				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+				v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
+				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeV1Beta2Reason,
 					Message: fmt.Sprintf("Secret type of resource %s is not supported", resource.Name),
 				})
 			} else {
-				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-				v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+				v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
@@ -380,8 +380,8 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.Set(clusterResourceSet, metav1.Condition{
 			Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.InternalErrorV1Beta2Reason,
@@ -437,8 +437,8 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		if err := resourceScope.apply(ctx, remoteClient); err != nil {
 			isSuccessful = false
 			log.Error(err, "Failed to apply ClusterResourceSet resource", resource.Kind, klog.KRef(clusterResourceSet.Namespace, resource.Name))
-			conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-			v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+			v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.Set(clusterResourceSet, metav1.Condition{
 				Type:    addonsv1.ResourcesAppliedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  addonsv1.ResourcesNotAppliedV1Beta2Reason,
@@ -458,8 +458,8 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		return kerrors.NewAggregate(errList)
 	}
 
-	conditions.MarkTrue(clusterResourceSet, addonsv1.ResourcesAppliedCondition)
-	v1beta2conditions.Set(clusterResourceSet, metav1.Condition{
+	v1beta1conditions.MarkTrue(clusterResourceSet, addonsv1.ResourcesAppliedCondition)
+	conditions.Set(clusterResourceSet, metav1.Condition{
 		Type:   addonsv1.ResourcesAppliedV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: addonsv1.ResourcesAppliedV1beta2Reason,

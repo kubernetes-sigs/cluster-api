@@ -25,7 +25,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func updateStatus(ctx context.Context, s *scope) {
@@ -35,12 +35,12 @@ func updateStatus(ctx context.Context, s *scope) {
 
 func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.ClusterClass, outdatedRefs []outdatedRef, reconcileExternalReferencesError error) {
 	if reconcileExternalReferencesError != nil {
-		conditions.MarkUnknown(clusterClass,
+		v1beta1conditions.MarkUnknown(clusterClass,
 			clusterv1.ClusterClassRefVersionsUpToDateCondition,
 			clusterv1.ClusterClassRefVersionsUpToDateInternalErrorReason,
 			"Please check controller logs for errors",
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason,
@@ -54,15 +54,15 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		for _, outdatedRef := range outdatedRefs {
 			msg = append(msg, fmt.Sprintf("* Ref %q should be %q", refString(outdatedRef.Outdated), refString(outdatedRef.UpToDate)))
 		}
-		conditions.Set(clusterClass,
-			conditions.FalseCondition(
+		v1beta1conditions.Set(clusterClass,
+			v1beta1conditions.FalseCondition(
 				clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				clusterv1.ClusterClassOutdatedRefVersionsReason,
 				clusterv1.ConditionSeverityWarning,
 				strings.Join(msg, "\n"),
 			),
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterClassRefVersionsNotUpToDateV1Beta2Reason,
@@ -71,10 +71,10 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		return
 	}
 
-	conditions.Set(clusterClass,
-		conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
+	v1beta1conditions.Set(clusterClass,
+		v1beta1conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
 	)
-	v1beta2conditions.Set(clusterClass, metav1.Condition{
+	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Reason,
@@ -83,13 +83,13 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 
 func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.ClusterClass, variableDiscoveryError error) {
 	if variableDiscoveryError != nil {
-		conditions.MarkFalse(clusterClass,
+		v1beta1conditions.MarkFalse(clusterClass,
 			clusterv1.ClusterClassVariablesReconciledCondition,
 			clusterv1.VariableDiscoveryFailedReason,
 			clusterv1.ConditionSeverityError,
 			variableDiscoveryError.Error(),
 		)
-		v1beta2conditions.Set(clusterClass, metav1.Condition{
+		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason,
@@ -98,8 +98,8 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 		return
 	}
 
-	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
-	v1beta2conditions.Set(clusterClass, metav1.Condition{
+	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
+	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.ClusterClassVariablesReadyV1Beta2Reason,

@@ -30,19 +30,19 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ConditionSetter combines the client.Object and Setter interface.
 type ConditionSetter interface {
-	v1beta2conditions.Setter
+	conditions.Setter
 	client.Object
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
-	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
+	oldCondition := conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
@@ -61,14 +61,14 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 
 	if oldCondition != nil {
 		// Return early if the paused condition did not change at all.
-		if v1beta2conditions.HasSameState(oldCondition, &newCondition) {
+		if conditions.HasSameState(oldCondition, &newCondition) {
 			return isPaused, false, nil
 		}
 
 		// Set condition and return early if only observed generation changed and obj is not paused.
 		// In this case we want to avoid the additional reconcile that we would get by requeueing.
-		if v1beta2conditions.HasSameStateExceptObservedGeneration(oldCondition, &newCondition) && !isPaused {
-			v1beta2conditions.Set(obj, newCondition)
+		if conditions.HasSameStateExceptObservedGeneration(oldCondition, &newCondition) && !isPaused {
+			conditions.Set(obj, newCondition)
 			return isPaused, false, nil
 		}
 	}
@@ -78,9 +78,9 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 		return isPaused, false, err
 	}
 
-	v1beta2conditions.Set(obj, newCondition)
+	conditions.Set(obj, newCondition)
 
-	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{
 		clusterv1.PausedV1Beta2Condition,
 	}}); err != nil {
 		return isPaused, false, err

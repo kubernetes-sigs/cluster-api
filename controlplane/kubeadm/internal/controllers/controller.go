@@ -52,7 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -250,7 +250,8 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			// status without waiting for a full resync (by default 10 minutes).
 			// Otherwise this condition can lead to a delay in provisioning MachineDeployments when MachineSet preflight checks are enabled.
 			// The alternative solution to this requeue would be watching the relevant pods inside each workload cluster which would be very expensive.
-			if conditions.IsFalse(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition) {
+			// TODO (v1beta2): test for v1beta2 conditions
+			if v1beta1conditions.IsFalse(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 		}
@@ -312,8 +313,8 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 
 func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
-	conditions.SetSummary(kcp,
-		conditions.WithConditions(
+	v1beta1conditions.SetSummary(kcp,
+		v1beta1conditions.WithConditions(
 			controlplanev1.MachinesCreatedCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
 			controlplanev1.ResizedCondition,
@@ -327,7 +328,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
 	// patch at the end of the reconcile loop.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			controlplanev1.MachinesCreatedCondition,
 			clusterv1.ReadyCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
@@ -336,7 +337,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.AvailableCondition,
 			controlplanev1.CertificatesAvailableCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
@@ -369,14 +370,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// Wait for the cluster infrastructure to be ready before creating machines
 	if !controlPlane.Cluster.Status.InfrastructureReady {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster status.infrastructureReady to be true",
 		})
 
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
@@ -395,14 +396,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// If ControlPlaneEndpoint is not set, return early
 	if !controlPlane.Cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster spec.controlPlaneEndpoint to be set",
 		})
 
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
@@ -427,7 +428,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), conditions.AddSourceRef())
+	v1beta1conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), v1beta1conditions.AddSourceRef())
 
 	// Updates conditions reporting the status of static pods and the status of the etcd cluster.
 	// NOTE: Conditions reporting KCP operation progress like e.g. Resized or SpecUpToDate are inlined with the rest of the execution.
@@ -462,14 +463,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", machine, strings.Join(messages, ",")))
 		}
 		log.Info(fmt.Sprintf("Rolling out Control Plane machines: %s", strings.Join(allMessages, ",")), "machinesNeedingRollout", machinesNeedingRollout.Names())
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.upgradeControlPlane(ctx, controlPlane, machinesNeedingRollout)
 	default:
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
 		// reconciliation/before a rolling upgrade actually starts.
-		if conditions.Has(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition) {
-			conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition)
+		if v1beta1conditions.Has(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition) {
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition)
 		}
 	}
 
@@ -482,7 +483,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
 		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
@@ -548,9 +549,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason,
@@ -560,7 +561,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	}
 
 	if err := r.ensureCertificatesOwnerRef(ctx, certificates, *controllerRef); err != nil {
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason,
@@ -570,9 +571,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 		return errors.Wrap(err, "error in ensuring cluster certificates ownership")
 	}
 
-	conditions.MarkTrue(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition)
+	v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition)
 
-	v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+	conditions.Set(controlPlane.KCP, metav1.Condition{
 		Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Reason,
@@ -606,7 +607,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
 	// However, during delete we are hiding the counter (1 of x) because it does not make sense given that
 	// all the machines are deleted in parallel.
-	conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), conditions.AddSourceRef())
+	v1beta1conditions.SetAggregate(controlPlane.KCP, controlplanev1.MachinesReadyCondition, controlPlane.Machines.ConditionGetters(), v1beta1conditions.AddSourceRef())
 
 	// Gets all machines, not just control plane machines.
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, controlPlane.Cluster)
@@ -629,7 +630,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// Verify that only control plane machines remain
 	if len(allMachines) != len(controlPlane.Machines) || len(allMachinePools.Items) != 0 {
 		log.Info("Waiting for worker nodes to be deleted first")
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "Waiting for worker nodes to be deleted first")
 
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionV1Beta2Reason
 		names := objectsPendingDeleteNames(allMachines, allMachinePools, controlPlane.Cluster)
@@ -683,7 +684,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 
 	log.Info("Waiting for control plane Machines to not exist anymore")
 
-	conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
 	message := ""
 	if len(machines) > 0 {
@@ -892,8 +893,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 	// Note: The Machine controller uses the ControlPlaneInitialized condition on the Cluster instead for
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.
-	// TODO: Once we moved to v1beta2 conditions we should use the `Initialized` condition instead.
-	controlPlaneInitialized := conditions.Get(controlPlane.KCP, controlplanev1.AvailableCondition)
+	// TODO (v1beta2): Once we moved to v1beta2 conditions we should use the `Initialized` condition instead.
+	controlPlaneInitialized := v1beta1conditions.Get(controlPlane.KCP, controlplanev1.AvailableCondition)
 	if !controlPlane.KCP.Status.Initialized ||
 		controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
 		// Overwrite conditions to InspectionFailed.
@@ -981,7 +982,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 				message = strings.Join(reasons, "\n")
 			}
 
-			v1beta2conditions.Set(machine, metav1.Condition{
+			conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
@@ -990,7 +991,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 
 			continue
 		}
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineUpToDateV1Beta2Reason,
@@ -1012,11 +1013,11 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 	// Note: We are not checking if conditions on the Machines are already set, we just check the KCP conditions instead.
 	// This means if Overwrite is set to false, we only set the EtcdMemberHealthy condition if the EtcdClusterHealthy condition is not set.
 	// The same applies to ControlPlaneComponentsHealthy and the control plane component conditions on the Machines.
-	etcdClusterHealthySet := v1beta2conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)
-	controlPlaneComponentsHealthySet := v1beta2conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)
+	etcdClusterHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)
+	controlPlaneComponentsHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)
 
 	if input.Overwrite || !etcdClusterHealthySet {
-		v1beta2conditions.Set(input.ControlPlane.KCP, metav1.Condition{
+		conditions.Set(input.ControlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.EtcdClusterHealthyReason,
@@ -1024,7 +1025,7 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 		})
 		for _, machine := range input.ControlPlane.Machines {
 			if input.ControlPlane.IsEtcdManaged() {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  input.EtcdMemberHealthyReason,
@@ -1035,7 +1036,7 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 	}
 
 	if input.Overwrite || !controlPlaneComponentsHealthySet {
-		v1beta2conditions.Set(input.ControlPlane.KCP, metav1.Condition{
+		conditions.Set(input.ControlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.ControlPlaneComponentsHealthyReason,
@@ -1052,7 +1053,7 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 		}
 		for _, machine := range input.ControlPlane.Machines {
 			for _, condition := range allMachinePodV1beta2Conditions {
-				v1beta2conditions.Set(machine, metav1.Condition{
+				conditions.Set(machine, metav1.Condition{
 					Type:    condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  input.StaticPodReason,
@@ -1101,7 +1102,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	// Potential inconsistencies between the list of members and the list of machines/nodes are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
-	if conditions.IsTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyCondition) {
 		return nil
 	}
 
@@ -1172,7 +1174,8 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	}
 
 	// Return early because the Machine controller is not yet waiting for the pre-terminate hook.
-	c := conditions.Get(deletingMachine, clusterv1.PreTerminateDeleteHookSucceededCondition)
+	// TODO (v1beta2): test for v1beta2 conditions
+	c := v1beta1conditions.Get(deletingMachine, clusterv1.PreTerminateDeleteHookSucceededCondition)
 	if c == nil || c.Status != corev1.ConditionFalse || c.Reason != clusterv1.WaitingExternalHookReason {
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}

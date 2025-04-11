@@ -163,7 +163,7 @@ func (r *ClusterBackendReconciler) PatchDevCluster(ctx context.Context, patchHel
 	return patchHelper.Patch(
 		ctx,
 		inMemoryCluster,
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 		}},
 	)

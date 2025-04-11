@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -170,10 +170,10 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
 				return err
 			}
-			if c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition); c != nil {
+			if c := v1beta1conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition); c != nil {
 				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedCondition)
 			}
-			if c := v1beta2conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition); c != nil {
+			if c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition); c != nil {
 				return errors.Errorf("condition %s still exists", clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 			}
 			return nil
@@ -250,7 +250,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m)
@@ -320,7 +320,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane can't remediate while waiting for a version upgrade to v1.20.1 to be propagated from Cluster.spec.topology")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -371,7 +371,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed 3 times (MaxRetry)")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed 3 times (MaxRetry)")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason, "KubeadmControlPlane can't remediate this machine because the operation already failed 3 times (MaxRetry)")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -427,7 +427,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -486,7 +486,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -539,7 +539,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -585,7 +585,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if current replicas are less or equal to 1")
+		assertMachineV1beta1Condition(ctx, g, m, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate if current replicas are less or equal to 1")
 		assertMachineV1beta2Condition(ctx, g, m, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason, "KubeadmControlPlane can't remediate if current replicas are less or equal to 1")
 
 		g.Expect(env.Cleanup(ctx, m)).To(Succeed())
@@ -615,7 +615,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine deletion to complete before triggering remediation")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine deletion to complete before triggering remediation")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane waiting for control plane Machine deletion to complete before triggering remediation")
 
 		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
@@ -645,7 +645,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane waiting for control plane Machine provisioning to complete before triggering remediation")
 
 		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
@@ -676,7 +676,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane waiting for control plane machine provisioning to complete before triggering remediation")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason, "KubeadmControlPlane waiting for control plane Machine provisioning to complete before triggering remediation")
 
 		g.Expect(env.Cleanup(ctx, m1, m2)).To(Succeed())
@@ -719,7 +719,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason, "KubeadmControlPlane can't remediate this Machine because this could result in etcd loosing quorum")
 
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
@@ -764,7 +764,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because this could result in etcd loosing quorum")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason, "KubeadmControlPlane can't remediate this Machine because this could result in etcd loosing quorum")
 
 		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4, m5)).To(Succeed())
@@ -812,7 +812,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -863,7 +863,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -899,7 +899,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(remediationData.Machine).To(Equal(mi.Name))
 			g.Expect(remediationData.RetryCount).To(Equal(i - 1))
 
-			assertMachineCondition(ctx, g, mi, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+			assertMachineV1beta1Condition(ctx, g, mi, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 			assertMachineV1beta2Condition(ctx, g, mi, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 			err = env.Get(ctx, client.ObjectKey{Namespace: mi.Namespace, Name: mi.Name}, mi)
@@ -955,7 +955,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1008,7 +1008,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1061,7 +1061,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1115,7 +1115,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1169,7 +1169,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1217,7 +1217,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
 			"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
 			"KubeadmControlPlane can't remediate this Machine because there is no healthy Machine to forward etcd leadership to")
@@ -1268,7 +1268,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1304,7 +1304,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(remediationData.Machine).To(Equal(mi.Name))
 			g.Expect(remediationData.RetryCount).To(Equal(i - 4))
 
-			assertMachineCondition(ctx, g, mi, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+			assertMachineV1beta1Condition(ctx, g, mi, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 			assertMachineV1beta2Condition(ctx, g, mi, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 			err = env.Get(ctx, client.ObjectKey{Namespace: mi.Namespace, Name: mi.Name}, mi)
@@ -1375,7 +1375,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m1.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
@@ -1411,7 +1411,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m2.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(1))
 
-		assertMachineCondition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m2.Namespace, Name: m2.Name}, m1)
@@ -1487,7 +1487,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m2.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m2.Namespace, Name: m2.Name}, m2)
@@ -1524,7 +1524,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m3.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(1))
 
-		assertMachineCondition(ctx, g, m3, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m3, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 		assertMachineV1beta2Condition(ctx, g, m3, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m3.Namespace, Name: m3.Name}, m3)
@@ -1601,8 +1601,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(remediationData.Machine).To(Equal(m2.Name))
 		g.Expect(remediationData.RetryCount).To(Equal(0))
 
-		assertMachineCondition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
-		assertMachineCondition(ctx, g, m3, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineV1beta1Condition(ctx, g, m3, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
 		assertMachineV1beta2Condition(ctx, g, m2, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, "Machine is deleting")
 		assertMachineV1beta2Condition(ctx, g, m3, clusterv1.MachineOwnerRemediatedV1Beta2Condition, metav1.ConditionFalse, clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason, "Waiting for remediation")
@@ -2031,15 +2031,15 @@ type machineOption func(*clusterv1.Machine)
 
 func withMachineHealthCheckFailed() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
-		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
 		})
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
@@ -2050,15 +2050,15 @@ func withMachineHealthCheckFailed() machineOption {
 
 func withStuckRemediation() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSucceededCondition)
-		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSucceededCondition)
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 		})
-		v1beta2conditions.Set(machine, metav1.Condition{
+		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
@@ -2069,25 +2069,25 @@ func withStuckRemediation() machineOption {
 
 func withHealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkTrue(machine, controlplanev1.MachineEtcdMemberHealthyCondition)
+		v1beta1conditions.MarkTrue(machine, controlplanev1.MachineEtcdMemberHealthyCondition)
 	}
 }
 
 func withUnhealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "")
+		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "")
 	}
 }
 
 func withHealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
+		v1beta1conditions.MarkTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
 	}
 }
 
 func withUnhealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkFalse(machine, controlplanev1.MachineAPIServerPodHealthyCondition, controlplanev1.ControlPlaneComponentsUnhealthyReason, clusterv1.ConditionSeverityError, "")
+		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineAPIServerPodHealthyCondition, controlplanev1.ControlPlaneComponentsUnhealthyReason, clusterv1.ConditionSeverityError, "")
 	}
 }
 
@@ -2169,12 +2169,12 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 	return m
 }
 
-func assertMachineCondition(ctx context.Context, g *WithT, m *clusterv1.Machine, t clusterv1.ConditionType, status corev1.ConditionStatus, reason string, severity clusterv1.ConditionSeverity, message string) {
+func assertMachineV1beta1Condition(ctx context.Context, g *WithT, m *clusterv1.Machine, t clusterv1.ConditionType, status corev1.ConditionStatus, reason string, severity clusterv1.ConditionSeverity, message string) {
 	g.Eventually(func() error {
 		if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
 			return err
 		}
-		c := conditions.Get(m, t)
+		c := v1beta1conditions.Get(m, t)
 		if c == nil {
 			return errors.Errorf("condition %q was nil", t)
 		}
@@ -2199,7 +2199,7 @@ func assertMachineV1beta2Condition(ctx context.Context, g *WithT, m *clusterv1.M
 		if err := env.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, m); err != nil {
 			return err
 		}
-		c := v1beta2conditions.Get(m, t)
+		c := conditions.Get(m, t)
 		if c == nil {
 			return errors.Errorf("condition %q was nil", t)
 		}

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,332 +19,628 @@ package conditions
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/util/sets"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-var (
-	nil1          *clusterv1.Condition
-	true1         = TrueCondition("true1")
-	unknown1      = UnknownCondition("unknown1", "reason unknown1", "message unknown1")
-	falseInfo1    = FalseCondition("falseInfo1", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	falseWarning1 = FalseCondition("falseWarning1", "reason falseWarning1", clusterv1.ConditionSeverityWarning, "message falseWarning1")
-	falseError1   = FalseCondition("falseError1", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1")
+func TestGet(t *testing.T) {
+	now := metav1.Now().Rfc3339Copy()
 
-	negativePolarityConditions       = sets.New("false1-negative-polarity", "unknown1-negative-polarity", "trueInfo1-negative-polarity", "trueWarning1-negative-polarity", "trueError1-negative-polarity")
-	false1WithNegativePolarity       = FalseConditionWithNegativePolarity("false1-negative-polarity")
-	unknown1WithNegativePolarity     = UnknownCondition("unknown1-negative-polarity", "reason unknown1-negative-polarity", "message unknown1-negative-polarity")
-	trueInfo1WithNegativePolarity    = TrueConditionWithNegativePolarity("trueInfo1-negative-polarity", "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity")
-	trueWarning1WithNegativePolarity = TrueConditionWithNegativePolarity("trueWarning1-negative-polarity", "reason trueWarning1-negative-polarity", clusterv1.ConditionSeverityWarning, "message trueWarning1-negative-polarity")
-	trueError1WithNegativePolarity   = TrueConditionWithNegativePolarity("trueError1-negative-polarity", "reason trueError1-negative-polarity", clusterv1.ConditionSeverityError, "message trueError1-negative-polarity")
-)
+	t.Run("handles nil", func(t *testing.T) {
+		g := NewWithT(t)
 
-func TestGetAndHas(t *testing.T) {
-	g := NewWithT(t)
+		got := Get(nil, "bar")
+		g.Expect(got).To(BeNil())
+	})
 
-	cluster := &clusterv1.Cluster{}
+	t.Run("handles pointer to nil object", func(t *testing.T) {
+		g := NewWithT(t)
+		var foo *builder.Phase1Obj
 
-	g.Expect(Has(cluster, "conditionBaz")).To(BeFalse())
-	g.Expect(Get(cluster, "conditionBaz")).To(BeNil())
+		got := Get(foo, "bar")
+		g.Expect(got).To(BeNil())
+	})
 
-	cluster.SetConditions(conditionList(TrueCondition("conditionBaz")))
+	t.Run("Phase1 object with both legacy and v1beta2 conditions (v1beta2 nil)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase1Obj{
+			Status: builder.Phase1ObjStatus{
+				Conditions: clusterv1.Conditions{
+					{
+						Type:               "bazCondition",
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: now,
+					},
+				},
+				V1Beta2: nil,
+			},
+		}
 
-	g.Expect(Has(cluster, "conditionBaz")).To(BeTrue())
-	g.Expect(Get(cluster, "conditionBaz")).To(HaveSameStateOf(TrueCondition("conditionBaz")))
+		got := Get(foo, "barCondition")
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase1 object with both legacy and v1beta2 conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase1Obj{
+			Status: builder.Phase1ObjStatus{
+				Conditions: clusterv1.Conditions{
+					{
+						Type:               "bazCondition",
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: now,
+					},
+				},
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
+					Conditions: []metav1.Condition{
+						{
+							Type:               "barCondition",
+							Status:             metav1.ConditionTrue,
+							ObservedGeneration: 10,
+							LastTransitionTime: now,
+							Reason:             "FooReason",
+							Message:            "FooMessage",
+						},
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.V1Beta2.Conditions[0].Type,
+			Status:             foo.Status.V1Beta2.Conditions[0].Status,
+			LastTransitionTime: foo.Status.V1Beta2.Conditions[0].LastTransitionTime,
+			ObservedGeneration: foo.Status.V1Beta2.Conditions[0].ObservedGeneration,
+			Reason:             foo.Status.V1Beta2.Conditions[0].Reason,
+			Message:            foo.Status.V1Beta2.Conditions[0].Message,
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+
+	t.Run("Phase2 object with conditions (nil) and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: nil,
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase2 object with conditions (empty) and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: []metav1.Condition{},
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase2 object with conditions and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+						Reason:             "fooReason",
+					},
+				},
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.Conditions[0].Type,
+			Status:             foo.Status.Conditions[0].Status,
+			LastTransitionTime: foo.Status.Conditions[0].LastTransitionTime,
+			Reason:             foo.Status.Conditions[0].Reason,
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+
+	t.Run("Phase3 object with conditions (nil)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: nil,
+			},
+		}
+		got := Get(foo, "barCondition")
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase3 object with conditions (empty)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: []metav1.Condition{},
+			},
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase3 object with conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+						Reason:             "fooReason",
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.Conditions[0].Type,
+			Status:             foo.Status.Conditions[0].Status,
+			LastTransitionTime: foo.Status.Conditions[0].LastTransitionTime,
+			Reason:             foo.Status.Conditions[0].Reason,
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+
+	t.Run("handles objects with value getter", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &objectWithValueGetter{
+			Status: objectWithValueGetterStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+						Reason:             "fooReason",
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.Conditions[0].Type,
+			Status:             foo.Status.Conditions[0].Status,
+			LastTransitionTime: foo.Status.Conditions[0].LastTransitionTime,
+			Reason:             foo.Status.Conditions[0].Reason,
+		}
+
+		got := Get(foo, "barCondition")
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+}
+
+func TestUnstructuredGet(t *testing.T) {
+	now := metav1.Now().Rfc3339Copy()
+
+	t.Run("handles nil", func(t *testing.T) {
+		g := NewWithT(t)
+
+		_, err := UnstructuredGet(nil, "bar")
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("handles pointer to nil object", func(t *testing.T) {
+		g := NewWithT(t)
+		var foo runtime.Unstructured
+
+		_, err := UnstructuredGet(foo, "bar")
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("Phase1 object with both legacy and v1beta2 conditions (v1beta2 nil)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase1Obj{
+			Status: builder.Phase1ObjStatus{
+				Conditions: clusterv1.Conditions{
+					{
+						Type:               "bazCondition",
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: now,
+					},
+				},
+				V1Beta2: nil,
+			},
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase1 object with both legacy and v1beta2 conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase1Obj{
+			Status: builder.Phase1ObjStatus{
+				Conditions: clusterv1.Conditions{
+					{
+						Type:               "bazCondition",
+						Status:             corev1.ConditionFalse,
+						LastTransitionTime: now,
+					},
+				},
+				V1Beta2: &builder.Phase1ObjV1Beta2Status{
+					Conditions: []metav1.Condition{
+						{
+							Type:               "barCondition",
+							Status:             metav1.ConditionTrue,
+							ObservedGeneration: 10,
+							LastTransitionTime: now,
+							Reason:             "FooReason",
+							Message:            "FooMessage",
+						},
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.V1Beta2.Conditions[0].Type,
+			Status:             foo.Status.V1Beta2.Conditions[0].Status,
+			LastTransitionTime: foo.Status.V1Beta2.Conditions[0].LastTransitionTime,
+			ObservedGeneration: foo.Status.V1Beta2.Conditions[0].ObservedGeneration,
+			Reason:             foo.Status.V1Beta2.Conditions[0].Reason,
+			Message:            foo.Status.V1Beta2.Conditions[0].Message,
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+
+	t.Run("Phase2 object with conditions (nil) and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: nil,
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase2 object with conditions (empty) and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: []metav1.Condition{},
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase2 object with conditions and backward compatible conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase2Obj{
+			Status: builder.Phase2ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+						Reason:             "fooReason",
+					},
+				},
+				Deprecated: &builder.Phase2ObjDeprecatedStatus{
+					V1Beta1: &builder.Phase2ObjDeprecatedV1Beta1Status{
+						Conditions: clusterv1.Conditions{
+							{
+								Type:               "bazCondition",
+								Status:             corev1.ConditionFalse,
+								LastTransitionTime: now,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.Conditions[0].Type,
+			Status:             foo.Status.Conditions[0].Status,
+			LastTransitionTime: foo.Status.Conditions[0].LastTransitionTime,
+			Reason:             foo.Status.Conditions[0].Reason,
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+
+	t.Run("Phase3 object with conditions (nil)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: nil,
+			},
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase3 object with conditions (empty)", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: []metav1.Condition{},
+			},
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).To(BeNil())
+	})
+
+	t.Run("Phase3 object with conditions", func(t *testing.T) {
+		g := NewWithT(t)
+		foo := &builder.Phase3Obj{
+			Status: builder.Phase3ObjStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "barCondition",
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: now,
+						Reason:             "fooReason",
+					},
+				},
+			},
+		}
+
+		expect := metav1.Condition{
+			Type:               foo.Status.Conditions[0].Type,
+			Status:             foo.Status.Conditions[0].Status,
+			LastTransitionTime: foo.Status.Conditions[0].LastTransitionTime,
+			Reason:             foo.Status.Conditions[0].Reason,
+		}
+
+		fooUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(foo)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := UnstructuredGet(&unstructured.Unstructured{Object: fooUnstructured}, "barCondition")
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(MatchCondition(expect), cmp.Diff(*got, expect))
+	})
+}
+
+func TestConvertFromUnstructuredConditions(t *testing.T) {
+	tests := []struct {
+		name       string
+		conditions []clusterv1.Condition
+		want       []metav1.Condition
+		wantError  bool
+	}{
+		{
+			name: "Fails if Type is missing",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Status: corev1.ConditionTrue},
+			},
+			wantError: true,
+		},
+		{
+			name: "Fails if Status is missing",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Type: clusterv1.ConditionType("foo")},
+			},
+			wantError: true,
+		},
+		{
+			name: "Fails if Status is a wrong value",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Type: clusterv1.ConditionType("foo"), Status: "foo"},
+			},
+			wantError: true,
+		},
+		{
+			name: "Defaults reason for positive polarity",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Type: clusterv1.ConditionType("foo"), Status: corev1.ConditionTrue},
+			},
+			wantError: false,
+			want: []metav1.Condition{
+				{
+					Type:   "foo",
+					Status: metav1.ConditionTrue,
+					Reason: NoReasonReported,
+				},
+			},
+		},
+		{
+			name: "Defaults reason for negative polarity",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Type: clusterv1.ConditionType("foo"), Status: corev1.ConditionFalse},
+			},
+			wantError: false,
+			want: []metav1.Condition{
+				{
+					Type:   "foo",
+					Status: metav1.ConditionFalse,
+					Reason: NoReasonReported,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&builder.Phase0Obj{Status: builder.Phase0ObjStatus{Conditions: tt.conditions}})
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(unstructuredObj).To(HaveKey("status"))
+			unstructuredStatusObj := unstructuredObj["status"].(map[string]interface{})
+			g.Expect(unstructuredStatusObj).To(HaveKey("conditions"))
+
+			got, err := convertFromUnstructuredConditions(unstructuredStatusObj["conditions"].([]interface{}))
+			if tt.wantError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+		})
+	}
 }
 
 func TestIsMethods(t *testing.T) {
 	g := NewWithT(t)
 
-	obj := getterWithConditions(nil1, true1, unknown1, falseInfo1, falseWarning1, falseError1, false1WithNegativePolarity, unknown1WithNegativePolarity, trueInfo1WithNegativePolarity, trueWarning1WithNegativePolarity, trueError1WithNegativePolarity)
+	obj := objectWithValueGetter{
+		Status: objectWithValueGetterStatus{
+			Conditions: []metav1.Condition{
+				{Type: "trueCondition", Status: metav1.ConditionTrue},
+				{Type: "falseCondition", Status: metav1.ConditionFalse},
+				{Type: "unknownCondition", Status: metav1.ConditionUnknown},
+			},
+		},
+	}
 
 	// test isTrue
-	g.Expect(IsTrue(obj, "nil1")).To(BeFalse())
-	g.Expect(IsTrue(obj, "true1")).To(BeTrue())
-	g.Expect(IsTrue(obj, "falseInfo1")).To(BeFalse())
-	g.Expect(IsTrue(obj, "unknown1")).To(BeFalse())
-	g.Expect(IsTrue(obj, "false1-negative-polarity")).To(BeFalse())
-	g.Expect(IsTrue(obj, "trueInfo1-negative-polarity")).To(BeTrue())
-	g.Expect(IsTrue(obj, "unknown1-negative-polarity")).To(BeFalse())
-
+	g.Expect(IsTrue(obj, "trueCondition")).To(BeTrue())
+	g.Expect(IsTrue(obj, "falseCondition")).To(BeFalse())
+	g.Expect(IsTrue(obj, "unknownCondition")).To(BeFalse())
 	// test isFalse
-	g.Expect(IsFalse(obj, "nil1")).To(BeFalse())
-	g.Expect(IsFalse(obj, "true1")).To(BeFalse())
-	g.Expect(IsFalse(obj, "falseInfo1")).To(BeTrue())
-	g.Expect(IsFalse(obj, "unknown1")).To(BeFalse())
-	g.Expect(IsFalse(obj, "false1-negative-polarity")).To(BeTrue())
-	g.Expect(IsFalse(obj, "trueInfo1-negative-polarity")).To(BeFalse())
-	g.Expect(IsFalse(obj, "unknown1-negative-polarity")).To(BeFalse())
+	g.Expect(IsFalse(obj, "trueCondition")).To(BeFalse())
+	g.Expect(IsFalse(obj, "falseCondition")).To(BeTrue())
+	g.Expect(IsFalse(obj, "unknownCondition")).To(BeFalse())
 
 	// test isUnknown
-	g.Expect(IsUnknown(obj, "nil1")).To(BeTrue())
-	g.Expect(IsUnknown(obj, "true1")).To(BeFalse())
-	g.Expect(IsUnknown(obj, "falseInfo1")).To(BeFalse())
-	g.Expect(IsUnknown(obj, "unknown1")).To(BeTrue())
-	g.Expect(IsUnknown(obj, "false1-negative-polarity")).To(BeFalse())
-	g.Expect(IsUnknown(obj, "trueInfo1-negative-polarity")).To(BeFalse())
-	g.Expect(IsUnknown(obj, "unknown1-negative-polarity")).To(BeTrue())
-
-	// test GetReason
-	g.Expect(GetReason(obj, "nil1")).To(Equal(""))
-	g.Expect(GetReason(obj, "falseInfo1")).To(Equal("reason falseInfo1"))
-	g.Expect(GetReason(obj, "trueInfo1-negative-polarity")).To(Equal("reason trueInfo1-negative-polarity"))
-
-	// test GetMessage
-	g.Expect(GetMessage(obj, "nil1")).To(Equal(""))
-	g.Expect(GetMessage(obj, "falseInfo1")).To(Equal("message falseInfo1"))
-	g.Expect(GetMessage(obj, "trueInfo1-negative-polarity")).To(Equal("message trueInfo1-negative-polarity"))
-
-	// test GetSeverity
-	expectedSeverity := clusterv1.ConditionSeverityInfo
-	g.Expect(GetSeverity(obj, "nil1")).To(BeNil())
-	severity := GetSeverity(obj, "falseInfo1")
-	g.Expect(severity).To(Equal(&expectedSeverity))
-	severity = GetSeverity(obj, "trueInfo1-negative-polarity")
-	g.Expect(severity).To(Equal(&expectedSeverity))
-
-	// test GetLastTransitionTime
-	g.Expect(GetLastTransitionTime(obj, "nil1")).To(BeNil())
-	g.Expect(GetLastTransitionTime(obj, "falseInfo1")).ToNot(BeNil())
+	g.Expect(IsUnknown(obj, "trueCondition")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "falseCondition")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "unknownCondition")).To(BeTrue())
 }
 
-func TestMirror(t *testing.T) {
-	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	ready := TrueCondition(clusterv1.ReadyCondition)
-	readyBar := ready.DeepCopy()
-	readyBar.Type = "bar"
-
-	tests := []struct {
-		name string
-		from Getter
-		t    clusterv1.ConditionType
-		want *clusterv1.Condition
-	}{
-		{
-			name: "Returns nil when the ready condition does not exists",
-			from: getterWithConditions(foo),
-			want: nil,
-		},
-		{
-			name: "Returns ready condition from source",
-			from: getterWithConditions(ready, foo),
-			t:    "bar",
-			want: readyBar,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got := mirror(tt.from, tt.t)
-			if tt.want == nil {
-				g.Expect(got).To(BeNil())
-				return
-			}
-			g.Expect(got).To(HaveSameStateOf(tt.want))
-		})
-	}
+type objectWithValueGetter struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              objectWithValueGetterSpec   `json:"spec,omitempty"`
+	Status            objectWithValueGetterStatus `json:"status,omitempty"`
 }
 
-func TestSummary(t *testing.T) {
-	foo := TrueCondition("foo")
-	bar := FalseCondition("bar", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
-	fooWithNegativePolarity := FalseConditionWithNegativePolarity("foo-negative-polarity")
-	barWithNegativePolarity := TrueConditionWithNegativePolarity("bar-negative-polarity", "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity")
-	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
-
-	tests := []struct {
-		name    string
-		from    Getter
-		options []MergeOption
-		want    *clusterv1.Condition
-	}{
-		{
-			name: "Returns nil when there are no conditions to summarize",
-			from: getterWithConditions(),
-			want: nil,
-		},
-		{
-			name: "Returns ready condition with the summary of existing conditions (with default options)",
-			from: getterWithConditions(foo, bar),
-			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions with negative polarity (with default options)",
-			from:    getterWithConditions(fooWithNegativePolarity, barWithNegativePolarity),
-			options: []MergeOption{WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions with mixed polarity (with default options)",
-			from:    getterWithConditions(foo, bar, fooWithNegativePolarity, barWithNegativePolarity),
-			options: []MergeOption{WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"), // bar take precedence on barWithNegativePolarity because it is listed first
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounter options)",
-			from:    getterWithConditions(foo, bar),
-			options: []MergeOption{WithStepCounter()},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
-			from:    getterWithConditions(foo, bar),
-			options: []MergeOption{WithStepCounterIf(false)},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
-			from:    getterWithConditions(foo, bar),
-			options: []MergeOption{WithStepCounterIf(true)},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
-			from:    getterWithConditions(bar),
-			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("bar")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
-			from:    getterWithConditions(foo, bar),
-			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("foo")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions options)",
-			from:    getterWithConditions(foo, bar),
-			options: []MergeOption{WithConditions("foo")}, // bar should be ignored
-			want:    TrueCondition(clusterv1.ReadyCondition),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions with negative polarity (using WithConditions options)",
-			from:    getterWithConditions(fooWithNegativePolarity, barWithNegativePolarity),
-			options: []MergeOption{WithConditions("foo-negative-polarity"), WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")}, // bar-negative-polarity should be ignored because it is not listed in WithConditions
-			want:    TrueCondition(clusterv1.ReadyCondition),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions with mixed polarity (using WithConditions options)",
-			from:    getterWithConditions(foo, bar, fooWithNegativePolarity, barWithNegativePolarity),
-			options: []MergeOption{WithConditions("foo", "foo-negative-polarity", "bar-negative-polarity"), WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounter options)",
-			from:    getterWithConditions(foo, bar, baz),
-			options: []MergeOption{WithConditions("foo", "bar"), WithStepCounter()}, // baz should be ignored, total steps should be 2
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
-			from:    getterWithConditions(bar),
-			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is only bar, the step counter should be set and counts only a subset of conditions
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options - with inconsistent order between the two)",
-			from:    getterWithConditions(bar),
-			options: []MergeOption{WithConditions("baz", "bar"), WithStepCounter(), WithStepCounterIfOnly("bar", "baz")}, // conditions in WithStepCounterIfOnly could be in different order than in WithConditions
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 2 completed"),
-		},
-		{
-			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
-			from:    getterWithConditions(bar, baz),
-			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is also baz, so the step counter should not be set
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
-		},
-		{
-			name:    "Ready condition respects merge order",
-			from:    getterWithConditions(bar, baz),
-			options: []MergeOption{WithConditions("baz", "bar")}, // baz should take precedence on bar
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2"),
-		},
-		{
-			name: "Ignores existing Ready condition when computing the summary",
-			from: getterWithConditions(existingReady, foo, bar),
-			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got := summary(tt.from, tt.options...)
-			if tt.want == nil {
-				g.Expect(got).To(BeNil())
-				return
-			}
-			g.Expect(got).To(HaveSameStateOf(tt.want))
-		})
-	}
+type objectWithValueGetterSpec struct {
+	Foo string `json:"foo,omitempty"`
 }
 
-func TestAggregate(t *testing.T) {
-	ready1 := TrueCondition(clusterv1.ReadyCondition)
-	ready2 := FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	bar := FalseCondition("bar", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. bar has higher priority than other conditions
-
-	tests := []struct {
-		name string
-		from []Getter
-		t    clusterv1.ConditionType
-		want *clusterv1.Condition
-	}{
-		{
-			name: "Returns nil when there are no conditions to aggregate",
-			from: []Getter{},
-			want: nil,
-		},
-		{
-			name: "Returns foo condition with the aggregation of object's ready conditions",
-			from: []Getter{
-				getterWithConditions(ready1),
-				getterWithConditions(ready1),
-				getterWithConditions(ready2, bar),
-				getterWithConditions(),
-				getterWithConditions(bar),
-			},
-			t:    "foo",
-			want: FalseCondition("foo", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "2 of 5 completed"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got := aggregate(tt.from, tt.t)
-			if tt.want == nil {
-				g.Expect(got).To(BeNil())
-				return
-			}
-			g.Expect(got).To(HaveSameStateOf(tt.want))
-		})
-	}
+type objectWithValueGetterStatus struct {
+	Bar        string             `json:"bar,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func getterWithConditions(conditions ...*clusterv1.Condition) Getter {
-	obj := &clusterv1.Cluster{}
-	obj.SetConditions(conditionList(conditions...))
-	return obj
+func (o objectWithValueGetter) GetConditions() []metav1.Condition {
+	return o.Status.Conditions
 }
 
-func nilGetter() Getter {
-	var obj *clusterv1.Cluster
-	return obj
-}
-
-func conditionList(conditions ...*clusterv1.Condition) clusterv1.Conditions {
-	cs := clusterv1.Conditions{}
-	for _, x := range conditions {
-		if x != nil {
-			cs = append(cs, *x)
-		}
-	}
-	return cs
+func (o *objectWithValueGetter) SetConditions(conditions []metav1.Condition) {
+	o.Status.Conditions = conditions
 }

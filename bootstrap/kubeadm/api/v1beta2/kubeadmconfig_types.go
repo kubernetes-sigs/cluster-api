@@ -539,16 +539,16 @@ type KubeadmConfig struct {
 	Status KubeadmConfigStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (c *KubeadmConfig) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *KubeadmConfig) GetV1Beta1Conditions() clusterv1.Conditions {
 	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *KubeadmConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	if c.Status.Deprecated == nil {
 		c.Status.Deprecated = &KubeadmConfigDeprecatedStatus{}
 	}
@@ -558,13 +558,13 @@ func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
 	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *KubeadmConfig) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (c *KubeadmConfig) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *KubeadmConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (c *KubeadmConfig) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 

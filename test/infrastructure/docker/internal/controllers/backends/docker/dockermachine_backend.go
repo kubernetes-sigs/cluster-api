@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -71,8 +71,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
 	if !cluster.Status.InfrastructureReady {
 		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
-		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(dockerMachine, metav1.Condition{
+		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason,
@@ -120,8 +120,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		dockerMachine.Status.Ready = true
 
 		if externalMachine.Exists() {
-			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
-			v1beta2conditions.Set(dockerMachine, metav1.Condition{
+			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+			conditions.Set(dockerMachine, metav1.Condition{
 				Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: infrav1.DevMachineDockerContainerProvisionedV1Beta2Reason,
@@ -129,16 +129,16 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			// In case of upgrades the v1beta2 condition for BootstrapExecSucceeded does not exist.
 			// In this case recover the information from the existing v1beta1 condition, because we do not know if
 			// all commands succeeded.
-			if !v1beta2conditions.Has(dockerMachine, infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition) {
-				condition := conditions.Get(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+			if !conditions.Has(dockerMachine, infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition) {
+				condition := v1beta1conditions.Get(dockerMachine, infrav1.BootstrapExecSucceededCondition)
 				if condition == nil || condition.Status == corev1.ConditionTrue {
-					v1beta2conditions.Set(dockerMachine, metav1.Condition{
+					conditions.Set(dockerMachine, metav1.Condition{
 						Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 						Status: metav1.ConditionTrue,
 						Reason: infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason,
 					})
 				} else {
-					v1beta2conditions.Set(dockerMachine, metav1.Condition{
+					conditions.Set(dockerMachine, metav1.Condition{
 						Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 						Status:  metav1.ConditionFalse,
 						Message: condition.Message,
@@ -152,8 +152,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 				return ctrl.Result{}, errors.Wrap(err, "failed to set the machine address")
 			}
 		} else {
-			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()))
-			v1beta2conditions.Set(dockerMachine, metav1.Condition{
+			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()))
+			conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.DevMachineDockerContainerNotProvisionedV1Beta2Reason,
@@ -165,10 +165,11 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Make sure bootstrap data is available and populated.
 	if dataSecretName == nil {
-		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		// TODO (v1beta2): test for v1beta2 conditions
+		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 			log.Info("Waiting for the control plane to be initialized")
-			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
-			v1beta2conditions.Set(dockerMachine, metav1.Condition{
+			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
+			conditions.Set(dockerMachine, metav1.Condition{
 				Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: infrav1.DevMachineDockerContainerWaitingForControlPlaneInitializedV1Beta2Reason,
@@ -177,8 +178,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		}
 
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
-		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(dockerMachine, metav1.Condition{
+		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.DevMachineDockerContainerWaitingForBootstrapDataV1Beta2Reason,
@@ -225,19 +226,20 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Update the ContainerProvisioned and BootstrapExecSucceeded condition if not already in the correct state.
+	// TODO (v1beta2): test for v1beta2 conditions
 	requeue := false
-	if !conditions.IsTrue(dockerMachine, infrav1.ContainerProvisionedCondition) {
-		conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
-		v1beta2conditions.Set(dockerMachine, metav1.Condition{
+	if !v1beta1conditions.IsTrue(dockerMachine, infrav1.ContainerProvisionedCondition) {
+		v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
+		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: infrav1.DevMachineDockerContainerProvisionedV1Beta2Reason,
 		})
 		requeue = true
 	}
-	if !conditions.Has(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
-		conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(dockerMachine, metav1.Condition{
+	if !v1beta1conditions.Has(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
+		v1beta1conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrappingReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
@@ -294,8 +296,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 			// Run the bootstrap script. Simulates cloud-init/Ignition.
 			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.Backend.Docker.CustomImage); err != nil {
-				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
-				v1beta2conditions.Set(dockerMachine, metav1.Condition{
+				v1beta1conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+				conditions.Set(dockerMachine, metav1.Condition{
 					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
@@ -306,8 +308,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 			// Check for bootstrap success
 			if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, true); err != nil {
-				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
-				v1beta2conditions.Set(dockerMachine, metav1.Condition{
+				v1beta1conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+				conditions.Set(dockerMachine, metav1.Condition{
 					Type:    infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  infrav1.DevMachineDockerContainerBootstrapExecNotSucceededV1Beta2Reason,
@@ -320,8 +322,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Update the BootstrapExecSucceededCondition condition
-	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
-	v1beta2conditions.Set(dockerMachine, metav1.Condition{
+	v1beta1conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+	conditions.Set(dockerMachine, metav1.Condition{
 		Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Reason,
@@ -338,8 +340,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// NOTE: If the Cluster doesn't use a control plane, the ControlPlaneInitialized condition is only
 	// set to true after a control plane machine has a node ref. If we would requeue here in this case, the
 	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
+	// TODO (v1beta2): test for v1beta2 conditions
 	if cluster.Spec.ControlPlaneRef != nil &&
-		!conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -419,9 +422,10 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
 	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
-	if conditions.GetReason(dockerMachine, infrav1.ContainerProvisionedCondition) != clusterv1.DeletingReason {
-		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(dockerCluster, metav1.Condition{
+	// TODO (v1beta2): test for v1beta2 conditions
+	if v1beta1conditions.GetReason(dockerMachine, infrav1.ContainerProvisionedCondition) != clusterv1.DeletingReason {
+		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(dockerCluster, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.DevMachineDockerContainerDeletingV1Beta2Reason,
@@ -453,23 +457,23 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
-	conditions.SetSummary(dockerMachine,
-		conditions.WithConditions(
+	v1beta1conditions.SetSummary(dockerMachine,
+		v1beta1conditions.WithConditions(
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		),
-		conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
-	if err := v1beta2conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
-		v1beta2conditions.ForConditionTypes{
+	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
+		conditions.ForConditionTypes{
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					infrav1.DevMachineNotReadyV1Beta2Reason,
 					infrav1.DevMachineReadyUnknownV1Beta2Reason,
 					infrav1.DevMachineReadyV1Beta2Reason,
@@ -484,12 +488,12 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	return patchHelper.Patch(
 		ctx,
 		dockerMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,

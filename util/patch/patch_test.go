@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -202,7 +202,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -214,7 +214,7 @@ func TestPatchHelper(t *testing.T) {
 						return clusterv1.Conditions{}
 					}
 					return objAfter.Status.Deprecated.V1Beta1.Conditions
-				}, timeout).Should(conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
+				}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
 			})
 
 			t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestPatchHelper(t *testing.T) {
 				objCopy := obj.DeepCopy()
 
 				t.Log("Marking TestCondition=False")
-				conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
+				v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
 				g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 				t.Log("Validating that the local object's resource version is behind")
@@ -249,7 +249,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -261,22 +261,22 @@ func TestPatchHelper(t *testing.T) {
 						return false
 					}
 
-					testConditionCopy := conditions.Get(objCopy, "TestCondition")
-					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+					testConditionCopy := v1beta1conditions.Get(objCopy, "TestCondition")
+					testConditionAfter := v1beta1conditions.Get(objAfter, "TestCondition")
 					if testConditionCopy == nil || testConditionAfter == nil {
 						return false
 					}
-					ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+					ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 					if err != nil || !ok {
 						return false
 					}
 
-					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+					readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+					readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 					if readyBefore == nil || readyAfter == nil {
 						return false
 					}
-					ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+					ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 					if err != nil || !ok {
 						return false
 					}
@@ -306,7 +306,7 @@ func TestPatchHelper(t *testing.T) {
 				objCopy := obj.DeepCopy()
 
 				t.Log("Marking TestCondition=False")
-				conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
+				v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
 				g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 				t.Log("Validating that the local object's resource version is behind")
@@ -321,7 +321,7 @@ func TestPatchHelper(t *testing.T) {
 				obj.Spec.ControlPlaneEndpoint.Host = "test://endpoint"
 				obj.Spec.ControlPlaneEndpoint.Port = 8443
 				obj.Status.Phase = "Provisioning"
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -333,22 +333,22 @@ func TestPatchHelper(t *testing.T) {
 						return false
 					}
 
-					testConditionCopy := conditions.Get(objCopy, "TestCondition")
-					testConditionAfter := conditions.Get(objAfter, "TestCondition")
+					testConditionCopy := v1beta1conditions.Get(objCopy, "TestCondition")
+					testConditionAfter := v1beta1conditions.Get(objAfter, "TestCondition")
 					if testConditionCopy == nil || testConditionAfter == nil {
 						return false
 					}
-					ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+					ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 					if err != nil || !ok {
 						return false
 					}
 
-					readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-					readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+					readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+					readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 					if readyBefore == nil || readyAfter == nil {
 						return false
 					}
-					ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+					ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 					if err != nil || !ok {
 						return false
 					}
@@ -380,7 +380,7 @@ func TestPatchHelper(t *testing.T) {
 				objCopy := obj.DeepCopy()
 
 				t.Log("Marking Ready=False")
-				conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+				v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 				g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 				t.Log("Validating that the local object's resource version is behind")
@@ -391,7 +391,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -404,7 +404,7 @@ func TestPatchHelper(t *testing.T) {
 					}
 
 					for _, afterCondition := range objAfter.Status.Deprecated.V1Beta1.Conditions {
-						ok, err := conditions.MatchCondition(objCopy.Status.Deprecated.V1Beta1.Conditions[0]).Match(afterCondition)
+						ok, err := v1beta1conditions.MatchCondition(objCopy.Status.Deprecated.V1Beta1.Conditions[0]).Match(afterCondition)
 						if err == nil && ok {
 							return true
 						}
@@ -435,7 +435,7 @@ func TestPatchHelper(t *testing.T) {
 				objCopy := obj.DeepCopy()
 
 				t.Log("Marking Ready=False")
-				conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+				v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 				g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 				t.Log("Validating that the local object's resource version is behind")
@@ -446,21 +446,21 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
 
 				t.Log("Validating the object has been updated")
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
 				g.Eventually(func() clusterv1.Condition {
 					objAfter := obj.DeepCopy()
 					if err := env.Get(ctx, key, objAfter); err != nil {
 						return clusterv1.Condition{}
 					}
 
-					return *conditions.Get(objAfter, clusterv1.ReadyCondition)
-				}, timeout).Should(conditions.MatchCondition(*readyBefore))
+					return *v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
+				}, timeout).Should(v1beta1conditions.MatchCondition(*readyBefore))
 			})
 
 			t.Run("should not return an error if there is an unresolvable conflict when force overwrite is enabled", func(t *testing.T) {
@@ -484,7 +484,7 @@ func TestPatchHelper(t *testing.T) {
 				objCopy := obj.DeepCopy()
 
 				t.Log("Marking Ready=False")
-				conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+				v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 				g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 				t.Log("Validating that the local object's resource version is behind")
@@ -495,21 +495,21 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
-				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
 				g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
 
 				t.Log("Validating the object has been updated")
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
 				g.Eventually(func() clusterv1.Condition {
 					objAfter := obj.DeepCopy()
 					if err := env.Get(ctx, key, objAfter); err != nil {
 						return clusterv1.Condition{}
 					}
 
-					return *conditions.Get(objAfter, clusterv1.ReadyCondition)
-				}, timeout).Should(conditions.MatchCondition(*readyBefore))
+					return *v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
+				}, timeout).Should(v1beta1conditions.MatchCondition(*readyBefore))
 			})
 		})
 	})
@@ -718,7 +718,7 @@ func TestPatchHelper(t *testing.T) {
 			obj.Status.InfrastructureReady = true
 
 			t.Log("Setting Ready condition")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -731,7 +731,7 @@ func TestPatchHelper(t *testing.T) {
 				}
 
 				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
-					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
+					v1beta1conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
 					cmp.Equal(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())
 		})
@@ -1047,7 +1047,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1059,7 +1059,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should mark it ready when passing Clusterv1ConditionsFieldPath", func(t *testing.T) {
@@ -1086,7 +1086,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
@@ -1098,7 +1098,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -1122,7 +1122,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a custom condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1133,7 +1133,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1145,22 +1145,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := conditions.Get(objCopy, "TestCondition")
-				testConditionAfter := conditions.Get(objAfter, "TestCondition")
+				testConditionCopy := v1beta1conditions.Get(objCopy, "TestCondition")
+				testConditionAfter := v1beta1conditions.Get(objAfter, "TestCondition")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -1190,7 +1190,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a custom condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("TestCondition"), "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1203,7 +1203,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Changing the object spec, status, and adding Ready=True condition")
 			obj.Spec.Foo = "foo"
 			obj.Status.Bar = "bat"
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1215,22 +1215,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := conditions.Get(objCopy, "TestCondition")
-				testConditionAfter := conditions.Get(objAfter, "TestCondition")
+				testConditionCopy := v1beta1conditions.Get(objCopy, "TestCondition")
+				testConditionAfter := v1beta1conditions.Get(objAfter, "TestCondition")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -1261,7 +1261,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking Ready=False")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1272,7 +1272,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -1285,7 +1285,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				}
 
 				for _, afterCondition := range objAfter.Status.Conditions {
-					ok, err := conditions.MatchCondition(objCopy.Status.Conditions[0]).Match(afterCondition)
+					ok, err := v1beta1conditions.MatchCondition(objCopy.Status.Conditions[0]).Match(afterCondition)
 					if err == nil && ok {
 						return true
 					}
@@ -1316,7 +1316,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking Ready=False")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1327,21 +1327,21 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
-			readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+			readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
 			g.Eventually(func() clusterv1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return clusterv1.Condition{}
 				}
 
-				return *conditions.Get(objAfter, clusterv1.ReadyCondition)
-			}, timeout).Should(conditions.MatchCondition(*readyBefore))
+				return *v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
+			}, timeout).Should(v1beta1conditions.MatchCondition(*readyBefore))
 		})
 
 		t.Run("should not return an error if there is an unresolvable conflict when force overwrite is enabled", func(t *testing.T) {
@@ -1365,7 +1365,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking Ready=False")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1376,21 +1376,21 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
-			readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
+			readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
 			g.Eventually(func() clusterv1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return clusterv1.Condition{}
 				}
 
-				return *conditions.Get(objAfter, clusterv1.ReadyCondition)
-			}, timeout).Should(conditions.MatchCondition(*readyBefore))
+				return *v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
+			}, timeout).Should(v1beta1conditions.MatchCondition(*readyBefore))
 		})
 	})
 
@@ -1427,8 +1427,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1439,7 +1439,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking metav1.conditions Available=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1451,7 +1451,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Conditions))
 			g.Eventually(func() []metav1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
@@ -1465,7 +1465,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				}
 
 				return objAfter.Status.V1Beta2.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.V1Beta2.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.V1Beta2.Conditions))
 		})
 
 		t.Run("should mark it ready when passing Clusterv1ConditionsFieldPath and Metav1ConditionsFieldPath", func(t *testing.T) {
@@ -1492,8 +1492,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "conditions"}, Metav1ConditionsFieldPath{"status", "v1beta2", "conditions"})).To(Succeed())
@@ -1505,14 +1505,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Conditions))
 			g.Eventually(func() []metav1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil
 				}
 				return objAfter.Status.V1Beta2.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.V1Beta2.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.V1Beta2.Conditions))
 		})
 
 		t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -1536,8 +1536,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Test=False")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1548,8 +1548,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1561,42 +1561,42 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := conditions.Get(objCopy, "Test")
-				testConditionAfter := conditions.Get(objAfter, "Test")
+				testConditionCopy := v1beta1conditions.Get(objCopy, "Test")
+				testConditionAfter := v1beta1conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				testV1Beta2ConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testV1Beta2ConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testV1Beta2ConditionCopy := conditions.Get(objCopy, "Test")
+				testV1Beta2ConditionAfter := conditions.Get(objAfter, "Test")
 				if testV1Beta2ConditionCopy == nil || testV1Beta2ConditionAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
+				ok, err = conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
-				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				readyV1Beta2Before := conditions.Get(obj, "Ready")
+				readyV1Beta2After := conditions.Get(objAfter, "Ready")
 				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
+				ok, err = conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
 				}
@@ -1626,8 +1626,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking clusterv1.conditions and metav1.conditions Test=False")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1640,8 +1640,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Changing the object spec, status, and marking clusterv1.condition and metav1.conditions Ready=True")
 			obj.Spec.Foo = "foo"
 			obj.Status.Bar = "bat"
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1654,42 +1654,42 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := conditions.Get(objCopy, "Test")
-				testConditionAfter := conditions.Get(objAfter, "Test")
+				testConditionCopy := v1beta1conditions.Get(objCopy, "Test")
+				testConditionAfter := v1beta1conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				testV1Beta2ConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testV1Beta2ConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testV1Beta2ConditionCopy := conditions.Get(objCopy, "Test")
+				testV1Beta2ConditionAfter := conditions.Get(objAfter, "Test")
 				if testV1Beta2ConditionCopy == nil || testV1Beta2ConditionAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
+				ok, err = conditions.MatchCondition(*testV1Beta2ConditionCopy).Match(*testV1Beta2ConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
-				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				readyV1Beta2Before := conditions.Get(obj, "Ready")
+				readyV1Beta2After := conditions.Get(objAfter, "Ready")
 				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
+				ok, err = conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
 				}
@@ -1720,7 +1720,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1731,7 +1731,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -1743,7 +1743,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(conditions.MatchConditions(objCopy.Status.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(objCopy.Status.Conditions))
 		})
 
 		t.Run("should return an error if there is an unresolvable conflict on v1beta2.conditions", func(t *testing.T) {
@@ -1767,7 +1767,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1778,7 +1778,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -1814,8 +1814,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready clusterv1.condition and metav1.conditions to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1826,11 +1826,11 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready clusterv1.condition and metav1.conditions True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -1839,22 +1839,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err := v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
-				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				readyV1Beta2Before := conditions.Get(obj, "Ready")
+				readyV1Beta2After := conditions.Get(objAfter, "Ready")
 				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
+				ok, err = conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
 				}
@@ -1884,8 +1884,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready clusterv1.condition and metav1.conditions to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -1896,8 +1896,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready clusterv1.condition and metav1.conditions True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
@@ -1909,22 +1909,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err := v1beta1conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyV1Beta2Before := v1beta2conditions.Get(obj, "Ready")
-				readyV1Beta2After := v1beta2conditions.Get(objAfter, "Ready")
+				readyV1Beta2Before := conditions.Get(obj, "Ready")
+				readyV1Beta2After := conditions.Get(objAfter, "Ready")
 				if readyV1Beta2Before == nil || readyV1Beta2After == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
+				ok, err = conditions.MatchCondition(*readyV1Beta2Before).Match(*readyV1Beta2After)
 				if err != nil || !ok {
 					return false
 				}
@@ -1967,8 +1967,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1979,7 +1979,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Available=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1991,7 +1991,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
 			g.Eventually(func() []metav1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
@@ -2005,7 +2005,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				}
 
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should mark it ready when passing Clusterv1ConditionsFieldPath and Metav1ConditionsFieldPath", func(t *testing.T) {
@@ -2032,8 +2032,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, Clusterv1ConditionsFieldPath{"status", "deprecated", "v1beta1", "conditions"}, Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
@@ -2045,14 +2045,14 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
-			}, timeout).Should(conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(obj.Status.Deprecated.V1Beta1.Conditions))
 			g.Eventually(func() []metav1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -2076,8 +2076,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking condition and back compatibility condition Test=False")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2088,8 +2088,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition and back compatibility condition Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2101,42 +2101,42 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testBackCompatibilityCopy := conditions.Get(objCopy, "Test")
-				testBackCompatibilityAfter := conditions.Get(objAfter, "Test")
+				testBackCompatibilityCopy := v1beta1conditions.Get(objCopy, "Test")
+				testBackCompatibilityAfter := v1beta1conditions.Get(objAfter, "Test")
 				if testBackCompatibilityCopy == nil || testBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBackCompatibilityBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBackCompatibilityAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testConditionCopy := conditions.Get(objCopy, "Test")
+				testConditionAfter := conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err = conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2166,8 +2166,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking condition and back compatibility condition Test=False")
-			conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ConditionType("Test"), "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2180,8 +2180,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Changing the object spec, status, and marking condition and back compatibility condition Ready=True")
 			obj.Spec.Foo = "foo"
 			obj.Status.Bar = "bat"
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2194,42 +2194,42 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testBackCompatibilityCopy := conditions.Get(objCopy, "Test")
-				testBackCompatibilityAfter := conditions.Get(objAfter, "Test")
+				testBackCompatibilityCopy := v1beta1conditions.Get(objCopy, "Test")
+				testBackCompatibilityAfter := v1beta1conditions.Get(objAfter, "Test")
 				if testBackCompatibilityCopy == nil || testBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
+				ok, err := v1beta1conditions.MatchCondition(*testBackCompatibilityCopy).Match(*testBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBackCompatibilityBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBackCompatibilityAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err = conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
+				ok, err = v1beta1conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testConditionCopy := conditions.Get(objCopy, "Test")
+				testConditionAfter := conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err = conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2260,7 +2260,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2271,7 +2271,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready=True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -2283,7 +2283,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return clusterv1.Conditions{}
 				}
 				return objAfter.Status.Deprecated.V1Beta1.Conditions
-			}, timeout).Should(conditions.MatchConditions(objCopy.Status.Deprecated.V1Beta1.Conditions))
+			}, timeout).Should(v1beta1conditions.MatchConditions(objCopy.Status.Deprecated.V1Beta1.Conditions))
 		})
 
 		t.Run("should return an error if there is an unresolvable conflict on conditions", func(t *testing.T) {
@@ -2307,7 +2307,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2318,7 +2318,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -2330,7 +2330,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return nil
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(objCopy.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(objCopy.Status.Conditions))
 		})
 
 		t.Run("should not return an error if there is an unresolvable conflict but the conditions is owned by the controller", func(t *testing.T) {
@@ -2354,8 +2354,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition and back compatibility condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2366,11 +2366,11 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition and back compatibility condition True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2379,22 +2379,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBackCompatibilityBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBackCompatibilityAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
+				ok, err := v1beta1conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2424,8 +2424,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition and back compatibility condition to be false")
-			conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			v1beta1conditions.MarkFalse(objCopy, clusterv1.ReadyCondition, "reason", clusterv1.ConditionSeverityInfo, "message")
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2436,8 +2436,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition and back compatibility condition True")
-			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
@@ -2449,22 +2449,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBackCompatibilityBefore := conditions.Get(obj, clusterv1.ReadyCondition)
-				readyBackCompatibilityAfter := conditions.Get(objAfter, clusterv1.ReadyCondition)
+				readyBackCompatibilityBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
+				readyBackCompatibilityAfter := v1beta1conditions.Get(objAfter, clusterv1.ReadyCondition)
 				if readyBackCompatibilityBefore == nil || readyBackCompatibilityAfter == nil {
 					return false
 				}
-				ok, err := conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
+				ok, err := v1beta1conditions.MatchCondition(*readyBackCompatibilityBefore).Match(*readyBackCompatibilityAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2507,7 +2507,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2518,7 +2518,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Available=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2537,7 +2537,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				}
 
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should mark it ready when passing Metav1ConditionsFieldPath", func(t *testing.T) {
@@ -2564,7 +2564,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, Metav1ConditionsFieldPath{"status", "conditions"})).To(Succeed())
@@ -2576,7 +2576,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return nil
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(obj.Status.Conditions))
 		})
 
 		t.Run("should recover if there is a resolvable conflict", func(t *testing.T) {
@@ -2600,7 +2600,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking condition Test=False")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2611,7 +2611,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2623,22 +2623,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testConditionCopy := conditions.Get(objCopy, "Test")
+				testConditionAfter := conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2668,7 +2668,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking condition Test=False")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
+			conditions.Set(objCopy, metav1.Condition{Type: "Test", Status: metav1.ConditionFalse, Reason: "reason", Message: "message", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2681,7 +2681,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Changing the object spec, status, and marking condition Ready=True")
 			obj.Spec.Foo = "foo"
 			obj.Status.Bar = "bat"
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -2694,22 +2694,22 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				testConditionCopy := v1beta2conditions.Get(objCopy, "Test")
-				testConditionAfter := v1beta2conditions.Get(objAfter, "Test")
+				testConditionCopy := conditions.Get(objCopy, "Test")
+				testConditionAfter := conditions.Get(objAfter, "Test")
 				if testConditionCopy == nil || testConditionAfter == nil {
 					return false
 				}
-				ok, err := v1beta2conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
+				ok, err := conditions.MatchCondition(*testConditionCopy).Match(*testConditionAfter)
 				if err != nil || !ok {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err = v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err = conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2740,7 +2740,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2751,7 +2751,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking condition Ready=True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).NotTo(Succeed())
@@ -2763,7 +2763,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return nil
 				}
 				return objAfter.Status.Conditions
-			}, timeout).Should(v1beta2conditions.MatchConditions(objCopy.Status.Conditions))
+			}, timeout).Should(conditions.MatchConditions(objCopy.Status.Conditions))
 		})
 
 		t.Run("should not return an error if there is an unresolvable conflict but the conditions is owned by the controller", func(t *testing.T) {
@@ -2787,7 +2787,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2798,10 +2798,10 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2810,12 +2810,12 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err := v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}
@@ -2845,7 +2845,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			objCopy := obj.DeepCopy()
 
 			t.Log("Marking a Ready condition to be false")
-			v1beta2conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
+			conditions.Set(objCopy, metav1.Condition{Type: "Ready", Status: metav1.ConditionFalse, Reason: "NotGood", LastTransitionTime: now})
 			g.Expect(env.Status().Update(ctx, objCopy)).To(Succeed())
 
 			t.Log("Validating that the local object's resource version is behind")
@@ -2856,7 +2856,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Marking Ready condition True")
-			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
@@ -2868,12 +2868,12 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 					return false
 				}
 
-				readyBefore := v1beta2conditions.Get(obj, "Ready")
-				readyAfter := v1beta2conditions.Get(objAfter, "Ready")
+				readyBefore := conditions.Get(obj, "Ready")
+				readyAfter := conditions.Get(objAfter, "Ready")
 				if readyBefore == nil || readyAfter == nil {
 					return false
 				}
-				ok, err := v1beta2conditions.MatchCondition(*readyBefore).Match(*readyAfter)
+				ok, err := conditions.MatchCondition(*readyBefore).Match(*readyAfter)
 				if err != nil || !ok {
 					return false
 				}

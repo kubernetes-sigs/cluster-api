@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package conditions implements condition utilities.
+// Package conditions implements utils for metav1.Conditions that will be used starting with the v1beta2 API.
+//
+// Please see the proposal https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 package conditions

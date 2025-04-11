@@ -414,26 +414,26 @@ type DevMachine struct {
 	Status DevMachineStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (c *DevMachine) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *DevMachine) GetV1Beta1Conditions() clusterv1.Conditions {
 	return c.Status.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (c *DevMachine) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *DevMachine) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	c.Status.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *DevMachine) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (c *DevMachine) GetConditions() []metav1.Condition {
 	if c.Status.V1Beta2 == nil {
 		return nil
 	}
 	return c.Status.V1Beta2.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *DevMachine) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (c *DevMachine) SetConditions(conditions []metav1.Condition) {
 	if c.Status.V1Beta2 == nil {
 		c.Status.V1Beta2 = &DevMachineV1Beta2Status{}
 	}

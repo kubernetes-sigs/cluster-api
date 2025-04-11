@@ -32,7 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
@@ -90,7 +90,7 @@ func setReplicas(machineDeployment *clusterv1.MachineDeployment, machineSets []*
 func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
 	// If we got unexpected errors in listing the machine sets (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentAvailableInternalErrorV1Beta2Reason,
@@ -101,7 +101,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
@@ -112,7 +112,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	// Surface if .status.v1beta2.availableReplicas is not yet set.
 	if machineDeployment.Status.AvailableReplicas == nil {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
@@ -125,7 +125,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	minReplicasNeeded := *(machineDeployment.Spec.Replicas) - mdutil.MaxUnavailable(*machineDeployment)
 
 	if *machineDeployment.Status.AvailableReplicas >= minReplicasNeeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineDeploymentAvailableV1Beta2Reason,
@@ -141,7 +141,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		message = "Deletion in progress"
 	}
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.MachineDeploymentNotAvailableV1Beta2Reason,
@@ -152,7 +152,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, getMachinesSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getMachinesSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorV1Beta2Reason,
@@ -169,7 +169,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	rollingOutReplicas := 0
 	rolloutReasons := sets.Set[string]{}
 	for _, machine := range machines {
-		upToDateCondition := v1beta2conditions.Get(machine, clusterv1.MachineUpToDateV1Beta2Condition)
+		upToDateCondition := conditions.Get(machine, clusterv1.MachineUpToDateV1Beta2Condition)
 		if upToDateCondition == nil || upToDateCondition.Status != metav1.ConditionFalse {
 			continue
 		}
@@ -181,7 +181,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 
 	if rollingOutReplicas == 0 {
 		var message string
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineDeploymentNotRollingOutV1Beta2Reason,
@@ -206,7 +206,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 		})
 		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
 	}
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
@@ -217,7 +217,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
 	// If we got unexpected errors in listing the machine sets (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentScalingUpInternalErrorV1Beta2Reason,
@@ -228,7 +228,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
@@ -251,7 +251,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		if machineDeployment.DeletionTimestamp.IsZero() && missingReferencesMessage != "" {
 			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
 		}
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineDeploymentNotScalingUpV1Beta2Reason,
@@ -265,7 +265,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if missingReferencesMessage != "" {
 		message += fmt.Sprintf(" is blocked %s", missingReferencesMessage)
 	}
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineDeploymentScalingUpV1Beta2Reason,
@@ -276,7 +276,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded bool) {
 	// If we got unexpected errors in listing the machines sets (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentScalingDownInternalErrorV1Beta2Reason,
@@ -287,7 +287,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 
 	// Surface if .spec.replicas is not yet set (this should never happen).
 	if machineDeployment.Spec.Replicas == nil {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
@@ -311,7 +311,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 				message += fmt.Sprintf("\n* %s", staleMessage)
 			}
 		}
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionTrue,
 			Reason:  clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
@@ -321,7 +321,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	}
 
 	// Not scaling down.
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: clusterv1.MachineDeploymentNotScalingDownV1Beta2Reason,
@@ -332,7 +332,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getMachinesSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason,
@@ -342,7 +342,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 	}
 
 	if len(machines) == 0 {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineDeploymentMachinesReadyNoReplicasV1Beta2Reason,
@@ -350,13 +350,13 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		return
 	}
 
-	readyCondition, err := v1beta2conditions.NewAggregateCondition(
+	readyCondition, err := conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineReadyV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition),
 		// Using a custom merge strategy to override reasons applied during merge.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.MachineDeploymentMachinesNotReadyV1Beta2Reason,
 					clusterv1.MachineDeploymentMachinesReadyUnknownV1Beta2Reason,
 					clusterv1.MachineDeploymentMachinesReadyV1Beta2Reason,
@@ -366,7 +366,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's Ready conditions")
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason,
@@ -375,14 +375,14 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		return
 	}
 
-	v1beta2conditions.Set(machineDeployment, *readyCondition)
+	conditions.Set(machineDeployment, *readyCondition)
 }
 
 func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getMachinesSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason,
@@ -395,11 +395,11 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
 	// because it can take a bit until the UpToDate condition is set on a new Machine.
 	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
-		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+		return conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
 	})
 
 	if len(machines) == 0 {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineDeploymentMachinesUpToDateNoReplicasV1Beta2Reason,
@@ -407,13 +407,13 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		return
 	}
 
-	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
+	upToDateCondition, err := conditions.NewAggregateCondition(
 		machines.UnsortedList(), clusterv1.MachineUpToDateV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition),
 		// Using a custom merge strategy to override reasons applied during merge.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.MachineDeploymentMachinesNotUpToDateV1Beta2Reason,
 					clusterv1.MachineDeploymentMachinesUpToDateUnknownV1Beta2Reason,
 					clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Reason,
@@ -423,7 +423,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason,
@@ -432,12 +432,12 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		return
 	}
 
-	v1beta2conditions.Set(machineDeployment, *upToDateCondition)
+	conditions.Set(machineDeployment, *upToDateCondition)
 }
 
 func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machinesToBeRemediated, unhealthyMachines collections.Machines, getMachinesSucceeded bool) {
 	if !getMachinesSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorV1Beta2Reason,
@@ -448,7 +448,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 
 	if len(machinesToBeRemediated) == 0 {
 		message := aggregateUnhealthyMachines(unhealthyMachines)
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineDeploymentNotRemediatingV1Beta2Reason,
@@ -457,14 +457,14 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 		return
 	}
 
-	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
+	remediatingCondition, err := conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineDeploymentRemediatingV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.MachineDeploymentRemediatingV1Beta2Condition),
 		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
 		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorV1Beta2Reason,
@@ -476,7 +476,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 		return
 	}
 
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineDeploymentRemediatingV1Beta2Reason,
@@ -487,7 +487,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded bool) {
 	// If we got unexpected errors in listing the machines sets or machines (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded || !getMachinesSucceeded {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentDeletingInternalErrorV1Beta2Reason,
@@ -497,7 +497,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 	}
 
 	if machineDeployment.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(machineDeployment, metav1.Condition{
+		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineDeploymentNotDeletingV1Beta2Reason,
@@ -524,7 +524,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 	if message == "" {
 		message = "Deletion completed"
 	}
-	v1beta2conditions.Set(machineDeployment, metav1.Condition{
+	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
@@ -563,7 +563,7 @@ func aggregateStaleMachines(machines collections.Machines) string {
 		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
 			machineNames = append(machineNames, machine.GetName())
 
-			deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
+			deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
 			if deletingCondition != nil &&
 				deletingCondition.Status == metav1.ConditionTrue &&
 				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&

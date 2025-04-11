@@ -641,16 +641,16 @@ func init() {
 	objectTypes = append(objectTypes, &MachineDeployment{}, &MachineDeploymentList{})
 }
 
-// GetConditions returns the set of conditions for the machinedeployment.
-func (m *MachineDeployment) GetConditions() Conditions {
+// GetV1Beta1Conditions returns the set of conditions for the machinedeployment.
+func (m *MachineDeployment) GetV1Beta1Conditions() Conditions {
 	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions updates the set of conditions on the machinedeployment.
-func (m *MachineDeployment) SetConditions(conditions Conditions) {
+// SetV1Beta1Conditions updates the set of conditions on the machinedeployment.
+func (m *MachineDeployment) SetV1Beta1Conditions(conditions Conditions) {
 	if m.Status.Deprecated == nil {
 		m.Status.Deprecated = &MachineDeploymentDeprecatedStatus{}
 	}
@@ -660,12 +660,12 @@ func (m *MachineDeployment) SetConditions(conditions Conditions) {
 	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (m *MachineDeployment) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (m *MachineDeployment) GetConditions() []metav1.Condition {
 	return m.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (m *MachineDeployment) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (m *MachineDeployment) SetConditions(conditions []metav1.Condition) {
 	m.Status.Conditions = conditions
 }

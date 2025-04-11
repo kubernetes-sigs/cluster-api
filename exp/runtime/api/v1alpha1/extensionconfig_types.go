@@ -223,26 +223,26 @@ type ExtensionConfig struct {
 	Status ExtensionConfigStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (e *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
 	return e.Status.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (e *ExtensionConfig) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (e *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	e.Status.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (e *ExtensionConfig) GetConditions() []metav1.Condition {
 	if e.Status.V1Beta2 == nil {
 		return nil
 	}
 	return e.Status.V1Beta2.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (e *ExtensionConfig) SetConditions(conditions []metav1.Condition) {
 	if e.Status.V1Beta2 == nil {
 		e.Status.V1Beta2 = &ExtensionConfigV1Beta2Status{}
 	}

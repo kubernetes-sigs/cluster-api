@@ -35,7 +35,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -330,13 +330,13 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 	for i := range c.Machines {
 		machine := c.Machines[i]
 		if helper, ok := c.machinesPatchHelpers[machine.Name]; ok {
-			if err := helper.Patch(ctx, machine, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			if err := helper.Patch(ctx, machine, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				controlplanev1.MachineAPIServerPodHealthyCondition,
 				controlplanev1.MachineControllerManagerPodHealthyCondition,
 				controlplanev1.MachineSchedulerPodHealthyCondition,
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
-			}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			}}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineUpToDateV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
@@ -423,11 +423,12 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 			notes = append(notes, "marked for remediation")
 		}
 
+		// TODO (v1beta2): test for v1beta2 conditions
 		for _, condition := range controlPlaneMachineHealthConditions {
-			if conditions.IsUnknown(m, condition) {
+			if v1beta1conditions.IsUnknown(m, condition) {
 				notes = append(notes, strings.Replace(string(condition), "Healthy", " health unknown", -1))
 			}
-			if conditions.IsFalse(m, condition) {
+			if v1beta1conditions.IsFalse(m, condition) {
 				notes = append(notes, strings.Replace(string(condition), "Healthy", " not healthy", -1))
 			}
 		}

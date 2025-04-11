@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -35,10 +35,10 @@ func TestClusterControlplaneInitializedPredicate(t *testing.T) {
 	predicate := predicates.ClusterControlPlaneInitialized(runtime.NewScheme(), logr.New(log.NullLogSink{}))
 
 	markedFalse := clusterv1.Cluster{}
-	conditions.MarkFalse(&markedFalse, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityWarning, "")
+	v1beta1conditions.MarkFalse(&markedFalse, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityWarning, "")
 
 	markedTrue := clusterv1.Cluster{}
-	conditions.MarkTrue(&markedTrue, clusterv1.ControlPlaneInitializedCondition)
+	v1beta1conditions.MarkTrue(&markedTrue, clusterv1.ControlPlaneInitializedCondition)
 
 	notMarked := clusterv1.Cluster{}
 

@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -1000,8 +1000,9 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
 		return errClusterClassNotReconciled
 	}
 	// If the clusterClass does not have ClusterClassVariablesReconciled==True, the ClusterClass has not been successfully reconciled.
-	if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-		conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
+	// TODO (v1beta2): test for v1beta2 conditions
+	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
+		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
 		return errClusterClassNotReconciled
 	}
 	return nil

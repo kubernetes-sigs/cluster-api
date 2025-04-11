@@ -44,7 +44,7 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 )
 
@@ -112,7 +112,7 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 		res, err := r.reconcileNormalCloudMachine(ctx, cluster, cpMachine, inMemoryMachine)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
-		g.Expect(conditions.IsFalse(inMemoryMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(inMemoryMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
 
 		got := &cloudv1.CloudMachine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -134,8 +134,8 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 				return res.IsZero()
 			}, inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
-			g.Expect(conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", inMemoryMachine.CreationTimestamp.Time, inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration))
+			g.Expect(v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
+			g.Expect(v1beta1conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", inMemoryMachine.CreationTimestamp.Time, inMemoryMachine.Spec.Backend.InMemory.VM.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -226,7 +226,7 @@ func TestReconcileNormalNode(t *testing.T) {
 		res, err := r.reconcileNormalNode(ctx, cluster, cpMachine, inMemoryMachineWithVMProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
-		g.Expect(conditions.IsFalse(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
@@ -251,8 +251,8 @@ func TestReconcileNormalNode(t *testing.T) {
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(conditions.IsTrue(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.VMProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithVMProvisioned.Spec.Backend.InMemory.Node.Provisioning.StartupDuration.Duration))
+			g.Expect(v1beta1conditions.IsTrue(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition)).To(BeTrue())
+			g.Expect(v1beta1conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", v1beta1conditions.Get(inMemoryMachineWithVMProvisioned, infrav1.VMProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithVMProvisioned.Spec.Backend.InMemory.Node.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -366,7 +366,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
-		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -396,8 +396,8 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdMemberIDAnnotationName))
 			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdLeaderFromAnnotationName))
 
-			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned1.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration.Duration))
+			g.Expect(v1beta1conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+			g.Expect(v1beta1conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", v1beta1conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned1.Spec.Backend.InMemory.Etcd.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
@@ -451,7 +451,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeTrue())
-		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
 
 		got1 := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -472,7 +472,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		res, err = r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned2)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeTrue())
-		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned2, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsTrue(inMemoryMachineWithNodeProvisioned2, infrav1.EtcdProvisionedCondition)).To(BeTrue())
 
 		got2 := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -593,7 +593,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		res, err := r.reconcileNormalAPIServer(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
-		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -619,8 +619,8 @@ func TestReconcileNormalApiServer(t *testing.T) {
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration.Duration))
+			g.Expect(v1beta1conditions.IsTrue(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition)).To(BeTrue())
+			g.Expect(v1beta1conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.APIServerProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", v1beta1conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned.Spec.Backend.InMemory.APIServer.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {

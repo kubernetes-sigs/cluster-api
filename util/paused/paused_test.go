@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -135,7 +135,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 }
 
 func assertCondition(g Gomega, object ConditionSetter, wantIsPaused bool) {
-	condition := v1beta2conditions.Get(object, clusterv1.PausedV1Beta2Condition)
+	condition := conditions.Get(object, clusterv1.PausedV1Beta2Condition)
 	g.Expect(condition.ObservedGeneration).To(Equal(object.GetGeneration()))
 	if wantIsPaused {
 		g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))

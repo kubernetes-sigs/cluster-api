@@ -84,13 +84,13 @@ type Phase0ObjStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (o *Phase0Obj) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (o *Phase0Obj) GetV1Beta1Conditions() clusterv1.Conditions {
 	return o.Status.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (o *Phase0Obj) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (o *Phase0Obj) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	o.Status.Conditions = conditions
 }
 
@@ -142,26 +142,26 @@ type Phase1ObjV1Beta2Status struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (o *Phase1Obj) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (o *Phase1Obj) GetV1Beta1Conditions() clusterv1.Conditions {
 	return o.Status.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (o *Phase1Obj) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (o *Phase1Obj) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	o.Status.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (o *Phase1Obj) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (o *Phase1Obj) GetConditions() []metav1.Condition {
 	if o.Status.V1Beta2 == nil {
 		return nil
 	}
 	return o.Status.V1Beta2.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (o *Phase1Obj) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (o *Phase1Obj) SetConditions(conditions []metav1.Condition) {
 	if o.Status.V1Beta2 == nil {
 		o.Status.V1Beta2 = &Phase1ObjV1Beta2Status{}
 	}
@@ -223,16 +223,16 @@ type Phase2ObjDeprecatedV1Beta1Status struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (o *Phase2Obj) GetConditions() clusterv1.Conditions {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (o *Phase2Obj) GetV1Beta1Conditions() clusterv1.Conditions {
 	if o.Status.Deprecated == nil || o.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
 	return o.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetConditions sets the conditions on this object.
-func (o *Phase2Obj) SetConditions(conditions clusterv1.Conditions) {
+// SetV1Beta1Conditions sets the conditions on this object.
+func (o *Phase2Obj) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	if o.Status.Deprecated == nil {
 		o.Status.Deprecated = &Phase2ObjDeprecatedStatus{V1Beta1: &Phase2ObjDeprecatedV1Beta1Status{}}
 	}
@@ -242,13 +242,13 @@ func (o *Phase2Obj) SetConditions(conditions clusterv1.Conditions) {
 	o.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (o *Phase2Obj) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (o *Phase2Obj) GetConditions() []metav1.Condition {
 	return o.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (o *Phase2Obj) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (o *Phase2Obj) SetConditions(conditions []metav1.Condition) {
 	o.Status.Conditions = conditions
 }
 
@@ -290,12 +290,12 @@ type Phase3ObjStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (o *Phase3Obj) GetV1Beta2Conditions() []metav1.Condition {
+// GetConditions returns the set of conditions for this object.
+func (o *Phase3Obj) GetConditions() []metav1.Condition {
 	return o.Status.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (o *Phase3Obj) SetV1Beta2Conditions(conditions []metav1.Condition) {
+// SetConditions sets conditions for an API object.
+func (o *Phase3Obj) SetConditions(conditions []metav1.Condition) {
 	o.Status.Conditions = conditions
 }

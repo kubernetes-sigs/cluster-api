@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -930,7 +930,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 }
 
 func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
-	if !conditions.Has(cluster, clusterv1.TopologyReconciledCondition) {
+	if !v1beta1conditions.Has(cluster, clusterv1.TopologyReconciledCondition) {
 		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
 	}
 	return nil
@@ -1314,7 +1314,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1342,7 +1342,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().WithTopology(topologyBase.DeepCopy().WithVariables(
 				clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}}).
@@ -1398,7 +1398,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}...).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().
@@ -1505,7 +1505,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1523,7 +1523,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
@@ -1541,7 +1541,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError, "error message")).
+				WithConditions(*v1beta1conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError, "error message")).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
@@ -1560,7 +1560,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
+				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.WithTopology(
 				builder.ClusterTopology().DeepCopy().

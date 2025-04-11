@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -262,8 +262,9 @@ loopmachines:
 	return ctrl.Result{}, nil
 }
 
-func preflightCheckCondition(kind string, obj conditions.Getter, condition clusterv1.ConditionType) error {
-	c := conditions.Get(obj, condition)
+func preflightCheckCondition(kind string, obj v1beta1conditions.Getter, condition clusterv1.ConditionType) error {
+	// TODO (v1beta2): test for v1beta2 conditions
+	c := v1beta1conditions.Get(obj, condition)
 	if c == nil {
 		return errors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), condition)
 	}

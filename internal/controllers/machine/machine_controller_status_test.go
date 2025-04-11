@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
@@ -280,9 +280,9 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 
 			setBootstrapReadyCondition(ctx, tc.machine, tc.bootstrapConfig, tc.bootstrapConfigIsNotFound)
 
-			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineBootstrapConfigReadyV1Beta2Condition)
+			condition := conditions.Get(tc.machine, clusterv1.MachineBootstrapConfigReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -524,9 +524,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 
 			setInfrastructureReadyCondition(ctx, tc.machine, tc.infraMachine, tc.infraMachineIsNotFound)
 
-			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineInfrastructureReadyV1Beta2Condition)
+			condition := conditions.Get(tc.machine, clusterv1.MachineInfrastructureReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -704,7 +704,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "Cluster control plane is not initialized",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
+				v1beta1conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
 				return c
 			}(),
 			machine: defaultMachine.DeepCopy(),
@@ -951,12 +951,12 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			}(),
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				v1beta2conditions.Set(m, metav1.Condition{
+				conditions.Set(m, metav1.Condition{
 					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineNodeHealthyV1Beta2Reason,
 				})
-				v1beta2conditions.Set(m, metav1.Condition{
+				conditions.Set(m, metav1.Condition{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  clusterv1.MachineNodeReadyV1Beta2Reason,
@@ -1034,12 +1034,12 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			}(),
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				v1beta2conditions.Set(m, metav1.Condition{
+				conditions.Set(m, metav1.Condition{
 					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineNodeHealthyV1Beta2Reason,
 				})
-				v1beta2conditions.Set(m, metav1.Condition{
+				conditions.Set(m, metav1.Condition{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
 					Reason:  clusterv1.MachineNodeReadyV1Beta2Reason,
@@ -1096,7 +1096,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			g := NewWithT(t)
 
 			setNodeHealthyAndReadyConditions(ctx, tc.cluster, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
-			g.Expect(tc.machine.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tc.expectConditions, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(tc.machine.GetConditions()).To(conditions.MatchConditions(tc.expectConditions, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1219,9 +1219,9 @@ func TestDeletingCondition(t *testing.T) {
 
 			setDeletingCondition(ctx, tc.machine, tc.reconcileDeleteExecuted, tc.deletingReason, tc.deletingMessage)
 
-			deletingCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineDeletingV1Beta2Condition)
+			deletingCondition := conditions.Get(tc.machine, clusterv1.MachineDeletingV1Beta2Condition)
 			g.Expect(deletingCondition).ToNot(BeNil())
-			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*deletingCondition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1666,9 +1666,9 @@ func TestSetReadyCondition(t *testing.T) {
 
 			setReadyCondition(ctx, tc.machine)
 
-			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineReadyV1Beta2Condition)
+			condition := conditions.Get(tc.machine, clusterv1.MachineReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
-			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -1677,7 +1677,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 	testCases := []struct {
 		name            string
 		machine         *clusterv1.Machine
-		expectCondition v1beta2conditions.ConditionWithOwnerInfo
+		expectCondition conditions.ConditionWithOwnerInfo
 	}{
 		{
 			name: "No Deleting condition",
@@ -1690,8 +1690,8 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 					Conditions: []metav1.Condition{},
 				},
 			},
-			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
-				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+			expectCondition: conditions.ConditionWithOwnerInfo{
+				OwnerResource: conditions.ConditionOwnerInfo{
 					Kind: "Machine",
 					Name: "machine-test",
 				},
@@ -1730,8 +1730,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					},
 				},
 			},
-			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
-				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+			expectCondition: conditions.ConditionWithOwnerInfo{
+				OwnerResource: conditions.ConditionOwnerInfo{
 					Kind: "Machine",
 					Name: "machine-test",
 				},
@@ -1765,8 +1765,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					},
 				},
 			},
-			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
-				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+			expectCondition: conditions.ConditionWithOwnerInfo{
+				OwnerResource: conditions.ConditionOwnerInfo{
 					Kind: "Machine",
 					Name: "machine-test",
 				},
@@ -1796,8 +1796,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					},
 				},
 			},
-			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
-				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+			expectCondition: conditions.ConditionWithOwnerInfo{
+				OwnerResource: conditions.ConditionOwnerInfo{
 					Kind: "Machine",
 					Name: "machine-test",
 				},
@@ -1905,9 +1905,9 @@ func TestAvailableCondition(t *testing.T) {
 
 			setAvailableCondition(ctx, tc.machine)
 
-			availableCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineAvailableV1Beta2Condition)
+			availableCondition := conditions.Get(tc.machine, clusterv1.MachineAvailableV1Beta2Condition)
 			g.Expect(availableCondition).ToNot(BeNil())
-			g.Expect(*availableCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			g.Expect(*availableCondition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -2534,7 +2534,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
-			nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+			nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
 			g.Expect(nodeHealthyCondition).ToNot(BeNil())
 			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))

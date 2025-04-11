@@ -37,7 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestCalculateStatus(t *testing.T) {
@@ -886,7 +886,7 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 
 // asserts the conditions set on the Getter object.
 // TODO: replace this with util.condition.MatchConditions (or a new matcher in controller runtime komega).
-func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+func assertConditions(t *testing.T, from v1beta1conditions.Getter, conditions ...*clusterv1.Condition) {
 	t.Helper()
 
 	for _, condition := range conditions {
@@ -897,16 +897,16 @@ func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clust
 // asserts whether a condition of type is set on the Getter object
 // when the condition is true, asserting the reason/severity/message
 // for the condition are avoided.
-func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.Condition) {
+func assertCondition(t *testing.T, from v1beta1conditions.Getter, condition *clusterv1.Condition) {
 	t.Helper()
 
 	g := NewWithT(t)
-	g.Expect(conditions.Has(from, condition.Type)).To(BeTrue())
+	g.Expect(v1beta1conditions.Has(from, condition.Type)).To(BeTrue())
 
 	if condition.Status == corev1.ConditionTrue {
-		conditions.IsTrue(from, condition.Type)
+		v1beta1conditions.IsTrue(from, condition.Type)
 	} else {
-		conditionToBeAsserted := conditions.Get(from, condition.Type)
+		conditionToBeAsserted := v1beta1conditions.Get(from, condition.Type)
 		g.Expect(conditionToBeAsserted.Status).To(Equal(condition.Status))
 		g.Expect(conditionToBeAsserted.Severity).To(Equal(condition.Severity))
 		g.Expect(conditionToBeAsserted.Reason).To(Equal(condition.Reason))

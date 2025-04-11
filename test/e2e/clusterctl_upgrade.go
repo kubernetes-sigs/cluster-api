@@ -55,7 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
@@ -814,11 +813,15 @@ func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, cl
 		return c.Get(ctx, key, cluster)
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(clusterNamespace, clusterName))
 
-	for _, conditionType := range v1beta2conditionTypes {
-		if v1beta2conditions.Has(cluster, conditionType) {
-			condition := v1beta2conditions.Get(cluster, conditionType)
-			Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Cluster should be set to true", conditionType)
-			Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Cluster should have an empty message", conditionType)
+	if cluster.Status.V1Beta2 != nil && cluster.Status.V1Beta2.Conditions == nil {
+		for _, conditionType := range v1beta2conditionTypes {
+			for _, condition := range cluster.Status.V1Beta2.Conditions {
+				if condition.Type != conditionType {
+					continue
+				}
+				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Cluster should be set to true", conditionType)
+				Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Cluster should have an empty message", conditionType)
+			}
 		}
 	}
 
@@ -829,12 +832,16 @@ func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, cl
 				clusterv1.ClusterNameLabel: clusterName,
 			})
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KObj(cluster))
-	for _, machine := range machineList.Items {
-		for _, conditionType := range v1beta2conditionTypes {
-			if v1beta2conditions.Has(&machine, conditionType) {
-				condition := v1beta2conditions.Get(&machine, conditionType)
-				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Machine %q should be set to true", conditionType, machine.Name)
-				Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Machine %q should have an empty message", conditionType, machine.Name)
+	if cluster.Status.V1Beta2 != nil && cluster.Status.V1Beta2.Conditions == nil {
+		for _, machine := range machineList.Items {
+			for _, conditionType := range v1beta2conditionTypes {
+				for _, condition := range machine.Status.V1Beta2.Conditions {
+					if condition.Type != conditionType {
+						continue
+					}
+					Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Machine %q should be set to true", conditionType, machine.Name)
+					Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Machine %q should have an empty message", conditionType, machine.Name)
+				}
 			}
 		}
 	}

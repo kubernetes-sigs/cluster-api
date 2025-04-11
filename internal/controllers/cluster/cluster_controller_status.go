@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
@@ -135,13 +135,13 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	var replicas, readyReplicas, availableReplicas, upToDateReplicas *int32
 	for _, machine := range controlPlaneMachines.UnsortedList() {
 		replicas = ptr.To(ptr.Deref(replicas, 0) + 1)
-		if v1beta2conditions.IsTrue(machine, clusterv1.MachineReadyV1Beta2Condition) {
+		if conditions.IsTrue(machine, clusterv1.MachineReadyV1Beta2Condition) {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + 1)
 		}
-		if v1beta2conditions.IsTrue(machine, clusterv1.MachineAvailableV1Beta2Condition) {
+		if conditions.IsTrue(machine, clusterv1.MachineAvailableV1Beta2Condition) {
 			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + 1)
 		}
-		if v1beta2conditions.IsTrue(machine, clusterv1.MachineUpToDateV1Beta2Condition) {
+		if conditions.IsTrue(machine, clusterv1.MachineUpToDateV1Beta2Condition) {
 			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + 1)
 		}
 	}
@@ -223,13 +223,13 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			continue
 		}
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + 1)
-		if v1beta2conditions.IsTrue(m, clusterv1.MachineReadyV1Beta2Condition) {
+		if conditions.IsTrue(m, clusterv1.MachineReadyV1Beta2Condition) {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + 1)
 		}
-		if v1beta2conditions.IsTrue(m, clusterv1.MachineAvailableV1Beta2Condition) {
+		if conditions.IsTrue(m, clusterv1.MachineAvailableV1Beta2Condition) {
 			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + 1)
 		}
-		if v1beta2conditions.IsTrue(m, clusterv1.MachineUpToDateV1Beta2Condition) {
+		if conditions.IsTrue(m, clusterv1.MachineUpToDateV1Beta2Condition) {
 			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + 1)
 		}
 
@@ -252,7 +252,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled" //nolint:goconst // Not making this a constant for now
 		}
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
@@ -262,17 +262,17 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	}
 
 	if infraCluster != nil {
-		ready, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			infraCluster,
-			contract.InfrastructureCluster().ReadyConditionType(), v1beta2conditions.TargetConditionType(clusterv1.ClusterInfrastructureReadyV1Beta2Condition),
-			v1beta2conditions.FallbackCondition{
-				Status:  v1beta2conditions.BoolToStatus(cluster.Status.InfrastructureReady),
+			contract.InfrastructureCluster().ReadyConditionType(), conditions.TargetConditionType(clusterv1.ClusterInfrastructureReadyV1Beta2Condition),
+			conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(cluster.Status.InfrastructureReady),
 				Reason:  fallbackReason(cluster.Status.InfrastructureReady, clusterv1.ClusterInfrastructureReadyV1Beta2Reason, clusterv1.ClusterInfrastructureNotReadyV1Beta2Reason),
 				Message: infrastructureReadyFallBackMessage(cluster.Spec.InfrastructureRef.Kind, cluster.Status.InfrastructureReady),
 			},
 		)
 		if err != nil {
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterInfrastructureInvalidConditionReportedV1Beta2Reason,
@@ -283,16 +283,16 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.
-		if ready.Reason == v1beta2conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
 			ready.Reason = clusterv1.ClusterInfrastructureReadyV1Beta2Reason
 		}
-		v1beta2conditions.Set(cluster, *ready)
+		conditions.Set(cluster, *ready)
 		return
 	}
 
 	// If we got errors in reading the infra cluster (this should happen rarely), surface them
 	if !infraClusterIsNotFound {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterInfrastructureInternalErrorV1Beta2Reason,
@@ -305,7 +305,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	// Infra cluster missing when the cluster is deleting.
 	if !cluster.DeletionTimestamp.IsZero() {
 		if cluster.Status.InfrastructureReady {
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
@@ -314,7 +314,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 			return
 		}
 
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
@@ -325,7 +325,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 
 	// Report an issue if infra cluster missing after the cluster has been initialized (and the cluster is still running).
 	if cluster.Status.InfrastructureReady {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
@@ -337,7 +337,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	// If the cluster is not deleting, and infra cluster object does not exist yet,
 	// surface this fact. This could happen when:
 	// - when applying the yaml file with the cluster and all the objects referenced by it (provisioning yet to start/started, but status.InfrastructureReady not yet set).
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
@@ -352,7 +352,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled"
 		}
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
@@ -362,17 +362,17 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	}
 
 	if controlPlane != nil {
-		available, err := v1beta2conditions.NewMirrorConditionFromUnstructured(
+		available, err := conditions.NewMirrorConditionFromUnstructured(
 			controlPlane,
-			contract.ControlPlane().AvailableConditionType(), v1beta2conditions.TargetConditionType(clusterv1.ClusterControlPlaneAvailableV1Beta2Condition),
-			v1beta2conditions.FallbackCondition{
-				Status:  v1beta2conditions.BoolToStatus(cluster.Status.ControlPlaneReady),
+			contract.ControlPlane().AvailableConditionType(), conditions.TargetConditionType(clusterv1.ClusterControlPlaneAvailableV1Beta2Condition),
+			conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(cluster.Status.ControlPlaneReady),
 				Reason:  fallbackReason(cluster.Status.ControlPlaneReady, clusterv1.ClusterControlPlaneAvailableV1Beta2Reason, clusterv1.ClusterControlPlaneNotAvailableV1Beta2Reason),
 				Message: controlPlaneAvailableFallBackMessage(cluster.Spec.ControlPlaneRef.Kind, cluster.Status.ControlPlaneReady),
 			},
 		)
 		if err != nil {
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterControlPlaneInvalidConditionReportedV1Beta2Reason,
@@ -383,16 +383,16 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 
 		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
 		// and replace the reason with something less confusing.
-		if available.Reason == v1beta2conditions.NoReasonReported && available.Status == metav1.ConditionTrue {
+		if available.Reason == conditions.NoReasonReported && available.Status == metav1.ConditionTrue {
 			available.Reason = clusterv1.ClusterControlPlaneAvailableV1Beta2Reason
 		}
-		v1beta2conditions.Set(cluster, *available)
+		conditions.Set(cluster, *available)
 		return
 	}
 
 	// If we got errors in reading the control plane (this should happen rarely), surface them
 	if !controlPlaneIsNotFound {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterControlPlaneInternalErrorV1Beta2Reason,
@@ -405,7 +405,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	// Infra cluster missing when the cluster is deleting.
 	if !cluster.DeletionTimestamp.IsZero() {
 		if cluster.Status.ControlPlaneReady {
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
@@ -414,7 +414,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 			return
 		}
 
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
@@ -425,7 +425,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 
 	// Report an issue if control plane missing after the cluster has been initialized (and the cluster is still running).
 	if cluster.Status.ControlPlaneReady {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
@@ -437,7 +437,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	// If the cluster is not deleting, and control plane object does not exist yet,
 	// surface this fact. This could happen when:
 	// - when applying the yaml file with the cluster and all the objects referenced by it (provisioning yet to start/started, but status.ControlPlaneReady not yet set).
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
@@ -449,7 +449,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	log := ctrl.LoggerFrom(ctx)
 
 	// No-op if control plane is already initialized.
-	if v1beta2conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedV1Beta2Condition) {
+	if conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedV1Beta2Condition) {
 		return
 	}
 
@@ -459,7 +459,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled"
 		}
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
@@ -472,7 +472,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	if cluster.Spec.ControlPlaneRef != nil {
 		if controlPlane == nil {
 			if !controlPlaneIsNotFound {
-				v1beta2conditions.Set(cluster, metav1.Condition{
+				conditions.Set(cluster, metav1.Condition{
 					Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
@@ -481,7 +481,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 				return
 			}
 
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
@@ -493,7 +493,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 		initialized, err := external.IsInitialized(controlPlane)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to get status.initialized from %s", cluster.Spec.ControlPlaneRef.Kind))
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
@@ -503,7 +503,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 		}
 
 		if initialized {
-			v1beta2conditions.Set(cluster, metav1.Condition{
+			conditions.Set(cluster, metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason,
@@ -511,7 +511,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 			return
 		}
 
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
@@ -524,7 +524,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	// when at least one of those machines has a node.
 
 	if !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
@@ -534,7 +534,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	}
 
 	if len(controlPlaneMachines.Filter(collections.HasNode())) > 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason,
@@ -542,7 +542,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 		return
 	}
 
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 		Status:  metav1.ConditionFalse,
 		Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
@@ -555,7 +555,7 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 
 	// If there was some unexpected errors in listing descendants (this should never happen), surface it.
 	if !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterWorkersAvailableInternalErrorV1Beta2Reason,
@@ -565,7 +565,7 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 	}
 
 	if len(machinePools.Items)+len(machineDeployments.Items) == 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterWorkersAvailableV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.ClusterWorkersAvailableNoWorkersV1Beta2Reason,
@@ -581,13 +581,13 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 		ws = append(ws, aggregationWrapper{md: &md})
 	}
 
-	workersAvailableCondition, err := v1beta2conditions.NewAggregateCondition(
+	workersAvailableCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.AvailableV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.ClusterWorkersAvailableV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.ClusterWorkersAvailableV1Beta2Condition),
 		// Using a custom merge strategy to override reasons applied during merge
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.ClusterWorkersNotAvailableV1Beta2Reason,
 					clusterv1.ClusterWorkersAvailableUnknownV1Beta2Reason,
 					clusterv1.ClusterWorkersAvailableV1Beta2Reason,
@@ -597,7 +597,7 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate MachinePool and MachineDeployment's Available conditions")
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterWorkersAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterWorkersAvailableInternalErrorV1Beta2Reason,
@@ -606,7 +606,7 @@ func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluste
 		return
 	}
 
-	v1beta2conditions.Set(cluster, *workersAvailableCondition)
+	conditions.Set(cluster, *workersAvailableCondition)
 }
 
 func setControlPlaneMachinesReadyCondition(ctx context.Context, cluster *clusterv1.Cluster, machines collections.Machines, getDescendantsSucceeded bool) {
@@ -638,7 +638,7 @@ func setControlPlaneMachinesUpToDateCondition(ctx context.Context, cluster *clus
 	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
 	// because it can take a bit until the UpToDate condition is set on a new Machine.
 	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
-		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+		return conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
 	})
 
 	machinesConditionSetter{
@@ -657,7 +657,7 @@ func setWorkerMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.
 	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
 	// because it can take a bit until the UpToDate condition is set on a new Machine.
 	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
-		return v1beta2conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+		return conditions.Has(machine, clusterv1.MachineUpToDateV1Beta2Condition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
 	})
 
 	machinesConditionSetter{
@@ -686,7 +686,7 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 
 	// If there was some unexpected errors in listing descendants (this should never happen), surface it.
 	if !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    s.condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  s.internalErrorReason,
@@ -696,7 +696,7 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 	}
 
 	if len(machines) == 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   s.condition,
 			Status: metav1.ConditionTrue,
 			Reason: s.noReplicasReason,
@@ -704,13 +704,13 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 		return
 	}
 
-	machinesCondition, err := v1beta2conditions.NewAggregateCondition(
+	machinesCondition, err := conditions.NewAggregateCondition(
 		machines.UnsortedList(), s.machineAggregationCondition,
-		v1beta2conditions.TargetConditionType(s.condition),
+		conditions.TargetConditionType(s.condition),
 		// Using a custom merge strategy to override reasons applied during merge
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					s.issueReason,
 					s.unknownReason,
 					s.infoReason,
@@ -720,7 +720,7 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 	)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to aggregate Machine's %s conditions", s.machineAggregationCondition))
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    s.condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  s.internalErrorReason,
@@ -729,12 +729,12 @@ func (s machinesConditionSetter) setMachinesCondition(ctx context.Context, clust
 		return
 	}
 
-	v1beta2conditions.Set(cluster, *machinesCondition)
+	conditions.Set(cluster, *machinesCondition)
 }
 
 func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, machinesToBeRemediated, unhealthyMachines collections.Machines, getMachinesSucceeded bool) {
 	if !getMachinesSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterRemediatingInternalErrorV1Beta2Reason,
@@ -745,7 +745,7 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 
 	if len(machinesToBeRemediated) == 0 {
 		message := aggregateUnhealthyMachines(unhealthyMachines)
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterNotRemediatingV1Beta2Reason,
@@ -754,14 +754,14 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 		return
 	}
 
-	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
+	remediatingCondition, err := conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.ClusterRemediatingV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.ClusterRemediatingV1Beta2Condition),
 		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
 		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
 	)
 	if err != nil {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterRemediatingInternalErrorV1Beta2Reason,
@@ -773,7 +773,7 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 		return
 	}
 
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.ClusterRemediatingV1Beta2Reason,
@@ -786,7 +786,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
 	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
@@ -799,7 +799,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 	if controlPlane != nil {
 		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions RollingOut not yet reported from ...".
-		if c, err := v1beta2conditions.UnstructuredGet(controlPlane, clusterv1.RollingOutV1Beta2Condition); err == nil && c != nil {
+		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.RollingOutV1Beta2Condition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
 		}
 	}
@@ -811,7 +811,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 	}
 
 	if len(ws) == 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterRollingOutV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
@@ -819,28 +819,28 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 		return
 	}
 
-	rollingOutCondition, err := v1beta2conditions.NewAggregateCondition(
+	rollingOutCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.RollingOutV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.ClusterRollingOutV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.ClusterRollingOutV1Beta2Condition),
 		// Instruct aggregate to consider RollingOut condition with negative polarity.
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.RollingOutV1Beta2Condition},
+		conditions.NegativePolarityConditionTypes{clusterv1.RollingOutV1Beta2Condition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the RollingOut has negative polarity.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.TargetConditionHasPositivePolarity(false),
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.TargetConditionHasPositivePolarity(false),
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.ClusterRollingOutV1Beta2Reason,
 					clusterv1.ClusterRollingOutUnknownV1Beta2Reason,
 					clusterv1.ClusterNotRollingOutV1Beta2Reason,
 				)),
-				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.RollingOutV1Beta2Condition)),
+				conditions.GetPriorityFunc(conditions.GetDefaultMergePriorityFunc(clusterv1.RollingOutV1Beta2Condition)),
 			),
 		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment's RollingOut conditions")
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRollingOutV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
@@ -849,7 +849,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 		return
 	}
 
-	v1beta2conditions.Set(cluster, *rollingOutCondition)
+	conditions.Set(cluster, *rollingOutCondition)
 }
 
 func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
@@ -857,7 +857,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
 	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterScalingUpInternalErrorV1Beta2Reason,
@@ -870,7 +870,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	if controlPlane != nil {
 		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions ScalingUp not yet reported from ...".
-		if c, err := v1beta2conditions.UnstructuredGet(controlPlane, clusterv1.ScalingUpV1Beta2Condition); err == nil && c != nil {
+		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.ScalingUpV1Beta2Condition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
 		}
 	}
@@ -888,7 +888,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	}
 
 	if len(ws) == 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterScalingUpV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterNotScalingUpV1Beta2Reason,
@@ -896,28 +896,28 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 		return
 	}
 
-	scalingUpCondition, err := v1beta2conditions.NewAggregateCondition(
+	scalingUpCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingUpV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.ClusterScalingUpV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.ClusterScalingUpV1Beta2Condition),
 		// Instruct aggregate to consider ScalingUp condition with negative polarity.
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition},
+		conditions.NegativePolarityConditionTypes{clusterv1.ScalingUpV1Beta2Condition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the ScalingUp has negative polarity.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.TargetConditionHasPositivePolarity(false),
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.TargetConditionHasPositivePolarity(false),
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.ClusterScalingUpV1Beta2Reason,
 					clusterv1.ClusterScalingUpUnknownV1Beta2Reason,
 					clusterv1.ClusterNotScalingUpV1Beta2Reason,
 				)),
-				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingUpV1Beta2Condition)),
+				conditions.GetPriorityFunc(conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingUpV1Beta2Condition)),
 			),
 		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's ScalingUp conditions")
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterScalingUpInternalErrorV1Beta2Reason,
@@ -926,7 +926,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 		return
 	}
 
-	v1beta2conditions.Set(cluster, *scalingUpCondition)
+	conditions.Set(cluster, *scalingUpCondition)
 }
 
 func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
@@ -934,7 +934,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
 	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterScalingDownInternalErrorV1Beta2Reason,
@@ -947,7 +947,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 	if controlPlane != nil {
 		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions ScalingDown not yet reported from ...".
-		if c, err := v1beta2conditions.UnstructuredGet(controlPlane, clusterv1.ScalingDownV1Beta2Condition); err == nil && c != nil {
+		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.ScalingDownV1Beta2Condition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
 		}
 	}
@@ -965,7 +965,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 	}
 
 	if len(ws) == 0 {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterScalingDownV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterNotScalingDownV1Beta2Reason,
@@ -973,28 +973,28 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 		return
 	}
 
-	scalingDownCondition, err := v1beta2conditions.NewAggregateCondition(
+	scalingDownCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingDownV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.ClusterScalingDownV1Beta2Condition),
+		conditions.TargetConditionType(clusterv1.ClusterScalingDownV1Beta2Condition),
 		// Instruct aggregate to consider ScalingDown condition with negative polarity.
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ScalingDownV1Beta2Condition},
+		conditions.NegativePolarityConditionTypes{clusterv1.ScalingDownV1Beta2Condition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the ScalingDown has negative polarity.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
-				v1beta2conditions.TargetConditionHasPositivePolarity(false),
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
+				conditions.TargetConditionHasPositivePolarity(false),
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					clusterv1.ClusterScalingDownV1Beta2Reason,
 					clusterv1.ClusterScalingDownUnknownV1Beta2Reason,
 					clusterv1.ClusterNotScalingDownV1Beta2Reason,
 				)),
-				v1beta2conditions.GetPriorityFunc(v1beta2conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingDownV1Beta2Condition)),
+				conditions.GetPriorityFunc(conditions.GetDefaultMergePriorityFunc(clusterv1.ScalingDownV1Beta2Condition)),
 			),
 		},
 	)
 	if err != nil {
 		log.Error(err, "Failed to aggregate ControlPlane, MachinePool, MachineDeployment, MachineSet's ScalingDown conditions")
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.ClusterScalingDownInternalErrorV1Beta2Reason,
@@ -1003,12 +1003,12 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 		return
 	}
 
-	v1beta2conditions.Set(cluster, *scalingDownCondition)
+	conditions.Set(cluster, *scalingDownCondition)
 }
 
 func setDeletingCondition(_ context.Context, cluster *clusterv1.Cluster, deletingReason, deletingMessage string) {
 	if cluster.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(cluster, metav1.Condition{
+		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterDeletingV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.ClusterNotDeletingV1Beta2Reason,
@@ -1016,7 +1016,7 @@ func setDeletingCondition(_ context.Context, cluster *clusterv1.Cluster, deletin
 		return
 	}
 
-	v1beta2conditions.Set(cluster, metav1.Condition{
+	conditions.Set(cluster, metav1.Condition{
 		Type:    clusterv1.ClusterDeletingV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
 		Reason:  deletingReason,
@@ -1029,38 +1029,38 @@ type clusterConditionCustomMergeStrategy struct {
 	negativePolarityConditionTypes []string
 }
 
-func (c clusterConditionCustomMergeStrategy) Merge(operation v1beta2conditions.MergeOperation, conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
-	return v1beta2conditions.DefaultMergeStrategy(v1beta2conditions.GetPriorityFunc(
-		func(condition metav1.Condition) v1beta2conditions.MergePriority {
+func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOperation, mergeConditions []conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
+	return conditions.DefaultMergeStrategy(conditions.GetPriorityFunc(
+		func(condition metav1.Condition) conditions.MergePriority {
 			// While cluster is deleting, treat unknown conditions from external objects as info (it is ok that those objects have been deleted at this stage).
 			if !c.cluster.DeletionTimestamp.IsZero() {
 				if condition.Type == clusterv1.ClusterInfrastructureReadyV1Beta2Condition && (condition.Reason == clusterv1.ClusterInfrastructureDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason) {
-					return v1beta2conditions.InfoMergePriority
+					return conditions.InfoMergePriority
 				}
 				if condition.Type == clusterv1.ClusterControlPlaneAvailableV1Beta2Condition && (condition.Reason == clusterv1.ClusterControlPlaneDeletedV1Beta2Reason || condition.Reason == clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason) {
-					return v1beta2conditions.InfoMergePriority
+					return conditions.InfoMergePriority
 				}
 			}
 
 			// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled condition as info.
 			if condition.Type == clusterv1.ClusterTopologyReconciledV1Beta2Condition && condition.Status == metav1.ConditionFalse &&
 				condition.Reason != clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason {
-				return v1beta2conditions.InfoMergePriority
+				return conditions.InfoMergePriority
 			}
-			return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
+			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
-		v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+		conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 			clusterv1.ClusterNotAvailableV1Beta2Reason,
 			clusterv1.ClusterAvailableUnknownV1Beta2Reason,
 			clusterv1.ClusterAvailableV1Beta2Reason,
 		)),
-	).Merge(operation, conditions, conditionTypes)
+	).Merge(operation, mergeConditions, conditionTypes)
 }
 
 func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
 	log := ctrl.LoggerFrom(ctx)
 
-	forConditionTypes := v1beta2conditions.ForConditionTypes{
+	forConditionTypes := conditions.ForConditionTypes{
 		clusterv1.ClusterDeletingV1Beta2Condition,
 		clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
 		clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
@@ -1080,13 +1080,13 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 		}
 	}
 
-	summaryOpts := []v1beta2conditions.SummaryOption{
+	summaryOpts := []conditions.SummaryOption{
 		forConditionTypes,
 		// Instruct summary to consider Deleting condition with negative polarity.
-		v1beta2conditions.NegativePolarityConditionTypes{clusterv1.ClusterDeletingV1Beta2Condition},
+		conditions.NegativePolarityConditionTypes{clusterv1.ClusterDeletingV1Beta2Condition},
 		// Using a custom merge strategy to override reasons applied during merge and to ignore some
 		// info message so the available condition is less noisy.
-		v1beta2conditions.CustomMergeStrategy{
+		conditions.CustomMergeStrategy{
 			MergeStrategy: clusterConditionCustomMergeStrategy{
 				cluster: cluster,
 				// Instruct merge to consider Deleting condition with negative polarity,
@@ -1095,10 +1095,10 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 		},
 	}
 	if cluster.Spec.Topology == nil {
-		summaryOpts = append(summaryOpts, v1beta2conditions.IgnoreTypesIfMissing{clusterv1.ClusterTopologyReconciledV1Beta2Condition})
+		summaryOpts = append(summaryOpts, conditions.IgnoreTypesIfMissing{clusterv1.ClusterTopologyReconciledV1Beta2Condition})
 	}
 
-	availableCondition, err := v1beta2conditions.NewSummaryCondition(cluster, clusterv1.ClusterAvailableV1Beta2Condition, summaryOpts...)
+	availableCondition, err := conditions.NewSummaryCondition(cluster, clusterv1.ClusterAvailableV1Beta2Condition, summaryOpts...)
 
 	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
@@ -1112,7 +1112,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 		}
 	}
 
-	v1beta2conditions.Set(cluster, *availableCondition)
+	conditions.Set(cluster, *availableCondition)
 }
 
 func fallbackReason(status bool, trueReason, falseReason string) string {
@@ -1196,19 +1196,19 @@ func (w aggregationWrapper) DeepCopyObject() runtime.Object {
 	panic("not supported")
 }
 
-func (w aggregationWrapper) GetV1Beta2Conditions() []metav1.Condition {
+func (w aggregationWrapper) GetConditions() []metav1.Condition {
 	switch {
 	case w.cp != nil:
-		if c, err := v1beta2conditions.UnstructuredGetAll(w.cp); err == nil && c != nil {
+		if c, err := conditions.UnstructuredGetAll(w.cp); err == nil && c != nil {
 			return c
 		}
 		return nil
 	case w.mp != nil:
-		return w.mp.GetV1Beta2Conditions()
+		return w.mp.GetConditions()
 	case w.md != nil:
-		return w.md.GetV1Beta2Conditions()
+		return w.md.GetConditions()
 	case w.ms != nil:
-		return w.ms.GetV1Beta2Conditions()
+		return w.ms.GetConditions()
 	}
 	panic("not supported")
 }

@@ -1333,6 +1333,66 @@ func TestMachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(t *testing
 				Build(),
 			wantErr: true,
 		},
+		{
+			name: "fail if MachineDeploymentTopology name is not a valid Kubernetes resource name",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinfra1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("under_score").
+								WithClass("aa").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "fail if MachineDeploymentTopology name is not a valid Kubernetes label value",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinfra1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("forward/slash").
+								WithClass("aa").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1534,6 +1594,66 @@ func TestMachinePoolTopologiesAreUniqueAndDefinedInClusterClass(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithMachinePool(
 							builder.MachinePoolTopology("machine-pool-topology-name-that-has-longerthan63characterlooooooooooooooooooooooongname").
+								WithClass("aa").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "fail if MachinePoolTopology name is not a valid Kubernetes resource name",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "cpinfra1").Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachinePool(
+							builder.MachinePoolTopology("under_score").
+								WithClass("aa").
+								Build()).
+						Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "fail if MachinePoolTopology name is not a valid Kubernetes label value",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "cpinfra1").Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("class1").
+						WithVersion("v1.22.2").
+						WithMachinePool(
+							builder.MachinePoolTopology("forward/slash").
 								WithClass("aa").
 								Build()).
 						Build()).

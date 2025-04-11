@@ -255,12 +255,12 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ReadyCondition,
 				bootstrapv1.DataSecretAvailableCondition,
 				bootstrapv1.CertificatesAvailableCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 				bootstrapv1.KubeadmConfigReadyV1Beta2Condition,
 				bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,

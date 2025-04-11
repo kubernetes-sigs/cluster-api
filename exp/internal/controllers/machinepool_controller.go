@@ -205,13 +205,13 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ReadyCondition,
 				clusterv1.BootstrapReadyCondition,
 				clusterv1.InfrastructureReadyCondition,
 				expv1.ReplicasReadyCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 			}},
 		}

@@ -61,27 +61,12 @@ var (
 	cyan   = color.New(color.FgCyan)
 )
 
-// PrintObjectTreeV1Beta2 prints the cluster status to stdout.
+// PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTreeV1Beta2(tree *tree.ObjectTree, w io.Writer) {
+func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
 	// Creates the output table
 	tbl := tablewriter.NewWriter(w)
 	tbl.SetHeader([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
-
-	formatTableTreeV1Beta2(tbl)
-	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRowV1Beta2("", tbl, tree, tree.GetRoot())
-
-	// Prints the output table
-	tbl.Render()
-}
-
-// PrintObjectTree prints the cluster status to stdout.
-// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTree(tree *tree.ObjectTree) {
-	// Creates the output table
-	tbl := tablewriter.NewWriter(os.Stdout)
-	tbl.SetHeader([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	formatTableTree(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
@@ -91,8 +76,23 @@ func PrintObjectTree(tree *tree.ObjectTree) {
 	tbl.Render()
 }
 
+// PrintObjectTreeV1Beta1 prints the cluster status to stdout.
+// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
+func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
+	// Creates the output table
+	tbl := tablewriter.NewWriter(os.Stdout)
+	tbl.SetHeader([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
+
+	formatTableTreeV1Beta1(tbl)
+	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
+	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
+
+	// Prints the output table
+	tbl.Render()
+}
+
 // formats the table with required attributes.
-func formatTableTreeV1Beta2(tbl *tablewriter.Table) {
+func formatTableTree(tbl *tablewriter.Table) {
 	tbl.SetAutoWrapText(false)
 	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -106,7 +106,7 @@ func formatTableTreeV1Beta2(tbl *tablewriter.Table) {
 }
 
 // formats the table with required attributes.
-func formatTableTree(tbl *tablewriter.Table) {
+func formatTableTreeV1Beta1(tbl *tablewriter.Table) {
 	tbl.SetAutoWrapText(false)
 	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -121,12 +121,12 @@ func formatTableTree(tbl *tablewriter.Table) {
 	tbl.SetNoWhiteSpace(true)
 }
 
-// addObjectRowV1Beta2 add a row for a given object, and recursively for all the object's children.
+// addObjectRow add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Get a row descriptor for a given object.
 	// With v1beta2, the return value of this func adapt to the object represented in the line.
-	rowDescriptor := newV1beta2RowDescriptor(obj)
+	rowDescriptor := newRowDescriptor(obj)
 
 	// If the object is a group object, override the condition message with the list of objects in the group. e.g machine-1, machine-2, ...
 	if tree.IsGroupObject(obj) {
@@ -188,7 +188,7 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditionsV1Beta2(prefix, tbl, objectTree, obj)
+		addOtherConditions(prefix, tbl, objectTree, obj)
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -196,7 +196,7 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 	childrenObj = orderChildrenObjects(childrenObj)
 
 	for i, child := range childrenObj {
-		addObjectRowV1Beta2(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
 	}
 }
 
@@ -215,13 +215,13 @@ func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 	return childrenObj
 }
 
-// addObjectRow add a row for a given object, and recursively for all the object's children.
+// addObjectRowV1Beta1 add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Gets the descriptor for the object's ready condition, if any.
-	readyDescriptor := conditionDescriptor{readyColor: gray}
+	readyDescriptor := v1beta1ConditionDescriptor{readyColor: gray}
 	if ready := tree.GetReadyCondition(obj); ready != nil {
-		readyDescriptor = newConditionDescriptor(ready)
+		readyDescriptor = newV1Beta1ConditionDescriptor(ready)
 	}
 
 	// If the object is a group object, override the condition message with the list of objects in the group. e.g machine-1, machine-2, ...
@@ -251,7 +251,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditions(prefix, tbl, objectTree, obj)
+		addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj)
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -270,12 +270,12 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	sort.Slice(childrenObj, printBefore)
 
 	for i, child := range childrenObj {
-		addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
 	}
 }
 
-// addAllConditionsV1Beta2 adds a row for each object condition.
-func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+// addOtherConditions adds a row for each object condition.
+func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -303,7 +303,7 @@ func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree
 		}
 
 		childPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(conditions))
-		c, status, age, reason, message := v1Beta2ConditionInfo(condition, positivePolarity)
+		c, status, age, reason, message := conditionInfo(condition, positivePolarity)
 
 		// Add the row representing each condition.
 		// Note: if the condition has a multiline message, also add additional rows for each line.
@@ -338,9 +338,9 @@ func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree
 	}
 }
 
-// addOtherConditions adds a row for each object condition except the ready condition,
+// addOtherConditionsV1Beta1 adds a row for each object condition except the ready condition,
 // which is already represented on the object's main row.
-func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -353,7 +353,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 	otherConditions := tree.GetOtherConditions(obj)
 	for i := range otherConditions {
 		otherCondition := otherConditions[i]
-		otherDescriptor := newConditionDescriptor(otherCondition)
+		otherDescriptor := newV1Beta1ConditionDescriptor(otherCondition)
 		otherConditionPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(otherConditions))
 		tbl.Append([]string{
 			fmt.Sprintf("%s%s", gray.Sprint(otherConditionPrefix), cyan.Sprint(otherCondition.Type)),
@@ -508,8 +508,8 @@ func getRowName(obj ctrlclient.Object) string {
 	return name
 }
 
-// v1beta2RowDescriptor contains all the info for representing a condition.
-type v1beta2RowDescriptor struct {
+// rowDescriptor contains all the info for representing a condition.
+type rowDescriptor struct {
 	age               string
 	replicas          string
 	availableCounters string
@@ -520,10 +520,10 @@ type v1beta2RowDescriptor struct {
 	message           string
 }
 
-// newV1beta2RowDescriptor returns a v1beta2ConditionDescriptor for the given condition.
+// newRowDescriptor returns a v1beta2ConditionDescriptor for the given condition.
 // Note: the return value of this func adapt to the object represented in the line.
-func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
-	v := v1beta2RowDescriptor{}
+func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
+	v := rowDescriptor{}
 	switch obj := obj.(type) {
 	case *clusterv1.Cluster:
 		// If the object is a cluster, returns all the replica counters (CP and worker replicas are summed for sake of simplicity);
@@ -550,7 +550,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		}
 
 		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
-			availableColor, availableStatus, availableAge, availableReason, availableMessage := v1Beta2ConditionInfo(*available, true)
+			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
 			v.status = availableColor.Sprintf("Available: %s", availableStatus)
 			v.reason = availableReason
 			v.age = availableAge
@@ -573,7 +573,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		}
 
 		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
-			availableColor, availableStatus, availableAge, availableReason, availableMessage := v1Beta2ConditionInfo(*available, true)
+			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
 			v.status = availableColor.Sprintf("Available: %s", availableStatus)
 			v.reason = availableReason
 			v.age = availableAge
@@ -610,7 +610,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 
 		v.readyCounters = "0"
 		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
-			readyColor, readyStatus, readyAge, readyReason, readyMessage := v1Beta2ConditionInfo(*ready, true)
+			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
@@ -633,7 +633,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		// Also, if the Unstructured object implements the Cluster API control plane contract, surface
 		// corresponding replica counters.
 		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
-			readyColor, readyStatus, readyAge, readyReason, readyMessage := v1Beta2ConditionInfo(*ready, true)
+			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
@@ -670,7 +670,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		}
 
 		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
-			readyColor, readyStatus, readyAge, readyReason, readyMessage := v1Beta2ConditionInfo(*ready, true)
+			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
@@ -681,7 +681,7 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 	return v
 }
 
-func v1Beta2ConditionInfo(c metav1.Condition, positivePolarity bool) (color *color.Color, status, age, reason, message string) {
+func conditionInfo(c metav1.Condition, positivePolarity bool) (color *color.Color, status, age, reason, message string) {
 	switch c.Status {
 	case metav1.ConditionFalse:
 		if positivePolarity {
@@ -744,8 +744,8 @@ func formatParagraph(text string, maxWidth int) string {
 	return strings.Join(lines, "\n")
 }
 
-// conditionDescriptor contains all the info for representing a condition.
-type conditionDescriptor struct {
+// v1beta1ConditionDescriptor contains all the info for representing a condition.
+type v1beta1ConditionDescriptor struct {
 	readyColor *color.Color
 	age        string
 	status     string
@@ -754,9 +754,9 @@ type conditionDescriptor struct {
 	message    string
 }
 
-// newConditionDescriptor returns a conditionDescriptor for the given condition.
-func newConditionDescriptor(c *clusterv1.Condition) conditionDescriptor {
-	v := conditionDescriptor{}
+// newV1Beta1ConditionDescriptor returns a v1beta1ConditionDescriptor for the given condition.
+func newV1Beta1ConditionDescriptor(c *clusterv1.Condition) v1beta1ConditionDescriptor {
+	v := v1beta1ConditionDescriptor{}
 
 	v.status = string(c.Status)
 	v.severity = string(c.Severity)

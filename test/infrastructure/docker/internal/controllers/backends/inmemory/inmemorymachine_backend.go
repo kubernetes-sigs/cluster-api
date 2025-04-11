@@ -1270,14 +1270,14 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	}
 
 	return patchHelper.Patch(ctx, inMemoryMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.VMProvisionedCondition,
 			infrav1.NodeProvisionedCondition,
 			infrav1.EtcdProvisionedCondition,
 			infrav1.APIServerProvisionedCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,

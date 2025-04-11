@@ -328,7 +328,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
 	// patch at the end of the reconcile loop.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			controlplanev1.MachinesCreatedCondition,
 			clusterv1.ReadyCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
@@ -337,7 +337,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.AvailableCondition,
 			controlplanev1.CertificatesAvailableCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,

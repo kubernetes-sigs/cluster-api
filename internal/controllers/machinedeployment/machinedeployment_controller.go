@@ -210,11 +210,11 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			clusterv1.MachineDeploymentAvailableCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,

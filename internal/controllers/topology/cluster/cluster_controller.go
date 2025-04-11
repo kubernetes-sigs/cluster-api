@@ -306,10 +306,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 		options := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.TopologyReconciledCondition,
 			}},
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ClusterTopologyReconciledV1Beta2Condition,
 			}},
 		}

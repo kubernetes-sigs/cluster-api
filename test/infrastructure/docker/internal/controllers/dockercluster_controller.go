@@ -182,11 +182,11 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 	return patchHelper.Patch(
 		ctx,
 		dockerCluster,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.LoadBalancerAvailableCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevClusterReadyV1Beta2Condition,
 			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,

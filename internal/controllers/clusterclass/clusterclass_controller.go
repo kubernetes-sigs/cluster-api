@@ -136,11 +136,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		updateStatus(ctx, s)
 
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				clusterv1.ClusterClassVariablesReconciledCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 				clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
 				clusterv1.ClusterClassVariablesReadyV1Beta2Condition,

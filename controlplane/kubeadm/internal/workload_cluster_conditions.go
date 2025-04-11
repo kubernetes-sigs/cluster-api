@@ -213,7 +213,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	}
 
 	// Aggregate components error from machines at KCP level
-	aggregateConditionsFromMachinesToKCP(aggregateConditionsFromMachinesToKCPInput{
+	aggregateV1Beta1ConditionsFromMachinesToKCP(aggregateV1Beta1ConditionsFromMachinesToKCPInput{
 		controlPlane:      controlPlane,
 		machineConditions: []clusterv1.ConditionType{controlplanev1.MachineEtcdMemberHealthyCondition},
 		kcpErrors:         kcpErrors,
@@ -223,7 +223,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		note:              "etcd member",
 	})
 
-	aggregateV1Beta2ConditionsFromMachinesToKCP(aggregateV1Beta2ConditionsFromMachinesToKCPInput{
+	aggregateConditionsFromMachinesToKCP(aggregateConditionsFromMachinesToKCPInput{
 		controlPlane:      controlPlane,
 		machineConditions: []string{controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition},
 		kcpErrors:         kcpErrors,
@@ -640,7 +640,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	}
 
 	// Aggregate components error from machines at KCP level.
-	aggregateConditionsFromMachinesToKCP(aggregateConditionsFromMachinesToKCPInput{
+	aggregateV1Beta1ConditionsFromMachinesToKCP(aggregateV1Beta1ConditionsFromMachinesToKCPInput{
 		controlPlane:      controlPlane,
 		machineConditions: allMachinePodConditions,
 		kcpErrors:         kcpErrors,
@@ -650,7 +650,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		note:              "control plane",
 	})
 
-	aggregateV1Beta2ConditionsFromMachinesToKCP(aggregateV1Beta2ConditionsFromMachinesToKCPInput{
+	aggregateConditionsFromMachinesToKCP(aggregateConditionsFromMachinesToKCPInput{
 		controlPlane:      controlPlane,
 		machineConditions: allMachinePodV1beta2Conditions,
 		kcpErrors:         kcpErrors,
@@ -906,7 +906,7 @@ func podCondition(pod corev1.Pod, condition corev1.PodConditionType) corev1.Cond
 	return corev1.ConditionUnknown
 }
 
-type aggregateConditionsFromMachinesToKCPInput struct {
+type aggregateV1Beta1ConditionsFromMachinesToKCPInput struct {
 	controlPlane      *ControlPlane
 	machineConditions []clusterv1.ConditionType
 	kcpErrors         []string
@@ -916,10 +916,10 @@ type aggregateConditionsFromMachinesToKCPInput struct {
 	note              string
 }
 
-// aggregateConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
+// aggregateV1Beta1ConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
 // NOTE: this func follows the same aggregation rules used by conditions.Merge thus giving priority to
 // errors, then warning, info down to unknown.
-func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesToKCPInput) {
+func aggregateV1Beta1ConditionsFromMachinesToKCP(input aggregateV1Beta1ConditionsFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.
 	// NB. A machine could be assigned to many groups, but only the group with the highest severity will be reported.
 	kcpMachinesWithErrors := sets.Set[string]{}
@@ -988,7 +988,7 @@ func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesT
 	// So there will be no condition at KCP level too.
 }
 
-type aggregateV1Beta2ConditionsFromMachinesToKCPInput struct {
+type aggregateConditionsFromMachinesToKCPInput struct {
 	controlPlane      *ControlPlane
 	machineConditions []string
 	kcpErrors         []string
@@ -999,10 +999,10 @@ type aggregateV1Beta2ConditionsFromMachinesToKCPInput struct {
 	note              string
 }
 
-// aggregateV1Beta2ConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
+// aggregateConditionsFromMachinesToKCP aggregates a group of conditions from machines to KCP.
 // Note: the aggregation is computed in way that is similar to how conditions.NewAggregateCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
-func aggregateV1Beta2ConditionsFromMachinesToKCP(input aggregateV1Beta2ConditionsFromMachinesToKCPInput) {
+func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.
 	// NB. A machine could be assigned to many groups, but only the group with the highest severity will be reported.
 	kcpMachinesWithErrors := sets.Set[string]{}

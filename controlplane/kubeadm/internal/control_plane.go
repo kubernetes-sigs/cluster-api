@@ -330,13 +330,13 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 	for i := range c.Machines {
 		machine := c.Machines[i]
 		if helper, ok := c.machinesPatchHelpers[machine.Name]; ok {
-			if err := helper.Patch(ctx, machine, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			if err := helper.Patch(ctx, machine, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				controlplanev1.MachineAPIServerPodHealthyCondition,
 				controlplanev1.MachineControllerManagerPodHealthyCondition,
 				controlplanev1.MachineSchedulerPodHealthyCondition,
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
-			}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			}}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineUpToDateV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
 				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,

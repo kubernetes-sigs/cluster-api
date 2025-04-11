@@ -56,10 +56,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			continue
 		}
 
-		shouldCleanup := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
-		shouldCleanupV1Beta2 := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
+		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 
-		if !(shouldCleanup || shouldCleanupV1Beta2) {
+		if !(shouldCleanupV1Beta1 || shouldCleanup) {
 			continue
 		}
 
@@ -69,17 +69,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			continue
 		}
 
-		if shouldCleanup {
+		if shouldCleanupV1Beta1 {
 			v1beta1conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 		}
 
-		if shouldCleanupV1Beta2 {
+		if shouldCleanup {
 			conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		}
 
-		if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.MachineOwnerRemediatedCondition,
-		}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		}}, patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		}}); err != nil {
 			errList = append(errList, err)
@@ -152,10 +152,10 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	defer func() {
 		// Always attempt to Patch the Machine conditions after each reconcileUnhealthyMachines.
 		if err := patchHelper.Patch(ctx, machineToBeRemediated,
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			}},
 		); err != nil {

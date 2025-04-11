@@ -449,7 +449,7 @@ func TestPatchHelper(t *testing.T) {
 				v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
 
 				t.Log("Validating the object has been updated")
 				readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
@@ -1330,7 +1330,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			readyBefore := v1beta1conditions.Get(obj, clusterv1.ReadyCondition)
@@ -1830,7 +1830,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2370,7 +2370,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}}, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -2801,7 +2801,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithOwnedV1Beta2Conditions{Conditions: []string{"Ready"}})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []string{"Ready"}})).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {

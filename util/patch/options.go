@@ -75,25 +75,25 @@ func (w WithStatusObservedGeneration) ApplyToHelper(in *HelperOptions) {
 	in.IncludeStatusObservedGeneration = true
 }
 
-// WithOwnedConditions allows to define condition types owned by the controller.
+// WithOwnedV1beta1Conditions allows to define condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
-type WithOwnedConditions struct {
+type WithOwnedV1beta1Conditions struct {
 	Conditions []clusterv1.ConditionType
 }
 
 // ApplyToHelper applies this configuration to the given HelperOptions.
-func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
+func (w WithOwnedV1beta1Conditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedConditions = w.Conditions
 }
 
-// WithOwnedV1Beta2Conditions allows to define condition types owned by the controller.
+// WithOwnedConditions allows to define condition types owned by the controller.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
-type WithOwnedV1Beta2Conditions struct {
+type WithOwnedConditions struct {
 	Conditions []string
 }
 
 // ApplyToHelper applies this configuration to the given HelperOptions.
-func (w WithOwnedV1Beta2Conditions) ApplyToHelper(in *HelperOptions) {
+func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedV1Beta2Conditions = w.Conditions
 }
 

@@ -380,9 +380,9 @@ func DescribeCluster(ctx context.Context, input DescribeClusterInput) {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
-	cmdtree.PrintObjectTreeV1Beta2(tree, w)
+	cmdtree.PrintObjectTree(tree, w)
 	if CurrentSpecReport().Failed() {
-		cmdtree.PrintObjectTreeV1Beta2(tree, GinkgoWriter)
+		cmdtree.PrintObjectTree(tree, GinkgoWriter)
 	}
 	Expect(w.Flush()).To(Succeed(), "Failed to save clusterctl describe output")
 }

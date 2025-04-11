@@ -316,13 +316,13 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options := []patch.Option{
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			clusterv1.MachinesCreatedCondition,
 			clusterv1.ResizedCondition,
 			clusterv1.MachinesReadyCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			clusterv1.MachineSetScalingUpV1Beta2Condition,
 			clusterv1.MachineSetScalingDownV1Beta2Condition,
@@ -517,7 +517,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 				conditions.Set(m, *upToDateCondition)
 			}
 
-			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
 				return ctrl.Result{}, err
 			}
 			continue
@@ -532,7 +532,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 				return ctrl.Result{}, err
 			}
 			conditions.Set(m, *upToDateCondition)
-			if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -1338,10 +1338,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			continue
 		}
 
-		shouldCleanup := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
-		shouldCleanupV1Beta2 := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
+		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 
-		if !(shouldCleanup || shouldCleanupV1Beta2) {
+		if !(shouldCleanupV1Beta1 || shouldCleanup) {
 			continue
 		}
 
@@ -1351,17 +1351,17 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			continue
 		}
 
-		if shouldCleanup {
+		if shouldCleanupV1Beta1 {
 			v1beta1conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 		}
 
-		if shouldCleanupV1Beta2 {
+		if shouldCleanup {
 			conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		}
 
-		if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.MachineOwnerRemediatedCondition,
-		}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		}}, patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		}}); err != nil {
 			errList = append(errList, err)
@@ -1552,9 +1552,9 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 		conditions.Set(m, v1beta2Condition)
 
 		if err := patchHelper.Patch(ctx, m,
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedCondition,
-			}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			}}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 			}}); err != nil {
 			errs = append(errs, err)

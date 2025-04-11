@@ -183,9 +183,9 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
 					switch od.options.V1Beta2 {
 					case true:
-						updateV1Beta2GroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
+						updateGroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
 					default:
-						updateGroupNode(s, sReady, obj, objReady)
+						updateV1Beta1GroupNode(s, sReady, obj, objReady)
 					}
 
 					return true, false
@@ -201,9 +201,9 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 			var groupNode *NodeObject
 			switch od.options.V1Beta2 {
 			case true:
-				groupNode = createV1Beta2GroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
+				groupNode = createGroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
 			default:
-				groupNode = createGroupNode(s, sReady, obj, objReady)
+				groupNode = createV1Beta1GroupNode(s, sReady, obj, objReady)
 			}
 
 			// By default, grouping objects should be sorted last.
@@ -313,13 +313,13 @@ func hasSameReadyStatusSeverityAndReason(a, b *clusterv1.Condition) bool {
 		a.Reason == b.Reason
 }
 
-func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) *NodeObject {
+func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) *NodeObject {
 	kind := fmt.Sprintf("%sGroup", obj.GetObjectKind().GroupVersionKind().Kind)
 
 	// Create a new group node and add the GroupObjectAnnotation to signal
 	// this to the presentation layer.
 	// NB. The group nodes gets a unique ID to avoid conflicts.
-	groupNode := VirtualObject(obj.GetNamespace(), kind, readyStatusReasonUIDV1Beta2(obj))
+	groupNode := VirtualObject(obj.GetNamespace(), kind, readyStatusReasonUID(obj))
 	addAnnotation(groupNode, GroupObjectAnnotation, "True")
 
 	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
@@ -343,7 +343,7 @@ func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Conditio
 	// Update the group's ready condition and counter.
 	addAnnotation(groupNode, GroupItemsReadyCounter, "0")
 	if objReady != nil {
-		objReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, siblingReady)
+		objReady.LastTransitionTime = minLastTransitionTime(objReady, siblingReady)
 		objReady.Message = ""
 		setReadyV1Beta2Condition(groupNode, objReady)
 		if objReady.Status == metav1.ConditionTrue {
@@ -369,7 +369,7 @@ func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Conditio
 	return groupNode
 }
 
-func readyStatusReasonUIDV1Beta2(obj client.Object) string {
+func readyStatusReasonUID(obj client.Object) string {
 	ready := GetReadyV1Beta2Condition(obj)
 	if ready == nil {
 		return fmt.Sprintf("zzz_%s", util.RandomString(6))
@@ -377,7 +377,7 @@ func readyStatusReasonUIDV1Beta2(obj client.Object) string {
 	return fmt.Sprintf("zz_%s_%s_%s", ready.Status, ready.Reason, util.RandomString(6))
 }
 
-func minLastTransitionTimeV1Beta2(a, b *metav1.Condition) metav1.Time {
+func minLastTransitionTime(a, b *metav1.Condition) metav1.Time {
 	if a == nil && b == nil {
 		return metav1.Time{}
 	}
@@ -393,7 +393,7 @@ func minLastTransitionTimeV1Beta2(a, b *metav1.Condition) metav1.Time {
 	return a.LastTransitionTime
 }
 
-func createGroupNode(sibling client.Object, siblingReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) *NodeObject {
+func createV1Beta1GroupNode(sibling client.Object, siblingReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) *NodeObject {
 	kind := fmt.Sprintf("%sGroup", obj.GetObjectKind().GroupVersionKind().Kind)
 
 	// Create a new group node and add the GroupObjectAnnotation to signal
@@ -409,7 +409,7 @@ func createGroupNode(sibling client.Object, siblingReady *clusterv1.Condition, o
 
 	// Update the group's ready condition.
 	if objReady != nil {
-		objReady.LastTransitionTime = minLastTransitionTime(objReady, siblingReady)
+		objReady.LastTransitionTime = minLastTransitionTimeV1Beta1(objReady, siblingReady)
 		objReady.Message = ""
 		setReadyV1Beta1Condition(groupNode, objReady)
 	}
@@ -424,7 +424,7 @@ func readyStatusSeverityAndReasonUID(obj client.Object) string {
 	return fmt.Sprintf("zz_%s_%s_%s_%s", ready.Status, ready.Severity, ready.Reason, util.RandomString(6))
 }
 
-func minLastTransitionTime(a, b *clusterv1.Condition) metav1.Time {
+func minLastTransitionTimeV1Beta1(a, b *clusterv1.Condition) metav1.Time {
 	if a == nil && b == nil {
 		return metav1.Time{}
 	}
@@ -440,7 +440,7 @@ func minLastTransitionTime(a, b *clusterv1.Condition) metav1.Time {
 	return a.LastTransitionTime
 }
 
-func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) {
+func updateGroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) {
 	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
 	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
 	items = append(items, obj.GetName())
@@ -457,7 +457,7 @@ func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition
 
 	// Update the group's ready condition and ready counter.
 	if groupReady != nil {
-		groupReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, groupReady)
+		groupReady.LastTransitionTime = minLastTransitionTime(objReady, groupReady)
 		groupReady.Message = ""
 		setReadyV1Beta2Condition(groupObj, groupReady)
 	}
@@ -476,7 +476,7 @@ func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition
 	}
 }
 
-func updateGroupNode(groupObj client.Object, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {
+func updateV1Beta1GroupNode(groupObj client.Object, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {
 	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
 	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
 	items = append(items, obj.GetName())
@@ -485,7 +485,7 @@ func updateGroupNode(groupObj client.Object, groupReady *clusterv1.Condition, ob
 
 	// Update the group's ready condition.
 	if groupReady != nil {
-		groupReady.LastTransitionTime = minLastTransitionTime(objReady, groupReady)
+		groupReady.LastTransitionTime = minLastTransitionTimeV1Beta1(objReady, groupReady)
 		groupReady.Message = ""
 		setReadyV1Beta1Condition(groupObj, groupReady)
 	}

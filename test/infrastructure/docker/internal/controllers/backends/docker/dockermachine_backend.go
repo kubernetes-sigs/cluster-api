@@ -488,12 +488,12 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	return patchHelper.Patch(
 		ctx,
 		dockerMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		}},
-		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,

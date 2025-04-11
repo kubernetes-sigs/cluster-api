@@ -80,7 +80,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 
 	conditions.Set(obj, newCondition)
 
-	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{
 		clusterv1.PausedV1Beta2Condition,
 	}}); err != nil {
 		return isPaused, false, err

@@ -167,10 +167,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.RemediationAllowedCondition,
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
 				clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
 			}},
@@ -303,11 +303,11 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		errList := []error{}
 		for _, t := range append(healthy, unhealthy...) {
 			patchOpts := []patch.Option{
-				patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 					clusterv1.MachineHealthCheckSucceededCondition,
 					// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 				}},
-				patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				patch.WithOwnedConditions{Conditions: []string{
 					clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 					// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 					// (Same for ExternallyRemediated condition)
@@ -394,11 +394,11 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 		}
 
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineHealthCheckSucceededCondition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 				// (Same for ExternallyRemediated condition)
@@ -514,11 +514,11 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 		}
 
 		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineHealthCheckSucceededCondition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 			}},
-			patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 				// (Same for ExternallyRemediated condition)

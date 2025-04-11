@@ -448,7 +448,7 @@ func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dock
 	return patchHelper.Patch(
 		ctx,
 		dockerMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			expv1.ReplicasReadyCondition,
 		}},

@@ -326,6 +326,11 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 		}
 
 		// The Name must also be a valid label value, because it is used in some label values.
+		//
+		// NOTE This check always returns true in practice, because OpenAPI validation in the
+		// Cluster CRD ensures that md.Name is <= 63 characters, and the IsDNS1123Subdomain check
+		// accepts a smaller set of characters than IsValidLabelValue. We keep this check to be able
+		// to unit test this function.
 		if errs := validation.IsValidLabelValue(md.Name); len(errs) != 0 {
 			for _, err := range errs {
 				allErrs = append(
@@ -406,6 +411,11 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 		}
 
 		// The Name must also be a valid label value, because it is used in some label values.
+		//
+		// NOTE This check always returns true in practice, because OpenAPI validation in the
+		// Cluster CRD ensures that md.Name is <= 63 characters, and the IsDNS1123Subdomain check
+		// accepts a smaller set of characters than IsValidLabelValue. We keep this check to be able
+		// to unit test this function.
 		if errs := validation.IsValidLabelValue(mp.Name); len(errs) != 0 {
 			for _, err := range errs {
 				allErrs = append(

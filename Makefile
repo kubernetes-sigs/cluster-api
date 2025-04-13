@@ -164,9 +164,9 @@ GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep 
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
-GOLANGCI_LINT_KAL_BIN := golangci-lint-kal
-GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep name: | sed 's/name: golangci-lint-kal-//')
-GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN)-$(GOLANGCI_LINT_KAL_VER))
+GOLANGCI_LINT_KAL_BIN := golangci-lint-kube-api-linter
+GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep version: | sed 's/version: //')
+GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
 
 GOVULNCHECK_BIN := govulncheck
 GOVULNCHECK_VER := v1.1.4

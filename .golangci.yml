@@ -1,13 +1,12 @@
+version: "2"
 run:
-  timeout: 10m
   go: "1.23"
   build-tags:
     - tools
     - e2e
   allow-parallel-runners: true
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - asasalint # warns about passing []any to func(...any) without expanding it
     - asciicheck # non ascii symbols
@@ -20,15 +19,11 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
-    - gci # ensures imports are organized
     - ginkgolinter # ginkgo and gomega
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
-    - gofmt # warns about incorrect use of fmt functions
-    - goimports # import formatting
     - goprintffuncname # printft-like functions should be named with f at the end
     - gosec # potential security problems
-    - gosimple # simplify code
     - govet # basically 'go vet'
     - importas # consistent import aliases
     - ineffassign # ineffectual assignments
@@ -44,346 +39,330 @@ linters:
     - predeclared # shadowing predeclared identifiers
     - revive # better version of golint
     - staticcheck # some of staticcheck's rules
-    - stylecheck # another replacement for golint
-    - tenv # using os.Setenv instead of t.Setenv in tests
     - thelper # test helpers not starting with t.Helper()
     - unconvert # unnecessary type conversions
     - unparam # unused function parameters
     - unused # unused constants, variables,functions, types
     - usestdlibvars # using variables/constants from the standard library
+    - usetesting # report function to be replace by testing
     - whitespace # unnecessary newlines
-
-linters-settings:
-  gosec:
-    excludes:
-    # integer overflow conversion int -> int32
-      - G115
-  gci:
-    sections:
-      - standard # Standard section: captures all standard packages.
-      - default # Default section: contains all imports that could not be matched to another section type.
-      - prefix(sigs.k8s.io/cluster-api) # Custom section: groups all imports with the specified Prefix.
-    custom-order: true
-  ginkgolinter:
-    forbid-focus-container: true
-  godot:
-    #   declarations - for top level declaration comments (default);
-    #   toplevel     - for top level comments;
-    #   all          - for all comments.
-    scope: toplevel
-    exclude:
-      - '^ \+.*'
-      - '^ ANCHOR.*'
-      - '^ (alpha|beta|GA): v.*'
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - performance
-    disabled-checks:
-      - appendAssign
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - evalOrder
-      - ifElseChain
-      - octalLiteral
-      - regexpSimplify
-      - sloppyReassign
-      - truncateCmp
-      - typeDefFirst
-      - unnamedResult
-      - unnecessaryDefer
-      - whyNoLint
-      - wrapperFunc
-      - rangeValCopy
-      - hugeParam
-  importas:
-    no-unaliased: true
-    alias:
-      # Kubernetes
-      - pkg: k8s.io/api/core/v1
-        alias: corev1
-      - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
-        alias: apiextensionsv1
-      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-        alias: metav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: apierrors
-      - pkg: k8s.io/apimachinery/pkg/util/errors
-        alias: kerrors
-      - pkg: k8s.io/component-base/logs/api/v1
-        alias: logsv1
-      # Controller Runtime
-      - pkg: sigs.k8s.io/controller-runtime
-        alias: ctrl
-      # CABPK
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3
-        alias: bootstrapv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4
-        alias: bootstrapv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
-        alias: bootstrapv1beta1
-      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
-        alias: bootstrapv1
-      # KCP
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3
-        alias: controlplanev1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4
-        alias: controlplanev1alpha4
-      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
-        alias: controlplanev1beta1
-      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
-        alias: controlplanev1
-      # CAPI
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3
-        alias: clusterv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4
-        alias: clusterv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/api/v1beta1
-        alias: clusterv1beta1
-      - pkg: sigs.k8s.io/cluster-api/api/v1beta2
-        alias: clusterv1
-      # CAPI exp
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3
-        alias: expv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4
-        alias: expv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-        alias: expv1beta1
-      - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta2
-        alias: expv1
-      # CAPI exp addons
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3
-        alias: addonsv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha4
-        alias: addonsv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
-        alias: addonsv1beta1
-      - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
-        alias: addonsv1
-      # CAPI exp IPAM
-      - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
-        alias: ipamv1beta1
-      - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
-        alias: ipamv1
-      # CAPI exp runtime
-      - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1
-        alias: runtimev1
-      - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
-        alias: runtimehooksv1
-      - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
-        alias: runtimecontrollers
-      - pkg: sigs.k8s.io/cluster-api/exp/runtime/catalog
-        alias: runtimecatalog
-      - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
-        alias: internalruntimeclient
-      - pkg: sigs.k8s.io/cluster-api/exp/runtime/client
-        alias: runtimeclient
-      - pkg: sigs.k8s.io/cluster-api/internal/runtime/registry
-        alias: runtimeregistry
-      - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
-        alias: runtimewebhooks
-      # CAPI utils
-      - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
-        alias: v1beta1conditions
-      - pkg: sigs.k8s.io/cluster-api/internal/topology/names
-        alias: topologynames
-      # CAPD
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
-        alias: infrav1alpha3
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
-        alias: infrav1alpha4
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
-        alias: infrav1
-      # CAPD exp
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3
-        alias: infraexpv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
-        alias: infraexpv1alpha4
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
-        alias: infraexpv1
-  nolintlint:
-    allow-unused: false
-    require-specific: true
-  revive:
+  settings:
+    ginkgolinter:
+      forbid-focus-container: true
+    gocritic:
+      disabled-checks:
+        - appendAssign
+        - dupImport # https://github.com/go-critic/go-critic/issues/845
+        - evalOrder
+        - ifElseChain
+        - octalLiteral
+        - regexpSimplify
+        - sloppyReassign
+        - truncateCmp
+        - typeDefFirst
+        - unnamedResult
+        - unnecessaryDefer
+        - whyNoLint
+        - wrapperFunc
+        - rangeValCopy
+        - hugeParam
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - performance
+    godot:
+      #   declarations - for top level declaration comments (default);
+      #   toplevel     - for top level comments;
+      #   all          - for all comments.
+      scope: toplevel
+      exclude:
+        - ^ \+.*
+        - ^ ANCHOR.*
+        - '^ (alpha|beta|GA): v.*'
+    gosec:
+      excludes:
+      # integer overflow conversion int -> int32
+        - G115
+    importas:
+      alias:
+        # Kubernetes
+        - pkg: k8s.io/api/core/v1
+          alias: corev1
+        - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
+          alias: apiextensionsv1
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: apierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: kerrors
+        - pkg: k8s.io/component-base/logs/api/v1
+          alias: logsv1
+        # Controller Runtime
+        - pkg: sigs.k8s.io/controller-runtime
+          alias: ctrl
+        # CABPK
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3
+          alias: bootstrapv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4
+          alias: bootstrapv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+          alias: bootstrapv1beta1
+        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
+          alias: bootstrapv1
+        # KCP
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3
+          alias: controlplanev1alpha3
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4
+          alias: controlplanev1alpha4
+        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+          alias: controlplanev1beta1
+        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
+          alias: controlplanev1
+        # CAPI
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3
+          alias: clusterv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4
+          alias: clusterv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+          alias: clusterv1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta2
+          alias: clusterv1
+        # CAPI exp
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3
+          alias: expv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4
+          alias: expv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
+          alias: expv1beta1
+        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta2
+          alias: expv1
+        # CAPI exp addons
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3
+          alias: addonsv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha4
+          alias: addonsv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
+          alias: addonsv1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
+          alias: addonsv1
+        # CAPI exp IPAM
+        - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
+          alias: ipamv1beta1
+        - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
+          alias: ipamv1
+        # CAPI exp runtime
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1
+          alias: runtimev1
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
+          alias: runtimehooksv1
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
+          alias: runtimecontrollers
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/catalog
+          alias: runtimecatalog
+        - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
+          alias: internalruntimeclient
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/client
+          alias: runtimeclient
+        - pkg: sigs.k8s.io/cluster-api/internal/runtime/registry
+          alias: runtimeregistry
+        - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
+          alias: runtimewebhooks
+        # CAPI utils
+        - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
+          alias: v1beta1conditions
+        - pkg: sigs.k8s.io/cluster-api/internal/topology/names
+          alias: topologynames
+        # CAPD
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
+          alias: infrav1alpha3
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
+          alias: infrav1alpha4
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
+          alias: infrav1
+        # CAPD exp
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3
+          alias: infraexpv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
+          alias: infraexpv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
+          alias: infraexpv1
+      no-unaliased: true
+    nolintlint:
+      require-specific: true
+      allow-unused: false
+    revive:
+      rules:
+        # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        #
+        # Rules in addition to the recommended configuration above.
+        #
+        - name: bool-literal-in-expr
+        - name: constant-logical-expr
+  exclusions:
+    generated: lax
     rules:
-      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
-      #
-      # Rules in addition to the recommended configuration above.
-      #
-      - name: bool-literal-in-expr
-      - name: constant-logical-expr
-  goconst:
-    ignore-tests: true
-
+    # Specific exclude rules for deprecated fields that are still part of the codebase. These
+    # should be removed as the referenced deprecated item is removed from the project.
+      - linters:
+          - staticcheck
+        text: 'SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|dockerMachine.Spec.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated'
+        # Deprecations forGetIPFamily
+      - linters:
+          - staticcheck
+        text: 'SA1019: cluster.GetIPFamily is deprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521'
+        # Deprecations for MD revision management
+      - linters:
+          - staticcheck
+        text: 'SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated'
+        # Deprecations for MD revision management
+      - linters:
+          - staticcheck
+        text: 'SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details.'
+        # Deprecations for MHC MaxUnhealthy, UnhealthyRange
+      - linters:
+          - staticcheck
+        text: 'SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated'
+        # v1Beta1 deprecated fields
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated: This package will be removed in one of the next releases.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+      - linters:
+          - revive
+        text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'
+      - linters:
+          - errcheck
+        text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+      - linters:
+          - revive
+        text: exported (method|function|type|const) (.+) should have comment or be unexported
+        source: (func|type).*Fake.*
+      - linters:
+          - revive
+        path: fake_\.go
+        text: exported (method|function|type|const) (.+) should have comment or be unexported
+      - linters:
+          - revive
+        path: cmd/clusterctl/internal/test/providers.*.go
+        text: exported (method|function|type|const) (.+) should have comment or be unexported
+      - linters:
+          - revive
+        path: (framework|e2e)/.*.go
+        text: exported (method|function|type|const) (.+) should have comment or be unexported
+      - linters:
+          - unparam
+        text: always receives
+      - linters:
+          - revive
+          - staticcheck
+        path: _test\.go
+        text: should not use dot imports
+      - linters:
+          - revive
+          - staticcheck
+        path: (framework|e2e)/.*.go
+        text: should not use dot imports
+      - linters:
+          - gocritic
+        path: internal/topology/variables/clusterclass_variable_validation.go
+        text: emptyStringTest
+      - linters:
+          - gocritic
+        text: 'appendAssign: append result not assigned to the same slice'
+      - linters:
+          - staticcheck
+        path: .*(api|types)\/.*\/conversion.*\.go$
+        text: 'SA1019: in.(.+) is deprecated'
+      - linters:
+          - revive
+        path: .*(api|types|test)\/.*\/conversion.*\.go$
+        text: 'if-return: redundant if ...; err != nil check, just return error instead'
+      - linters:
+          - revive
+        path: .*(api|types|test)\/.*\/conversion.*\.go$
+        text: exported (method|function|type|const) (.+) should have comment or be unexported
+      - linters:
+          - revive
+        path: .*(api|types|test)\/.*\/conversion.*\.go$
+        text: 'var-naming: don''t use underscores in Go names;'
+      - linters:
+          - revive
+        path: .*(api|types)\/.*\/conversion.*\.go$
+        text: 'receiver-naming: receiver name'
+      - linters:
+          - staticcheck
+        path: .*(api|types|test)\/.*\/conversion.*\.go$
+        text: 'ST1003: should not use underscores in Go names;'
+      - linters:
+          - staticcheck
+        path: .*(api|types)\/.*\/conversion.*\.go$
+        text: 'ST1016: methods on the same type should have the same receiver name'
+      - linters:
+          - gocritic
+        path: _test\.go
+        text: 'deferInLoop: Possible resource leak, ''defer'' is called in the ''for'' loop'
+      - linters:
+          - govet
+        text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.
+      - linters:
+          - goconst
+        path: (.+)_test\.go
+    paths:
+      - zz_generated.*\.go$
+      - vendored_openapi\.go$
+      - internal/apis/.*
 issues:
-  exclude-files:
-    - "zz_generated.*\\.go$"
-    - "vendored_openapi\\.go$"
-    # We don't want to invest time to fix new linter findings in old API types.
-    - "internal/apis/.*"
-
-  max-same-issues: 0
   max-issues-per-linter: 0
-  # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
-  # changes in PRs and avoid nitpicking.
-  exclude-use-default: false
-  exclude-rules:
-  # Specific exclude rules for deprecated fields that are still part of the codebase. These
-  # should be removed as the referenced deprecated item is removed from the project.
-  - linters:
-      - staticcheck
-    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
-    # Deprecations forGetIPFamily
-  - linters:
-      - staticcheck
-    text: "SA1019: cluster.GetIPFamily is deprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521"
-  # Deprecations for MD revision management
-  - linters:
-      - staticcheck
-    text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
-    # Deprecations for MD revision management
-  - linters:
-      - staticcheck
-    text: "SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details."
-    # Deprecations for MHC MaxUnhealthy, UnhealthyRange
-  - linters:
-      - staticcheck
-    text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
-  # v1Beta1 deprecated fields
-  - linters:
-      - staticcheck
-    text: "SA1019: .*\\.Deprecated\\.V1Beta1.* is deprecated"
-  # Specific exclude rules for deprecated packages that are still part of the codebase. These
-  # should be removed as the referenced deprecated packages are removed from the project.
-  - linters:
-    - staticcheck
-    text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
-  # Specific exclude rules for deprecated types that are still part of the codebase. These
-  # should be removed as the referenced deprecated types are removed from the project.
-  - linters:
-    - staticcheck
-    text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
-  # Specific exclude rules for deprecated feature flags
-  - linters:
-      - staticcheck
-    text: "SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release."
-  - linters:
-    - revive
-    text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
-  - linters:
-    - errcheck
-    text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  # Exclude some packages or code to require comments, for example test code, or fake clients.
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    source: (func|type).*Fake.*
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: fake_\.go
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: cmd/clusterctl/internal/test/providers.*.go
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: "(framework|e2e)/.*.go"
-  # Disable unparam "always receives" which might not be really
-  # useful when building libraries.
-  - linters:
-    - unparam
-    text: always receives
-  # Dot imports for gomega and ginkgo are allowed
-  # within test files and test utils.
-  - linters:
-    - revive
-    - stylecheck
-    path: _test\.go
-    text: should not use dot imports
-  - linters:
-    - revive
-    - stylecheck
-    path: (framework|e2e)/.*.go
-    text: should not use dot imports
-  # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
-  # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
-  - linters:
-      - gocritic
-    text: "emptyStringTest"
-    path: internal/topology/variables/clusterclass_variable_validation.go
-  # Append should be able to assign to a different var/slice.
-  - linters:
-    - gocritic
-    text: "appendAssign: append result not assigned to the same slice"
- # Disable linters for conversion
-  - linters:
-    - staticcheck
-    text: "SA1019: in.(.+) is deprecated"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-      - revive
-    # Checking if an error is nil to just after return the error or nil is redundant
-    text: "if-return: redundant if ...; err != nil check, just return error instead"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # This rule warns when initialism, variable or package naming conventions are not followed.
-    text: "var-naming: don't use underscores in Go names;"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # By convention, receiver names in a method should reflect their identity.
-    text: "receiver-naming: receiver name"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1003: should not use underscores in Go names;"
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1016: methods on the same type should have the same receiver name"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  # We don't care about defer in for loops in test files.
-  - linters:
-    - gocritic
-    text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
-    path: _test\.go
-    # Ignore non-constant format string in call to condition utils
-  - linters:
-      - govet
-    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\/deprecated\\/v1beta1\\."
+  max-same-issues: 0
+formatters:
+  enable:
+    - gci # ensures imports are organized
+    - gofmt # warns about incorrect use of fmt functions
+    - goimports # import formatting
+  settings:
+    gci:
+      sections:
+        - standard # Standard section: captures all standard packages.
+        - default # Default section: contains all imports that could not be matched to another section type.
+        - prefix(sigs.k8s.io/cluster-api) # Custom section: groups all imports with the specified Prefix.
+      custom-order: true
+  exclusions:
+    generated: lax
+    paths:
+      - zz_generated.*\.go$
+      - vendored_openapi\.go$
+      # We don't want to invest time to fix new linter findings in old API types.
+      - internal/apis/.*

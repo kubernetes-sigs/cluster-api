@@ -537,7 +537,7 @@ func GetMapping(k8sVersion semver.Version, customImage string) Mapping {
 	}
 	for _, m := range preBuiltMappings {
 		// If the mapping isn't for the right Major/Minor, ignore it.
-		if k8sVersion.Major != m.KubernetesVersion.Major && k8sVersion.Minor != m.KubernetesVersion.Minor {
+		if k8sVersion.Major != m.KubernetesVersion.Major || k8sVersion.Minor != m.KubernetesVersion.Minor {
 			continue
 		}
 

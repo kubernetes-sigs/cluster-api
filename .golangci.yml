@@ -344,6 +344,9 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
       - internal/apis/.*
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

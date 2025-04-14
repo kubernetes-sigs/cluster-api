@@ -2114,7 +2114,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
@@ -2189,13 +2189,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
@@ -2280,13 +2280,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
 		// Wait until Machine was reconciled.
@@ -2360,13 +2360,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
 		// Wait until Machine was reconciled.
@@ -2424,13 +2424,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
 		// Wait until Machine was reconciled.
@@ -2498,13 +2498,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
 		// Wait until the Machine has the Machine finalizer

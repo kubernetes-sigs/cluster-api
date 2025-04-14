@@ -432,7 +432,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, newestMachineSet) {
 					continue
 				}
-				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+				providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 
@@ -459,7 +459,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, &newms) {
 					continue
 				}
-				providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+				providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 

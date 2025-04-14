@@ -6,13 +6,13 @@ run:
 linters:
   disable-all: true
   enable:
-    - kal # linter for Kube API conventions
+    - kubeapilinter # linter for Kube API conventions
    
 linters-settings:
   custom:
-    kal:
+    kubeapilinter:
       type: "module"
-      description: KAL is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+      description: kube-api-linter and lints Kube like APIs based on API conventions and best practices.
       settings:
         linters:
           enable:
@@ -61,54 +61,54 @@ issues:
   # KAL should only run on API folders.
   - path-except: "api//*"
     linters:
-      - kal
+      - kubeapilinter
   - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
     text: "Conditions field must be a slice of metav1.Condition"
     linters:
-      - kal
+      - kubeapilinter
   - path: "api/v1beta2/*|api/v1beta1/*"
     text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
-      - kal
+      - kubeapilinter
   - path: "exp/ipam/api/v1beta2/*|exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
     text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
     linters:
-      - kal
+      - kubeapilinter
   # clusterctl and Runtime Hooks can be fixed once we bump their apiVersion.
   - path: "cmd/clusterctl/api/v1alpha3|exp/runtime/hooks/api/v1alpha1"
     text: "maxlength"
     linters:
-      - kal
+      - kubeapilinter
   # controller-gen does not allow to add MaxItems to Schemaless fields
   - path: "api/v1beta2/*|api/v1beta1/*"
     text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
-      - kal
+      - kubeapilinter
   # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
-  # This exclude will  be removed once https://github.com/JoelSpeed/kal/issues/38 is resolved.
+  # This exclude will  be removed once https://github.com/JoelSpeed/kubeapilinter/issues/38 is resolved.
   - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
     text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
     linters:
-      - kal
+      - kubeapilinter
   - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
     text: "nobools"
     linters:
-      - kal
+      - kubeapilinter
   # We follow the current CustomResourceDefinition field's json tag pattern.
   - path: "api/v1beta2/*|api/v1beta1/*"
     text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
     linters:
-      - kal
+      - kubeapilinter
   # The following rules are disabled until we migrate to the new API.
   - path: "bootstrap/kubeadm/api/v1beta2/kubeadm_types.go|bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
     text: "field Token is marked as required, should not be a pointer"
     linters:
-      - kal
+      - kubeapilinter
   - path: "api/v1beta2/clusterclass_types.go|api/v1beta1/clusterclass_types.go"
     text: "field Ref is marked as required, should not be a pointer"
     linters:
-      - kal
+      - kubeapilinter
   - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
     text: "field Items must be marked as optional or required"
     linters:
-      - kal
+      - kubeapilinter

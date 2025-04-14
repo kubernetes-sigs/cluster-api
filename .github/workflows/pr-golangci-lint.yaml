@@ -27,7 +27,10 @@ jobs:
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # tag=v5.4.0
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
-      - name: Lint Codebase
-        run: make lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # tag=v7.0.0
+        with:
+          version: v2.0.2
+          working-directory: ${{matrix.working-directory}}
       - name: Lint API
         run: make lint-api

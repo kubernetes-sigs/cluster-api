@@ -87,12 +87,12 @@ func TestLexicographicLess(t *testing.T) {
 	g.Expect(lexicographicLess(a, b)).To(BeFalse())
 
 	// Ready condition is treated as an exception and always goes first
-	a = TrueCondition(clusterv1.ReadyCondition)
+	a = TrueCondition(clusterv1.ReadyV1Beta1Condition)
 	b = TrueCondition("A")
 	g.Expect(lexicographicLess(a, b)).To(BeTrue())
 
 	a = TrueCondition("A")
-	b = TrueCondition(clusterv1.ReadyCondition)
+	b = TrueCondition(clusterv1.ReadyV1Beta1Condition)
 	g.Expect(lexicographicLess(a, b)).To(BeFalse())
 
 	a = TrueCondition("A")
@@ -105,7 +105,7 @@ func TestLexicographicLess(t *testing.T) {
 func TestSet(t *testing.T) {
 	a := TrueCondition("a")
 	b := TrueCondition("b")
-	ready := TrueCondition(clusterv1.ReadyCondition)
+	ready := TrueCondition(clusterv1.ReadyV1Beta1Condition)
 
 	tests := []struct {
 		name      string
@@ -354,12 +354,12 @@ func TestSetSummary(t *testing.T) {
 
 	SetSummary(target)
 
-	g.Expect(Has(target, clusterv1.ReadyCondition)).To(BeTrue())
+	g.Expect(Has(target, clusterv1.ReadyV1Beta1Condition)).To(BeTrue())
 }
 
 func TestSetMirror(t *testing.T) {
 	g := NewWithT(t)
-	source := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
+	source := getterWithConditions(TrueCondition(clusterv1.ReadyV1Beta1Condition))
 	target := setterWithConditions()
 
 	SetMirror(target, "foo", source)
@@ -369,8 +369,8 @@ func TestSetMirror(t *testing.T) {
 
 func TestSetAggregate(t *testing.T) {
 	g := NewWithT(t)
-	source1 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
-	source2 := getterWithConditions(TrueCondition(clusterv1.ReadyCondition))
+	source1 := getterWithConditions(TrueCondition(clusterv1.ReadyV1Beta1Condition))
+	source2 := getterWithConditions(TrueCondition(clusterv1.ReadyV1Beta1Condition))
 	target := setterWithConditions()
 
 	SetAggregate(target, "foo", []Getter{source1, source2})

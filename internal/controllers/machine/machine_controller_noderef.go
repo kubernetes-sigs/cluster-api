@@ -70,7 +70,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
 		log.Info("Waiting for infrastructure provider to report spec.providerID", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Spec.InfrastructureRef.Namespace, machine.Spec.InfrastructureRef.Name))
-		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.WaitingForNodeRefReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.WaitingForNodeRefReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -92,17 +92,17 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 			// While a NodeRef is set in the status, failing to get that node means the node is deleted.
 			// If Status.NodeRef is not set before, node still can be in the provisioning state.
 			if machine.Status.NodeRef != nil {
-				v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityError, "")
+				v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityError, "")
 				return ctrl.Result{}, errors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
-			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeProvisioningReason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
+			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeProvisioningReason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
 			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Spec.InfrastructureRef.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", *machine.Spec.ProviderID)
 			// No need to requeue here. Nodes emit an event that triggers reconciliation.
 			return ctrl.Result{}, nil
 		}
 		s.nodeGetError = err
 		r.recorder.Event(machine, corev1.EventTypeWarning, "Failed to retrieve Node by ProviderID", err.Error())
-		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID")
+		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID")
 		return ctrl.Result{}, err
 	}
 	s.node = node
@@ -158,22 +158,22 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	}
 
 	if s.infraMachine == nil || !s.infraMachine.GetDeletionTimestamp().IsZero() {
-		v1beta1conditions.MarkFalse(s.machine, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(s.machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
 	status, message := summarizeNodeConditions(s.node)
 	if status == corev1.ConditionFalse {
-		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)
 		return ctrl.Result{}, nil
 	}
 	if status == corev1.ConditionUnknown {
-		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, message)
+		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedReason, message)
 		return ctrl.Result{}, nil
 	}
 
-	v1beta1conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
+	v1beta1conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 	return ctrl.Result{}, nil
 }
 

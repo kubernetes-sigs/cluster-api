@@ -245,8 +245,8 @@ func ClusterControlPlaneInitialized(scheme *runtime.Scheme, logger logr.Logger) 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
 			// TODO (v1beta2): test for v1beta2 conditions
-			if !v1beta1conditions.IsTrue(oldCluster, clusterv1.ControlPlaneInitializedCondition) &&
-				v1beta1conditions.IsTrue(newCluster, clusterv1.ControlPlaneInitializedCondition) {
+			if !v1beta1conditions.IsTrue(oldCluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) &&
+				v1beta1conditions.IsTrue(newCluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 				log.V(6).Info("Cluster ControlPlaneInitialized was set, allow further processing")
 				return true
 			}

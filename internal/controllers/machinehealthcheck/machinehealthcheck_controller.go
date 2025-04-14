@@ -168,7 +168,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.RemediationAllowedCondition,
+				clusterv1.RemediationAllowedV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedV1Beta2Condition,
@@ -203,7 +203,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 
 	// If the cluster is already initialized, get the remote cluster cache to use as a client.Reader.
 	var remoteClient client.Client
-	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		var err error
 		remoteClient, err = r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
@@ -277,7 +277,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
 		m.Status.RemediationsAllowed = 0
 		v1beta1conditions.Set(m, &clusterv1.Condition{
-			Type:     clusterv1.RemediationAllowedCondition,
+			Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
 			Severity: clusterv1.ConditionSeverityWarning,
 			Reason:   clusterv1.TooManyUnhealthyReason,
@@ -304,7 +304,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		for _, t := range append(healthy, unhealthy...) {
 			patchOpts := []patch.Option{
 				patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-					clusterv1.MachineHealthCheckSucceededCondition,
+					clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
 					// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 				}},
 				patch.WithOwnedConditions{Conditions: []string{
@@ -342,7 +342,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 
 	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
 	m.Status.RemediationsAllowed = remediationCount
-	v1beta1conditions.MarkTrue(m, clusterv1.RemediationAllowedCondition)
+	v1beta1conditions.MarkTrue(m, clusterv1.RemediationAllowedV1Beta1Condition)
 
 	conditions.Set(m, metav1.Condition{
 		Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
@@ -395,7 +395,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 
 		patchOpts := []patch.Option{
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.MachineHealthCheckSucceededCondition,
+				clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
@@ -419,7 +419,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 	for _, t := range unhealthy {
 		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		// TODO (v1beta2): test for v1beta2 conditions
-		condition := v1beta1conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
+		condition := v1beta1conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "reason", condition.Reason, "message", condition.Message)
@@ -440,7 +440,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate)
 				if err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableCondition, clusterv1.ExternalRemediationTemplateNotFoundReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundReason, clusterv1.ConditionSeverityError, err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedV1Beta2Condition,
@@ -476,7 +476,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				logger.Info("Machine has failed health check, creating an external remediation request", "remediation request name", to.GetName(), "reason", condition.Reason, "message", condition.Message)
 				// Create the external clone.
 				if err := r.Client.Create(ctx, to); err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableCondition, clusterv1.ExternalRemediationRequestCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableV1Beta1Condition, clusterv1.ExternalRemediationRequestCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedV1Beta2Condition,
@@ -498,8 +498,8 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				// NOTE: MHC is responsible for creating MachineOwnerRemediatedCondition if missing or to trigger another remediation if the previous one is completed;
 				// instead, if a remediation is in already progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.
 				// TODO (v1beta2): test for v1beta2 conditions
-				if !v1beta1conditions.Has(t.Machine, clusterv1.MachineOwnerRemediatedCondition) || v1beta1conditions.IsTrue(t.Machine, clusterv1.MachineOwnerRemediatedCondition) {
-					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+				if !v1beta1conditions.Has(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) || v1beta1conditions.IsTrue(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 				}
 
 				if ownerRemediatedCondition := conditions.Get(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta2Condition); ownerRemediatedCondition == nil || ownerRemediatedCondition.Status == metav1.ConditionTrue {
@@ -515,7 +515,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 		patchOpts := []patch.Option{
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.MachineHealthCheckSucceededCondition,
+				clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
 				// Note: intentionally leaving out OwnerRemediated condition which is mostly controlled by the owner.
 			}},
 			patch.WithOwnedConditions{Conditions: []string{

@@ -470,7 +470,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
 			g.Expect(env.Get(ctx, key, deployment)).To(Succeed())
-			return v1beta1conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableCondition)
+			return v1beta1conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableV1Beta1Condition)
 		}, timeout).Should(BeTrue())
 
 		// Validate that the controller set the cluster name label in selector.

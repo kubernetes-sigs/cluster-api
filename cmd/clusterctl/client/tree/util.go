@@ -84,7 +84,7 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 	if getter == nil {
 		return nil
 	}
-	return v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
+	return v1beta1conditions.Get(getter, clusterv1.ReadyV1Beta1Condition)
 }
 
 // GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
@@ -112,7 +112,7 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 	}
 	var conditions []*clusterv1.Condition
 	for _, c := range getter.GetV1Beta1Conditions() {
-		if c.Type != clusterv1.ReadyCondition {
+		if c.Type != clusterv1.ReadyV1Beta1Condition {
 			conditions = append(conditions, &c)
 		}
 	}

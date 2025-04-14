@@ -78,24 +78,24 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	switch {
 	// We are scaling up
 	case replicas < desiredReplicas:
-		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up control plane to %d replicas (actual %d)", desiredReplicas, replicas)
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedV1Beta1Condition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 	// We are scaling down
 	case replicas > desiredReplicas:
-		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
+		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedV1Beta1Condition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down control plane to %d replicas (actual %d)", desiredReplicas, replicas)
 
 		// This means that there was no error in generating the desired number of machine objects
-		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedV1Beta1Condition)
 	default:
 		// make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created).
 		readyMachines := controlPlane.Machines.Filter(collections.IsReady())
 		if int32(len(readyMachines)) == replicas {
-			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.ResizedCondition)
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.ResizedV1Beta1Condition)
 		}
 
 		// This means that there was no error in generating the desired number of machine objects
-		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.MachinesCreatedV1Beta1Condition)
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
@@ -115,7 +115,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 			controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
 		}
 		controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
-		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
+		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
 	}
 
 	// Surface lastRemediation data in status.

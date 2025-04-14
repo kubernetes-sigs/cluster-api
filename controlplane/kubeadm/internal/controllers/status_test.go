@@ -662,7 +662,7 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
-	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
+	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse}
 	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 
 	tests := []struct {
@@ -2087,8 +2087,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialization).ToNot(BeNil())
 	g.Expect(kcp.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
-	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
-	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.AvailableV1Beta1Condition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 }
 
 func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing.T) {
@@ -2245,7 +2245,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
-	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 }
 
 func kubeadmConfigMap() *corev1.ConfigMap {

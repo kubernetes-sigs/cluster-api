@@ -307,7 +307,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 		options := []patch.Option{
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 			}},
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ClusterTopologyReconciledV1Beta2Condition,
@@ -351,9 +351,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// Note: This doesn't require requeue as a change to ClusterClass observedGeneration will cause an additional reconcile
 	// in the Cluster.
 	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
-		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReconciledCondition)
+	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) ||
+		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) {
+		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
 	}
 	if clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
 		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: ClusterClass.status.observedGeneration must be %d, but is %d", clusterClass.GetGeneration(), clusterClass.Status.ObservedGeneration)

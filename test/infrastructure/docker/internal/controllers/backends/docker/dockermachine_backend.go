@@ -166,7 +166,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Make sure bootstrap data is available and populated.
 	if dataSecretName == nil {
 		// TODO (v1beta2): test for v1beta2 conditions
-		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			log.Info("Waiting for the control plane to be initialized")
 			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(dockerMachine, metav1.Condition{
@@ -342,7 +342,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
 	// TODO (v1beta2): test for v1beta2 conditions
 	if cluster.Spec.ControlPlaneRef != nil &&
-		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -489,7 +489,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 		ctx,
 		dockerMachine,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		}},

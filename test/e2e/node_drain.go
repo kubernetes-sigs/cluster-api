@@ -338,7 +338,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			})
 			var condition *clusterv1.Condition
 			for _, machine := range controlPlaneMachines {
-				condition = v1beta1conditions.Get(&machine, clusterv1.DrainingSucceededCondition)
+				condition = v1beta1conditions.Get(&machine, clusterv1.DrainingSucceededV1Beta1Condition)
 				if condition != nil {
 					// We only expect to find the condition on one Machine (as KCP will only try to drain one Machine at a time)
 					drainingCPMachineKey = client.ObjectKeyFromObject(&machine)
@@ -467,7 +467,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			drainedCPMachine := &clusterv1.Machine{}
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, drainedCPMachine)).To(Succeed())
 
-			condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+			condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 			// The evictable Pod should be gone now.
@@ -480,7 +480,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				drainedMDMachine := &clusterv1.Machine{}
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
 
-				condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+				condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 				g.Expect(condition).ToNot(BeNil())
 				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				// The evictable Pod should be gone now.
@@ -504,7 +504,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			drainedCPMachine := &clusterv1.Machine{}
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, drainedCPMachine)).To(Succeed())
 
-			condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+			condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 			// The evictable Pod should be gone now.
@@ -517,7 +517,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				drainedMDMachine := &clusterv1.Machine{}
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
 
-				condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+				condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 				g.Expect(condition).ToNot(BeNil())
 				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				// The evictable Pod should be gone now.
@@ -547,7 +547,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				waitingCPMachine := &clusterv1.Machine{}
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, waitingCPMachine)).To(Succeed())
 
-				condition := v1beta1conditions.Get(waitingCPMachine, clusterv1.VolumeDetachSucceededCondition)
+				condition := v1beta1conditions.Get(waitingCPMachine, clusterv1.VolumeDetachSucceededV1Beta1Condition)
 				g.Expect(condition).ToNot(BeNil())
 				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				// Deletion still not be blocked because of the volume.
@@ -558,7 +558,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 					drainedMDMachine := &clusterv1.Machine{}
 					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, machineKey, drainedMDMachine)).To(Succeed())
 
-					condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.VolumeDetachSucceededCondition)
+					condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.VolumeDetachSucceededV1Beta1Condition)
 					g.Expect(condition).ToNot(BeNil())
 					g.Expect(condition.Status).To(Equal(corev1.ConditionFalse)) // Deletion still not be blocked because of the volume.
 					g.Expect(condition.Message).To(ContainSubstring("Waiting for node volumes to be detached"))
@@ -705,7 +705,7 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 		g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, input.DrainedCPMachineKey, drainedCPMachine)).To(Succeed())
 
 		// Verify condition on drained CP Machine.
-		condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+		condition := v1beta1conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 		g.Expect(condition).ToNot(BeNil())
 		g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 		for _, messageSubstring := range input.CPConditionMessageSubstrings {
@@ -733,7 +733,7 @@ func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrai
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, input.DrainedMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
 
 			// Verify condition on drained MD Machine.
-			condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+			condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededV1Beta1Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 			for _, messageSubstring := range input.MDConditionMessageSubstrings[md.Name] {

@@ -700,7 +700,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		}
 
 		// TODO (v1beta2): test for v1beta2 conditions
-		if !cluster.Status.InfrastructureReady || !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		if !cluster.Status.InfrastructureReady || !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			// If the infrastructure or control plane aren't marked as ready, we should requeue and wait.
 			return false, nil
 		}

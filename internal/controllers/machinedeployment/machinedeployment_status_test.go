@@ -1042,7 +1042,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
-	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
+	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse}
 	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
 
 	tests := []struct {

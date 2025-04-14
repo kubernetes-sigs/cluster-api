@@ -261,8 +261,8 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 	// Always update the readyCondition by summarizing the state of other conditions.
 	v1beta1conditions.SetSummary(cluster,
 		v1beta1conditions.WithConditions(
-			clusterv1.ControlPlaneReadyCondition,
-			clusterv1.InfrastructureReadyCondition,
+			clusterv1.ControlPlaneReadyV1Beta1Condition,
+			clusterv1.InfrastructureReadyV1Beta1Condition,
 		),
 	)
 
@@ -271,9 +271,9 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 	// patch at the end of the reconcile loop.
 	options = append(options,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			clusterv1.ControlPlaneReadyCondition,
-			clusterv1.InfrastructureReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			clusterv1.ControlPlaneReadyV1Beta1Condition,
+			clusterv1.InfrastructureReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
@@ -447,7 +447,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				return ctrl.Result{}, nil
 			}
 			// All good - the control plane resource has been deleted
-			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyV1Beta1Condition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		}
 
 		if s.controlPlane != nil {
@@ -487,7 +487,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				return ctrl.Result{}, nil
 			}
 			// All good - the infra resource has been deleted
-			v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		}
 
 		if s.infraCluster != nil {
@@ -715,7 +715,7 @@ func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, s *sc
 		return ctrl.Result{}, nil
 	}
 
-	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		log.V(4).Info("Skipping reconcileControlPlaneInitialized because control plane already initialized")
 		return ctrl.Result{}, nil
 	}
@@ -730,12 +730,12 @@ func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, s *sc
 
 	for _, m := range machines {
 		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
-			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 			return ctrl.Result{}, nil
 		}
 	}
 
-	v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
+	v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
 
 	return ctrl.Result{}, nil
 }
@@ -760,7 +760,7 @@ func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.
 	}
 
 	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		return nil
 	}
 

@@ -1062,7 +1062,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
-						Type:     clusterv1.ReadyCondition,
+						Type:     clusterv1.ReadyV1Beta1Condition,
 						Status:   corev1.ConditionFalse,
 						Severity: clusterv1.ConditionSeverityInfo,
 						Reason:   "Custom reason",
@@ -1073,8 +1073,8 @@ func TestMachinePoolConditions(t *testing.T) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyV1Beta1Condition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyV1Beta1Condition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
 			},
@@ -1087,12 +1087,12 @@ func TestMachinePoolConditions(t *testing.T) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyCondition)).To(BeTrue())
-				bootstrapReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.BootstrapReadyV1Beta1Condition)).To(BeTrue())
+				bootstrapReadyCondition := v1beta1conditions.Get(getter, clusterv1.BootstrapReadyV1Beta1Condition)
 				g.Expect(bootstrapReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyV1Beta1Condition)).To(BeTrue())
+				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyV1Beta1Condition)
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
@@ -1103,7 +1103,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
-						Type:     clusterv1.ReadyCondition,
+						Type:     clusterv1.ReadyV1Beta1Condition,
 						Status:   corev1.ConditionFalse,
 						Severity: clusterv1.ConditionSeverityInfo,
 						Reason:   "Custom reason",
@@ -1115,8 +1115,8 @@ func TestMachinePoolConditions(t *testing.T) {
 
 				g := NewWithT(t)
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyV1Beta1Condition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(infraReadyCondition.Reason).To(Equal("Custom reason"))
 			},
@@ -1129,12 +1129,12 @@ func TestMachinePoolConditions(t *testing.T) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyV1Beta1Condition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyCondition)).To(BeTrue())
-				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.ReadyV1Beta1Condition)).To(BeTrue())
+				readyCondition := v1beta1conditions.Get(getter, clusterv1.ReadyV1Beta1Condition)
 				g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},
@@ -1153,8 +1153,8 @@ func TestMachinePoolConditions(t *testing.T) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
-				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyCondition)
+				g.Expect(v1beta1conditions.Has(getter, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
+				infraReadyCondition := v1beta1conditions.Get(getter, clusterv1.InfrastructureReadyV1Beta1Condition)
 				g.Expect(infraReadyCondition.Status).To(Equal(corev1.ConditionFalse))
 			},
 		},

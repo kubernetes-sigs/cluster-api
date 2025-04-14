@@ -180,7 +180,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 
 	options = append(options,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			runtimev1.RuntimeExtensionDiscoveredCondition,
+			runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,
@@ -231,7 +231,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	discoveredExtension, err := runtimeClient.Discover(ctx, extensionConfig.DeepCopy())
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
-		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
+		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
 		conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -241,7 +241,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
 	}
 
-	v1beta1conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
+	v1beta1conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition)
 	conditions.Set(discoveredExtension, metav1.Condition{
 		Type:   runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
 		Status: metav1.ConditionTrue,

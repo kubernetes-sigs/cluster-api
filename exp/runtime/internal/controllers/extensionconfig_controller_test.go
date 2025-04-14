@@ -137,7 +137,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		conditions := config.GetV1Beta1Conditions()
 		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
-		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 
 		v1beta2Conditions := config.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
@@ -195,7 +195,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		conditions := config.GetV1Beta1Conditions()
 		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
-		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 
 		v1beta2Conditions := config.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
@@ -262,7 +262,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		conditions := discoveredExtensionConfig.GetV1Beta1Conditions()
 		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
-		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 
 		v1beta2Conditions := discoveredExtensionConfig.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(1))
@@ -301,7 +301,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		conditions := discoveredExtensionConfig.GetV1Beta1Conditions()
 		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionFalse))
-		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 
 		v1beta2Conditions := discoveredExtensionConfig.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(1))

@@ -520,7 +520,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2, clusterv1.Conditions{}),
 			expectedConditions: []*clusterv1.Condition{
 				{
-					Type:     clusterv1.MachineDeploymentAvailableCondition,
+					Type:     clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 					Status:   corev1.ConditionFalse,
 					Severity: clusterv1.ConditionSeverityWarning,
 					Reason:   clusterv1.WaitingForAvailableMachinesReason,
@@ -534,7 +534,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{}),
 			expectedConditions: []*clusterv1.Condition{
 				{
-					Type:   clusterv1.MachineDeploymentAvailableCondition,
+					Type:   clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 					Status: corev1.ConditionTrue,
 				},
 			},
@@ -545,7 +545,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet: newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{
 				{
-					Type:    clusterv1.ReadyCondition,
+					Type:    clusterv1.ReadyV1Beta1Condition,
 					Status:  corev1.ConditionFalse,
 					Reason:  "TestErrorResaon",
 					Message: "test error messsage",
@@ -553,7 +553,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			}),
 			expectedConditions: []*clusterv1.Condition{
 				{
-					Type:    clusterv1.MachineSetReadyCondition,
+					Type:    clusterv1.MachineSetReadyV1Beta1Condition,
 					Status:  corev1.ConditionFalse,
 					Reason:  "TestErrorResaon",
 					Message: "test error messsage",
@@ -567,7 +567,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			newMachineSet:  nil,
 			expectedConditions: []*clusterv1.Condition{
 				{
-					Type:     clusterv1.MachineSetReadyCondition,
+					Type:     clusterv1.MachineSetReadyV1Beta1Condition,
 					Status:   corev1.ConditionFalse,
 					Severity: clusterv1.ConditionSeverityInfo,
 					Reason:   clusterv1.WaitingForMachineSetFallbackReason,

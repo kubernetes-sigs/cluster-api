@@ -156,7 +156,7 @@ func IsUnhealthyAndOwnerRemediated(machine *clusterv1.Machine) bool {
 		return false
 	}
 	// TODO (v1beta2): test for v1beta2 conditions
-	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
+	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
 }
 
 // IsUnhealthy returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
@@ -166,7 +166,7 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 		return false
 	}
 	// TODO (v1beta2): test for v1beta2 conditions
-	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 }
 
 // HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
@@ -175,14 +175,14 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 // It is different from the HasUnhealthyCondition func which checks MachineHealthCheck conditions.
 func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyCondition,
-		controlplanev1.MachineControllerManagerPodHealthyCondition,
-		controlplanev1.MachineSchedulerPodHealthyCondition,
+		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
 	}
 	if isEtcdManaged {
 		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyCondition,
-			controlplanev1.MachineEtcdMemberHealthyCondition,
+			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
+			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 		)
 	}
 	return func(machine *clusterv1.Machine) bool {
@@ -213,7 +213,7 @@ func IsReady() Func {
 			return false
 		}
 		// TODO (v1beta2): test for v1beta2 conditions
-		return v1beta1conditions.IsTrue(machine, clusterv1.ReadyCondition)
+		return v1beta1conditions.IsTrue(machine, clusterv1.ReadyV1Beta1Condition)
 	}
 }
 

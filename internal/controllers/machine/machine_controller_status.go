@@ -264,7 +264,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	// TODO (v1beta2): test for v1beta2 conditions
-	controlPlaneInitialized := v1beta1conditions.Get(cluster, clusterv1.ControlPlaneInitializedCondition)
+	controlPlaneInitialized := v1beta1conditions.Get(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedV1Beta2Reason,

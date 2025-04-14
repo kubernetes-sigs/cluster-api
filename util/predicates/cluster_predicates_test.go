@@ -35,10 +35,10 @@ func TestClusterControlplaneInitializedPredicate(t *testing.T) {
 	predicate := predicates.ClusterControlPlaneInitialized(runtime.NewScheme(), logr.New(log.NullLogSink{}))
 
 	markedFalse := clusterv1.Cluster{}
-	v1beta1conditions.MarkFalse(&markedFalse, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityWarning, "")
+	v1beta1conditions.MarkFalse(&markedFalse, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityWarning, "")
 
 	markedTrue := clusterv1.Cluster{}
-	v1beta1conditions.MarkTrue(&markedTrue, clusterv1.ControlPlaneInitializedCondition)
+	v1beta1conditions.MarkTrue(&markedTrue, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 
 	notMarked := clusterv1.Cluster{}
 

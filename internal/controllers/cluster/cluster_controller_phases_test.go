@@ -95,7 +95,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
 			},
 		},
 		{
@@ -464,8 +464,8 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
-				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneReadyCondition)).To(BeTrue())
-				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneInitializedCondition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneReadyV1Beta1Condition)).To(BeTrue())
+				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneInitializedV1Beta1Condition)).To(BeTrue())
 			},
 		},
 		{

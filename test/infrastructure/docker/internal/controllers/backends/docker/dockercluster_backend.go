@@ -199,7 +199,7 @@ func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHel
 		ctx,
 		dockerCluster,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
 			infrav1.LoadBalancerAvailableCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{

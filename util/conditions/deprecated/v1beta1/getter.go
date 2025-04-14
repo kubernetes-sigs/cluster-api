@@ -131,7 +131,7 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	conditionsInScope := make([]localizedCondition, 0, len(conditions))
 	for i := range conditions {
 		c := conditions[i]
-		if c.Type == clusterv1.ReadyCondition {
+		if c.Type == clusterv1.ReadyV1Beta1Condition {
 			continue
 		}
 
@@ -194,7 +194,7 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 		}
 	}
 
-	return merge(conditionsInScope, clusterv1.ReadyCondition, mergeOpt)
+	return merge(conditionsInScope, clusterv1.ReadyV1Beta1Condition, mergeOpt)
 }
 
 // mirrorOptions allows to set options for the mirror operation.
@@ -228,7 +228,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 		o(mirrorOpt)
 	}
 
-	condition := Get(from, clusterv1.ReadyCondition)
+	condition := Get(from, clusterv1.ReadyV1Beta1Condition)
 
 	if mirrorOpt.fallbackTo != nil && condition == nil {
 		switch *mirrorOpt.fallbackTo {
@@ -253,7 +253,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {
 	conditionsInScope := make([]localizedCondition, 0, len(from))
 	for i := range from {
-		condition := Get(from[i], clusterv1.ReadyCondition)
+		condition := Get(from[i], clusterv1.ReadyV1Beta1Condition)
 
 		conditionsInScope = append(conditionsInScope, localizedCondition{
 			Condition: condition,

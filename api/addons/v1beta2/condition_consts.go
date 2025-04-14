@@ -20,9 +20,9 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 // Conditions and condition Reasons for the ClusterResourceSet object.
 const (
-	// ResourcesAppliedCondition documents that all resources in the ClusterResourceSet object are applied to
+	// ResourcesAppliedV1Beta1Condition documents that all resources in the ClusterResourceSet object are applied to
 	// all matching clusters. This indicates all resources exist, and no errors during applying them to all clusters.
-	ResourcesAppliedCondition clusterv1.ConditionType = "ResourcesApplied"
+	ResourcesAppliedV1Beta1Condition clusterv1.ConditionType = "ResourcesApplied"
 
 	// RemoteClusterClientFailedReason (Severity=Error) documents failure during getting the remote cluster client.
 	RemoteClusterClientFailedReason = "RemoteClusterClientFailed"

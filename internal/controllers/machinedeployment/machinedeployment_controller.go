@@ -204,15 +204,15 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	// Always update the readyCondition by summarizing the state of other conditions.
 	v1beta1conditions.SetSummary(md,
 		v1beta1conditions.WithConditions(
-			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 		),
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedV1Beta2Condition,

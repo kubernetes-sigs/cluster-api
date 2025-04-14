@@ -189,7 +189,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
-		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
+		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
 
@@ -214,7 +214,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	if !s.machine.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyCondition, v1beta1conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition, v1beta1conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
 
 	if !s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
@@ -311,7 +311,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if !s.machine.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
-	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition, v1beta1conditions.UnstructuredGetter(s.infraMachine), fallBack)
+	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyV1Beta1Condition, v1beta1conditions.UnstructuredGetter(s.infraMachine), fallBack)
 
 	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil

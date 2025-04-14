@@ -247,7 +247,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 
 		// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
 		// TODO (v1beta2): test for v1beta2 conditions
-		if !v1beta1conditions.IsTrue(clusterObj, clusterv1.ControlPlaneInitializedCondition) {
+		if !v1beta1conditions.IsTrue(clusterObj, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}

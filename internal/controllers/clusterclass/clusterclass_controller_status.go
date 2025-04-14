@@ -36,7 +36,7 @@ func updateStatus(ctx context.Context, s *scope) {
 func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.ClusterClass, outdatedRefs []outdatedRef, reconcileExternalReferencesError error) {
 	if reconcileExternalReferencesError != nil {
 		v1beta1conditions.MarkUnknown(clusterClass,
-			clusterv1.ClusterClassRefVersionsUpToDateCondition,
+			clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition,
 			clusterv1.ClusterClassRefVersionsUpToDateInternalErrorReason,
 			"Please check controller logs for errors",
 		)
@@ -56,7 +56,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		}
 		v1beta1conditions.Set(clusterClass,
 			v1beta1conditions.FalseCondition(
-				clusterv1.ClusterClassRefVersionsUpToDateCondition,
+				clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition,
 				clusterv1.ClusterClassOutdatedRefVersionsReason,
 				clusterv1.ConditionSeverityWarning,
 				strings.Join(msg, "\n"),
@@ -72,7 +72,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	}
 
 	v1beta1conditions.Set(clusterClass,
-		v1beta1conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
+		v1beta1conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition),
 	)
 	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
@@ -84,7 +84,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.ClusterClass, variableDiscoveryError error) {
 	if variableDiscoveryError != nil {
 		v1beta1conditions.MarkFalse(clusterClass,
-			clusterv1.ClusterClassVariablesReconciledCondition,
+			clusterv1.ClusterClassVariablesReconciledV1Beta1Condition,
 			clusterv1.VariableDiscoveryFailedReason,
 			clusterv1.ConditionSeverityError,
 			variableDiscoveryError.Error(),
@@ -98,7 +98,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 		return
 	}
 
-	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
+	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
 	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,

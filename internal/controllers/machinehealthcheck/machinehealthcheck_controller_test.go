@@ -239,7 +239,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -262,7 +262,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		patchHelper, err := patch.NewHelper(cluster, env.Client)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyCondition, "SomeReason", clusterv1.ConditionSeverityError, "")
+		v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyV1Beta1Condition, "SomeReason", clusterv1.ConditionSeverityError, "")
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -303,7 +303,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -364,7 +364,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -455,7 +455,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -527,7 +527,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -552,7 +552,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 					continue
 				}
 
@@ -571,10 +571,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 					continue
 				}
 
@@ -637,7 +637,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -662,7 +662,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 					continue
 				}
 
@@ -681,10 +681,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 					continue
 				}
 
@@ -748,7 +748,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:     clusterv1.RemediationAllowedCondition,
+							Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 							Status:   corev1.ConditionFalse,
 							Severity: clusterv1.ConditionSeverityWarning,
 							Reason:   clusterv1.TooManyUnhealthyReason,
@@ -825,7 +825,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -898,7 +898,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:     clusterv1.RemediationAllowedCondition,
+							Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 							Status:   corev1.ConditionFalse,
 							Severity: clusterv1.ConditionSeverityWarning,
 							Reason:   clusterv1.TooManyUnhealthyReason,
@@ -930,7 +930,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		patchHelper, err := patch.NewHelper(cluster, env.GetClient())
 		g.Expect(err).ToNot(HaveOccurred())
 
-		v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+		v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -982,7 +982,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1057,7 +1057,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1129,7 +1129,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1193,7 +1193,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1255,7 +1255,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1301,7 +1301,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1430,7 +1430,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		})).To(Succeed())
 
 		for i := range machines.Items {
-			if v1beta1conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
+			if v1beta1conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) != nil {
 				unhealthyMachine = machines.Items[i].DeepCopy()
 			}
 		}
@@ -1492,7 +1492,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1543,7 +1543,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1634,7 +1634,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1681,7 +1681,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1793,7 +1793,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1840,7 +1840,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1887,7 +1887,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.RemediationAllowedCondition,
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -1937,7 +1937,7 @@ func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expec
 		}
 
 		for i := range machines.Items {
-			if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+			if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 				continue
 			}
 			if c := conditions.Get(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta2Condition); c == nil || c.Status != metav1.ConditionFalse {
@@ -1962,10 +1962,10 @@ func assertMachinesOwnerRemediated(g *WithT, mhc *clusterv1.MachineHealthCheck, 
 		}
 
 		for i := range machines.Items {
-			if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+			if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 				continue
 			}
-			if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
+			if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 				continue
 			}
 
@@ -2451,13 +2451,13 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	// This is required for MHC to perform checks
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	// Wait for cluster in the cached client to be updated post-patch
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.Get(ctx, util.ObjectKey(cluster), cluster)).To(Succeed())
-		g.Expect(v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
 	}, timeout, 100*time.Millisecond).Should(Succeed())
 
 	return cluster
@@ -2795,7 +2795,7 @@ func TestPatchTargets(t *testing.T) {
 	machine1 := newTestMachine("machine1", namespace, clusterName, "nodeName", labels)
 	machine1.ResourceVersion = "999"
 
-	v1beta1conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSucceededCondition)
+	v1beta1conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 	conditions.Set(machine1, metav1.Condition{
 		Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 		Status: metav1.ConditionTrue,
@@ -2842,7 +2842,7 @@ func TestPatchTargets(t *testing.T) {
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc)).ToNot(BeEmpty())
 	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).ToNot(HaveOccurred())
-	g.Expect(v1beta1conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(corev1.ConditionFalse))
+	g.Expect(v1beta1conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta1Condition).Status).To(Equal(corev1.ConditionFalse))
 	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta2Condition).Status).To(Equal(metav1.ConditionFalse))
 
 	// Target with wrong patch helper will fail but the other one will be patched.

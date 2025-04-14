@@ -660,7 +660,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			Deprecated: &clusterv1.ClusterDeprecatedStatus{
 				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
-						{Type: clusterv1.ControlPlaneInitializedCondition, Status: corev1.ConditionTrue,
+						{Type: clusterv1.ControlPlaneInitializedV1Beta1Condition, Status: corev1.ConditionTrue,
 							LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
 					},
 				},
@@ -704,7 +704,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "Cluster control plane is not initialized",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				v1beta1conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
+				v1beta1conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedV1Beta1Condition, "", clusterv1.ConditionSeverityError, "")
 				return c
 			}(),
 			machine: defaultMachine.DeepCopy(),
@@ -942,7 +942,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				c := defaultCluster.DeepCopy()
 				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
 					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
 							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
@@ -990,7 +990,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				c := defaultCluster.DeepCopy()
 				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
 					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
 							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
@@ -1025,7 +1025,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				c := defaultCluster.DeepCopy()
 				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
 					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
 							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 						}
 					}
@@ -2534,7 +2534,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
-			nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+			nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 			g.Expect(nodeHealthyCondition).ToNot(BeNil())
 			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))

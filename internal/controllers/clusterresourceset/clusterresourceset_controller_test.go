@@ -893,7 +893,7 @@ metadata:
 			crs := &addonsv1.ClusterResourceSet{}
 			g.Expect(env.Get(ctx, clusterResourceSetKey, crs)).To(Succeed())
 
-			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedCondition)
+			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta1Condition)
 			g.Expect(appliedCondition).NotTo(BeNil())
 			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))

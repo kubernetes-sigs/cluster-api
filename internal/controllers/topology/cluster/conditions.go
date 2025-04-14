@@ -58,7 +58,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		}
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.TopologyReconciledPausedReason,
 				clusterv1.ConditionSeverityInfo,
 				strings.Join(messages, ", "),
@@ -77,7 +77,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.DeletedReason,
 				clusterv1.ConditionSeverityInfo,
 				"",
@@ -97,7 +97,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	if reconcileErr != nil {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.TopologyReconcileFailedReason,
 				clusterv1.ConditionSeverityError,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
@@ -120,7 +120,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		s.Blueprint.ClusterClass.GetGeneration() != s.Blueprint.ClusterClass.Status.ObservedGeneration {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.TopologyReconciledClusterClassNotReconciledReason,
 				clusterv1.ConditionSeverityInfo,
 				"ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if"+
@@ -142,7 +142,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	if s.HookResponseTracker.AggregateRetryAfter() != 0 {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.TopologyReconciledHookBlockingReason,
 				clusterv1.ConditionSeverityInfo,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
@@ -251,7 +251,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledV1Beta1Condition,
 				reason,
 				clusterv1.ConditionSeverityInfo,
 				msgBuilder.String(),
@@ -270,7 +270,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	// we can consider that spec of all the objects is reconciled to match the topology. Set the
 	// TopologyReconciled condition to true.
 	v1beta1conditions.Set(cluster,
-		v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledCondition),
+		v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledV1Beta1Condition),
 	)
 	conditions.Set(cluster, metav1.Condition{
 		Type:   clusterv1.ClusterTopologyReconciledV1Beta2Condition,

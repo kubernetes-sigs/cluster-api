@@ -195,8 +195,8 @@ func TestHealthCheckTargets(t *testing.T) {
 			Name:      clusterName,
 		},
 	}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
@@ -244,7 +244,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
 	testMachineWithInfraReady.SetV1Beta1Conditions(clusterv1.Conditions{
 		{
-			Type:               clusterv1.InfrastructureReadyCondition,
+			Type:               clusterv1.InfrastructureReadyV1Beta1Condition,
 			Status:             corev1.ConditionTrue,
 			Severity:           clusterv1.ConditionSeverityInfo,
 			LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second)),
@@ -689,7 +689,7 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 }
 
 func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
-	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
+	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededV1Beta1Condition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }
 
 func newFailedHealthCheckV1Beta2Condition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {

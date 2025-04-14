@@ -352,7 +352,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedCondition,
+									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
 									Status: corev1.ConditionTrue,
 								},
 							},
@@ -384,7 +384,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedCondition,
+									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
 									Status: corev1.ConditionTrue,
 								},
 							},
@@ -416,7 +416,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedCondition,
+									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
 									Status: corev1.ConditionFalse,
 								},
 							},
@@ -445,7 +445,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedCondition,
+									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
 									Status: corev1.ConditionTrue,
 								},
 							},

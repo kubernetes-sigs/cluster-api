@@ -1001,8 +1001,8 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
 	}
 	// If the clusterClass does not have ClusterClassVariablesReconciled==True, the ClusterClass has not been successfully reconciled.
 	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
+	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) ||
+		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) {
 		return errClusterClassNotReconciled
 	}
 	return nil

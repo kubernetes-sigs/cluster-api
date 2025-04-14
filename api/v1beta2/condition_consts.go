@@ -20,8 +20,8 @@ package v1beta2
 
 // Common ConditionTypes used by Cluster API objects.
 const (
-	// ReadyCondition defines the Ready condition type that summarizes the operational state of a Cluster API object.
-	ReadyCondition ConditionType = "Ready"
+	// ReadyV1Beta1Condition defines the Ready condition type that summarizes the operational state of a Cluster API object.
+	ReadyV1Beta1Condition ConditionType = "Ready"
 )
 
 // Common ConditionReason used by Cluster API objects.
@@ -41,11 +41,11 @@ const (
 )
 
 const (
-	// InfrastructureReadyCondition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
+	// InfrastructureReadyV1Beta1Condition reports a summary of current status of the infrastructure object defined for this cluster/machine/machinepool.
 	// This condition is mirrored from the Ready condition in the infrastructure ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the infrastructure provider does not implement the Ready condition yet.
-	InfrastructureReadyCondition ConditionType = "InfrastructureReady"
+	InfrastructureReadyV1Beta1Condition ConditionType = "InfrastructureReady"
 
 	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a cluster/machine/machinepool waiting for the underlying infrastructure
 	// to be available.
@@ -57,11 +57,11 @@ const (
 
 // Conditions and condition Reasons for the ClusterClass object.
 const (
-	// ClusterClassVariablesReconciledCondition reports if the ClusterClass variables, including both inline and external
+	// ClusterClassVariablesReconciledV1Beta1Condition reports if the ClusterClass variables, including both inline and external
 	// variables, have been successfully reconciled.
 	// This signals that the ClusterClass is ready to be used to default and validate variables on Clusters using
 	// this ClusterClass.
-	ClusterClassVariablesReconciledCondition ConditionType = "VariablesReconciled"
+	ClusterClassVariablesReconciledV1Beta1Condition ConditionType = "VariablesReconciled"
 
 	// VariableDiscoveryFailedReason (Severity=Error) documents a ClusterClass with VariableDiscovery extensions that
 	// failed.
@@ -71,11 +71,11 @@ const (
 // Conditions and condition Reasons for the Cluster object.
 
 const (
-	// ControlPlaneInitializedCondition reports if the cluster's control plane has been initialized such that the
+	// ControlPlaneInitializedV1Beta1Condition reports if the cluster's control plane has been initialized such that the
 	// cluster's apiserver is reachable. If no Control Plane provider is in use this condition reports that at least one
 	// control plane Machine has a node reference. Once this Condition is marked true, its value is never changed. See
 	// the ControlPlaneReady condition for an indication of the current readiness of the cluster's control plane.
-	ControlPlaneInitializedCondition ConditionType = "ControlPlaneInitialized"
+	ControlPlaneInitializedV1Beta1Condition ConditionType = "ControlPlaneInitialized"
 
 	// MissingNodeRefReason (Severity=Info) documents a cluster waiting for at least one control plane Machine to have
 	// its node reference populated.
@@ -85,11 +85,11 @@ const (
 	// provider to report successful control plane initialization.
 	WaitingForControlPlaneProviderInitializedReason = "WaitingForControlPlaneProviderInitialized"
 
-	// ControlPlaneReadyCondition reports the ready condition from the control plane object defined for this cluster.
+	// ControlPlaneReadyV1Beta1Condition reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the control plane provider does not implement the Ready condition yet.
-	ControlPlaneReadyCondition ConditionType = "ControlPlaneReady"
+	ControlPlaneReadyV1Beta1Condition ConditionType = "ControlPlaneReady"
 
 	// WaitingForControlPlaneFallbackReason (Severity=Info) documents a cluster waiting for the control plane
 	// to be available.
@@ -107,20 +107,20 @@ const (
 // Conditions and condition Reasons for the Machine object.
 
 const (
-	// BootstrapReadyCondition reports a summary of current status of the bootstrap object defined for this machine.
+	// BootstrapReadyV1Beta1Condition reports a summary of current status of the bootstrap object defined for this machine.
 	// This condition is mirrored from the Ready condition in the bootstrap ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
 	// the bootstrap provider does not implement the Ready condition yet.
-	BootstrapReadyCondition ConditionType = "BootstrapReady"
+	BootstrapReadyV1Beta1Condition ConditionType = "BootstrapReady"
 
 	// WaitingForDataSecretFallbackReason (Severity=Info) documents a machine waiting for the bootstrap data secret
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the bootstrap object is not reporting its own ready condition.
 	WaitingForDataSecretFallbackReason = "WaitingForDataSecret"
 
-	// DrainingSucceededCondition provide evidence of the status of the node drain operation which happens during the machine
+	// DrainingSucceededV1Beta1Condition provide evidence of the status of the node drain operation which happens during the machine
 	// deletion process.
-	DrainingSucceededCondition ConditionType = "DrainingSucceeded"
+	DrainingSucceededV1Beta1Condition ConditionType = "DrainingSucceeded"
 
 	// DrainingReason (Severity=Info) documents a machine node being drained.
 	DrainingReason = "Draining"
@@ -128,26 +128,26 @@ const (
 	// DrainingFailedReason (Severity=Warning) documents a machine node drain operation failed.
 	DrainingFailedReason = "DrainingFailed"
 
-	// PreDrainDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
-	PreDrainDeleteHookSucceededCondition ConditionType = "PreDrainDeleteHookSucceeded"
+	// PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	PreDrainDeleteHookSucceededV1Beta1Condition ConditionType = "PreDrainDeleteHookSucceeded"
 
-	// PreTerminateDeleteHookSucceededCondition reports a machine waiting for a PreDrainDeleteHook before being delete.
-	PreTerminateDeleteHookSucceededCondition ConditionType = "PreTerminateDeleteHookSucceeded"
+	// PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
+	PreTerminateDeleteHookSucceededV1Beta1Condition ConditionType = "PreTerminateDeleteHookSucceeded"
 
 	// WaitingExternalHookReason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
 	WaitingExternalHookReason = "WaitingExternalHook"
 
-	// VolumeDetachSucceededCondition reports a machine waiting for volumes to be detached.
-	VolumeDetachSucceededCondition ConditionType = "VolumeDetachSucceeded"
+	// VolumeDetachSucceededV1Beta1Condition reports a machine waiting for volumes to be detached.
+	VolumeDetachSucceededV1Beta1Condition ConditionType = "VolumeDetachSucceeded"
 
 	// WaitingForVolumeDetachReason (Severity=Info) provide evidence that a machine node waiting for volumes to be attached.
 	WaitingForVolumeDetachReason = "WaitingForVolumeDetach"
 )
 
 const (
-	// MachineHealthCheckSucceededCondition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
+	// MachineHealthCheckSucceededV1Beta1Condition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
 	// In the event that the health check fails it will be set to False.
-	MachineHealthCheckSucceededCondition ConditionType = "HealthCheckSucceeded"
+	MachineHealthCheckSucceededV1Beta1Condition ConditionType = "HealthCheckSucceeded"
 
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
@@ -164,9 +164,9 @@ const (
 )
 
 const (
-	// MachineOwnerRemediatedCondition is set on machines that have failed a healthcheck by the MachineHealthCheck controller.
-	// MachineOwnerRemediatedCondition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
-	MachineOwnerRemediatedCondition ConditionType = "OwnerRemediated"
+	// MachineOwnerRemediatedV1Beta1Condition is set on machines that have failed a healthcheck by the MachineHealthCheck controller.
+	// MachineOwnerRemediatedV1Beta1Condition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
+	MachineOwnerRemediatedV1Beta1Condition ConditionType = "OwnerRemediated"
 
 	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
 	WaitingForRemediationReason = "WaitingForRemediation"
@@ -177,16 +177,16 @@ const (
 	// RemediationInProgressReason is the reason used when an unhealthy machine is being remediated by the remediation owner.
 	RemediationInProgressReason = "RemediationInProgress"
 
-	// ExternalRemediationTemplateAvailableCondition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationTemplateAvailableCondition is set to false if external remediation template is not found.
-	ExternalRemediationTemplateAvailableCondition ConditionType = "ExternalRemediationTemplateAvailable"
+	// ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if external remediation template is not found.
+	ExternalRemediationTemplateAvailableV1Beta1Condition ConditionType = "ExternalRemediationTemplateAvailable"
 
 	// ExternalRemediationTemplateNotFoundReason is the reason used when a machine health check fails to find external remediation template.
 	ExternalRemediationTemplateNotFoundReason = "ExternalRemediationTemplateNotFound"
 
-	// ExternalRemediationRequestAvailableCondition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
-	// ExternalRemediationRequestAvailableCondition is set to false if creating external remediation request fails.
-	ExternalRemediationRequestAvailableCondition ConditionType = "ExternalRemediationRequestAvailable"
+	// ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
+	// ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating external remediation request fails.
+	ExternalRemediationRequestAvailableV1Beta1Condition ConditionType = "ExternalRemediationRequestAvailable"
 
 	// ExternalRemediationRequestCreationFailedReason is the reason used when a machine health check fails to create external remediation request.
 	ExternalRemediationRequestCreationFailedReason = "ExternalRemediationRequestCreationFailed"
@@ -194,9 +194,9 @@ const (
 
 // Conditions and condition Reasons for the Machine's Node object.
 const (
-	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
+	// MachineNodeHealthyV1Beta1Condition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
 	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure and NodePIDPressure) are in a healthy state, it will be set to True.
-	MachineNodeHealthyCondition ConditionType = "NodeHealthy"
+	MachineNodeHealthyV1Beta1Condition ConditionType = "NodeHealthy"
 
 	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
 	WaitingForNodeRefReason = "WaitingForNodeRef"
@@ -221,9 +221,9 @@ const (
 // Conditions and condition Reasons for the MachineHealthCheck object.
 
 const (
-	// RemediationAllowedCondition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is
+	// RemediationAllowedV1Beta1Condition is set on MachineHealthChecks to show the status of whether the MachineHealthCheck is
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.
-	RemediationAllowedCondition ConditionType = "RemediationAllowed"
+	RemediationAllowedV1Beta1Condition ConditionType = "RemediationAllowed"
 
 	// TooManyUnhealthyReason is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
 	// from making any further remediations.
@@ -233,12 +233,12 @@ const (
 // Conditions and condition Reasons for  MachineDeployments.
 
 const (
-	// MachineDeploymentAvailableCondition means the MachineDeployment is available, that is, at least the minimum available
+	// MachineDeploymentAvailableV1Beta1Condition means the MachineDeployment is available, that is, at least the minimum available
 	// machines required (i.e. Spec.Replicas-MaxUnavailable when MachineDeploymentStrategyType = RollingUpdate) are up and running for at least minReadySeconds.
-	MachineDeploymentAvailableCondition ConditionType = "Available"
+	MachineDeploymentAvailableV1Beta1Condition ConditionType = "Available"
 
-	// MachineSetReadyCondition reports a summary of current status of the MachineSet owned by the MachineDeployment.
-	MachineSetReadyCondition ConditionType = "MachineSetReady"
+	// MachineSetReadyV1Beta1Condition reports a summary of current status of the MachineSet owned by the MachineDeployment.
+	MachineSetReadyV1Beta1Condition ConditionType = "MachineSetReady"
 
 	// WaitingForMachineSetFallbackReason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
 	// to be available.
@@ -252,13 +252,13 @@ const (
 // Conditions and condition Reasons for  MachineSets.
 
 const (
-	// MachinesCreatedCondition documents that the machines controlled by the MachineSet are created.
+	// MachinesCreatedV1Beta1Condition documents that the machines controlled by the MachineSet are created.
 	// When this condition is false, it indicates that there was an error when cloning the infrastructure/bootstrap template or
 	// when generating the machine object.
-	MachinesCreatedCondition ConditionType = "MachinesCreated"
+	MachinesCreatedV1Beta1Condition ConditionType = "MachinesCreated"
 
-	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the MachineSet.
-	MachinesReadyCondition ConditionType = "MachinesReady"
+	// MachinesReadyV1Beta1Condition reports an aggregate of current status of the machines controlled by the MachineSet.
+	MachinesReadyV1Beta1Condition ConditionType = "MachinesReady"
 
 	// PreflightCheckFailedReason (Severity=Error) documents a MachineSet failing preflight checks
 	// to create machine(s).
@@ -276,8 +276,8 @@ const (
 	// generate a machine object.
 	MachineCreationFailedReason = "MachineCreationFailed"
 
-	// ResizedCondition documents a MachineSet is resizing the set of controlled machines.
-	ResizedCondition ConditionType = "Resized"
+	// ResizedV1Beta1Condition documents a MachineSet is resizing the set of controlled machines.
+	ResizedV1Beta1Condition ConditionType = "Resized"
 
 	// ScalingUpReason (Severity=Info) documents a MachineSet is increasing the number of replicas.
 	ScalingUpReason = "ScalingUp"
@@ -288,12 +288,12 @@ const (
 
 // Conditions and condition reasons for Clusters with a managed Topology.
 const (
-	// TopologyReconciledCondition provides evidence about the reconciliation of a Cluster topology into
+	// TopologyReconciledV1Beta1Condition provides evidence about the reconciliation of a Cluster topology into
 	// the managed objects of the Cluster.
 	// Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to
 	// managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to
 	// the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
-	TopologyReconciledCondition ConditionType = "TopologyReconciled"
+	TopologyReconciledV1Beta1Condition ConditionType = "TopologyReconciled"
 
 	// TopologyReconcileFailedReason (Severity=Error) documents the reconciliation of a Cluster topology
 	// failing due to an error.
@@ -344,10 +344,10 @@ const (
 
 // Conditions and condition reasons for ClusterClass.
 const (
-	// ClusterClassRefVersionsUpToDateCondition documents if the references in the ClusterClass are
+	// ClusterClassRefVersionsUpToDateV1Beta1Condition documents if the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassRefVersionsUpToDateCondition ConditionType = "RefVersionsUpToDate"
+	ClusterClassRefVersionsUpToDateV1Beta1Condition ConditionType = "RefVersionsUpToDate"
 
 	// ClusterClassOutdatedRefVersionsReason (Severity=Warning) that the references in the ClusterClass are not
 	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from

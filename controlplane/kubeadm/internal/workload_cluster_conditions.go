@@ -75,7 +75,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberInspectionFailedV1Beta1Reason, "Failed to get the Node which is hosting the etcd member")
 
 			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 				Message: "Failed to get the Node hosting the etcd member",
@@ -85,7 +85,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		v1beta1conditions.MarkUnknown(controlPlane.KCP, controlplanev1.EtcdClusterHealthyV1Beta1Condition, controlplanev1.EtcdClusterInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting the etcd members")
 
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Failed to get Nodes hosting the etcd cluster",
@@ -106,7 +106,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
 		}
 		conditions.Set(machine, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 			Message: msg,
@@ -118,7 +118,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 
 		conditions.Set(machine, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason,
 			Message: "Machine is deleting",
@@ -140,7 +140,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd member reports the cluster is composed by members %s, but the member hosted on this Machine is not included", etcdutil.MemberNames(currentMembers))
 
 				conditions.Set(machine, metav1.Condition{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
 					Message: fmt.Sprintf("Etcd reports the cluster is composed by %s, but the etcd member hosted on this Machine is not included", etcdutil.MemberNames(currentMembers)),
@@ -166,7 +166,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 				v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd member reports alarms: %s", strings.Join(alarmList, ", "))
 
 				conditions.Set(machine, metav1.Condition{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
 					Message: fmt.Sprintf("Etcd reports alarms: %s", strings.Join(alarmList, ", ")),
@@ -178,7 +178,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			v1beta1conditions.MarkTrue(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition)
 
 			conditions.Set(machine, metav1.Condition{
-				Type:   controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:   controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Reason,
 			})
@@ -225,9 +225,9 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 
 	aggregateConditionsFromMachinesToKCP(aggregateConditionsFromMachinesToKCPInput{
 		controlPlane:      controlPlane,
-		machineConditions: []string{controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition},
+		machineConditions: []string{controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition},
 		kcpErrors:         kcpErrors,
-		condition:         controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+		condition:         controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 		falseReason:       controlplanev1.KubeadmControlPlaneEtcdClusterNotHealthyV1Beta2Reason,
 		unknownReason:     controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 		trueReason:        controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
@@ -264,7 +264,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 			v1beta1conditions.MarkUnknown(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberInspectionFailedV1Beta1Reason, "Failed to connect to etcd: %s", err)
 
 			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 				Message: fmt.Sprintf("Failed to connect to etcd: %s", unwrapAll(err)),
@@ -280,7 +280,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", "))
 
 			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
 				Message: fmt.Sprintf("Etcd endpoint %s reports errors: %s", etcdClient.Endpoint, strings.Join(etcdClient.Errors, ", ")),
@@ -296,7 +296,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Failed to get etcd members")
 
 			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 				Message: fmt.Sprintf("Failed to get etcd members: %s", unwrapAll(err)),
@@ -312,7 +312,7 @@ func (w *Workload) getCurrentEtcdMembersAndAlarms(ctx context.Context, machines 
 			v1beta1conditions.MarkFalse(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Failed to get etcd alarms")
 
 			conditions.Set(m, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 				Message: fmt.Sprintf("Failed to get etcd alarms: %s", unwrapAll(err)),
@@ -410,7 +410,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 			v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing etcd member")
 
 			conditions.Set(machine, metav1.Condition{
-				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason,
 				Message: fmt.Sprintf("Etcd doesn't have an etcd member for Node %s", machine.Status.NodeRef.Name),
@@ -482,12 +482,12 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	}
 
 	allMachinePodV1beta2Conditions := []string{
-		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
-		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
-		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 	}
 	if controlPlane.IsEtcdManaged() {
-		allMachinePodV1beta2Conditions = append(allMachinePodV1beta2Conditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)
+		allMachinePodV1beta2Conditions = append(allMachinePodV1beta2Conditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 	}
 
 	// NOTE: this fun uses control plane nodes from the workload cluster as a source of truth for the current state.
@@ -512,7 +512,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		v1beta1conditions.MarkUnknown(controlPlane.KCP, controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsInspectionFailedV1Beta1Reason, "Failed to list Nodes which are hosting control plane components: %v", err)
 
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 			Message: fmt.Sprintf("Failed to get Nodes hosting control plane components: %s", err.Error()),
@@ -602,11 +602,11 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		}
 
 		// Otherwise updates static pod based conditions reflecting the status of the underlying object generated by kubeadm.
-		w.updateStaticPodCondition(ctx, machine, node, "kube-apiserver", controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition)
-		w.updateStaticPodCondition(ctx, machine, node, "kube-controller-manager", controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition)
-		w.updateStaticPodCondition(ctx, machine, node, "kube-scheduler", controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition)
+		w.updateStaticPodCondition(ctx, machine, node, "kube-apiserver", controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition)
+		w.updateStaticPodCondition(ctx, machine, node, "kube-controller-manager", controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition)
+		w.updateStaticPodCondition(ctx, machine, node, "kube-scheduler", controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition)
 		if controlPlane.IsEtcdManaged() {
-			w.updateStaticPodCondition(ctx, machine, node, "etcd", controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)
+			w.updateStaticPodCondition(ctx, machine, node, "etcd", controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 		}
 	}
 
@@ -654,7 +654,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		controlPlane:      controlPlane,
 		machineConditions: allMachinePodV1beta2Conditions,
 		kcpErrors:         kcpErrors,
-		condition:         controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+		condition:         controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 		falseReason:       controlplanev1.KubeadmControlPlaneControlPlaneComponentsNotHealthyV1Beta2Reason,
 		unknownReason:     controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 		trueReason:        controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason,

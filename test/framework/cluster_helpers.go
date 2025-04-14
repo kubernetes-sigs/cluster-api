@@ -208,7 +208,7 @@ func dumpArtifactsOnDeletionTimeout(ctx context.Context, clusterProxy ClusterPro
 
 	// Try to get more details about why Cluster deletion timed out.
 	if err := clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster); err == nil {
-		if c := conditions.Get(cluster, clusterv1.MachineDeletingV1Beta2Condition); c != nil {
+		if c := conditions.Get(cluster, clusterv1.MachineDeletingCondition); c != nil {
 			return fmt.Sprintf("waiting for cluster deletion timed out:\ncondition: %s\nmessage: %s", c.Type, c.Message)
 		}
 	}

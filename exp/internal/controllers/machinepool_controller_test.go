@@ -165,7 +165,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 		Status: expv1.MachinePoolStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -190,7 +190,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 		Status: expv1.MachinePoolStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -218,7 +218,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 		Status: expv1.MachinePoolStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -377,7 +377,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					},
 					ObservedGeneration: 1,
 					Conditions: []metav1.Condition{{
-						Type:   clusterv1.PausedV1Beta2Condition,
+						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
 					}},
@@ -428,7 +428,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						},
 					},
 					Conditions: []metav1.Condition{{
-						Type:   clusterv1.PausedV1Beta2Condition,
+						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
 					}},
@@ -491,7 +491,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						},
 					},
 					Conditions: []metav1.Condition{{
-						Type:   clusterv1.PausedV1Beta2Condition,
+						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
 					}},
@@ -554,7 +554,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						},
 					},
 					Conditions: []metav1.Condition{{
-						Type:   clusterv1.PausedV1Beta2Condition,
+						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
 						Reason: clusterv1.NotPausedV1Beta2Reason,
 					}},
@@ -885,7 +885,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 		Status: expv1.MachinePoolStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -988,7 +988,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		Status: expv1.MachinePoolStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},

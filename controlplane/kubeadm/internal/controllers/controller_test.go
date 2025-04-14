@@ -449,7 +449,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -1387,7 +1387,7 @@ kubernetesVersion: metav1.16.1
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
 		g.Expect(v1beta1conditions.IsFalse(kcp, controlplanev1.AvailableV1Beta1Condition)).To(BeTrue())
-		g.Expect(conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)).To(BeTrue())
+		g.Expect(conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneInitializedCondition)).To(BeTrue())
 
 		s, err := secret.GetFromNamespacedName(ctx, env, client.ObjectKey{Namespace: cluster.Namespace, Name: "foo"}, secret.ClusterCA)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2142,7 +2142,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:               controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:               controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status:             metav1.ConditionTrue,
 					Reason:             controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)},
@@ -2168,7 +2168,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					kcp.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{ControlPlaneInitialized: false}
 					v1beta1conditions.MarkFalse(kcp, controlplanev1.AvailableV1Beta1Condition, "", clusterv1.ConditionSeverityError, "")
 					conditions.Set(kcp, metav1.Condition{
-						Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+						Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 						Status: metav1.ConditionFalse,
 						Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
 					})
@@ -2180,18 +2180,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionFalse,
 					Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
@@ -2199,37 +2199,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 					Message: "Waiting for Cluster control plane to be initialized",
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2255,19 +2255,19 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
 						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
@@ -2276,37 +2276,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2332,19 +2332,19 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
 						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status: metav1.ConditionUnknown,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "* Machine machine1-test:\n" +
@@ -2353,37 +2353,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:    clusterv1.MachineUpToDateCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
 					Message: "* Version v1.30.0, v1.31.0 required",
@@ -2402,17 +2402,17 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 						}
 					}
 					for i, condition := range kcp.Status.Conditions {
-						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
 					conditions.Set(kcp, metav1.Condition{
-						Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+						Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 						Status: metav1.ConditionTrue,
 						Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
 					})
 					conditions.Set(kcp, metav1.Condition{
-						Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+						Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 						Status: metav1.ConditionTrue,
 						Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason,
 					})
@@ -2422,7 +2422,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					defaultMachine1.Name: func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						conditions.Set(m, metav1.Condition{
-							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 							Status: metav1.ConditionTrue,
 							Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 						})
@@ -2431,7 +2431,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					defaultMachine2.Name: func() *clusterv1.Machine {
 						m := defaultMachine2.DeepCopy()
 						conditions.Set(m, metav1.Condition{
-							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 							Status: metav1.ConditionTrue,
 							Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 						})
@@ -2450,29 +2450,29 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				"connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
 				},
 				{
-					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason,
 				},
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2490,7 +2490,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 						}
 					}
 					for i, condition := range kcp.Status.Conditions {
-						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
@@ -2512,18 +2512,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				"connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
@@ -2531,37 +2531,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2579,17 +2579,17 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 						}
 					}
 					for i, condition := range kcp.Status.Conditions {
-						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 						}
 					}
 					conditions.Set(kcp, metav1.Condition{
-						Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+						Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 						Status: metav1.ConditionTrue,
 						Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
 					})
 					conditions.Set(kcp, metav1.Condition{
-						Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+						Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 						Status: metav1.ConditionTrue,
 						Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason,
 					})
@@ -2599,7 +2599,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					defaultMachine1.Name: func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						conditions.Set(m, metav1.Condition{
-							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 							Status: metav1.ConditionTrue,
 							Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 						})
@@ -2608,7 +2608,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					defaultMachine2.Name: func() *clusterv1.Machine {
 						m := defaultMachine2.DeepCopy()
 						conditions.Set(m, metav1.Condition{
-							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+							Type:   controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 							Status: metav1.ConditionTrue,
 							Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningV1Beta2Reason,
 						})
@@ -2623,18 +2623,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			expectErr: "connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
@@ -2642,37 +2642,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason,
 					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2695,18 +2695,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			expectErr:            "cannot get client for the workload cluster: failed to get secret; etcd CA bundle",
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
@@ -2714,37 +2714,37 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 			expectMachineConditions: []metav1.Condition{
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason,
 					Message: "Please check controller logs for errors",
 				},
 				{
-					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Type:   clusterv1.MachineUpToDateCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 				},
@@ -2766,18 +2766,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			expectKCPConditions: []metav1.Condition{
 				{
-					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason,
 					Message: "No Machines reporting etcd member status",
 				},
 				{
-					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason,
 					Message: "No Machines reporting control plane status",

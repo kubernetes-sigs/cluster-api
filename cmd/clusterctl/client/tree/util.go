@@ -38,11 +38,11 @@ var GroupVersionVirtualObject = schema.GroupVersion{Group: "virtual.cluster.x-k8
 // GetReadyV1Beta2Condition returns the ReadyCondition for an object, if defined.
 func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
-		return conditions.Get(getter, clusterv1.ReadyV1Beta2Condition)
+		return conditions.Get(getter, clusterv1.ReadyCondition)
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
-		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.ReadyV1Beta2Condition)
+		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.ReadyCondition)
 		if err != nil {
 			return nil
 		}
@@ -55,11 +55,11 @@ func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
 // GetAvailableV1Beta2Condition returns the AvailableCondition for an object, if defined.
 func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
-		return conditions.Get(getter, clusterv1.AvailableV1Beta2Condition)
+		return conditions.Get(getter, clusterv1.AvailableCondition)
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
-		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableV1Beta2Condition)
+		c, err := conditions.UnstructuredGet(objUnstructured, clusterv1.AvailableCondition)
 		if err != nil {
 			return nil
 		}
@@ -73,7 +73,7 @@ func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
 // Note: The UpToDate condition only exist on machines, so no need to support reading from unstructured.
 func GetMachineUpToDateV1Beta2Condition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
-		return conditions.Get(getter, clusterv1.MachineUpToDateV1Beta2Condition)
+		return conditions.Get(getter, clusterv1.MachineUpToDateCondition)
 	}
 	return nil
 }

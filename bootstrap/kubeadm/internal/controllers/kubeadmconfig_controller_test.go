@@ -2836,13 +2836,13 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 			newConfig := &bootstrapv1.KubeadmConfig{}
 			g.Expect(myclient.Get(ctx, key, newConfig)).To(Succeed())
 
-			for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyV1Beta2Condition, bootstrapv1.KubeadmConfigCertificatesAvailableV1Beta2Condition, bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition} {
+			for _, conditionType := range []string{bootstrapv1.KubeadmConfigReadyCondition, bootstrapv1.KubeadmConfigCertificatesAvailableCondition, bootstrapv1.KubeadmConfigDataSecretAvailableCondition} {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
 				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				g.Expect(condition.Message).To(BeEmpty())
 			}
-			for _, conditionType := range []string{clusterv1.PausedV1Beta2Condition} {
+			for _, conditionType := range []string{clusterv1.PausedCondition} {
 				condition := conditions.Get(newConfig, conditionType)
 				g.Expect(condition).ToNot(BeNil(), "condition %s is missing", conditionType)
 				g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))

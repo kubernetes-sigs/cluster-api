@@ -88,7 +88,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
@@ -100,7 +100,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))

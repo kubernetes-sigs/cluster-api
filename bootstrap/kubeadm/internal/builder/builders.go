@@ -83,7 +83,7 @@ func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 		},
 		Status: bootstrapv1.KubeadmConfigStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},

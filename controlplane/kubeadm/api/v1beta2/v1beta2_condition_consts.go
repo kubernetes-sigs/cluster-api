@@ -20,7 +20,7 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 // KubeadmControlPlane's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneAvailableV1Beta2Condition is true if KubeadmControlPlane is not deleted, `CertificatesAvailable` is true,
+	// KubeadmControlPlaneAvailableCondition is true if KubeadmControlPlane is not deleted, `CertificatesAvailable` is true,
 	// at least one Machine with healthy control plane components, and etcd has enough operational members to meet quorum requirements.
 	// More specifically, considering how kubeadm layouts components:
 	// -  Kubernetes API server, scheduler and controller manager health is inferred by the status of
@@ -33,7 +33,7 @@ const (
 	//
 	// Please note that when this condition is true, partial unavailability will be surfaced in the condition message,
 	// but with a 10s delay to ensure flakes do not impact condition stability.
-	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+	KubeadmControlPlaneAvailableCondition = clusterv1.AvailableCondition
 
 	// KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
 	// etcd cluster hosted on KubeadmControlPlane controlled machines.
@@ -48,10 +48,10 @@ const (
 
 // KubeadmControlPlane's Initialized condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneInitializedV1Beta2Condition is true when the control plane is functional enough to accept
+	// KubeadmControlPlaneInitializedCondition is true when the control plane is functional enough to accept
 	// requests. This information is usually used as a signal for starting all the provisioning operations that
 	// depend on a functional API server, but do not require a full HA control plane to exist.
-	KubeadmControlPlaneInitializedV1Beta2Condition = "Initialized"
+	KubeadmControlPlaneInitializedCondition = "Initialized"
 
 	// KubeadmControlPlaneInitializedV1Beta2Reason surfaces when the control plane is initialized.
 	KubeadmControlPlaneInitializedV1Beta2Reason = "Initialized"
@@ -62,8 +62,8 @@ const (
 
 // KubeadmControlPlane's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneCertificatesAvailableV1Beta2Condition True if all the cluster certificates exist.
-	KubeadmControlPlaneCertificatesAvailableV1Beta2Condition = "CertificatesAvailable"
+	// KubeadmControlPlaneCertificatesAvailableCondition True if all the cluster certificates exist.
+	KubeadmControlPlaneCertificatesAvailableCondition = "CertificatesAvailable"
 
 	// KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason surfaces unexpected failures when reconciling cluster certificates.
 	KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
@@ -77,11 +77,11 @@ const (
 
 // KubeadmControlPlane's EtcdClusterHealthy condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition surfaces issues to etcd cluster hosted on machines managed by this object.
+	// KubeadmControlPlaneEtcdClusterHealthyCondition surfaces issues to etcd cluster hosted on machines managed by this object.
 	// It is computed as aggregation of Machine's EtcdMemberHealthy conditions plus additional checks validating
 	// potential issues to etcd quorum.
 	// Note: this condition is not set when using an external etcd.
-	KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition = "EtcdClusterHealthy"
+	KubeadmControlPlaneEtcdClusterHealthyCondition = "EtcdClusterHealthy"
 
 	// KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
 	// etcd cluster hosted on KubeadmControlPlane controlled machines.
@@ -106,11 +106,11 @@ const (
 
 // KubeadmControlPlane's ControlPlaneComponentsHealthy condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition surfaces issues to Kubernetes control plane components
+	// KubeadmControlPlaneControlPlaneComponentsHealthyCondition surfaces issues to Kubernetes control plane components
 	// hosted on machines managed by this object. It is computed as aggregation of Machine's `APIServerPodHealthy`,
 	// `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, `EtcdPodHealthy` conditions plus additional checks on
 	// control plane machines and nodes.
-	KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition = "ControlPlaneComponentsHealthy"
+	KubeadmControlPlaneControlPlaneComponentsHealthyCondition = "ControlPlaneComponentsHealthy"
 
 	// KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
 	// control plane components hosted on KubeadmControlPlane controlled machines.
@@ -135,10 +135,10 @@ const (
 
 // KubeadmControlPlane's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	// KubeadmControlPlaneMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
 	// Please note this will include also APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy conditions.
 	// If not using an external etcd also EtcdPodHealthy, EtcdMemberHealthy conditions are included.
-	KubeadmControlPlaneMachinesReadyV1Beta2Condition = clusterv1.MachinesReadyV1Beta2Condition
+	KubeadmControlPlaneMachinesReadyCondition = clusterv1.MachinesReadyCondition
 
 	// KubeadmControlPlaneMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
 	KubeadmControlPlaneMachinesReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
@@ -159,9 +159,9 @@ const (
 
 // KubeadmControlPlane's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// KubeadmControlPlaneMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	KubeadmControlPlaneMachinesUpToDateV1Beta2Condition = clusterv1.MachinesUpToDateV1Beta2Condition
+	KubeadmControlPlaneMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
 
 	// KubeadmControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
 	KubeadmControlPlaneMachinesUpToDateV1Beta2Reason = clusterv1.UpToDateV1Beta2Reason
@@ -182,8 +182,8 @@ const (
 
 // KubeadmControlPlane's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneRollingOutV1Beta2Condition  is true if there is at least one machine not up-to-date.
-	KubeadmControlPlaneRollingOutV1Beta2Condition = clusterv1.RollingOutV1Beta2Condition
+	// KubeadmControlPlaneRollingOutCondition  is true if there is at least one machine not up-to-date.
+	KubeadmControlPlaneRollingOutCondition = clusterv1.RollingOutCondition
 
 	// KubeadmControlPlaneRollingOutV1Beta2Reason  surfaces when there is at least one machine not up-to-date.
 	KubeadmControlPlaneRollingOutV1Beta2Reason = clusterv1.RollingOutV1Beta2Reason
@@ -194,9 +194,9 @@ const (
 
 // KubeadmControlPlane's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
+	// KubeadmControlPlaneScalingUpCondition is true if actual replicas < desired replicas.
 	// Note: In case a KubeadmControlPlane preflight check is preventing scale up, this will surface in the condition message.
-	KubeadmControlPlaneScalingUpV1Beta2Condition = clusterv1.ScalingUpV1Beta2Condition
+	KubeadmControlPlaneScalingUpCondition = clusterv1.ScalingUpCondition
 
 	// KubeadmControlPlaneScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
 	KubeadmControlPlaneScalingUpV1Beta2Reason = clusterv1.ScalingUpV1Beta2Reason
@@ -211,9 +211,9 @@ const (
 
 // KubeadmControlPlane's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
+	// KubeadmControlPlaneScalingDownCondition is true if actual replicas > desired replicas.
 	// Note: In case a KubeadmControlPlane preflight check is preventing scale down, this will surface in the condition message.
-	KubeadmControlPlaneScalingDownV1Beta2Condition = clusterv1.ScalingDownV1Beta2Condition
+	KubeadmControlPlaneScalingDownCondition = clusterv1.ScalingDownCondition
 
 	// KubeadmControlPlaneScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
 	KubeadmControlPlaneScalingDownV1Beta2Reason = clusterv1.ScalingDownV1Beta2Reason
@@ -228,9 +228,9 @@ const (
 
 // KubeadmControlPlane's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	// KubeadmControlPlaneRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
 	// Note: KubeadmControlPlane only remediates machines with HealthCheckSucceeded set to false and with the OwnerRemediated condition set to false.
-	KubeadmControlPlaneRemediatingV1Beta2Condition = clusterv1.RemediatingV1Beta2Condition
+	KubeadmControlPlaneRemediatingCondition = clusterv1.RemediatingCondition
 
 	// KubeadmControlPlaneRemediatingV1Beta2Reason surfaces when the KubeadmControlPlane has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
@@ -267,8 +267,8 @@ const (
 
 // KubeadmControlPlane's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	KubeadmControlPlaneDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
+	// KubeadmControlPlaneDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	KubeadmControlPlaneDeletingCondition = clusterv1.DeletingCondition
 
 	// KubeadmControlPlaneNotDeletingV1Beta2Reason surfaces when the KCP is not deleting because the
 	// DeletionTimestamp is not set.
@@ -295,17 +295,17 @@ const (
 // APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy and EtcdPodHealthy condition and corresponding
 // reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition surfaces the status of the API server pod hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition = "APIServerPodHealthy"
+	// KubeadmControlPlaneMachineAPIServerPodHealthyCondition surfaces the status of the API server pod hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineAPIServerPodHealthyCondition = "APIServerPodHealthy"
 
-	// KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition surfaces the status of the controller manager pod hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition = "ControllerManagerPodHealthy"
+	// KubeadmControlPlaneMachineControllerManagerPodHealthyCondition surfaces the status of the controller manager pod hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineControllerManagerPodHealthyCondition = "ControllerManagerPodHealthy"
 
-	// KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition surfaces the status of the scheduler pod hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition = "SchedulerPodHealthy"
+	// KubeadmControlPlaneMachineSchedulerPodHealthyCondition surfaces the status of the scheduler pod hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineSchedulerPodHealthyCondition = "SchedulerPodHealthy"
 
-	// KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition surfaces the status of the etcd pod hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition = "EtcdPodHealthy"
+	// KubeadmControlPlaneMachineEtcdPodHealthyCondition surfaces the status of the etcd pod hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineEtcdPodHealthyCondition = "EtcdPodHealthy"
 
 	// KubeadmControlPlaneMachinePodRunningV1Beta2Reason surfaces a pod hosted on a KubeadmControlPlane controlled machine that is running.
 	KubeadmControlPlaneMachinePodRunningV1Beta2Reason = "Running"
@@ -337,8 +337,8 @@ const (
 
 // EtcdMemberHealthy condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition surfaces the status of the etcd member hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition = "EtcdMemberHealthy"
+	// KubeadmControlPlaneMachineEtcdMemberHealthyCondition surfaces the status of the etcd member hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineEtcdMemberHealthyCondition = "EtcdMemberHealthy"
 
 	// KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason surfaces when the etcd member hosted on a KubeadmControlPlane controlled machine is not healthy.
 	KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason = "NotHealthy"

@@ -43,7 +43,7 @@ const (
 
 // Cluster's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterAvailableV1Beta2Condition is true if the Cluster is not deleted, and RemoteConnectionProbe, InfrastructureReady,
+	// ClusterAvailableCondition is true if the Cluster is not deleted, and RemoteConnectionProbe, InfrastructureReady,
 	// ControlPlaneAvailable, WorkersAvailable, TopologyReconciled (if present) conditions are true.
 	// If conditions are defined in spec.availabilityGates, those conditions must be true as well.
 	// Note:
@@ -52,7 +52,7 @@ const (
 	//   and it doesn't impact availability.
 	// - When summarizing InfrastructureReady, ControlPlaneAvailable, in case the Cluster is deleting, the absence of the
 	//   referenced object won't be considered as an issue.
-	ClusterAvailableV1Beta2Condition = AvailableV1Beta2Condition
+	ClusterAvailableCondition = AvailableCondition
 
 	// ClusterAvailableV1Beta2Reason surfaces when the cluster availability criteria is met.
 	ClusterAvailableV1Beta2Reason = AvailableV1Beta2Reason
@@ -70,9 +70,9 @@ const (
 
 // Cluster's TopologyReconciled condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterTopologyReconciledV1Beta2Condition is true if the topology controller is working properly.
+	// ClusterTopologyReconciledCondition is true if the topology controller is working properly.
 	// Note: This condition is added only if the Cluster is referencing a ClusterClass / defining a managed Topology.
-	ClusterTopologyReconciledV1Beta2Condition = "TopologyReconciled"
+	ClusterTopologyReconciledCondition = "TopologyReconciled"
 
 	// ClusterTopologyReconcileSucceededV1Beta2Reason documents the reconciliation of a Cluster topology succeeded.
 	ClusterTopologyReconcileSucceededV1Beta2Reason = "ReconcileSucceeded"
@@ -130,8 +130,8 @@ const (
 
 // Cluster's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterInfrastructureReadyV1Beta2Condition mirrors Cluster's infrastructure Ready condition.
-	ClusterInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+	// ClusterInfrastructureReadyCondition mirrors Cluster's infrastructure Ready condition.
+	ClusterInfrastructureReadyCondition = InfrastructureReadyCondition
 
 	// ClusterInfrastructureReadyV1Beta2Reason surfaces when the cluster infrastructure is ready.
 	ClusterInfrastructureReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -158,11 +158,11 @@ const (
 
 // Cluster's ControlPlaneInitialized condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterControlPlaneInitializedV1Beta2Condition is true when the Cluster's control plane is functional enough
+	// ClusterControlPlaneInitializedCondition is true when the Cluster's control plane is functional enough
 	// to accept requests. This information is usually used as a signal for starting all the provisioning operations
 	// that depends on a functional API server, but do not require a full HA control plane to exists.
 	// Note: Once set to true, this condition will never change.
-	ClusterControlPlaneInitializedV1Beta2Condition = "ControlPlaneInitialized"
+	ClusterControlPlaneInitializedCondition = "ControlPlaneInitialized"
 
 	// ClusterControlPlaneInitializedV1Beta2Reason surfaces when the cluster control plane is initialized.
 	ClusterControlPlaneInitializedV1Beta2Reason = "Initialized"
@@ -177,8 +177,8 @@ const (
 
 // Cluster's ControlPlaneAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterControlPlaneAvailableV1Beta2Condition is a mirror of Cluster's control plane Available condition.
-	ClusterControlPlaneAvailableV1Beta2Condition = "ControlPlaneAvailable"
+	// ClusterControlPlaneAvailableCondition is a mirror of Cluster's control plane Available condition.
+	ClusterControlPlaneAvailableCondition = "ControlPlaneAvailable"
 
 	// ClusterControlPlaneAvailableV1Beta2Reason surfaces when the cluster control plane is available.
 	ClusterControlPlaneAvailableV1Beta2Reason = AvailableV1Beta2Reason
@@ -205,9 +205,9 @@ const (
 
 // Cluster's WorkersAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterWorkersAvailableV1Beta2Condition is the summary of MachineDeployment and MachinePool's Available conditions.
+	// ClusterWorkersAvailableCondition is the summary of MachineDeployment and MachinePool's Available conditions.
 	// Note: Stand-alone MachineSets and stand-alone Machines are not included in this condition.
-	ClusterWorkersAvailableV1Beta2Condition = "WorkersAvailable"
+	ClusterWorkersAvailableCondition = "WorkersAvailable"
 
 	// ClusterWorkersAvailableV1Beta2Reason surfaces when all  MachineDeployment and MachinePool's Available conditions are true.
 	ClusterWorkersAvailableV1Beta2Reason = AvailableV1Beta2Reason
@@ -230,8 +230,8 @@ const (
 
 // Cluster's ControlPlaneMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterControlPlaneMachinesReadyV1Beta2Condition surfaces detail of issues on control plane machines, if any.
-	ClusterControlPlaneMachinesReadyV1Beta2Condition = "ControlPlaneMachinesReady"
+	// ClusterControlPlaneMachinesReadyCondition surfaces detail of issues on control plane machines, if any.
+	ClusterControlPlaneMachinesReadyCondition = "ControlPlaneMachinesReady"
 
 	// ClusterControlPlaneMachinesReadyV1Beta2Reason surfaces when all control plane machine's Ready conditions are true.
 	ClusterControlPlaneMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -253,8 +253,8 @@ const (
 
 // Cluster's WorkerMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterWorkerMachinesReadyV1Beta2Condition surfaces detail of issues on the worker machines, if any.
-	ClusterWorkerMachinesReadyV1Beta2Condition = "WorkerMachinesReady"
+	// ClusterWorkerMachinesReadyCondition surfaces detail of issues on the worker machines, if any.
+	ClusterWorkerMachinesReadyCondition = "WorkerMachinesReady"
 
 	// ClusterWorkerMachinesReadyV1Beta2Reason surfaces when all the worker machine's Ready conditions are true.
 	ClusterWorkerMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -276,9 +276,9 @@ const (
 
 // Cluster's ControlPlaneMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of control plane machines not up to date, if any.
+	// ClusterControlPlaneMachinesUpToDateCondition surfaces details of control plane machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	ClusterControlPlaneMachinesUpToDateV1Beta2Condition = "ControlPlaneMachinesUpToDate"
+	ClusterControlPlaneMachinesUpToDateCondition = "ControlPlaneMachinesUpToDate"
 
 	// ClusterControlPlaneMachinesUpToDateV1Beta2Reason surfaces when all the control plane machine's UpToDate conditions are true.
 	ClusterControlPlaneMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
@@ -300,9 +300,9 @@ const (
 
 // Cluster's WorkerMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterWorkerMachinesUpToDateV1Beta2Condition surfaces details of worker machines not up to date, if any.
+	// ClusterWorkerMachinesUpToDateCondition surfaces details of worker machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	ClusterWorkerMachinesUpToDateV1Beta2Condition = "WorkerMachinesUpToDate"
+	ClusterWorkerMachinesUpToDateCondition = "WorkerMachinesUpToDate"
 
 	// ClusterWorkerMachinesUpToDateV1Beta2Reason surfaces when all the worker machine's UpToDate conditions are true.
 	ClusterWorkerMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
@@ -324,10 +324,10 @@ const (
 
 // Cluster's RemoteConnectionProbe condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterRemoteConnectionProbeV1Beta2Condition is true when control plane can be reached; in case of connection problems.
+	// ClusterRemoteConnectionProbeCondition is true when control plane can be reached; in case of connection problems.
 	// The condition turns to false only if the cluster cannot be reached for 50s after the first connection problem
 	// is detected (or whatever period is defined in the --remote-connection-grace-period flag).
-	ClusterRemoteConnectionProbeV1Beta2Condition = "RemoteConnectionProbe"
+	ClusterRemoteConnectionProbeCondition = "RemoteConnectionProbe"
 
 	// ClusterRemoteConnectionProbeFailedV1Beta2Reason surfaces issues with the connection to the workload cluster.
 	ClusterRemoteConnectionProbeFailedV1Beta2Reason = "ProbeFailed"
@@ -338,9 +338,9 @@ const (
 
 // Cluster's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterRollingOutV1Beta2Condition is the summary of `RollingOut` conditions from ControlPlane, MachineDeployments
+	// ClusterRollingOutCondition is the summary of `RollingOut` conditions from ControlPlane, MachineDeployments
 	// and MachinePools.
-	ClusterRollingOutV1Beta2Condition = RollingOutV1Beta2Condition
+	ClusterRollingOutCondition = RollingOutCondition
 
 	// ClusterRollingOutV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
 	// or MachinePools are rolling out.
@@ -361,9 +361,9 @@ const (
 
 // Cluster's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterScalingUpV1Beta2Condition is the summary of `ScalingUp` conditions from ControlPlane, MachineDeployments,
+	// ClusterScalingUpCondition is the summary of `ScalingUp` conditions from ControlPlane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets.
-	ClusterScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+	ClusterScalingUpCondition = ScalingUpCondition
 
 	// ClusterScalingUpV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets are scaling up.
@@ -384,9 +384,9 @@ const (
 
 // Cluster's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterScalingDownV1Beta2Condition is the summary of `ScalingDown` conditions from ControlPlane, MachineDeployments,
+	// ClusterScalingDownCondition is the summary of `ScalingDown` conditions from ControlPlane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets.
-	ClusterScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+	ClusterScalingDownCondition = ScalingDownCondition
 
 	// ClusterScalingDownV1Beta2Reason surfaces when at least one of the Cluster's control plane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets are scaling down.
@@ -407,8 +407,8 @@ const (
 
 // Cluster's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
-	ClusterRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+	// ClusterRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	ClusterRemediatingCondition = RemediatingCondition
 
 	// ClusterRemediatingV1Beta2Reason surfaces when the Cluster has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
@@ -424,8 +424,8 @@ const (
 
 // Cluster's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterDeletingV1Beta2Condition surfaces details about ongoing deletion of the cluster.
-	ClusterDeletingV1Beta2Condition = DeletingV1Beta2Condition
+	// ClusterDeletingCondition surfaces details about ongoing deletion of the cluster.
+	ClusterDeletingCondition = DeletingCondition
 
 	// ClusterNotDeletingV1Beta2Reason surfaces when the Cluster is not deleting because the
 	// DeletionTimestamp is not set.

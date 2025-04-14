@@ -97,9 +97,9 @@ type MachineSetSpec struct {
 
 // MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
+	// MachineSetScalingUpCondition is true if actual replicas < desired replicas.
 	// Note: In case a MachineSet preflight check is preventing scale up, this will surface in the condition message.
-	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+	MachineSetScalingUpCondition = ScalingUpCondition
 
 	// MachineSetScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
 	MachineSetScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
@@ -117,8 +117,8 @@ const (
 
 // MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
-	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+	// MachineSetScalingDownCondition is true if actual replicas > desired replicas.
+	MachineSetScalingDownCondition = ScalingDownCondition
 
 	// MachineSetScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
 	MachineSetScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
@@ -137,8 +137,8 @@ const (
 // MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: Reason's could also be derived from the aggregation of machine's Ready conditions.
 const (
-	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+	// MachineSetMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	MachineSetMachinesReadyCondition = MachinesReadyCondition
 
 	// MachineSetMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
 	MachineSetMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -161,9 +161,9 @@ const (
 // MachineSet's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: Reason's could also be derived from the aggregation of machine's MachinesUpToDate conditions.
 const (
-	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// MachineSetMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+	MachineSetMachinesUpToDateCondition = MachinesUpToDateCondition
 
 	// MachineSetMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
 	MachineSetMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
@@ -185,8 +185,8 @@ const (
 
 // MachineSet's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
-	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+	// MachineSetRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachineSetRemediatingCondition = RemediatingCondition
 
 	// MachineSetRemediatingV1Beta2Reason surfaces when the MachineSet has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
@@ -218,8 +218,8 @@ const (
 
 // MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
+	// MachineSetDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	MachineSetDeletingCondition = DeletingCondition
 
 	// MachineSetNotDeletingV1Beta2Reason surfaces when the MachineSet is not deleting because the
 	// DeletionTimestamp is not set.

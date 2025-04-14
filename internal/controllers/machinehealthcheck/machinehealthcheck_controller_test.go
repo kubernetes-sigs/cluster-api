@@ -247,7 +247,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -311,7 +311,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -372,7 +372,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -463,7 +463,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -535,7 +535,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -645,7 +645,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -759,7 +759,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
 					Message: "Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: 3, unhealthy: 2, maxUnhealthy: 40%)",
@@ -833,7 +833,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -909,7 +909,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:    clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
 					Message: "Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: 3, unhealthy: 2, unhealthyRange: [3-5])",
@@ -990,7 +990,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1065,7 +1065,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1137,7 +1137,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1201,7 +1201,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1263,7 +1263,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1309,7 +1309,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1500,7 +1500,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1551,7 +1551,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1642,7 +1642,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1689,7 +1689,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1801,7 +1801,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1848,7 +1848,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1895,7 +1895,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Condition,
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 					Status: metav1.ConditionTrue,
 					Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
 				},
@@ -1940,7 +1940,7 @@ func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expec
 			if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
 				continue
 			}
-			if c := conditions.Get(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta2Condition); c == nil || c.Status != metav1.ConditionFalse {
+			if c := conditions.Get(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition); c == nil || c.Status != metav1.ConditionFalse {
 				continue
 			}
 
@@ -1969,10 +1969,10 @@ func assertMachinesOwnerRemediated(g *WithT, mhc *clusterv1.MachineHealthCheck, 
 				continue
 			}
 
-			if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta2Condition) {
+			if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 				continue
 			}
-			if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta2Condition) {
+			if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
 				continue
 			}
 
@@ -2797,7 +2797,7 @@ func TestPatchTargets(t *testing.T) {
 
 	v1beta1conditions.MarkTrue(machine1, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 	conditions.Set(machine1, metav1.Condition{
-		Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+		Type:   clusterv1.MachineHealthCheckSucceededCondition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 	})
@@ -2843,7 +2843,7 @@ func TestPatchTargets(t *testing.T) {
 	g.Expect(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc)).ToNot(BeEmpty())
 	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).ToNot(HaveOccurred())
 	g.Expect(v1beta1conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta1Condition).Status).To(Equal(corev1.ConditionFalse))
-	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta2Condition).Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(metav1.ConditionFalse))
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, mhc)).ToNot(BeEmpty())

@@ -694,7 +694,7 @@ func newFailedHealthCheckCondition(reason string, messageFormat string, messageA
 
 func newFailedHealthCheckV1Beta2Condition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
 	return metav1.Condition{
-		Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+		Type:    clusterv1.MachineHealthCheckSucceededCondition,
 		Status:  metav1.ConditionFalse,
 		Reason:  reason,
 		Message: fmt.Sprintf(messageFormat, messageArgs...),

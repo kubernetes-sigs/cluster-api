@@ -39,7 +39,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 			name:                             "error occurred",
 			reconcileExternalReferencesError: errors.New("failed to set ClusterClass owner reference for KubeadmControlPlaneTemplate test-kcp"),
 			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
+				Type:    clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason,
 				Message: "Please check controller logs for errors",
@@ -78,7 +78,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
+				Type:   clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterClassRefVersionsNotUpToDateV1Beta2Reason,
 				Message: "* Ref \"controlplane.cluster.x-k8s.io/v1beta2, Kind=KubeadmControlPlaneTemplate default/test-kcp\" should be " +
@@ -91,7 +91,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 			name:                       "all refs are up-to-date",
 			outdatedExternalReferences: []outdatedRef{},
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition,
+				Type:   clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Reason,
 			},
@@ -106,7 +106,7 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 
 			setRefVersionsUpToDateCondition(ctx, cc, tc.outdatedExternalReferences, tc.reconcileExternalReferencesError)
 
-			condition := conditions.Get(cc, clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Condition)
+			condition := conditions.Get(cc, clusterv1.ClusterClassRefVersionsUpToDateCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})
@@ -124,7 +124,7 @@ func TestSetVariablesReconciledCondition(t *testing.T) {
 			variableDiscoveryError: errors.New("VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
 				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\""),
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason,
 				Message: "VariableDiscovery failed: patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
@@ -134,7 +134,7 @@ func TestSetVariablesReconciledCondition(t *testing.T) {
 		{
 			name: "variable reconcile succeeded",
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.ClusterClassVariablesReadyV1Beta2Condition,
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.ClusterClassVariablesReadyV1Beta2Reason,
 			},
@@ -149,7 +149,7 @@ func TestSetVariablesReconciledCondition(t *testing.T) {
 
 			setVariablesReconciledCondition(ctx, cc, tc.variableDiscoveryError)
 
-			condition := conditions.Get(cc, clusterv1.ClusterClassVariablesReadyV1Beta2Condition)
+			condition := conditions.Get(cc, clusterv1.ClusterClassVariablesReadyCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
 		})

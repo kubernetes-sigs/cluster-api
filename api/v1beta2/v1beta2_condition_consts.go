@@ -18,78 +18,78 @@ package v1beta2
 
 // Conditions types that are used across different objects.
 const (
-	// AvailableV1Beta2Condition reports if an object is available.
+	// AvailableCondition reports if an object is available.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	AvailableV1Beta2Condition = "Available"
+	AvailableCondition = "Available"
 
-	// ReadyV1Beta2Condition reports if an object is ready.
+	// ReadyCondition reports if an object is ready.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	ReadyV1Beta2Condition = "Ready"
+	ReadyCondition = "Ready"
 
-	// BootstrapConfigReadyV1Beta2Condition reports if an object's bootstrap config is ready.
+	// BootstrapConfigReadyCondition reports if an object's bootstrap config is ready.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	BootstrapConfigReadyV1Beta2Condition = "BootstrapConfigReady"
+	BootstrapConfigReadyCondition = "BootstrapConfigReady"
 
-	// InfrastructureReadyV1Beta2Condition reports if an object's infrastructure is ready.
+	// InfrastructureReadyCondition reports if an object's infrastructure is ready.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	InfrastructureReadyV1Beta2Condition = "InfrastructureReady"
+	InfrastructureReadyCondition = "InfrastructureReady"
 
-	// MachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	// MachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	MachinesReadyV1Beta2Condition = "MachinesReady"
+	MachinesReadyCondition = "MachinesReady"
 
-	// MachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// MachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	MachinesUpToDateV1Beta2Condition = "MachinesUpToDate"
+	MachinesUpToDateCondition = "MachinesUpToDate"
 
-	// RollingOutV1Beta2Condition reports if an object is rolling out changes to machines; Cluster API usually
+	// RollingOutCondition reports if an object is rolling out changes to machines; Cluster API usually
 	// rolls out changes to machines by replacing not up-to-date machines with new ones.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	RollingOutV1Beta2Condition = "RollingOut"
+	RollingOutCondition = "RollingOut"
 
-	// ScalingUpV1Beta2Condition reports if an object is scaling up.
+	// ScalingUpCondition reports if an object is scaling up.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	ScalingUpV1Beta2Condition = "ScalingUp"
+	ScalingUpCondition = "ScalingUp"
 
-	// ScalingDownV1Beta2Condition reports if an object is scaling down.
+	// ScalingDownCondition reports if an object is scaling down.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	ScalingDownV1Beta2Condition = "ScalingDown"
+	ScalingDownCondition = "ScalingDown"
 
-	// RemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	// RemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	RemediatingV1Beta2Condition = "Remediating"
+	RemediatingCondition = "Remediating"
 
-	// DeletingV1Beta2Condition surfaces details about progress of the object deletion workflow.
+	// DeletingCondition surfaces details about progress of the object deletion workflow.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	DeletingV1Beta2Condition = "Deleting"
+	DeletingCondition = "Deleting"
 
-	// PausedV1Beta2Condition reports if reconciliation for an object or the cluster is paused.
+	// PausedCondition reports if reconciliation for an object or the cluster is paused.
 	// Note: This condition type is defined to ensure consistent naming of conditions across objects.
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
-	PausedV1Beta2Condition = "Paused"
+	PausedCondition = "Paused"
 )
 
 // Reasons that are used across different objects.

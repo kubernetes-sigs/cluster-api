@@ -42,8 +42,8 @@ type ConditionSetter interface {
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
-	oldCondition := conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
-	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedV1Beta2Condition)
+	oldCondition := conditions.Get(obj, clusterv1.PausedCondition)
+	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedCondition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
 	pausedStatusChanged := oldCondition == nil || oldCondition.Status != newCondition.Status
@@ -81,7 +81,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	conditions.Set(obj, newCondition)
 
 	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{
-		clusterv1.PausedV1Beta2Condition,
+		clusterv1.PausedCondition,
 	}}); err != nil {
 		return isPaused, false, err
 	}

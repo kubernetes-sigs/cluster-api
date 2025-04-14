@@ -212,7 +212,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				expv1.ReplicasReadyV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
-				clusterv1.PausedV1Beta2Condition,
+				clusterv1.PausedCondition,
 			}},
 		}
 		if reterr == nil {

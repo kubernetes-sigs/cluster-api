@@ -337,12 +337,12 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
 				controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 			}}, patch.WithOwnedConditions{Conditions: []string{
-				clusterv1.MachineUpToDateV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				clusterv1.MachineUpToDateCondition,
+				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 			}}); err != nil {
 				errList = append(errList, err)
 			}

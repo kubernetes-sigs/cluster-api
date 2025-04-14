@@ -211,14 +211,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", lastProbeSuccessTime.Format(time.RFC3339))
 		}
 		conditions.Set(cluster, metav1.Condition{
-			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason,
 			Message: msg,
 		})
 	} else {
 		conditions.Set(cluster, metav1.Condition{
-			Type:   clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
 		})
@@ -276,22 +276,22 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 			clusterv1.InfrastructureReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
-			clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-			clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
-			clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Condition,
-			clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Condition,
-			clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-			clusterv1.ClusterWorkerMachinesReadyV1Beta2Condition,
-			clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Condition,
-			clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
-			clusterv1.ClusterRollingOutV1Beta2Condition,
-			clusterv1.ClusterScalingUpV1Beta2Condition,
-			clusterv1.ClusterScalingDownV1Beta2Condition,
-			clusterv1.ClusterRemediatingV1Beta2Condition,
-			clusterv1.ClusterDeletingV1Beta2Condition,
-			clusterv1.ClusterAvailableV1Beta2Condition,
+			clusterv1.PausedCondition,
+			clusterv1.ClusterInfrastructureReadyCondition,
+			clusterv1.ClusterControlPlaneAvailableCondition,
+			clusterv1.ClusterControlPlaneInitializedCondition,
+			clusterv1.ClusterControlPlaneMachinesReadyCondition,
+			clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
+			clusterv1.ClusterWorkersAvailableCondition,
+			clusterv1.ClusterWorkerMachinesReadyCondition,
+			clusterv1.ClusterWorkerMachinesUpToDateCondition,
+			clusterv1.ClusterRemoteConnectionProbeCondition,
+			clusterv1.ClusterRollingOutCondition,
+			clusterv1.ClusterScalingUpCondition,
+			clusterv1.ClusterScalingDownCondition,
+			clusterv1.ClusterRemediatingCondition,
+			clusterv1.ClusterDeletingCondition,
+			clusterv1.ClusterAvailableCondition,
 		}},
 	)
 	return patchHelper.Patch(ctx, cluster, options...)

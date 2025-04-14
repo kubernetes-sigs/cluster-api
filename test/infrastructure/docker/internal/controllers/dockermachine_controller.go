@@ -285,7 +285,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 			infrav1.BootstrapExecSucceededCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
+			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,

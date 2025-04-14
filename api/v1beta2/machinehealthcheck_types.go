@@ -26,9 +26,9 @@ import (
 
 // MachineHealthCheck's RemediationAllowed condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineHealthCheckRemediationAllowedV1Beta2Condition surfaces whether the MachineHealthCheck is
+	// MachineHealthCheckRemediationAllowedCondition surfaces whether the MachineHealthCheck is
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.
-	MachineHealthCheckRemediationAllowedV1Beta2Condition = "RemediationAllowed"
+	MachineHealthCheckRemediationAllowedCondition = "RemediationAllowed"
 
 	// MachineHealthCheckTooManyUnhealthyV1Beta2Reason is the reason used when too many Machines are unhealthy and
 	// the MachineHealthCheck is blocked from making any further remediation.

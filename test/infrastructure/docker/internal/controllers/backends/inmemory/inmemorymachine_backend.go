@@ -1278,7 +1278,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 			infrav1.APIServerProvisionedCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
+			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 			infrav1.DevMachineInMemoryNodeProvisionedV1Beta2Condition,

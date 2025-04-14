@@ -20,9 +20,9 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 // KubeadmConfig's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmConfigReadyV1Beta2Condition is true if the KubeadmConfig is not deleted,
+	// KubeadmConfigReadyCondition is true if the KubeadmConfig is not deleted,
 	// and both DataSecretCreated, CertificatesAvailable conditions are true.
-	KubeadmConfigReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	KubeadmConfigReadyCondition = clusterv1.ReadyCondition
 
 	// KubeadmConfigReadyV1Beta2Reason surfaces when the KubeadmConfig is ready.
 	KubeadmConfigReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
@@ -36,9 +36,9 @@ const (
 
 // KubeadmConfig's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmConfigCertificatesAvailableV1Beta2Condition documents that cluster certificates required
+	// KubeadmConfigCertificatesAvailableCondition documents that cluster certificates required
 	// for generating the bootstrap data secret are available.
-	KubeadmConfigCertificatesAvailableV1Beta2Condition = "CertificatesAvailable"
+	KubeadmConfigCertificatesAvailableCondition = "CertificatesAvailable"
 
 	// KubeadmConfigCertificatesAvailableV1Beta2Reason surfaces when certificates required for machine bootstrap are is available.
 	KubeadmConfigCertificatesAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
@@ -50,8 +50,8 @@ const (
 
 // KubeadmConfig's DataSecretAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmConfigDataSecretAvailableV1Beta2Condition is true if the bootstrap secret is available.
-	KubeadmConfigDataSecretAvailableV1Beta2Condition = "DataSecretAvailable"
+	// KubeadmConfigDataSecretAvailableCondition is true if the bootstrap secret is available.
+	KubeadmConfigDataSecretAvailableCondition = "DataSecretAvailable"
 
 	// KubeadmConfigDataSecretAvailableV1Beta2Reason surfaces when the bootstrap secret is available.
 	KubeadmConfigDataSecretAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason

@@ -268,8 +268,8 @@ func init() {
 
 // ExtensionConfig's Discovered conditions and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
+	// ExtensionConfigDiscoveredCondition is true if the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredCondition = "Discovered"
 
 	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
 	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"

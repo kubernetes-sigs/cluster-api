@@ -35,7 +35,7 @@ const (
 const (
 	// DevClusterReadyV1Beta2Condition is true if
 	// - The DevCluster's is using a docker backend and LoadBalancerAvailable is true.
-	DevClusterReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	DevClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// DevClusterReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is met.
 	DevClusterReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason

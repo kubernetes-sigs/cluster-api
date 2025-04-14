@@ -183,8 +183,8 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 			runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+			clusterv1.PausedCondition,
+			runtimev1.ExtensionConfigDiscoveredCondition,
 		}},
 	)
 	return patchHelper.Patch(ctx, modified, options...)
@@ -233,7 +233,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
 		conditions.Set(modifiedExtensionConfig, metav1.Condition{
-			Type:    runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+			Type:    runtimev1.ExtensionConfigDiscoveredCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
 			Message: fmt.Sprintf("Error in discovery: %v", err),
@@ -243,7 +243,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 
 	v1beta1conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition)
 	conditions.Set(discoveredExtension, metav1.Condition{
-		Type:   runtimev1.ExtensionConfigDiscoveredV1Beta2Condition,
+		Type:   runtimev1.ExtensionConfigDiscoveredCondition,
 		Status: metav1.ConditionTrue,
 		Reason: runtimev1.ExtensionConfigDiscoveredV1Beta2Reason,
 	})

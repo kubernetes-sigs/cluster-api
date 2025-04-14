@@ -116,7 +116,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			conf := &runtimev1.ExtensionConfig{}
 			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), conf)).To(Succeed())
-			pausedCondition := conditions.Get(conf, clusterv1.PausedV1Beta2Condition)
+			pausedCondition := conditions.Get(conf, clusterv1.PausedCondition)
 			g.Expect(pausedCondition).ToNot(BeNil())
 			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
 		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
@@ -141,7 +141,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 		v1beta2Conditions := config.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
-		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Condition))
+		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
 		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
 
@@ -199,7 +199,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 		v1beta2Conditions := config.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
-		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Condition))
+		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
 		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
 
@@ -266,7 +266,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 
 		v1beta2Conditions := discoveredExtensionConfig.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(1))
-		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Condition))
+		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
 		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
 	})
@@ -305,7 +305,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 
 		v1beta2Conditions := discoveredExtensionConfig.GetConditions()
 		g.Expect(v1beta2Conditions).To(HaveLen(1))
-		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Condition))
+		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionFalse))
 		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason))
 	})

@@ -91,9 +91,9 @@ const (
 
 // Machine's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineAvailableV1Beta2Condition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
+	// MachineAvailableCondition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
-	MachineAvailableV1Beta2Condition = AvailableV1Beta2Condition
+	MachineAvailableCondition = AvailableCondition
 
 	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
 	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
@@ -108,7 +108,7 @@ const (
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineReadyV1Beta2Condition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
+	// MachineReadyCondition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
 	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
 	// these conditions must be true as well.
 	// Note:
@@ -120,7 +120,7 @@ const (
 	//     - if drain is in progress for more than 5 minutes, a summery of what is blocking drain also surfaces in the message.
 	// - When summarizing BootstrapConfigReady, InfrastructureReady, NodeHealthy, in case the Machine is deleting, the absence of the
 	//   referenced object won't be considered as an issue.
-	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
+	MachineReadyCondition = ReadyCondition
 
 	// MachineReadyV1Beta2Reason surfaces when the machine readiness criteria is met.
 	MachineReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -140,11 +140,11 @@ const (
 // Machine's UpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: UpToDate condition is set by the controller owning the machine.
 const (
-	// MachineUpToDateV1Beta2Condition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	// MachineUpToDateCondition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
 	// The Machine's owner (e.g. MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
 	// NOTE: The Machine's owner might use this condition to surface also other use cases when Machine is considered not up to date, e.g. when MachineDeployment spec.rolloutAfter
 	// is expired and the Machine needs to be rolled out.
-	MachineUpToDateV1Beta2Condition = "UpToDate"
+	MachineUpToDateCondition = "UpToDate"
 
 	// MachineUpToDateV1Beta2Reason surface when a Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
 	MachineUpToDateV1Beta2Reason = "UpToDate"
@@ -156,8 +156,8 @@ const (
 // Machine's BootstrapConfigReady condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: when possible, BootstrapConfigReady condition will use reasons surfaced from the underlying bootstrap config object.
 const (
-	// MachineBootstrapConfigReadyV1Beta2Condition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
-	MachineBootstrapConfigReadyV1Beta2Condition = BootstrapConfigReadyV1Beta2Condition
+	// MachineBootstrapConfigReadyCondition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
+	MachineBootstrapConfigReadyCondition = BootstrapConfigReadyCondition
 
 	// MachineBootstrapDataSecretProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided (not originated
 	// from a BoostrapConfig object referenced from the machine).
@@ -189,8 +189,8 @@ const (
 // Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: when possible, InfrastructureReady condition will use reasons surfaced from the underlying infra machine object.
 const (
-	// MachineInfrastructureReadyV1Beta2Condition mirrors the corresponding Ready condition from the Machine's infrastructure resource.
-	MachineInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+	// MachineInfrastructureReadyCondition mirrors the corresponding Ready condition from the Machine's infrastructure resource.
+	MachineInfrastructureReadyCondition = InfrastructureReadyCondition
 
 	// MachineInfrastructureReadyV1Beta2Reason surfaces when the machine infrastructure is ready.
 	MachineInfrastructureReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -218,11 +218,11 @@ const (
 // Machine's NodeHealthy and NodeReady conditions and corresponding reasons that will be used in v1Beta2 API version.
 // Note: when possible, NodeHealthy and NodeReady conditions will use reasons surfaced from the underlying node.
 const (
-	// MachineNodeHealthyV1Beta2Condition is true if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure.
-	MachineNodeHealthyV1Beta2Condition = "NodeHealthy"
+	// MachineNodeHealthyCondition is true if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure.
+	MachineNodeHealthyCondition = "NodeHealthy"
 
-	// MachineNodeReadyV1Beta2Condition is true if the Machine's Node is ready.
-	MachineNodeReadyV1Beta2Condition = "NodeReady"
+	// MachineNodeReadyCondition is true if the Machine's Node is ready.
+	MachineNodeReadyCondition = "NodeReady"
 
 	// MachineNodeReadyV1Beta2Reason surfaces when Machine's Node Ready condition is true.
 	MachineNodeReadyV1Beta2Reason = "NodeReady"
@@ -265,9 +265,9 @@ const (
 // Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: HealthCheckSucceeded condition is set by the MachineHealthCheck controller.
 const (
-	// MachineHealthCheckSucceededV1Beta2Condition is true if MHC instances targeting this machine report the Machine
+	// MachineHealthCheckSucceededCondition is true if MHC instances targeting this machine report the Machine
 	// is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object.
-	MachineHealthCheckSucceededV1Beta2Condition = "HealthCheckSucceeded"
+	MachineHealthCheckSucceededCondition = "HealthCheckSucceeded"
 
 	// MachineHealthCheckSucceededV1Beta2Reason surfaces when a machine passes all the health checks defined by a MachineHealthCheck object.
 	MachineHealthCheckSucceededV1Beta2Reason = "HealthCheckSucceeded"
@@ -293,9 +293,9 @@ const (
 // Note: OwnerRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the Machine's
 // owner controller to update or delete this condition.
 const (
-	// MachineOwnerRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
+	// MachineOwnerRemediatedCondition is only present if MHC instances targeting this machine
 	// determine that the controller owning this machine should perform remediation.
-	MachineOwnerRemediatedV1Beta2Condition = "OwnerRemediated"
+	MachineOwnerRemediatedCondition = "OwnerRemediated"
 
 	// MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the owner controller
 	// to start remediation.
@@ -306,9 +306,9 @@ const (
 // Note: ExternallyRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the external
 // remediation controller to update or delete this condition.
 const (
-	// MachineExternallyRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
+	// MachineExternallyRemediatedCondition is only present if MHC instances targeting this machine
 	// determine that an external controller should perform remediation.
-	MachineExternallyRemediatedV1Beta2Condition = "ExternallyRemediated"
+	MachineExternallyRemediatedCondition = "ExternallyRemediated"
 
 	// MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the
 	// external remediation controller to start remediation.
@@ -325,8 +325,8 @@ const (
 
 // Machine's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
-	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
+	// MachineDeletingCondition surfaces details about progress in the machine deletion workflow.
+	MachineDeletingCondition = DeletingCondition
 
 	// MachineNotDeletingV1Beta2Reason surfaces when the Machine is not deleting because the
 	// DeletionTimestamp is not set.

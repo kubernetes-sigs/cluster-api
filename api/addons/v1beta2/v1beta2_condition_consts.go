@@ -20,10 +20,10 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 // Conditions that will be used for the ClusterResourceSet object in v1Beta2 API version.
 const (
-	// ClusterResourceSetResourceSetAppliedV1Beta2Condition documents that all resources in the ClusterResourceSet object
+	// ClusterResourceSetResourceSetAppliedCondition documents that all resources in the ClusterResourceSet object
 	// are applied to all matching clusters. This indicates all resources exist, and no errors during applying them to all clusters.
-	ClusterResourceSetResourceSetAppliedV1Beta2Condition = "ResourceSetApplied"
+	ClusterResourceSetResourceSetAppliedCondition = "ResourceSetApplied"
 
-	// ClusterResourceSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the ClusterResourceSet.
-	ClusterResourceSetDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
+	// ClusterResourceSetDeletingCondition surfaces details about ongoing deletion of the ClusterResourceSet.
+	ClusterResourceSetDeletingCondition = clusterv1.DeletingCondition
 )

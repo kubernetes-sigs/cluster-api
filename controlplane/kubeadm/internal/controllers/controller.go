@@ -338,19 +338,19 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.CertificatesAvailableV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+			clusterv1.PausedCondition,
+			controlplanev1.KubeadmControlPlaneAvailableCondition,
+			controlplanev1.KubeadmControlPlaneInitializedCondition,
+			controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+			controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+			controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachinesReadyCondition,
+			controlplanev1.KubeadmControlPlaneMachinesUpToDateCondition,
+			controlplanev1.KubeadmControlPlaneRollingOutCondition,
+			controlplanev1.KubeadmControlPlaneScalingUpCondition,
+			controlplanev1.KubeadmControlPlaneScalingDownCondition,
+			controlplanev1.KubeadmControlPlaneRemediatingCondition,
+			controlplanev1.KubeadmControlPlaneDeletingCondition,
 		}},
 	)
 
@@ -371,14 +371,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	if !controlPlane.Cluster.Status.InfrastructureReady {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster status.infrastructureReady to be true",
 		})
 
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster status.infrastructureReady to be true",
@@ -397,14 +397,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	if !controlPlane.Cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster spec.controlPlaneEndpoint to be set",
 		})
 
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason,
 			Message: "Waiting for Cluster spec.controlPlaneEndpoint to be set",
@@ -552,7 +552,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, err.Error())
 
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
@@ -562,7 +562,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 
 	if err := r.ensureCertificatesOwnerRef(ctx, certificates, *controllerRef); err != nil {
 		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
@@ -574,7 +574,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition)
 
 	conditions.Set(controlPlane.KCP, metav1.Condition{
-		Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
+		Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
 		Status: metav1.ConditionTrue,
 		Reason: controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Reason,
 	})
@@ -983,7 +983,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			}
 
 			conditions.Set(machine, metav1.Condition{
-				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:    clusterv1.MachineUpToDateCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
 				Message: message,
@@ -992,7 +992,7 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			continue
 		}
 		conditions.Set(machine, metav1.Condition{
-			Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 		})
@@ -1013,12 +1013,12 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 	// Note: We are not checking if conditions on the Machines are already set, we just check the KCP conditions instead.
 	// This means if Overwrite is set to false, we only set the EtcdMemberHealthy condition if the EtcdClusterHealthy condition is not set.
 	// The same applies to ControlPlaneComponentsHealthy and the control plane component conditions on the Machines.
-	etcdClusterHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)
-	controlPlaneComponentsHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)
+	etcdClusterHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition)
+	controlPlaneComponentsHealthySet := conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition)
 
 	if input.Overwrite || !etcdClusterHealthySet {
 		conditions.Set(input.ControlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.EtcdClusterHealthyReason,
 			Message: input.Message,
@@ -1026,7 +1026,7 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 		for _, machine := range input.ControlPlane.Machines {
 			if input.ControlPlane.IsEtcdManaged() {
 				conditions.Set(machine, metav1.Condition{
-					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  input.EtcdMemberHealthyReason,
 					Message: input.Message,
@@ -1037,19 +1037,19 @@ func setConditionsToUnknown(input setConditionsToUnknownInput) {
 
 	if input.Overwrite || !controlPlaneComponentsHealthySet {
 		conditions.Set(input.ControlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+			Type:    controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  input.ControlPlaneComponentsHealthyReason,
 			Message: input.Message,
 		})
 
 		allMachinePodV1beta2Conditions := []string{
-			controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
-			controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 		}
 		if input.ControlPlane.IsEtcdManaged() {
-			allMachinePodV1beta2Conditions = append(allMachinePodV1beta2Conditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)
+			allMachinePodV1beta2Conditions = append(allMachinePodV1beta2Conditions, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)
 		}
 		for _, machine := range input.ControlPlane.Machines {
 			for _, condition := range allMachinePodV1beta2Conditions {

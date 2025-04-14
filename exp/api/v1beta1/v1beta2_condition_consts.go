@@ -24,7 +24,7 @@ counters at cluster level is already implemented.
 // Conditions that will be used for the MachinePool object in v1Beta2 API version.
 const (
 	// MachinePoolAvailableV1Beta2Condition is true when InfrastructureReady and available replicas >= desired replicas.
-	MachinePoolAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+	MachinePoolAvailableV1Beta2Condition = clusterv1.AvailableCondition
 
 	// MachinePoolBootstrapConfigReadyV1Beta2Condition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
 	MachinePoolBootstrapConfigReadyV1Beta2Condition = clusterv1.BootstrapConfigReadyV1Beta2Condition

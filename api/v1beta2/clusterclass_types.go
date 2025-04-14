@@ -30,10 +30,10 @@ const ClusterClassKind = "ClusterClass"
 
 // ClusterClass VariablesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterClassVariablesReadyV1Beta2Condition is true if the ClusterClass variables, including both inline and external
+	// ClusterClassVariablesReadyCondition is true if the ClusterClass variables, including both inline and external
 	// variables, have been successfully reconciled and thus ready to be used to default and validate variables on Clusters using
 	// this ClusterClass.
-	ClusterClassVariablesReadyV1Beta2Condition = "VariablesReady"
+	ClusterClassVariablesReadyCondition = "VariablesReady"
 
 	// ClusterClassVariablesReadyV1Beta2Reason surfaces that the variables are ready.
 	ClusterClassVariablesReadyV1Beta2Reason = "VariablesReady"
@@ -44,10 +44,10 @@ const (
 
 // ClusterClass RefVersionsUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ClusterClassRefVersionsUpToDateV1Beta2Condition documents if the references in the ClusterClass are
+	// ClusterClassRefVersionsUpToDateCondition documents if the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassRefVersionsUpToDateV1Beta2Condition = "RefVersionsUpToDate"
+	ClusterClassRefVersionsUpToDateCondition = "RefVersionsUpToDate"
 
 	// ClusterClassRefVersionsUpToDateV1Beta2Reason surfaces that the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from

@@ -984,7 +984,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantConditionReason))
 				g.Expect(actualCondition.Message).To(BeEquivalentTo(tt.wantConditionMessage))
 
-				actualV1Beta2Condition := conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledV1Beta2Condition)
+				actualV1Beta2Condition := conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledCondition)
 				g.Expect(actualV1Beta2Condition).ToNot(BeNil())
 				g.Expect(actualV1Beta2Condition.Status).To(BeEquivalentTo(tt.wantV1Beta2ConditionStatus))
 				g.Expect(actualV1Beta2Condition.Reason).To(BeEquivalentTo(tt.wantV1Beta2ConditionReason))

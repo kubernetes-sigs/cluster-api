@@ -25,9 +25,9 @@ import (
 
 // ClusterResourceSet's ResourcesApplied condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ResourcesAppliedV1Beta2Condition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
+	// ResourcesAppliedCondition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
 	// This indicates all resources exist, and no errors during applying them to all clusters.
-	ResourcesAppliedV1Beta2Condition = "ResourcesApplied"
+	ResourcesAppliedCondition = "ResourcesApplied"
 
 	// ResourcesAppliedV1beta2Reason is the reason used when all resources in the ClusterResourceSet object got applied
 	// to all matching clusters.

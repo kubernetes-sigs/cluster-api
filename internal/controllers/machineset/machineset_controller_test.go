@@ -607,7 +607,7 @@ func TestMachineSetReconcile(t *testing.T) {
 				Replicas:    ptr.To[int32](0),
 			},
 			Status: clusterv1.MachineSetStatus{Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -917,7 +917,7 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 			},
 		},
 		Status: clusterv1.MachineSetStatus{Conditions: []metav1.Condition{{
-			Type:   clusterv1.PausedV1Beta2Condition,
+			Type:   clusterv1.PausedCondition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.NotPausedV1Beta2Reason,
 		}},
@@ -975,7 +975,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 		},
 		Status: clusterv1.MachineSetStatus{
 			Conditions: []metav1.Condition{{
-				Type:   clusterv1.PausedV1Beta2Condition,
+				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.NotPausedV1Beta2Reason,
 			}},
@@ -1533,13 +1533,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				},
 				Conditions: []metav1.Condition{
 					{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:    clusterv1.MachineHealthCheckSucceededCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
@@ -1571,13 +1571,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
 						Status: metav1.ConditionTrue,
 						Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 					},
@@ -1607,10 +1607,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeFalse())
 		g.Expect(v1beta1conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeTrue())
-		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
 			Message: "Machine is deleting",
@@ -1621,7 +1621,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).Should(Succeed())
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeFalse())
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 	})
 
 	t.Run("should update the unhealthy machine MachineOwnerRemediated condition if preflight checks did not pass", func(t *testing.T) {
@@ -1667,13 +1667,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				},
 				Conditions: []metav1.Condition{
 					{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:    clusterv1.MachineHealthCheckSucceededCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
@@ -1705,13 +1705,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
 						Status: metav1.ConditionTrue,
 						Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 					},
@@ -1746,10 +1746,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 		g.Expect(machineOwnerRemediatedCondition.Reason).
 			To(Equal(clusterv1.WaitingForRemediationV1Beta1Reason), "%s condition should have reason %s", condition, clusterv1.WaitingForRemediationV1Beta1Reason)
-		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
 			Message: "* GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
@@ -1761,7 +1761,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 	})
 
 	t.Run("should only try to remediate MachineOwnerRemediated if MachineSet is current", func(t *testing.T) {
@@ -1839,13 +1839,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				},
 				Conditions: []metav1.Condition{
 					{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:    clusterv1.MachineHealthCheckSucceededCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
@@ -1877,13 +1877,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
 						Status: metav1.ConditionTrue,
 						Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 					},
@@ -1927,10 +1927,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(machineOwnerRemediatedCondition.Status).
 			To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 		g.Expect(unhealthyMachine.DeletionTimestamp).Should(BeZero())
-		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineCannotBeRemediatedV1Beta2Reason,
 			Message: "Machine won't be remediated because it is pending removal due to rollout",
@@ -1942,7 +1942,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 
 		// Test with the current MachineSet.
 		s = &scope{
@@ -1959,10 +1959,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeFalse())
 		g.Expect(v1beta1conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeTrue())
-		c = conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		c = conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
 			Message: "Machine is deleting",
@@ -1974,7 +1974,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 	})
 
 	t.Run("should only try to remediate up to MaxInFlight unhealthy", func(t *testing.T) {
@@ -2056,13 +2056,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 					},
 					Conditions: []metav1.Condition{
 						{
-							Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+							Type:    clusterv1.MachineOwnerRemediatedCondition,
 							Status:  metav1.ConditionFalse,
 							Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 							Message: "Waiting for remediation",
 						},
 						{
-							Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+							Type:    clusterv1.MachineHealthCheckSucceededCondition,
 							Status:  metav1.ConditionFalse,
 							Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 							Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
@@ -2096,13 +2096,13 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:   clusterv1.MachineHealthCheckSucceededCondition,
 						Status: metav1.ConditionTrue,
 						Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
 					},
@@ -2148,10 +2148,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
 				g.Expect(machineOwnerRemediatedCondition.Status).
 					To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
-				c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+				c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 				g.Expect(c).ToNot(BeNil())
 				g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+					Type:    clusterv1.MachineOwnerRemediatedCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
 					Message: "Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is 3)",
@@ -2168,7 +2168,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 
 		//
 		// Second pass.
@@ -2215,10 +2215,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 					machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
 					g.Expect(machineOwnerRemediatedCondition.Status).
 						To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
-					c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+					c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 					g.Expect(c).ToNot(BeNil())
 					g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
 						Message: "Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is 3)",
@@ -2232,10 +2232,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 					machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
 					g.Expect(machineOwnerRemediatedCondition.Status).
 						To(Equal(corev1.ConditionTrue), "%s condition status should be true", condition)
-					c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+					c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 					g.Expect(c).ToNot(BeNil())
 					g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
 						Message: "Machine is deleting",
@@ -2259,7 +2259,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 
 		// Perform another pass with the same exact configuration.
 		// This is testing that, given that we have Machines that are being deleted and are in flight,
@@ -2282,7 +2282,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 
 		// Call again to verify that the remaining unhealthy machines are deleted,
 		// at this point all unhealthy machines should be deleted given the max in flight
@@ -2308,7 +2308,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
-		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)).To(BeFalse())
+		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
 	})
 }
 
@@ -2984,7 +2984,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 			},
@@ -3010,7 +3010,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:    clusterv1.MachineUpToDateCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
 				Message: "* Version v1.30.0, v1.31.0 required",
@@ -3041,7 +3041,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 			},
@@ -3071,7 +3071,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:    clusterv1.MachineUpToDateCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
 				Message: "* MachineDeployment spec.rolloutAfter expired",
@@ -3102,7 +3102,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineUpToDateV1Beta2Reason,
 			},
@@ -3132,7 +3132,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+				Type:   clusterv1.MachineUpToDateCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
 				Message: "* Version v1.31.0, v1.30.0 required\n" +
@@ -3190,13 +3190,13 @@ func TestSortMachinesToRemediate(t *testing.T) {
 				},
 				Conditions: []metav1.Condition{
 					{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:    clusterv1.MachineHealthCheckSucceededCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
@@ -3231,13 +3231,13 @@ func TestSortMachinesToRemediate(t *testing.T) {
 				},
 				Conditions: []metav1.Condition{
 					{
-						Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
 						Message: "Waiting for remediation",
 					},
 					{
-						Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+						Type:    clusterv1.MachineHealthCheckSucceededCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
 						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",

@@ -79,10 +79,10 @@ const (
 
 // MachineDeployment's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentAvailableV1Beta2Condition is true if the MachineDeployment is not deleted, and it has minimum
+	// MachineDeploymentAvailableCondition is true if the MachineDeployment is not deleted, and it has minimum
 	// availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy,
 	// availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas.
-	MachineDeploymentAvailableV1Beta2Condition = AvailableV1Beta2Condition
+	MachineDeploymentAvailableCondition = AvailableCondition
 
 	// MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
 	// field of the MachineDeployment is not set.
@@ -104,8 +104,8 @@ const (
 
 // MachineDeployment's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineDeploymentMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+	// MachineDeploymentMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	MachineDeploymentMachinesReadyCondition = MachinesReadyCondition
 
 	// MachineDeploymentMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
 	MachineDeploymentMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
@@ -127,9 +127,9 @@ const (
 
 // MachineDeployment's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// MachineDeploymentMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	MachineDeploymentMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+	MachineDeploymentMachinesUpToDateCondition = MachinesUpToDateCondition
 
 	// MachineDeploymentMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
 	MachineDeploymentMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
@@ -151,8 +151,8 @@ const (
 
 // MachineDeployment's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentRollingOutV1Beta2Condition is true if there is at least one machine not up-to-date.
-	MachineDeploymentRollingOutV1Beta2Condition = RollingOutV1Beta2Condition
+	// MachineDeploymentRollingOutCondition is true if there is at least one machine not up-to-date.
+	MachineDeploymentRollingOutCondition = RollingOutCondition
 
 	// MachineDeploymentRollingOutV1Beta2Reason surfaces when there is at least one machine not up-to-date.
 	MachineDeploymentRollingOutV1Beta2Reason = RollingOutV1Beta2Reason
@@ -166,8 +166,8 @@ const (
 
 // MachineDeployment's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
-	MachineDeploymentScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+	// MachineDeploymentScalingUpCondition is true if actual replicas < desired replicas.
+	MachineDeploymentScalingUpCondition = ScalingUpCondition
 
 	// MachineDeploymentScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
 	MachineDeploymentScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
@@ -185,8 +185,8 @@ const (
 
 // MachineDeployment's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
-	MachineDeploymentScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+	// MachineDeploymentScalingDownCondition is true if actual replicas > desired replicas.
+	MachineDeploymentScalingDownCondition = ScalingDownCondition
 
 	// MachineDeploymentScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
 	MachineDeploymentScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
@@ -204,8 +204,8 @@ const (
 
 // MachineDeployment's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
-	MachineDeploymentRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+	// MachineDeploymentRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachineDeploymentRemediatingCondition = RemediatingCondition
 
 	// MachineDeploymentRemediatingV1Beta2Reason surfaces when the MachineDeployment has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
@@ -221,8 +221,8 @@ const (
 
 // MachineDeployment's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	MachineDeploymentDeletingV1Beta2Condition = DeletingV1Beta2Condition
+	// MachineDeploymentDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	MachineDeploymentDeletingCondition = DeletingCondition
 
 	// MachineDeploymentNotDeletingV1Beta2Reason surfaces when the MachineDeployment is not deleting because the
 	// DeletionTimestamp is not set.

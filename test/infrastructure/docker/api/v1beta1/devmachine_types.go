@@ -74,7 +74,7 @@ const (
 	// - The DevMachine's is using a docker backend and LoadBalancerAvailable is true.
 	// - The DevMachine's is using an in memory backend and VMProvisioned, NodeProvisioned,
 	//	 EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true
-	DevMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	DevMachineReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// DevMachineReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is met.
 	DevMachineReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason

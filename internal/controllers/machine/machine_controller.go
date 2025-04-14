@@ -316,14 +316,14 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.DrainingSucceededV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			clusterv1.MachineAvailableV1Beta2Condition,
-			clusterv1.MachineReadyV1Beta2Condition,
-			clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-			clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-			clusterv1.MachineNodeReadyV1Beta2Condition,
-			clusterv1.MachineNodeHealthyV1Beta2Condition,
-			clusterv1.MachineDeletingV1Beta2Condition,
+			clusterv1.PausedCondition,
+			clusterv1.MachineAvailableCondition,
+			clusterv1.MachineReadyCondition,
+			clusterv1.MachineBootstrapConfigReadyCondition,
+			clusterv1.MachineInfrastructureReadyCondition,
+			clusterv1.MachineNodeReadyCondition,
+			clusterv1.MachineNodeHealthyCondition,
+			clusterv1.MachineDeletingCondition,
 		}},
 	)
 

@@ -310,7 +310,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				clusterv1.TopologyReconciledV1Beta1Condition,
 			}},
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.ClusterTopologyReconciledV1Beta2Condition,
+				clusterv1.ClusterTopologyReconciledCondition,
 			}},
 		}
 		if err := patchHelper.Patch(ctx, cluster, options...); err != nil {

@@ -264,7 +264,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:                   "Use status.InfrastructureReady flag as a fallback Ready condition from infra cluster is missing",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
-			infraCluster:           fakeInfraCluster("i1", ready(false)),
+			infraCluster:           fakeInfraCluster("i1", provisioned(false)),
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
@@ -276,7 +276,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		{
 			name:                   "Use status.InfrastructureReady flag as a fallback Ready condition from infra cluster is missing (ready true)",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureReady(true)),
-			infraCluster:           fakeInfraCluster("i1", ready(true)),
+			infraCluster:           fakeInfraCluster("i1", provisioned(true)),
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterInfrastructureReadyV1Beta2Condition,
@@ -429,7 +429,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		{
 			name:                   "Use status.controlPlaneReady flag as a fallback Available condition from control plane is missing",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
-			controlPlane:           fakeControlPlane("cp1", ready(false)),
+			controlPlane:           fakeControlPlane("cp1", initialized(false)),
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
@@ -441,7 +441,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		{
 			name:                   "Use status.controlPlaneReady flag as a fallback Available condition from control plane is missing (ready true)",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneReady(true)),
-			controlPlane:           fakeControlPlane("cp1", ready(true)),
+			controlPlane:           fakeControlPlane("cp1", initialized(true)),
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
@@ -664,7 +664,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setControlPlaneInitializedCondition(ctx, tt.cluster, tt.controlPlane, tt.machines, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
+			setControlPlaneInitializedCondition(ctx, tt.cluster, tt.controlPlane, "v1beta2", tt.machines, tt.controlPlaneIsNotFound, tt.getDescendantsSucceeded)
 
 			condition := conditions.Get(tt.cluster, clusterv1.ClusterControlPlaneInitializedV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -3106,20 +3106,16 @@ func (c OwnedByCluster) ApplyToMachine(m *clusterv1.Machine) {
 	})
 }
 
-type ready bool
+type provisioned bool
 
-func (r ready) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().Ready().Set(cp, bool(r))
-}
-
-func (r ready) ApplyToInfraCluster(i *unstructured.Unstructured) {
-	_ = contract.InfrastructureCluster().Ready().Set(i, bool(r))
+func (r provisioned) ApplyToInfraCluster(i *unstructured.Unstructured) {
+	_ = contract.InfrastructureCluster().Provisioned("v1beta2").Set(i, bool(r))
 }
 
 type initialized bool
 
 func (r initialized) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().Initialized().Set(cp, bool(r))
+	_ = contract.ControlPlane().Initialized("v1beta2").Set(cp, bool(r))
 }
 
 type creationTimestamp metav1.Time

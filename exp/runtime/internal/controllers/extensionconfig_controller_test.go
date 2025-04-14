@@ -143,7 +143,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
 		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
+		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredReason))
 
 		_, err = registry.Get("first.ext1")
 		g.Expect(err).ToNot(HaveOccurred())
@@ -201,7 +201,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Expect(v1beta2Conditions).To(HaveLen(2)) // Second condition is paused.
 		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
+		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredReason))
 
 		_, err = registry.Get("first.ext1")
 		g.Expect(err).ToNot(HaveOccurred())
@@ -268,7 +268,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(v1beta2Conditions).To(HaveLen(1))
 		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredV1Beta2Reason))
+		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigDiscoveredReason))
 	})
 	t.Run("fail discovery for non-running extension", func(*testing.T) {
 		cat := runtimecatalog.New()
@@ -307,7 +307,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(v1beta2Conditions).To(HaveLen(1))
 		g.Expect(v1beta2Conditions[0].Type).To(Equal(runtimev1.ExtensionConfigDiscoveredCondition))
 		g.Expect(v1beta2Conditions[0].Status).To(Equal(metav1.ConditionFalse))
-		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason))
+		g.Expect(v1beta2Conditions[0].Reason).To(Equal(runtimev1.ExtensionConfigNotDiscoveredReason))
 	})
 }
 

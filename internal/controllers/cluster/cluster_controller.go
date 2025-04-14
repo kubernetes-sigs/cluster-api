@@ -213,14 +213,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason,
+			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
 			Message: msg,
 		})
 	} else {
 		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status: metav1.ConditionTrue,
-			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
+			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededReason,
 		})
 	}
 
@@ -367,7 +367,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
 	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
 		if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
-			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookReason
 			s.deletingMessage = "Waiting for BeforeClusterDelete hook"
 			return ctrl.Result{}, nil
 		}
@@ -375,14 +375,14 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 	// If it failed to get descendants, no-op.
 	if !s.getDescendantsSucceeded {
-		s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+		s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 		s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
 		return reconcile.Result{}, nil
 	}
 
 	children, err := s.descendants.filterOwnedDescendants(cluster)
 	if err != nil {
-		s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+		s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 		s.deletingMessage = "Please check controller logs for errors"
 		return reconcile.Result{}, errors.Wrapf(err, "failed to extract direct descendants")
 	}
@@ -414,7 +414,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		}
 
 		if len(errs) > 0 {
-			s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+			s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 			s.deletingMessage = "Please check controller logs for errors"
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
@@ -426,7 +426,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 		log.Info("Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
 
-		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason
+		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionReason
 		for i := range names {
 			names[i] = "* " + names[i]
 		}
@@ -441,7 +441,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			if !s.controlPlaneIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
 				// Note: this error surfaces in reconcile reconcileControlPlane.
-				s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+				s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 				s.deletingMessage = "Please check controller logs for errors"
 
 				return ctrl.Result{}, nil
@@ -456,7 +456,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				// Once it's been deleted, the cluster will get processed again.
 				if err := r.Client.Delete(ctx, s.controlPlane); err != nil {
 					if !apierrors.IsNotFound(err) {
-						s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+						s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 						s.deletingMessage = "Please check controller logs for errors"
 						return ctrl.Result{}, errors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
@@ -466,7 +466,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			}
 
 			// Return here so we don't remove the finalizer yet.
-			s.deletingReason = clusterv1.ClusterDeletingWaitingForControlPlaneDeletionV1Beta2Reason
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForControlPlaneDeletionReason
 			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.ControlPlaneRef.Kind)
 
 			// We are watching it, will try again when it is deleted.
@@ -481,7 +481,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			if !s.infraClusterIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
 				// Note: this error surfaces in reconcile reconcileInfrastructure.
-				s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+				s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 				s.deletingMessage = "Please check controller logs for errors"
 
 				return ctrl.Result{}, nil
@@ -496,7 +496,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				// Once it's been deleted, the cluster will get processed again.
 				if err := r.Client.Delete(ctx, s.infraCluster); err != nil {
 					if !apierrors.IsNotFound(err) {
-						s.deletingReason = clusterv1.ClusterDeletingInternalErrorV1Beta2Reason
+						s.deletingReason = clusterv1.ClusterDeletingInternalErrorReason
 						s.deletingMessage = "Please check controller logs for errors"
 						return ctrl.Result{}, errors.Wrapf(err,
 							"failed to delete %v %q for Cluster %q in namespace %q",
@@ -506,7 +506,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			}
 
 			// Return here so we don't remove the finalizer yet.
-			s.deletingReason = clusterv1.ClusterDeletingWaitingForInfrastructureDeletionV1Beta2Reason
+			s.deletingReason = clusterv1.ClusterDeletingWaitingForInfrastructureDeletionReason
 			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.InfrastructureRef.Kind)
 
 			// We are watching it, will try again when it is deleted.
@@ -516,7 +516,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		}
 	}
 
-	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedV1Beta2Reason
+	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)

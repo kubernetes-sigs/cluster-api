@@ -222,7 +222,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureDoesNotExistReason,
 				Message: "Waiting for cluster topology to be reconciled",
 			},
 		},
@@ -234,7 +234,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterInfrastructureReadyCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
+				Reason: clusterv1.ClusterInfrastructureDoesNotExistReason,
 			},
 		},
 		{
@@ -257,7 +257,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterInfrastructureReadyV1Beta2Reason, // reason fixed up
+				Reason:  clusterv1.ClusterInfrastructureReadyReason, // reason fixed up
 				Message: "some message",
 			},
 		},
@@ -269,7 +269,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureNotReadyV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureNotReadyReason,
 				Message: "FakeInfraCluster status.ready is false",
 			},
 		},
@@ -281,7 +281,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterInfrastructureReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterInfrastructureReadyV1Beta2Reason,
+				Reason: clusterv1.ClusterInfrastructureReadyReason,
 			},
 		},
 		{
@@ -292,7 +292,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterInfrastructureInvalidConditionReportedV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureInvalidConditionReportedReason,
 				Message: "failed to convert status.conditions from FakeInfraCluster to []metav1.Condition: status must be set for the Ready condition",
 			},
 		},
@@ -304,7 +304,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterInfrastructureInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -316,7 +316,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureDeletedReason,
 				Message: "FakeInfraCluster has been deleted",
 			},
 		},
@@ -328,7 +328,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureDoesNotExistReason,
 				Message: "FakeInfraCluster does not exist",
 			},
 		},
@@ -340,7 +340,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureDeletedReason,
 				Message: "FakeInfraCluster has been deleted while the cluster still exists",
 			},
 		},
@@ -352,7 +352,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterInfrastructureDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterInfrastructureDoesNotExistReason,
 				Message: "FakeInfraCluster does not exist",
 			},
 		},
@@ -387,7 +387,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDoesNotExistReason,
 				Message: "Waiting for cluster topology to be reconciled",
 			},
 		},
@@ -399,7 +399,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneDoesNotExistReason,
 			},
 		},
 		{
@@ -422,7 +422,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterControlPlaneAvailableV1Beta2Reason, // reason fixed up
+				Reason:  clusterv1.ClusterControlPlaneAvailableReason, // reason fixed up
 				Message: "some message",
 			},
 		},
@@ -434,7 +434,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneNotAvailableReason,
 				Message: "FakeControlPlane status.ready is false",
 			},
 		},
@@ -446,7 +446,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneAvailableReason,
 			},
 		},
 		{
@@ -457,7 +457,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneInvalidConditionReportedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneInvalidConditionReportedReason,
 				Message: "failed to convert status.conditions from FakeControlPlane to []metav1.Condition: status must be set for the Available condition",
 			},
 		},
@@ -469,7 +469,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -481,7 +481,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDeletedReason,
 				Message: "FakeControlPlane has been deleted",
 			},
 		},
@@ -493,7 +493,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDoesNotExistReason,
 				Message: "FakeControlPlane does not exist",
 			},
 		},
@@ -505,7 +505,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDeletedReason,
 				Message: "FakeControlPlane has been deleted while the cluster still exists",
 			},
 		},
@@ -517,7 +517,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDoesNotExistReason,
 				Message: "FakeControlPlane does not exist",
 			},
 		},
@@ -554,7 +554,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDoesNotExistReason,
 				Message: "Waiting for cluster topology to be reconciled",
 			},
 		},
@@ -566,7 +566,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneDoesNotExistReason,
 			},
 		},
 		{
@@ -577,7 +577,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneDoesNotExistV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneDoesNotExistReason,
 				Message: "FakeControlPlane does not exist",
 			},
 		},
@@ -589,7 +589,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -600,7 +600,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneNotInitializedReason,
 				Message: "Control plane not yet initialized",
 			},
 		},
@@ -611,7 +611,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneInitializedReason,
 			},
 		},
 		{
@@ -621,7 +621,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -632,7 +632,7 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneInitializedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneNotInitializedV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneNotInitializedReason,
 				Message: "Waiting for the first control plane machine to have status.nodeRef set",
 			},
 		},
@@ -646,17 +646,17 @@ func TestSetControlPlaneInitialized(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneInitializedReason,
 			},
 		},
 		{
 			name:         "initialized never flips back to false",
-			cluster:      fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, v1beta2Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason}),
+			cluster:      fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, v1beta2Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedReason}),
 			controlPlane: fakeControlPlane("cp", initialized(false)),
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneInitializedV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneInitializedReason,
 			},
 		},
 	}
@@ -689,7 +689,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkersAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkersAvailableInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkersAvailableInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -700,7 +700,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkersAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterWorkersAvailableNoWorkersV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkersAvailableNoWorkersReason,
 			},
 		},
 		{
@@ -716,7 +716,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkersAvailableCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterWorkersAvailableUnknownV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkersAvailableUnknownReason,
 				Message: "* MachineDeployment md1: Condition Available not yet reported\n" +
 					"* MachinePool mp1: Condition Available not yet reported",
 			},
@@ -744,7 +744,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkersAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterWorkersNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkersNotAvailableReason,
 				Message: "* MachineDeployment md1: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5)\n" +
 					"* MachinePool mp1: 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4)",
 			},
@@ -767,7 +767,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 	readyCondition := metav1.Condition{
 		Type:   clusterv1.MachineReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineReadyV1Beta2Reason,
+		Reason: clusterv1.MachineReadyReason,
 	}
 
 	tests := []struct {
@@ -785,7 +785,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneMachinesReadyInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesReadyInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -797,7 +797,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneMachinesReadyNoReplicasV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneMachinesReadyNoReplicasReason,
 			},
 		},
 		{
@@ -811,7 +811,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneMachinesReadyReason,
 			},
 		},
 		{
@@ -825,7 +825,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneMachinesReadyUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesReadyUnknownReason,
 				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
@@ -849,7 +849,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-4", controlPlane(true), v1beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineReadyCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingReason,
 					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 				})),
 			},
@@ -857,7 +857,7 @@ func TestSetControlPlaneMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneMachinesReadyCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterControlPlaneMachinesNotReadyV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneMachinesNotReadyReason,
 				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
 					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
 					"* Machine machine-3: Some unknown message",
@@ -885,7 +885,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 	readyCondition := metav1.Condition{
 		Type:   clusterv1.MachineReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineReadyV1Beta2Reason,
+		Reason: clusterv1.MachineReadyReason,
 	}
 
 	tests := []struct {
@@ -903,7 +903,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkerMachinesReadyInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesReadyInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -915,7 +915,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkerMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterWorkerMachinesReadyNoReplicasV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkerMachinesReadyNoReplicasReason,
 			},
 		},
 		{
@@ -929,7 +929,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkerMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterWorkerMachinesReadyV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkerMachinesReadyReason,
 			},
 		},
 		{
@@ -943,7 +943,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesReadyCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkerMachinesReadyUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesReadyUnknownReason,
 				Message: "* Machine machine-2: Condition Ready not yet reported",
 			},
 		},
@@ -967,7 +967,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-4", v1beta2Condition(metav1.Condition{
 					Type:    clusterv1.MachineReadyCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingReason,
 					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 				})),
 			},
@@ -975,7 +975,7 @@ func TestSetWorkerMachinesReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkerMachinesReadyCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterWorkerMachinesNotReadyV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkerMachinesNotReadyReason,
 				Message: "* Machine machine-2: HealthCheckSucceeded: Some message\n" +
 					"* Machine machine-4: Deleting: Machine deletion in progress, stage: DrainingNode\n" +
 					"* Machine machine-3: Some unknown message",
@@ -1015,7 +1015,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1027,7 +1027,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateNoReplicasReason,
 				Message: "",
 			},
 		},
@@ -1045,7 +1045,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateReason,
 				Message: "",
 			},
 		},
@@ -1064,7 +1064,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateUnknownReason,
 				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
@@ -1083,7 +1083,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterControlPlaneMachinesNotUpToDateV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesNotUpToDateReason,
 				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
@@ -1098,7 +1098,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateUnknownReason,
 				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
@@ -1135,7 +1135,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterControlPlaneMachinesNotUpToDateV1Beta2Reason,
+				Reason: clusterv1.ClusterControlPlaneMachinesNotUpToDateReason,
 				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
 					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
@@ -1173,7 +1173,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkerMachinesUpToDateInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesUpToDateInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1185,7 +1185,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterWorkerMachinesUpToDateNoReplicasV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesUpToDateNoReplicasReason,
 				Message: "",
 			},
 		},
@@ -1203,7 +1203,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesUpToDateReason,
 				Message: "",
 			},
 		},
@@ -1222,7 +1222,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkerMachinesUpToDateUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesUpToDateUnknownReason,
 				Message: "* Machine unknown-1: some unknown message",
 			},
 		},
@@ -1241,7 +1241,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterWorkerMachinesNotUpToDateV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesNotUpToDateReason,
 				Message: "* Machine not-up-to-date-machine-1: some not up-to-date message",
 			},
 		},
@@ -1256,7 +1256,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterWorkerMachinesUpToDateUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterWorkerMachinesUpToDateUnknownReason,
 				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
@@ -1293,7 +1293,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterWorkerMachinesNotUpToDateV1Beta2Reason,
+				Reason: clusterv1.ClusterWorkerMachinesNotUpToDateReason,
 				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
 					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
@@ -1336,7 +1336,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRollingOutCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1349,7 +1349,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRollingOutCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1361,7 +1361,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
+				Reason: clusterv1.ClusterNotRollingOutReason,
 			},
 		},
 		{
@@ -1378,7 +1378,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterRollingOutUnknownV1Beta2Reason,
+				Reason: clusterv1.ClusterRollingOutUnknownReason,
 				Message: "* MachineDeployment md1: Condition RollingOut not yet reported\n" +
 					"* MachinePool mp1: Condition RollingOut not yet reported",
 			},
@@ -1389,14 +1389,14 @@ func TestSetRollingOutCondition(t *testing.T) {
 			controlPlane: fakeControlPlane("cp1", condition{
 				Type:    clusterv1.ClusterRollingOutCondition,
 				Status:  corev1.ConditionTrue,
-				Reason:  clusterv1.RollingOutV1Beta2Reason,
+				Reason:  clusterv1.RollingOutReason,
 				Message: "Rolling out 3 not up-to-date replicas",
 			}),
 			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Reason:  clusterv1.RollingOutReason,
 					Message: "Rolling out 5 not up-to-date replicas",
 				}),
 			}},
@@ -1404,7 +1404,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.MachineDeploymentRollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentRollingOutReason,
 					Message: "Rolling out 4 not up-to-date replicas",
 				}),
 			}},
@@ -1412,7 +1412,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Reason: clusterv1.ClusterRollingOutReason,
 				Message: "* FakeControlPlane cp1: Rolling out 3 not up-to-date replicas\n" +
 					"* MachineDeployment md1: Rolling out 4 not up-to-date replicas\n" +
 					"* MachinePool mp1: Rolling out 5 not up-to-date replicas",
@@ -1426,7 +1426,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Reason:  clusterv1.RollingOutReason,
 					Message: "Rolling out 3 not up-to-date replicas",
 				}),
 			}},
@@ -1434,7 +1434,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.MachineDeploymentRollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentRollingOutReason,
 					Message: "Rolling out 5 not up-to-date replicas",
 				}),
 			}},
@@ -1442,7 +1442,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Reason: clusterv1.ClusterRollingOutReason,
 				Message: "* MachineDeployment md1: Rolling out 5 not up-to-date replicas\n" +
 					"* MachinePool mp1: Rolling out 3 not up-to-date replicas",
 			},
@@ -1454,7 +1454,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRollingOutCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterRollingOutInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterRollingOutInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1466,7 +1466,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotRollingOutV1Beta2Reason,
+				Reason: clusterv1.ClusterNotRollingOutReason,
 			},
 		},
 		{
@@ -1476,7 +1476,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.RollingOutV1Beta2Reason,
+					Reason:  clusterv1.RollingOutReason,
 					Message: "Rolling out 3 not up-to-date replicas",
 				}),
 			}},
@@ -1484,7 +1484,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.MachineDeploymentRollingOutCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentRollingOutReason,
 					Message: "Rolling out 5 not up-to-date replicas",
 				}),
 			}},
@@ -1492,7 +1492,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRollingOutCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterRollingOutV1Beta2Reason,
+				Reason: clusterv1.ClusterRollingOutReason,
 				Message: "* MachineDeployment md1: Rolling out 5 not up-to-date replicas\n" +
 					"* MachinePool mp1: Rolling out 3 not up-to-date replicas",
 			},
@@ -1532,7 +1532,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingUpCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingUpInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingUpInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1545,7 +1545,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingUpCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingUpInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingUpInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1557,7 +1557,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotScalingUpV1Beta2Reason,
+				Reason: clusterv1.ClusterNotScalingUpReason,
 			},
 		},
 		{
@@ -1583,7 +1583,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterScalingUpUnknownV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingUpUnknownReason,
 				Message: "* MachineDeployment md1: Condition ScalingUp not yet reported\n" +
 					"* MachinePool mp1: Condition ScalingUp not yet reported\n" +
 					"* MachineSet ms1: Condition ScalingUp not yet reported",
@@ -1595,14 +1595,14 @@ func TestSetScalingUpCondition(t *testing.T) {
 			controlPlane: fakeControlPlane("cp1", condition{
 				Type:    clusterv1.ClusterScalingUpCondition,
 				Status:  corev1.ConditionTrue,
-				Reason:  clusterv1.ScalingUpV1Beta2Reason,
+				Reason:  clusterv1.ScalingUpReason,
 				Message: "Scaling up from 0 to 3 replicas",
 			}),
 			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.ScalingUpV1Beta2Reason,
+					Reason:  clusterv1.ScalingUpReason,
 					Message: "Scaling up from 0 to 3 replicas",
 				}),
 			}},
@@ -1610,7 +1610,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentScalingUpReason,
 					Message: "Scaling up from 1 to 5 replicas",
 				}),
 			}},
@@ -1618,7 +1618,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineSet("ms1", OwnedByCluster("c"), v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineSetScalingUpReason,
 					Message: "Scaling up from 2 to 7 replicas",
 				}),
 				*fakeMachineSet("ms2", v1beta2Condition{
@@ -1632,7 +1632,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingUpV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingUpReason,
 				Message: "* FakeControlPlane cp1: Scaling up from 0 to 3 replicas\n" +
 					"* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
@@ -1647,7 +1647,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.ScalingUpV1Beta2Reason,
+					Reason:  clusterv1.ScalingUpReason,
 					Message: "Scaling up from 0 to 3 replicas",
 				}),
 			}},
@@ -1655,7 +1655,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentScalingUpReason,
 					Message: "Scaling up from 1 to 5 replicas",
 				}),
 			}},
@@ -1663,7 +1663,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineSet("ms1", OwnedByCluster("c"), v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineSetScalingUpReason,
 					Message: "Scaling up from 2 to 7 replicas",
 				}),
 				*fakeMachineSet("ms2", v1beta2Condition{
@@ -1677,7 +1677,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingUpV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingUpReason,
 				Message: "* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
 					"* MachineSet ms1: Scaling up from 2 to 7 replicas",
@@ -1690,7 +1690,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingUpCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingUpInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingUpInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1702,7 +1702,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotScalingUpV1Beta2Reason,
+				Reason: clusterv1.ClusterNotScalingUpReason,
 			},
 		},
 		{
@@ -1712,7 +1712,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachinePool("mp1", v1beta2Condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.ScalingUpV1Beta2Reason,
+					Reason:  clusterv1.ScalingUpReason,
 					Message: "Scaling up from 0 to 3 replicas",
 				}),
 			}},
@@ -1720,7 +1720,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineDeployment("md1", v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeploymentScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineDeploymentScalingUpReason,
 					Message: "Scaling up from 1 to 5 replicas",
 				}),
 			}},
@@ -1728,7 +1728,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				*fakeMachineSet("ms1", OwnedByCluster("c"), v1beta2Condition{
 					Type:    clusterv1.ClusterScalingUpCondition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
+					Reason:  clusterv1.MachineSetScalingUpReason,
 					Message: "Scaling up from 2 to 7 replicas",
 				}),
 				*fakeMachineSet("ms2", v1beta2Condition{
@@ -1742,7 +1742,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingUpCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingUpV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingUpReason,
 				Message: "* MachineDeployment md1: Scaling up from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling up from 0 to 3 replicas\n" +
 					"* MachineSet ms1: Scaling up from 2 to 7 replicas",
@@ -1783,7 +1783,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingDownCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingDownInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingDownInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1796,7 +1796,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingDownCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingDownInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingDownInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1808,7 +1808,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotScalingDownV1Beta2Reason,
+				Reason: clusterv1.ClusterNotScalingDownReason,
 			},
 		},
 		{
@@ -1834,7 +1834,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterScalingDownUnknownV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingDownUnknownReason,
 				Message: "* MachineDeployment md1: Condition ScalingDown not yet reported\n" +
 					"* MachinePool mp1: Condition ScalingDown not yet reported\n" +
 					"* MachineSet ms1: Condition ScalingDown not yet reported",
@@ -1883,7 +1883,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingDownV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingDownReason,
 				Message: "* FakeControlPlane cp1: Scaling down from 0 to 3 replicas\n" +
 					"* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
@@ -1928,7 +1928,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingDownV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingDownReason,
 				Message: "* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
 					"* MachineSet ms1: Scaling down from 2 to 7 replicas",
@@ -1941,7 +1941,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterScalingDownCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterScalingDownInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterScalingDownInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -1953,7 +1953,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotScalingDownV1Beta2Reason,
+				Reason: clusterv1.ClusterNotScalingDownReason,
 			},
 		},
 		{
@@ -1993,7 +1993,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterScalingDownV1Beta2Reason,
+				Reason: clusterv1.ClusterScalingDownReason,
 				Message: "* MachineDeployment md1: Scaling down from 1 to 5 replicas\n" +
 					"* MachinePool mp1: Scaling down from 0 to 3 replicas\n" +
 					"* MachineSet ms1: Scaling down from 2 to 7 replicas",
@@ -2017,7 +2017,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingReason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name                    string
@@ -2034,7 +2034,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRemediatingCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterRemediatingInternalErrorV1Beta2Reason,
+				Reason:  clusterv1.ClusterRemediatingInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
 		},
@@ -2049,7 +2049,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterRemediatingCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotRemediatingV1Beta2Reason,
+				Reason: clusterv1.ClusterNotRemediatingReason,
 			},
 		},
 		{
@@ -2064,7 +2064,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRemediatingCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterRemediatingV1Beta2Reason,
+				Reason:  clusterv1.ClusterRemediatingReason,
 				Message: "* Machine m3: Machine is deleting",
 			},
 		},
@@ -2080,7 +2080,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRemediatingCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotRemediatingV1Beta2Reason,
+				Reason:  clusterv1.ClusterNotRemediatingReason,
 				Message: "Machine m2 is not healthy (not to be remediated)",
 			},
 		},
@@ -2096,7 +2096,7 @@ func TestSetRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterRemediatingCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotRemediatingV1Beta2Reason,
+				Reason:  clusterv1.ClusterNotRemediatingReason,
 				Message: "Machines m1, m2 are not healthy (not to be remediated)",
 			},
 		},
@@ -2136,13 +2136,13 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterDeletingCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotDeletingV1Beta2Reason,
+				Reason: clusterv1.ClusterNotDeletingReason,
 			},
 		},
 		{
 			name:           "deletionTimestamp set (some reason/message reported)",
 			cluster:        fakeCluster("c", deleted(true)),
-			deletingReason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+			deletingReason: clusterv1.ClusterDeletingWaitingForWorkersDeletionReason,
 			deletingMessage: "* Control plane Machines: cp1, cp2, cp3\n" +
 				"* MachineDeployments: md1, md2\n" +
 				"* MachineSets: ms1, ms2\n" +
@@ -2150,7 +2150,7 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterDeletingCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+				Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionReason,
 				Message: "* Control plane Machines: cp1, cp2, cp3\n" +
 					"* MachineDeployments: md1, md2\n" +
 					"* MachineSets: ms1, ms2\n" +
@@ -2198,7 +2198,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionUnknown,
-				Reason: clusterv1.ClusterAvailableUnknownV1Beta2Reason,
+				Reason: clusterv1.ClusterAvailableUnknownReason,
 				Message: "* Deleting: Condition not yet reported\n" +
 					"* RemoteConnectionProbe: Condition not yet reported\n" +
 					"* InfrastructureReady: Condition not yet reported\n" +
@@ -2250,7 +2250,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterAvailableV1Beta2Reason,
+				Reason:  clusterv1.ClusterAvailableReason,
 				Message: "",
 			},
 		},
@@ -2289,7 +2289,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterDeletingCondition,
 							Status: metav1.ConditionTrue,
-							Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionV1Beta2Reason,
+							Reason: clusterv1.ClusterDeletingWaitingForWorkersDeletionReason,
 							Message: "* Control plane Machines: cp1, cp2, cp3\n" +
 								"* MachineDeployments: md1, md2\n" +
 								"* MachineSets: ms1, ms2\n" +
@@ -2301,7 +2301,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* Deleting:\n" +
 					"  * Control plane Machines: cp1, cp2, cp3\n" +
 					"  * MachineDeployments: md1, md2\n" +
@@ -2353,7 +2353,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterAvailableUnknownV1Beta2Reason,
+				Reason:  clusterv1.ClusterAvailableUnknownReason,
 				Message: "* TopologyReconciled: Condition not yet reported",
 			},
 		},
@@ -2429,7 +2429,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* MyAvailabilityGate: Some message\n" +
 					"* MyAvailabilityGateWithNegativePolarity: Some other message",
 			},
@@ -2499,7 +2499,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* MyClusterClassAvailabilityGate: Some message\n" +
 					"* MyClusterClassAvailabilityGateWithNegativePolarity: Some other message",
 			},
@@ -2517,12 +2517,12 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterInfrastructureReadyCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterInfrastructureDeletedV1Beta2Reason,
+							Reason: clusterv1.ClusterInfrastructureDeletedReason,
 						},
 						{
 							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterControlPlaneDeletedV1Beta2Reason,
+							Reason: clusterv1.ClusterControlPlaneDeletedReason,
 						},
 						{
 							Type:   clusterv1.ClusterWorkersAvailableCondition,
@@ -2537,7 +2537,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:    clusterv1.ClusterDeletingCondition,
 							Status:  metav1.ConditionTrue,
-							Reason:  clusterv1.ClusterDeletingWaitingForBeforeDeleteHookV1Beta2Reason,
+							Reason:  clusterv1.ClusterDeletingWaitingForBeforeDeleteHookReason,
 							Message: "Some message",
 						},
 					},
@@ -2546,7 +2546,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason:  clusterv1.ClusterNotAvailableReason,
 				Message: "* Deleting: Some message",
 			},
 		},
@@ -2590,7 +2590,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:    clusterv1.ClusterTopologyReconciledCondition,
 							Status:  metav1.ConditionFalse,
-							Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+							Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingReason,
 							Message: "Control plane rollout and upgrade to version v1.29.0 on hold.",
 						},
 					},
@@ -2599,7 +2599,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterAvailableV1Beta2Reason,
+				Reason:  clusterv1.ClusterAvailableReason,
 				Message: "* TopologyReconciled: Control plane rollout and upgrade to version v1.29.0 on hold.",
 			},
 		},
@@ -2628,7 +2628,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:    clusterv1.ClusterWorkersAvailableCondition,
 							Status:  metav1.ConditionFalse,
-							Reason:  clusterv1.ClusterWorkersNotAvailableV1Beta2Reason,
+							Reason:  clusterv1.ClusterWorkersNotAvailableReason,
 							Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
 						},
 						{
@@ -2644,7 +2644,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:    clusterv1.ClusterTopologyReconciledCondition,
 							Status:  metav1.ConditionFalse,
-							Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason,
+							Reason:  clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingReason,
 							Message: "Control plane rollout and upgrade to version v1.29.0 on hold.",
 						},
 					},
@@ -2653,7 +2653,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason:  clusterv1.ClusterNotAvailableReason,
 				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
 			},
 		},
@@ -2697,7 +2697,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
 							Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
@@ -2707,7 +2707,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
@@ -2737,7 +2737,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:    clusterv1.ClusterWorkersAvailableCondition,
 							Status:  metav1.ConditionFalse,
-							Reason:  clusterv1.ClusterWorkersNotAvailableV1Beta2Reason,
+							Reason:  clusterv1.ClusterWorkersNotAvailableReason,
 							Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1",
 						},
 						{
@@ -2753,7 +2753,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
 							Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
@@ -2763,7 +2763,7 @@ func TestSetAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.ClusterNotAvailableV1Beta2Reason,
+				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1\n" +
 					"* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},

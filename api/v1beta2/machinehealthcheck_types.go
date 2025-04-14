@@ -30,13 +30,13 @@ const (
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.
 	MachineHealthCheckRemediationAllowedCondition = "RemediationAllowed"
 
-	// MachineHealthCheckTooManyUnhealthyV1Beta2Reason is the reason used when too many Machines are unhealthy and
+	// MachineHealthCheckTooManyUnhealthyReason is the reason used when too many Machines are unhealthy and
 	// the MachineHealthCheck is blocked from making any further remediation.
-	MachineHealthCheckTooManyUnhealthyV1Beta2Reason = "TooManyUnhealthy"
+	MachineHealthCheckTooManyUnhealthyReason = "TooManyUnhealthy"
 
-	// MachineHealthCheckRemediationAllowedV1Beta2Reason is the reason used when the number of unhealthy machine
+	// MachineHealthCheckRemediationAllowedReason is the reason used when the number of unhealthy machine
 	// is within the limits defined by the MachineHealthCheck, and thus remediation is allowed.
-	MachineHealthCheckRemediationAllowedV1Beta2Reason = "RemediationAllowed"
+	MachineHealthCheckRemediationAllowedReason = "RemediationAllowed"
 )
 
 var (

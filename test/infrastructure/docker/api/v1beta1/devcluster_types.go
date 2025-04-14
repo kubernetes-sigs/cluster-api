@@ -38,14 +38,14 @@ const (
 	DevClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// DevClusterReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is met.
-	DevClusterReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	DevClusterReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// DevClusterNotReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is not met.
-	DevClusterNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	DevClusterNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// DevClusterReadyUnknownV1Beta2Reason surfaces when at least one DevCluster readiness criteria is unknown
 	// and no DevCluster readiness criteria is not met.
-	DevClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+	DevClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
 )
 
 // DevCluster's v1Beta2 conditions that apply to the docker backend.
@@ -58,15 +58,15 @@ const (
 
 	// DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is not available.
-	DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
+	DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1.NotAvailableReason
 
 	// DevClusterDockerLoadBalancerAvailableV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is available.
-	DevClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+	DevClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1.AvailableReason
 
 	// DevClusterDockerLoadBalancerDeletingV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is deleting.
-	DevClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	DevClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingReason
 )
 
 // DevClusterSpec defines the desired state of the DevCluster infrastructure.

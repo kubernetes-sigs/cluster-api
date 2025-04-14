@@ -271,11 +271,11 @@ const (
 	// ExtensionConfigDiscoveredCondition is true if the runtime extension has been successfully discovered.
 	ExtensionConfigDiscoveredCondition = "Discovered"
 
-	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
+	// ExtensionConfigDiscoveredReason surfaces that the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredReason = "Discovered"
 
-	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.
-	ExtensionConfigNotDiscoveredV1Beta2Reason = "NotDiscovered"
+	// ExtensionConfigNotDiscoveredReason surfaces that the runtime extension has not been successfully discovered.
+	ExtensionConfigNotDiscoveredReason = "NotDiscovered"
 )
 
 const (

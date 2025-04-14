@@ -287,7 +287,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		conditions.Set(m, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyV1Beta2Reason,
+			Reason:  clusterv1.MachineHealthCheckTooManyUnhealthyReason,
 			Message: message,
 		})
 
@@ -347,7 +347,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	conditions.Set(m, metav1.Condition{
 		Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineHealthCheckRemediationAllowedV1Beta2Reason,
+		Reason: clusterv1.MachineHealthCheckRemediationAllowedReason,
 	})
 
 	errList := r.patchUnhealthyTargets(ctx, logger, unhealthy, cluster, m)
@@ -445,7 +445,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedCondition,
 						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason,
+						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundReason,
 						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(m.Spec.RemediationTemplate.Namespace, m.Spec.RemediationTemplate.Name)),
 					})
 					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
@@ -481,7 +481,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedCondition,
 						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason,
+						Reason:  clusterv1.MachineExternallyRemediatedRemediationRequestCreationFailedReason,
 						Message: "Please check controller logs for errors",
 					})
 					errList = append(errList, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName))
@@ -491,7 +491,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				conditions.Set(t.Machine, metav1.Condition{
 					Type:   clusterv1.MachineExternallyRemediatedCondition,
 					Status: metav1.ConditionFalse,
-					Reason: clusterv1.MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason,
+					Reason: clusterv1.MachineExternallyRemediatedWaitingForRemediationReason,
 				})
 			} else if t.Machine.DeletionTimestamp.IsZero() { // Only setting the OwnerRemediated conditions when machine is not already in deletion.
 				logger.Info("Machine has failed health check, marking for remediation", "reason", condition.Reason, "message", condition.Message)
@@ -506,7 +506,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,
 						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason,
+						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
 						Message: "Waiting for remediation",
 					})
 				}

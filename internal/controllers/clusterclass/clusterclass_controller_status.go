@@ -43,7 +43,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.ClusterClassRefVersionsUpToDateInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -65,7 +65,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassRefVersionsUpToDateCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterClassRefVersionsNotUpToDateV1Beta2Reason,
+			Reason:  clusterv1.ClusterClassRefVersionsNotUpToDateReason,
 			Message: strings.Join(msg, "\n"),
 		})
 		return
@@ -77,7 +77,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassRefVersionsUpToDateCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.ClusterClassRefVersionsUpToDateV1Beta2Reason,
+		Reason: clusterv1.ClusterClassRefVersionsUpToDateReason,
 	})
 }
 
@@ -92,7 +92,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassVariablesReadyCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason,
+			Reason:  clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedReason,
 			Message: variableDiscoveryError.Error(),
 		})
 		return
@@ -102,6 +102,6 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 	conditions.Set(clusterClass, metav1.Condition{
 		Type:   clusterv1.ClusterClassVariablesReadyCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.ClusterClassVariablesReadyV1Beta2Reason,
+		Reason: clusterv1.ClusterClassVariablesReadyReason,
 	})
 }

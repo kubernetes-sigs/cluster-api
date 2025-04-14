@@ -176,7 +176,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		conditions.Set(clusterResourceSet, metav1.Condition{
 			Type:    addonsv1.ResourcesAppliedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
+			Reason:  addonsv1.ResourcesAppliedInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return ctrl.Result{}, err
@@ -318,7 +318,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ResourcesAppliedCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeV1Beta2Reason,
+					Reason:  addonsv1.ResourcesAppliedWrongSecretTypeReason,
 					Message: fmt.Sprintf("Secret type of resource %s is not supported", resource.Name),
 				})
 			} else {
@@ -326,7 +326,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ResourcesAppliedCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  addonsv1.ResourcesAppliedInternalErrorV1Beta2Reason,
+					Reason:  addonsv1.ResourcesAppliedInternalErrorReason,
 					Message: "Please check controller logs for errors",
 				})
 
@@ -384,7 +384,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		conditions.Set(clusterResourceSet, metav1.Condition{
 			Type:    addonsv1.ResourcesAppliedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.InternalErrorV1Beta2Reason,
+			Reason:  clusterv1.InternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return err
@@ -441,7 +441,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 			conditions.Set(clusterResourceSet, metav1.Condition{
 				Type:    addonsv1.ResourcesAppliedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  addonsv1.ResourcesNotAppliedV1Beta2Reason,
+				Reason:  addonsv1.ResourcesNotAppliedReason,
 				Message: "Failed to apply ClusterResourceSet resources to Cluster",
 			})
 			errList = append(errList, err)
@@ -462,7 +462,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 	conditions.Set(clusterResourceSet, metav1.Condition{
 		Type:   addonsv1.ResourcesAppliedCondition,
 		Status: metav1.ConditionTrue,
-		Reason: addonsv1.ResourcesAppliedV1beta2Reason,
+		Reason: addonsv1.ResourcesAppliedReason,
 	})
 
 	return nil

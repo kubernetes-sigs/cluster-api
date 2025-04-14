@@ -270,7 +270,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    nil,
 	}
 	nodeNotYetStartedTarget1200sCondition := newFailedHealthCheckCondition(clusterv1.NodeStartupTimeoutV1Beta1Reason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
-	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason, "Health check failed: Node failed to report startup in %s", timeoutForMachineToHaveNode)
+	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeStartupTimeoutReason, "Health check failed: Node failed to report startup in %s", timeoutForMachineToHaveNode)
 
 	testMachineCreated400s := testMachine.DeepCopy()
 	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
@@ -292,7 +292,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: true,
 	}
 	nodeGoneAwayCondition := newFailedHealthCheckCondition(clusterv1.NodeNotFoundV1Beta1Reason, "")
-	nodeGoneAwayV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason, "Health check failed: Node %s has been deleted", testMachine.Status.NodeRef.Name)
+	nodeGoneAwayV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeDeletedReason, "Health check failed: Node %s has been deleted", testMachine.Status.NodeRef.Name)
 
 	// Create a test MHC without conditions
 	testMHCEmptyConditions := &clusterv1.MachineHealthCheck{
@@ -372,7 +372,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: false,
 	}
 	nodeUnknown400Condition := newFailedHealthCheckCondition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
-	nodeUnknown400V1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
+	nodeUnknown400V1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
@@ -429,7 +429,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    nil,
 	}
 	machineAnnotationRemediationCondition := newFailedHealthCheckCondition(clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, annotationRemediationMsg)
-	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason, annotationRemediationV1Beta2Msg)
+	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckHasRemediateAnnotationReason, annotationRemediationV1Beta2Msg)
 
 	testCases := []struct {
 		desc                                     string

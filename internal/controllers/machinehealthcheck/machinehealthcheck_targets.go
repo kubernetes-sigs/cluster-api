@@ -93,7 +93,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		conditions.Set(t.Machine, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckSucceededCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
+			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationReason,
 			Message: "Health check failed: marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
 		})
 		return true, time.Duration(0)
@@ -119,7 +119,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		conditions.Set(t.Machine, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckSucceededCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
+			Reason:  clusterv1.MachineHealthCheckNodeDeletedReason,
 			Message: fmt.Sprintf("Health check failed: Node %s has been deleted", t.Machine.Status.NodeRef.Name),
 		})
 		return true, time.Duration(0)
@@ -181,7 +181,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			conditions.Set(t.Machine, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckSucceededCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason,
+				Reason:  clusterv1.MachineHealthCheckNodeStartupTimeoutReason,
 				Message: fmt.Sprintf("Health check failed: Node failed to report startup in %s", timeoutDuration),
 			})
 			return true, time.Duration(0)
@@ -212,7 +212,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			conditions.Set(t.Machine, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckSucceededCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason,
+				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeReason,
 				Message: fmt.Sprintf("Health check failed: Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String()),
 			})
 			return true, time.Duration(0)
@@ -352,7 +352,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 			conditions.Set(t.Machine, metav1.Condition{
 				Type:   clusterv1.MachineHealthCheckSucceededCondition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
+				Reason: clusterv1.MachineHealthCheckSucceededReason,
 			})
 			healthy = append(healthy, t)
 		}

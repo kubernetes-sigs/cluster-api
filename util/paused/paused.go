@@ -107,7 +107,7 @@ func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj Con
 		return metav1.Condition{
 			Type:               targetConditionType,
 			Status:             metav1.ConditionTrue,
-			Reason:             clusterv1.PausedV1Beta2Reason,
+			Reason:             clusterv1.PausedReason,
 			Message:            strings.Join(messages, ", "),
 			ObservedGeneration: obj.GetGeneration(),
 		}
@@ -116,7 +116,7 @@ func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj Con
 	return metav1.Condition{
 		Type:               targetConditionType,
 		Status:             metav1.ConditionFalse,
-		Reason:             clusterv1.NotPausedV1Beta2Reason,
+		Reason:             clusterv1.NotPausedReason,
 		ObservedGeneration: obj.GetGeneration(),
 	}
 }

@@ -95,15 +95,15 @@ const (
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableCondition = AvailableCondition
 
-	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
-	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
+	// MachineWaitingForMinReadySecondsReason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
+	MachineWaitingForMinReadySecondsReason = "WaitingForMinReadySeconds"
 
-	// MachineAvailableV1Beta2Reason surfaces when a machine is ready for at least MinReadySeconds.
+	// MachineAvailableReason surfaces when a machine is ready for at least MinReadySeconds.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
-	MachineAvailableV1Beta2Reason = AvailableV1Beta2Reason
+	MachineAvailableReason = AvailableReason
 
-	// MachineAvailableInternalErrorV1Beta2Reason surfaces unexpected error when computing the Available condition.
-	MachineAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineAvailableInternalErrorReason surfaces unexpected error when computing the Available condition.
+	MachineAvailableInternalErrorReason = InternalErrorReason
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -122,19 +122,19 @@ const (
 	//   referenced object won't be considered as an issue.
 	MachineReadyCondition = ReadyCondition
 
-	// MachineReadyV1Beta2Reason surfaces when the machine readiness criteria is met.
-	MachineReadyV1Beta2Reason = ReadyV1Beta2Reason
+	// MachineReadyReason surfaces when the machine readiness criteria is met.
+	MachineReadyReason = ReadyReason
 
-	// MachineNotReadyV1Beta2Reason surfaces when the machine readiness criteria is not met.
+	// MachineNotReadyReason surfaces when the machine readiness criteria is not met.
 	// Note: when a machine is not ready, it is also not available.
-	MachineNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+	MachineNotReadyReason = NotReadyReason
 
-	// MachineReadyUnknownV1Beta2Reason surfaces when at least one machine readiness criteria is unknown
+	// MachineReadyUnknownReason surfaces when at least one machine readiness criteria is unknown
 	// and no machine readiness criteria is not met.
-	MachineReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
+	MachineReadyUnknownReason = ReadyUnknownReason
 
-	// MachineReadyInternalErrorV1Beta2Reason surfaces unexpected error when computing the Ready condition.
-	MachineReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineReadyInternalErrorReason surfaces unexpected error when computing the Ready condition.
+	MachineReadyInternalErrorReason = InternalErrorReason
 )
 
 // Machine's UpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -146,11 +146,11 @@ const (
 	// is expired and the Machine needs to be rolled out.
 	MachineUpToDateCondition = "UpToDate"
 
-	// MachineUpToDateV1Beta2Reason surface when a Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
-	MachineUpToDateV1Beta2Reason = "UpToDate"
+	// MachineUpToDateReason surface when a Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	MachineUpToDateReason = "UpToDate"
 
-	// MachineNotUpToDateV1Beta2Reason surface when a Machine spec does not match the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
-	MachineNotUpToDateV1Beta2Reason = "NotUpToDate"
+	// MachineNotUpToDateReason surface when a Machine spec does not match the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	MachineNotUpToDateReason = "NotUpToDate"
 )
 
 // Machine's BootstrapConfigReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -159,31 +159,31 @@ const (
 	// MachineBootstrapConfigReadyCondition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
 	MachineBootstrapConfigReadyCondition = BootstrapConfigReadyCondition
 
-	// MachineBootstrapDataSecretProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided (not originated
+	// MachineBootstrapDataSecretProvidedReason surfaces when a bootstrap data secret is provided (not originated
 	// from a BoostrapConfig object referenced from the machine).
-	MachineBootstrapDataSecretProvidedV1Beta2Reason = "DataSecretProvided"
+	MachineBootstrapDataSecretProvidedReason = "DataSecretProvided"
 
-	// MachineBootstrapConfigReadyV1Beta2Reason surfaces when the machine bootstrap config is ready.
-	MachineBootstrapConfigReadyV1Beta2Reason = ReadyV1Beta2Reason
+	// MachineBootstrapConfigReadyReason surfaces when the machine bootstrap config is ready.
+	MachineBootstrapConfigReadyReason = ReadyReason
 
-	// MachineBootstrapConfigNotReadyV1Beta2Reason surfaces when the machine bootstrap config is not ready.
-	MachineBootstrapConfigNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+	// MachineBootstrapConfigNotReadyReason surfaces when the machine bootstrap config is not ready.
+	MachineBootstrapConfigNotReadyReason = NotReadyReason
 
-	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
+	// MachineBootstrapConfigInvalidConditionReportedReason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
 	// (e.g. its status is missing).
-	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+	MachineBootstrapConfigInvalidConditionReportedReason = InvalidConditionReportedReason
 
-	// MachineBootstrapConfigInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
-	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineBootstrapConfigInternalErrorReason surfaces unexpected failures when reading a BootstrapConfig object.
+	MachineBootstrapConfigInternalErrorReason = InternalErrorReason
 
-	// MachineBootstrapConfigDoesNotExistV1Beta2Reason surfaces when a referenced bootstrap config object does not exist.
+	// MachineBootstrapConfigDoesNotExistReason surfaces when a referenced bootstrap config object does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
-	MachineBootstrapConfigDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
+	MachineBootstrapConfigDoesNotExistReason = ObjectDoesNotExistReason
 
-	// MachineBootstrapConfigDeletedV1Beta2Reason surfaces when a referenced bootstrap config object has been deleted.
+	// MachineBootstrapConfigDeletedReason surfaces when a referenced bootstrap config object has been deleted.
 	// Note: controllers can't identify if the bootstrap config object was deleted the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineBootstrapConfigDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+	MachineBootstrapConfigDeletedReason = ObjectDeletedReason
 )
 
 // Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -192,27 +192,27 @@ const (
 	// MachineInfrastructureReadyCondition mirrors the corresponding Ready condition from the Machine's infrastructure resource.
 	MachineInfrastructureReadyCondition = InfrastructureReadyCondition
 
-	// MachineInfrastructureReadyV1Beta2Reason surfaces when the machine infrastructure is ready.
-	MachineInfrastructureReadyV1Beta2Reason = ReadyV1Beta2Reason
+	// MachineInfrastructureReadyReason surfaces when the machine infrastructure is ready.
+	MachineInfrastructureReadyReason = ReadyReason
 
-	// MachineInfrastructureNotReadyV1Beta2Reason surfaces when the machine infrastructure is not ready.
-	MachineInfrastructureNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+	// MachineInfrastructureNotReadyReason surfaces when the machine infrastructure is not ready.
+	MachineInfrastructureNotReadyReason = NotReadyReason
 
-	// MachineInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
+	// MachineInfrastructureInvalidConditionReportedReason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
 	// (e.g. its status is missing).
-	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+	MachineInfrastructureInvalidConditionReportedReason = InvalidConditionReportedReason
 
-	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading an infra machine object.
-	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineInfrastructureInternalErrorReason surfaces unexpected failures when reading an infra machine object.
+	MachineInfrastructureInternalErrorReason = InternalErrorReason
 
-	// MachineInfrastructureDoesNotExistV1Beta2Reason surfaces when a referenced infrastructure object does not exist.
+	// MachineInfrastructureDoesNotExistReason surfaces when a referenced infrastructure object does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
-	MachineInfrastructureDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
+	MachineInfrastructureDoesNotExistReason = ObjectDoesNotExistReason
 
-	// MachineInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
+	// MachineInfrastructureDeletedReason surfaces when a referenced infrastructure object has been deleted.
 	// Note: controllers can't identify if the infrastructure object was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineInfrastructureDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+	MachineInfrastructureDeletedReason = ObjectDeletedReason
 )
 
 // Machine's NodeHealthy and NodeReady conditions and corresponding reasons that will be used in v1Beta2 API version.
@@ -224,42 +224,42 @@ const (
 	// MachineNodeReadyCondition is true if the Machine's Node is ready.
 	MachineNodeReadyCondition = "NodeReady"
 
-	// MachineNodeReadyV1Beta2Reason surfaces when Machine's Node Ready condition is true.
-	MachineNodeReadyV1Beta2Reason = "NodeReady"
+	// MachineNodeReadyReason surfaces when Machine's Node Ready condition is true.
+	MachineNodeReadyReason = "NodeReady"
 
-	// MachineNodeNotReadyV1Beta2Reason surfaces when Machine's Node Ready condition is false.
-	MachineNodeNotReadyV1Beta2Reason = "NodeNotReady"
+	// MachineNodeNotReadyReason surfaces when Machine's Node Ready condition is false.
+	MachineNodeNotReadyReason = "NodeNotReady"
 
-	// MachineNodeReadyUnknownV1Beta2Reason surfaces when Machine's Node Ready condition is unknown.
-	MachineNodeReadyUnknownV1Beta2Reason = "NodeReadyUnknown"
+	// MachineNodeReadyUnknownReason surfaces when Machine's Node Ready condition is unknown.
+	MachineNodeReadyUnknownReason = "NodeReadyUnknown"
 
-	// MachineNodeHealthyV1Beta2Reason surfaces when all the node conditions report healthy state.
-	MachineNodeHealthyV1Beta2Reason = "NodeHealthy"
+	// MachineNodeHealthyReason surfaces when all the node conditions report healthy state.
+	MachineNodeHealthyReason = "NodeHealthy"
 
-	// MachineNodeNotHealthyV1Beta2Reason surfaces when at least one node conditions report not healthy state.
-	MachineNodeNotHealthyV1Beta2Reason = "NodeNotHealthy"
+	// MachineNodeNotHealthyReason surfaces when at least one node conditions report not healthy state.
+	MachineNodeNotHealthyReason = "NodeNotHealthy"
 
-	// MachineNodeHealthUnknownV1Beta2Reason surfaces when at least one node conditions report healthy state unknown
+	// MachineNodeHealthUnknownReason surfaces when at least one node conditions report healthy state unknown
 	// and no node conditions report not healthy state.
-	MachineNodeHealthUnknownV1Beta2Reason = "NodeHealthyUnknown"
+	MachineNodeHealthUnknownReason = "NodeHealthyUnknown"
 
-	// MachineNodeInternalErrorV1Beta2Reason surfaces unexpected failures when reading a Node object.
-	MachineNodeInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineNodeInternalErrorReason surfaces unexpected failures when reading a Node object.
+	MachineNodeInternalErrorReason = InternalErrorReason
 
-	// MachineNodeDoesNotExistV1Beta2Reason surfaces when the node hosted on the machine does not exist.
+	// MachineNodeDoesNotExistReason surfaces when the node hosted on the machine does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
-	MachineNodeDoesNotExistV1Beta2Reason = "NodeDoesNotExist"
+	MachineNodeDoesNotExistReason = "NodeDoesNotExist"
 
-	// MachineNodeDeletedV1Beta2Reason surfaces when the node hosted on the machine has been deleted.
+	// MachineNodeDeletedReason surfaces when the node hosted on the machine has been deleted.
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineNodeDeletedV1Beta2Reason = "NodeDeleted"
+	MachineNodeDeletedReason = "NodeDeleted"
 
-	// MachineNodeInspectionFailedV1Beta2Reason documents a failure when inspecting the status of a Node.
-	MachineNodeInspectionFailedV1Beta2Reason = InspectionFailedV1Beta2Reason
+	// MachineNodeInspectionFailedReason documents a failure when inspecting the status of a Node.
+	MachineNodeInspectionFailedReason = InspectionFailedReason
 
-	// MachineNodeConnectionDownV1Beta2Reason surfaces that the connection to the workload cluster is down.
-	MachineNodeConnectionDownV1Beta2Reason = ConnectionDownV1Beta2Reason
+	// MachineNodeConnectionDownReason surfaces that the connection to the workload cluster is down.
+	MachineNodeConnectionDownReason = ConnectionDownReason
 )
 
 // Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -269,24 +269,24 @@ const (
 	// is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object.
 	MachineHealthCheckSucceededCondition = "HealthCheckSucceeded"
 
-	// MachineHealthCheckSucceededV1Beta2Reason surfaces when a machine passes all the health checks defined by a MachineHealthCheck object.
-	MachineHealthCheckSucceededV1Beta2Reason = "HealthCheckSucceeded"
+	// MachineHealthCheckSucceededReason surfaces when a machine passes all the health checks defined by a MachineHealthCheck object.
+	MachineHealthCheckSucceededReason = "HealthCheckSucceeded"
 
-	// MachineHealthCheckUnhealthyNodeV1Beta2Reason surfaces when the node hosted on the machine does not pass the health checks
+	// MachineHealthCheckUnhealthyNodeReason surfaces when the node hosted on the machine does not pass the health checks
 	// defined by a MachineHealthCheck object.
-	MachineHealthCheckUnhealthyNodeV1Beta2Reason = "UnhealthyNode"
+	MachineHealthCheckUnhealthyNodeReason = "UnhealthyNode"
 
-	// MachineHealthCheckNodeStartupTimeoutV1Beta2Reason surfaces when the node hosted on the machine does not appear within
+	// MachineHealthCheckNodeStartupTimeoutReason surfaces when the node hosted on the machine does not appear within
 	// the timeout defined by a MachineHealthCheck object.
-	MachineHealthCheckNodeStartupTimeoutV1Beta2Reason = "NodeStartupTimeout"
+	MachineHealthCheckNodeStartupTimeoutReason = "NodeStartupTimeout"
 
-	// MachineHealthCheckNodeDeletedV1Beta2Reason surfaces when a MachineHealthCheck detects that the node hosted on the
+	// MachineHealthCheckNodeDeletedReason surfaces when a MachineHealthCheck detects that the node hosted on the
 	// machine has been deleted while the Machine is still running.
-	MachineHealthCheckNodeDeletedV1Beta2Reason = "NodeDeleted"
+	MachineHealthCheckNodeDeletedReason = "NodeDeleted"
 
-	// MachineHealthCheckHasRemediateAnnotationV1Beta2Reason surfaces when a MachineHealthCheck detects that a Machine was
+	// MachineHealthCheckHasRemediateAnnotationReason surfaces when a MachineHealthCheck detects that a Machine was
 	// marked for remediation via the `cluster.x-k8s.io/remediate-machine` annotation.
-	MachineHealthCheckHasRemediateAnnotationV1Beta2Reason = "HasRemediateAnnotation"
+	MachineHealthCheckHasRemediateAnnotationReason = "HasRemediateAnnotation"
 )
 
 // Machine's OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
@@ -297,9 +297,9 @@ const (
 	// determine that the controller owning this machine should perform remediation.
 	MachineOwnerRemediatedCondition = "OwnerRemediated"
 
-	// MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the owner controller
+	// MachineOwnerRemediatedWaitingForRemediationReason surfaces the machine is waiting for the owner controller
 	// to start remediation.
-	MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason = "WaitingForRemediation"
+	MachineOwnerRemediatedWaitingForRemediationReason = "WaitingForRemediation"
 )
 
 // Machine's ExternallyRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
@@ -310,17 +310,17 @@ const (
 	// determine that an external controller should perform remediation.
 	MachineExternallyRemediatedCondition = "ExternallyRemediated"
 
-	// MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the
+	// MachineExternallyRemediatedWaitingForRemediationReason surfaces the machine is waiting for the
 	// external remediation controller to start remediation.
-	MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason = "WaitingForRemediation"
+	MachineExternallyRemediatedWaitingForRemediationReason = "WaitingForRemediation"
 
-	// MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason surfaces that the MachineHealthCheck cannot
+	// MachineExternallyRemediatedRemediationTemplateNotFoundReason surfaces that the MachineHealthCheck cannot
 	// find the template for an external remediation request.
-	MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason = "RemediationTemplateNotFound"
+	MachineExternallyRemediatedRemediationTemplateNotFoundReason = "RemediationTemplateNotFound"
 
-	// MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason surfaces that the MachineHealthCheck cannot
+	// MachineExternallyRemediatedRemediationRequestCreationFailedReason surfaces that the MachineHealthCheck cannot
 	// create a request for the external remediation controller.
-	MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason = "RemediationRequestCreationFailed"
+	MachineExternallyRemediatedRemediationRequestCreationFailedReason = "RemediationRequestCreationFailed"
 )
 
 // Machine's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -328,51 +328,51 @@ const (
 	// MachineDeletingCondition surfaces details about progress in the machine deletion workflow.
 	MachineDeletingCondition = DeletingCondition
 
-	// MachineNotDeletingV1Beta2Reason surfaces when the Machine is not deleting because the
+	// MachineNotDeletingReason surfaces when the Machine is not deleting because the
 	// DeletionTimestamp is not set.
-	MachineNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
+	MachineNotDeletingReason = NotDeletingReason
 
-	// MachineDeletingV1Beta2Reason surfaces when the Machine is deleting because the
+	// MachineDeletingReason surfaces when the Machine is deleting because the
 	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
-	MachineDeletingV1Beta2Reason = DeletingV1Beta2Reason
+	MachineDeletingReason = DeletingReason
 
-	// MachineDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a Machine.
-	MachineDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineDeletingInternalErrorReason surfaces unexpected failures when deleting a Machine.
+	MachineDeletingInternalErrorReason = InternalErrorReason
 
-	// MachineDeletingWaitingForPreDrainHookV1Beta2Reason surfaces when the Machine deletion
+	// MachineDeletingWaitingForPreDrainHookReason surfaces when the Machine deletion
 	// waits for pre-drain hooks to complete. I.e. it waits until there are no annotations
 	// with the `pre-drain.delete.hook.machine.cluster.x-k8s.io` prefix on the Machine anymore.
-	MachineDeletingWaitingForPreDrainHookV1Beta2Reason = "WaitingForPreDrainHook"
+	MachineDeletingWaitingForPreDrainHookReason = "WaitingForPreDrainHook"
 
-	// MachineDeletingDrainingNodeV1Beta2Reason surfaces when the Machine deletion is draining the Node.
-	MachineDeletingDrainingNodeV1Beta2Reason = "DrainingNode"
+	// MachineDeletingDrainingNodeReason surfaces when the Machine deletion is draining the Node.
+	MachineDeletingDrainingNodeReason = "DrainingNode"
 
-	// MachineDeletingWaitingForVolumeDetachV1Beta2Reason surfaces when the Machine deletion is
+	// MachineDeletingWaitingForVolumeDetachReason surfaces when the Machine deletion is
 	// waiting for volumes to detach from the Node.
-	MachineDeletingWaitingForVolumeDetachV1Beta2Reason = "WaitingForVolumeDetach"
+	MachineDeletingWaitingForVolumeDetachReason = "WaitingForVolumeDetach"
 
-	// MachineDeletingWaitingForPreTerminateHookV1Beta2Reason surfaces when the Machine deletion
+	// MachineDeletingWaitingForPreTerminateHookReason surfaces when the Machine deletion
 	// waits for pre-terminate hooks to complete. I.e. it waits until there are no annotations
 	// with the `pre-terminate.delete.hook.machine.cluster.x-k8s.io` prefix on the Machine anymore.
-	MachineDeletingWaitingForPreTerminateHookV1Beta2Reason = "WaitingForPreTerminateHook"
+	MachineDeletingWaitingForPreTerminateHookReason = "WaitingForPreTerminateHook"
 
-	// MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason surfaces when the Machine deletion
+	// MachineDeletingWaitingForInfrastructureDeletionReason surfaces when the Machine deletion
 	// waits for InfraMachine deletion to complete.
-	MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason = "WaitingForInfrastructureDeletion"
+	MachineDeletingWaitingForInfrastructureDeletionReason = "WaitingForInfrastructureDeletion"
 
-	// MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason surfaces when the Machine deletion
+	// MachineDeletingWaitingForBootstrapDeletionReason surfaces when the Machine deletion
 	// waits for BootstrapConfig deletion to complete.
-	MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason = "WaitingForBootstrapDeletion"
+	MachineDeletingWaitingForBootstrapDeletionReason = "WaitingForBootstrapDeletion"
 
-	// MachineDeletingDeletingNodeV1Beta2Reason surfaces when the Machine deletion is
+	// MachineDeletingDeletingNodeReason surfaces when the Machine deletion is
 	// deleting the Node.
-	MachineDeletingDeletingNodeV1Beta2Reason = "DeletingNode"
+	MachineDeletingDeletingNodeReason = "DeletingNode"
 
-	// MachineDeletingDeletionCompletedV1Beta2Reason surfaces when the Machine deletion has been completed.
+	// MachineDeletingDeletionCompletedReason surfaces when the Machine deletion has been completed.
 	// This reason is set right after the `machine.cluster.x-k8s.io` finalizer is removed.
 	// This means that the object will go away (i.e. be removed from etcd), except if there are other
 	// finalizers on the Machine object.
-	MachineDeletingDeletionCompletedV1Beta2Reason = DeletionCompletedV1Beta2Reason
+	MachineDeletingDeletionCompletedReason = DeletionCompletedReason
 )
 
 // ANCHOR: MachineSpec

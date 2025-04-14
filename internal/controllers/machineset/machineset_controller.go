@@ -642,7 +642,7 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 		return &metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+			Reason: clusterv1.MachineNotUpToDateReason,
 			// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
 			Message: strings.Join(conditionMessages, "\n"),
 		}
@@ -651,7 +651,7 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 	return &metav1.Condition{
 		Type:   clusterv1.MachineUpToDateCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+		Reason: clusterv1.MachineUpToDateReason,
 	}
 }
 
@@ -1392,7 +1392,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 				Type:    clusterv1.MachineOwnerRemediatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineSetMachineCannotBeRemediatedV1Beta2Reason,
+				Reason:  clusterv1.MachineSetMachineCannotBeRemediatedReason,
 				Message: "Machine won't be remediated because it is pending removal due to rollout",
 			}, nil); err != nil {
 				return ctrl.Result{}, err
@@ -1436,7 +1436,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
@@ -1460,7 +1460,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		if err := patchMachineConditions(ctx, r.Client, machinesToDeferRemediation, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
@@ -1485,7 +1485,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		if patchErr := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: strings.Join(listMessages, "\n"),
 		}, &clusterv1.Condition{
 			Type:     clusterv1.MachineOwnerRemediatedV1Beta1Condition,
@@ -1513,7 +1513,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
 		Type:    clusterv1.MachineOwnerRemediatedCondition,
 		Status:  metav1.ConditionFalse,
-		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingReason,
 		Message: "Machine is deleting",
 	}, &clusterv1.Condition{
 		Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,

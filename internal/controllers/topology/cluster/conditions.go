@@ -67,7 +67,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterTopologyReconcilePausedV1Beta2Reason,
+			Reason:  clusterv1.ClusterTopologyReconcilePausedReason,
 			Message: strings.Join(messages, ", "),
 		})
 		return nil
@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterTopologyReconciledDeletingV1Beta2Reason,
+			Reason:  clusterv1.ClusterTopologyReconciledDeletingReason,
 			Message: "Cluster is deleting",
 		})
 		return nil
@@ -107,7 +107,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledFailedV1Beta2Reason,
+			Reason: clusterv1.ClusterTopologyReconciledFailedReason,
 			// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 			Message: reconcileErr.Error(),
 		})
@@ -130,7 +130,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
+			Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
 			Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 		})
@@ -152,7 +152,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledHookBlockingV1Beta2Reason,
+			Reason: clusterv1.ClusterTopologyReconciledHookBlockingReason,
 			// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 			Message: s.HookResponseTracker.AggregateMessage(),
 		})
@@ -184,47 +184,47 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		case s.UpgradeTracker.ControlPlane.IsPendingUpgrade:
 			fmt.Fprintf(msgBuilder, "Control plane rollout and upgrade to version %s on hold.", s.Blueprint.Topology.Version)
 			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingReason
 		case s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s on hold.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingReason
 		case s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) for Topologies %s creation on hold.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()),
 			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsCreatePendingV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsCreatePendingReason
 		case s.UpgradeTracker.MachineDeployments.DeferredUpgrade():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s deferred.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason
 		case s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s on hold.",
 				computeNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingReason
 		case s.UpgradeTracker.MachinePools.IsAnyPendingCreate():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) for Topologies %s creation on hold.",
 				computeNameList(s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()),
 			)
 			reason = clusterv1.TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsCreatePendingV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsCreatePendingReason
 		case s.UpgradeTracker.MachinePools.DeferredUpgrade():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s deferred.",
 				computeNameList(s.UpgradeTracker.MachinePools.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredV1Beta2Reason
+			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason
 		}
 
 		switch {
@@ -275,7 +275,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	conditions.Set(cluster, metav1.Condition{
 		Type:   clusterv1.ClusterTopologyReconciledCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.ClusterTopologyReconcileSucceededV1Beta2Reason,
+		Reason: clusterv1.ClusterTopologyReconcileSucceededReason,
 	})
 	return nil
 }

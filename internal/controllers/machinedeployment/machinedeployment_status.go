@@ -93,7 +93,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentAvailableInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentAvailableInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -104,7 +104,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentAvailableWaitingForReplicasSetReason,
 			Message: "Waiting for spec.replicas set",
 		})
 		return
@@ -115,7 +115,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetReason,
 			Message: "Waiting for status.v1beta2.availableReplicas set",
 		})
 		return
@@ -128,7 +128,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentAvailableCondition,
 			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineDeploymentAvailableV1Beta2Reason,
+			Reason: clusterv1.MachineDeploymentAvailableReason,
 		})
 		return
 	}
@@ -144,7 +144,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentAvailableCondition,
 		Status:  metav1.ConditionFalse,
-		Reason:  clusterv1.MachineDeploymentNotAvailableV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentNotAvailableReason,
 		Message: message,
 	})
 }
@@ -155,7 +155,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRollingOutCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -184,7 +184,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRollingOutCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineDeploymentNotRollingOutV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentNotRollingOutReason,
 			Message: message,
 		})
 		return
@@ -209,7 +209,7 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentRollingOutCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentRollingOutV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentRollingOutReason,
 		Message: message,
 	})
 }
@@ -220,7 +220,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentScalingUpInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentScalingUpInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -231,7 +231,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetReason,
 			Message: "Waiting for spec.replicas set",
 		})
 		return
@@ -254,7 +254,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingUpCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineDeploymentNotScalingUpV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentNotScalingUpReason,
 			Message: message,
 		})
 		return
@@ -268,7 +268,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentScalingUpCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentScalingUpV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentScalingUpReason,
 		Message: message,
 	})
 }
@@ -279,7 +279,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentScalingDownInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentScalingDownInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -290,7 +290,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetReason,
 			Message: "Waiting for spec.replicas set",
 		})
 		return
@@ -314,7 +314,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownCondition,
 			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.MachineDeploymentScalingDownV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentScalingDownReason,
 			Message: message,
 		})
 		return
@@ -324,7 +324,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:   clusterv1.MachineDeploymentScalingDownCondition,
 		Status: metav1.ConditionFalse,
-		Reason: clusterv1.MachineDeploymentNotScalingDownV1Beta2Reason,
+		Reason: clusterv1.MachineDeploymentNotScalingDownReason,
 	})
 }
 
@@ -335,7 +335,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesReadyCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -345,7 +345,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentMachinesReadyCondition,
 			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineDeploymentMachinesReadyNoReplicasV1Beta2Reason,
+			Reason: clusterv1.MachineDeploymentMachinesReadyNoReplicasReason,
 		})
 		return
 	}
@@ -357,9 +357,9 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					clusterv1.MachineDeploymentMachinesNotReadyV1Beta2Reason,
-					clusterv1.MachineDeploymentMachinesReadyUnknownV1Beta2Reason,
-					clusterv1.MachineDeploymentMachinesReadyV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesNotReadyReason,
+					clusterv1.MachineDeploymentMachinesReadyUnknownReason,
+					clusterv1.MachineDeploymentMachinesReadyReason,
 				)),
 			),
 		},
@@ -369,7 +369,7 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesReadyCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -385,7 +385,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -402,7 +402,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentMachinesUpToDateCondition,
 			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineDeploymentMachinesUpToDateNoReplicasV1Beta2Reason,
+			Reason: clusterv1.MachineDeploymentMachinesUpToDateNoReplicasReason,
 		})
 		return
 	}
@@ -414,9 +414,9 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					clusterv1.MachineDeploymentMachinesNotUpToDateV1Beta2Reason,
-					clusterv1.MachineDeploymentMachinesUpToDateUnknownV1Beta2Reason,
-					clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Reason,
+					clusterv1.MachineDeploymentMachinesNotUpToDateReason,
+					clusterv1.MachineDeploymentMachinesUpToDateUnknownReason,
+					clusterv1.MachineDeploymentMachinesUpToDateReason,
 				)),
 			),
 		},
@@ -426,7 +426,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -440,7 +440,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -451,7 +451,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineDeploymentNotRemediatingV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentNotRemediatingReason,
 			Message: message,
 		})
 		return
@@ -467,7 +467,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 
@@ -479,7 +479,7 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentRemediatingV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentRemediatingReason,
 		Message: remediatingCondition.Message,
 	})
 }
@@ -490,7 +490,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentDeletingCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineDeploymentDeletingInternalErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineDeploymentDeletingInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -500,7 +500,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:   clusterv1.MachineDeploymentDeletingCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineDeploymentNotDeletingV1Beta2Reason,
+			Reason: clusterv1.MachineDeploymentNotDeletingReason,
 		})
 		return
 	}
@@ -527,7 +527,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentDeletingCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.MachineDeploymentDeletingV1Beta2Reason,
+		Reason:  clusterv1.MachineDeploymentDeletingReason,
 		Message: message,
 	})
 }
@@ -566,7 +566,7 @@ func aggregateStaleMachines(machines collections.Machines) string {
 			deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingCondition)
 			if deletingCondition != nil &&
 				deletingCondition.Status == metav1.ConditionTrue &&
-				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
+				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
 				machine.Status.Deletion != nil && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
 				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
 					delayReasons.Insert("PodDisruptionBudgets")

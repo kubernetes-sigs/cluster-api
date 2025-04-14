@@ -653,7 +653,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.NotPausedV1Beta2Reason,
+				Reason: clusterv1.NotPausedReason,
 			}},
 		},
 	}
@@ -684,7 +684,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.NotPausedV1Beta2Reason,
+				Reason: clusterv1.NotPausedReason,
 			}},
 		},
 	}
@@ -1072,7 +1072,7 @@ func TestMachineConditions(t *testing.T) {
 			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.NotPausedV1Beta2Reason,
+				Reason: clusterv1.NotPausedReason,
 			}},
 		},
 	}
@@ -1310,7 +1310,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: clusterv1.NotPausedV1Beta2Reason,
+				Reason: clusterv1.NotPausedReason,
 			}},
 		},
 	}
@@ -1633,7 +1633,7 @@ func TestDrainNode(t *testing.T) {
 				Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 			},
-			wantDeletingReason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+			wantDeletingReason: clusterv1.MachineDeletingDrainingNodeReason,
 			wantDeletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 		},
@@ -1874,7 +1874,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 		Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 	}))
-	g.Expect(s.deletingReason).To(Equal(clusterv1.MachineDeletingDrainingNodeV1Beta2Reason))
+	g.Expect(s.deletingReason).To(Equal(clusterv1.MachineDeletingDrainingNodeReason))
 	g.Expect(s.deletingMessage).To(Equal(`Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`))
 
@@ -2150,7 +2150,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				persistentVolume,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
 		},
@@ -2174,7 +2174,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				persistentVolumeWithoutClaim,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
 		},
@@ -2196,7 +2196,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			remoteObjects:          []client.Object{},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * Node with .status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
 		},
@@ -2273,7 +2273,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				persistentVolume,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
 		},
@@ -2318,7 +2318,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				volumeAttachment,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
 		},
@@ -2419,7 +2419,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				persistentVolume,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
-			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
 		},
@@ -3259,7 +3259,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeout:      &metav1.Duration{Duration: time.Second},
 			resultErr:            false,
 			expectNodeDeletion:   true,
-			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3272,7 +3272,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeout:      &metav1.Duration{Duration: time.Hour},
 			resultErr:            true,
 			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3286,7 +3286,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeout:      &metav1.Duration{Duration: 0}, // should lead to infinite timeout
 			resultErr:            true,
 			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3300,7 +3300,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeout:      &metav1.Duration{Duration: time.Millisecond},
 			resultErr:            false,
 			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.DeletionCompletedV1Beta2Reason,
+			expectDeletingReason: clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3315,7 +3315,7 @@ func TestNodeDeletion(t *testing.T) {
 			resultErr:            false,
 			clusterDeleted:       true,
 			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.DeletionCompletedV1Beta2Reason,
+			expectDeletingReason: clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3451,7 +3451,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			deletionTimeout:      &metav1.Duration{Duration: time.Second},
 			resultErr:            false,
 			expectNodeDeletion:   true,
-			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason,
+			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).

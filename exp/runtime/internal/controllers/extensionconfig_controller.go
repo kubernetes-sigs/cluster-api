@@ -235,7 +235,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 		conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  runtimev1.ExtensionConfigNotDiscoveredV1Beta2Reason,
+			Reason:  runtimev1.ExtensionConfigNotDiscoveredReason,
 			Message: fmt.Sprintf("Error in discovery: %v", err),
 		})
 		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s", klog.KObj(extensionConfig))
@@ -245,7 +245,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	conditions.Set(discoveredExtension, metav1.Condition{
 		Type:   runtimev1.ExtensionConfigDiscoveredCondition,
 		Status: metav1.ConditionTrue,
-		Reason: runtimev1.ExtensionConfigDiscoveredV1Beta2Reason,
+		Reason: runtimev1.ExtensionConfigDiscoveredReason,
 	})
 	return discoveredExtension, nil
 }

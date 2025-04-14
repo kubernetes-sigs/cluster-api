@@ -94,122 +94,122 @@ const (
 
 // Reasons that are used across different objects.
 const (
-	// AvailableV1Beta2Reason applies to a condition surfacing object availability.
-	AvailableV1Beta2Reason = "Available"
+	// AvailableReason applies to a condition surfacing object availability.
+	AvailableReason = "Available"
 
-	// NotAvailableV1Beta2Reason applies to a condition surfacing object not satisfying availability criteria.
-	NotAvailableV1Beta2Reason = "NotAvailable"
+	// NotAvailableReason applies to a condition surfacing object not satisfying availability criteria.
+	NotAvailableReason = "NotAvailable"
 
-	// AvailableUnknownV1Beta2Reason applies to a condition surfacing object availability unknown.
-	AvailableUnknownV1Beta2Reason = "AvailableUnknown"
+	// AvailableUnknownReason applies to a condition surfacing object availability unknown.
+	AvailableUnknownReason = "AvailableUnknown"
 
-	// ReadyV1Beta2Reason applies to a condition surfacing object readiness.
-	ReadyV1Beta2Reason = "Ready"
+	// ReadyReason applies to a condition surfacing object readiness.
+	ReadyReason = "Ready"
 
-	// NotReadyV1Beta2Reason applies to a condition surfacing object not satisfying readiness criteria.
-	NotReadyV1Beta2Reason = "NotReady"
+	// NotReadyReason applies to a condition surfacing object not satisfying readiness criteria.
+	NotReadyReason = "NotReady"
 
-	// ReadyUnknownV1Beta2Reason applies to a condition surfacing object readiness unknown.
-	ReadyUnknownV1Beta2Reason = "ReadyUnknown"
+	// ReadyUnknownReason applies to a condition surfacing object readiness unknown.
+	ReadyUnknownReason = "ReadyUnknown"
 
-	// UpToDateV1Beta2Reason applies to a condition surfacing object up-tp-date.
-	UpToDateV1Beta2Reason = "UpToDate"
+	// UpToDateReason applies to a condition surfacing object up-tp-date.
+	UpToDateReason = "UpToDate"
 
-	// NotUpToDateV1Beta2Reason applies to a condition surfacing object not up-tp-date.
-	NotUpToDateV1Beta2Reason = "NotUpToDate"
+	// NotUpToDateReason applies to a condition surfacing object not up-tp-date.
+	NotUpToDateReason = "NotUpToDate"
 
-	// UpToDateUnknownV1Beta2Reason applies to a condition surfacing object up-tp-date unknown.
-	UpToDateUnknownV1Beta2Reason = "UpToDateUnknown"
+	// UpToDateUnknownReason applies to a condition surfacing object up-tp-date unknown.
+	UpToDateUnknownReason = "UpToDateUnknown"
 
-	// RollingOutV1Beta2Reason surfaces when an object is rolling out.
-	RollingOutV1Beta2Reason = "RollingOut"
+	// RollingOutReason surfaces when an object is rolling out.
+	RollingOutReason = "RollingOut"
 
-	// NotRollingOutV1Beta2Reason surfaces when an object is not rolling out.
-	NotRollingOutV1Beta2Reason = "NotRollingOut"
+	// NotRollingOutReason surfaces when an object is not rolling out.
+	NotRollingOutReason = "NotRollingOut"
 
-	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.
-	ScalingUpV1Beta2Reason = "ScalingUp"
+	// ScalingUpReason surfaces when an object is scaling up.
+	ScalingUpReason = "ScalingUp"
 
-	// NotScalingUpV1Beta2Reason surfaces when an object is not scaling up.
-	NotScalingUpV1Beta2Reason = "NotScalingUp"
+	// NotScalingUpReason surfaces when an object is not scaling up.
+	NotScalingUpReason = "NotScalingUp"
 
-	// ScalingDownV1Beta2Reason surfaces when an object is scaling down.
-	ScalingDownV1Beta2Reason = "ScalingDown"
+	// ScalingDownReason surfaces when an object is scaling down.
+	ScalingDownReason = "ScalingDown"
 
-	// NotScalingDownV1Beta2Reason surfaces when an object is not scaling down.
-	NotScalingDownV1Beta2Reason = "NotScalingDown"
+	// NotScalingDownReason surfaces when an object is not scaling down.
+	NotScalingDownReason = "NotScalingDown"
 
-	// RemediatingV1Beta2Reason surfaces when an object owns at least one machine with HealthCheckSucceeded
+	// RemediatingReason surfaces when an object owns at least one machine with HealthCheckSucceeded
 	// set to false and with the OwnerRemediated condition set to false by the MachineHealthCheck controller.
-	RemediatingV1Beta2Reason = "Remediating"
+	RemediatingReason = "Remediating"
 
-	// NotRemediatingV1Beta2Reason surfaces when an object does not own any machines with HealthCheckSucceeded
+	// NotRemediatingReason surfaces when an object does not own any machines with HealthCheckSucceeded
 	// set to false and with the OwnerRemediated condition set to false by the MachineHealthCheck controller.
-	NotRemediatingV1Beta2Reason = "NotRemediating"
+	NotRemediatingReason = "NotRemediating"
 
-	// NoReplicasV1Beta2Reason surfaces when an object that manage replicas does not have any.
-	NoReplicasV1Beta2Reason = "NoReplicas"
+	// NoReplicasReason surfaces when an object that manage replicas does not have any.
+	NoReplicasReason = "NoReplicas"
 
-	// WaitingForReplicasSetV1Beta2Reason surfaces when the replica field of an object is not set.
-	WaitingForReplicasSetV1Beta2Reason = "WaitingForReplicasSet"
+	// WaitingForReplicasSetReason surfaces when the replica field of an object is not set.
+	WaitingForReplicasSetReason = "WaitingForReplicasSet"
 
-	// InvalidConditionReportedV1Beta2Reason applies to a condition, usually read from an external object, that is invalid
+	// InvalidConditionReportedReason applies to a condition, usually read from an external object, that is invalid
 	// (e.g. its status is missing).
-	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"
+	InvalidConditionReportedReason = "InvalidConditionReported"
 
-	// InternalErrorV1Beta2Reason surfaces unexpected errors reporting by controllers.
+	// InternalErrorReason surfaces unexpected errors reporting by controllers.
 	// In most cases, it will be required to look at controllers logs to properly triage those issues.
-	InternalErrorV1Beta2Reason = "InternalError"
+	InternalErrorReason = "InternalError"
 
-	// ObjectDoesNotExistV1Beta2Reason surfaces when a referenced object does not exist.
-	ObjectDoesNotExistV1Beta2Reason = "ObjectDoesNotExist"
+	// ObjectDoesNotExistReason surfaces when a referenced object does not exist.
+	ObjectDoesNotExistReason = "ObjectDoesNotExist"
 
-	// ObjectDeletedV1Beta2Reason surfaces when a referenced object has been deleted.
+	// ObjectDeletedReason surfaces when a referenced object has been deleted.
 	// Note: controllers can't identify if the object was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	ObjectDeletedV1Beta2Reason = "ObjectDeleted"
+	ObjectDeletedReason = "ObjectDeleted"
 
-	// NotPausedV1Beta2Reason surfaces when an object is not paused.
-	NotPausedV1Beta2Reason = "NotPaused"
+	// NotPausedReason surfaces when an object is not paused.
+	NotPausedReason = "NotPaused"
 
-	// PausedV1Beta2Reason surfaces when an object is paused.
-	PausedV1Beta2Reason = "Paused"
+	// PausedReason surfaces when an object is paused.
+	PausedReason = "Paused"
 
-	// ConnectionDownV1Beta2Reason surfaces that the connection to the workload cluster is down.
-	ConnectionDownV1Beta2Reason = "ConnectionDown"
+	// ConnectionDownReason surfaces that the connection to the workload cluster is down.
+	ConnectionDownReason = "ConnectionDown"
 
-	// NotDeletingV1Beta2Reason surfaces when an object is not deleting because the
+	// NotDeletingReason surfaces when an object is not deleting because the
 	// DeletionTimestamp is not set.
-	NotDeletingV1Beta2Reason = "NotDeleting"
+	NotDeletingReason = "NotDeleting"
 
-	// DeletingV1Beta2Reason surfaces when an object is deleting because the
+	// DeletingReason surfaces when an object is deleting because the
 	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
-	DeletingV1Beta2Reason = "Deleting"
+	DeletingReason = "Deleting"
 
-	// DeletionCompletedV1Beta2Reason surfaces when the deletion process has been completed.
+	// DeletionCompletedReason surfaces when the deletion process has been completed.
 	// This reason is set right after the corresponding finalizer is removed.
 	// This means that the object will go away (i.e. be removed from etcd), except if there are other
 	// finalizers on the object.
-	DeletionCompletedV1Beta2Reason = "DeletionCompleted"
+	DeletionCompletedReason = "DeletionCompleted"
 
-	// InspectionFailedV1Beta2Reason applies to a condition when inspection of the underlying object failed.
-	InspectionFailedV1Beta2Reason = "InspectionFailed"
+	// InspectionFailedReason applies to a condition when inspection of the underlying object failed.
+	InspectionFailedReason = "InspectionFailed"
 
-	// WaitingForClusterInfrastructureReadyV1Beta2Reason documents an infra Machine waiting for the cluster
+	// WaitingForClusterInfrastructureReadyReason documents an infra Machine waiting for the cluster
 	// infrastructure to be ready.
-	WaitingForClusterInfrastructureReadyV1Beta2Reason = "WaitingForClusterInfrastructureReady"
+	WaitingForClusterInfrastructureReadyReason = "WaitingForClusterInfrastructureReady"
 
-	// WaitingForControlPlaneInitializedV1Beta2Reason documents an infra Machine waiting
+	// WaitingForControlPlaneInitializedReason documents an infra Machine waiting
 	// for the control plane to be initialized.
-	WaitingForControlPlaneInitializedV1Beta2Reason = "WaitingForControlPlaneInitialized"
+	WaitingForControlPlaneInitializedReason = "WaitingForControlPlaneInitialized"
 
-	// WaitingForBootstrapDataV1Beta2Reason documents an infra Machine waiting for the bootstrap
+	// WaitingForBootstrapDataReason documents an infra Machine waiting for the bootstrap
 	// data to be ready before starting to create the Machine's infrastructure.
-	WaitingForBootstrapDataV1Beta2Reason = "WaitingForBootstrapData"
+	WaitingForBootstrapDataReason = "WaitingForBootstrapData"
 
-	// ProvisionedV1Beta2Reason documents an object or a piece of infrastructure being provisioned.
-	ProvisionedV1Beta2Reason = "Provisioned"
+	// ProvisionedReason documents an object or a piece of infrastructure being provisioned.
+	ProvisionedReason = "Provisioned"
 
-	// NotProvisionedV1Beta2Reason documents an object or a piece of infrastructure is not provisioned.
-	NotProvisionedV1Beta2Reason = "NotProvisioned"
+	// NotProvisionedReason documents an object or a piece of infrastructure is not provisioned.
+	NotProvisionedReason = "NotProvisioned"
 )

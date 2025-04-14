@@ -35,11 +35,11 @@ const (
 	// this ClusterClass.
 	ClusterClassVariablesReadyCondition = "VariablesReady"
 
-	// ClusterClassVariablesReadyV1Beta2Reason surfaces that the variables are ready.
-	ClusterClassVariablesReadyV1Beta2Reason = "VariablesReady"
+	// ClusterClassVariablesReadyReason surfaces that the variables are ready.
+	ClusterClassVariablesReadyReason = "VariablesReady"
 
-	// ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason surfaces that variable discovery failed.
-	ClusterClassVariablesReadyVariableDiscoveryFailedV1Beta2Reason = "VariableDiscoveryFailed"
+	// ClusterClassVariablesReadyVariableDiscoveryFailedReason surfaces that variable discovery failed.
+	ClusterClassVariablesReadyVariableDiscoveryFailedReason = "VariableDiscoveryFailed"
 )
 
 // ClusterClass RefVersionsUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -49,19 +49,19 @@ const (
 	// the corresponding CRD).
 	ClusterClassRefVersionsUpToDateCondition = "RefVersionsUpToDate"
 
-	// ClusterClassRefVersionsUpToDateV1Beta2Reason surfaces that the references in the ClusterClass are
+	// ClusterClassRefVersionsUpToDateReason surfaces that the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassRefVersionsUpToDateV1Beta2Reason = "RefVersionsUpToDate"
+	ClusterClassRefVersionsUpToDateReason = "RefVersionsUpToDate"
 
-	// ClusterClassRefVersionsNotUpToDateV1Beta2Reason surfaces that the references in the ClusterClass are not
+	// ClusterClassRefVersionsNotUpToDateReason surfaces that the references in the ClusterClass are not
 	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassRefVersionsNotUpToDateV1Beta2Reason = "RefVersionsNotUpToDate"
+	ClusterClassRefVersionsNotUpToDateReason = "RefVersionsNotUpToDate"
 
-	// ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason surfaces that an unexpected error occurred when validating
+	// ClusterClassRefVersionsUpToDateInternalErrorReason surfaces that an unexpected error occurred when validating
 	// if the references are up-to-date.
-	ClusterClassRefVersionsUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	ClusterClassRefVersionsUpToDateInternalErrorReason = InternalErrorReason
 )
 
 // +kubebuilder:object:root=true

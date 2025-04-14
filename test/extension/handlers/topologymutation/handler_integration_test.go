@@ -253,7 +253,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	conditions.Set(s.Blueprint.ClusterClass, metav1.Condition{
 		Type:               clusterv1.PausedCondition,
 		Status:             metav1.ConditionFalse,
-		Reason:             clusterv1.NotPausedV1Beta2Reason,
+		Reason:             clusterv1.NotPausedReason,
 		ObservedGeneration: s.Blueprint.ClusterClass.GetGeneration(),
 	})
 	// InfrastructureClusterTemplate

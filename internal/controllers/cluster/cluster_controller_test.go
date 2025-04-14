@@ -91,7 +91,7 @@ func TestClusterReconciler(t *testing.T) {
 			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedReason))
 		}, timeout).Should(Succeed())
 
 		t.Log("Creating the Cluster Kubeconfig Secret")
@@ -103,7 +103,7 @@ func TestClusterReconciler(t *testing.T) {
 			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededReason))
 		}, timeout).Should(Succeed())
 	})
 

@@ -91,7 +91,7 @@ func Test_setInitializedCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotInitializedReason,
 			},
 		},
 		{
@@ -108,7 +108,7 @@ func Test_setInitializedCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
 			},
 		},
 	}
@@ -129,7 +129,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 	upToDateCondition := metav1.Condition{
 		Type:   clusterv1.MachineUpToDateCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+		Reason: clusterv1.MachineUpToDateReason,
 	}
 
 	tests := []struct {
@@ -145,7 +145,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutReason,
 			},
 		},
 		{
@@ -158,7 +158,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotRollingOutReason,
 			},
 		},
 		{
@@ -170,14 +170,14 @@ func Test_setRollingOutCondition(t *testing.T) {
 					{
 						Type:   clusterv1.MachineUpToDateCondition,
 						Status: metav1.ConditionUnknown,
-						Reason: clusterv1.InternalErrorV1Beta2Reason,
+						Reason: clusterv1.InternalErrorReason,
 					},
 				}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
 					{
 						Type:   clusterv1.MachineUpToDateCondition,
 						Status: metav1.ConditionFalse,
-						Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+						Reason: clusterv1.MachineNotUpToDateReason,
 						Message: "* Failure domain failure-domain1, failure-domain2 required\n" +
 							"* InfrastructureMachine is not up-to-date",
 					},
@@ -186,7 +186,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 					{
 						Type:    clusterv1.MachineUpToDateCondition,
 						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineNotUpToDateV1Beta2Reason,
+						Reason:  clusterv1.MachineNotUpToDateReason,
 						Message: "* Version v1.25.0, v1.26.0 required",
 					},
 				}}},
@@ -194,7 +194,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutReason,
 				Message: "Rolling out 2 not up-to-date replicas\n" +
 					"* Version v1.25.0, v1.26.0 required\n" +
 					"* Failure domain failure-domain1, failure-domain2 required\n" +
@@ -233,7 +233,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetReason,
 				Message: "Waiting for spec.replicas set",
 			},
 		},
@@ -253,7 +253,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpReason,
 			},
 		},
 		{
@@ -273,7 +273,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotScalingUpReason,
 				Message: "Scaling up would be blocked because AWSTemplate does not exist",
 			},
 		},
@@ -293,7 +293,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpReason,
 				Message: "Scaling up from 3 to 5 replicas",
 			},
 		},
@@ -314,7 +314,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpReason,
 			},
 		},
 		{
@@ -334,7 +334,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneScalingUpReason,
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
 					"* AWSTemplate does not exist",
 			},
@@ -368,7 +368,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneScalingUpReason,
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
 					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
@@ -404,7 +404,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetReason,
 				Message: "Waiting for spec.replicas set",
 			},
 		},
@@ -424,7 +424,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotScalingDownV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingDownReason,
 			},
 		},
 		{
@@ -445,7 +445,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 5 to 3 replicas",
 			},
 		},
@@ -468,7 +468,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 5 to 0 replicas",
 			},
 		},
@@ -486,7 +486,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 								{
 									Type:   clusterv1.MachineDeletingCondition,
 									Status: metav1.ConditionTrue,
-									Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+									Reason: clusterv1.MachineDeletingDrainingNodeReason,
 									Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1: deletionTimestamp set, but still not removed from the Node
 * Pod pod-5-to-trigger-eviction-pdb-violated-1: cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently
@@ -507,7 +507,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
 					"* Machine m1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 			},
@@ -528,7 +528,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
 					"* Machines m1, m2 are in deletion since more than 15m",
 			},
@@ -562,7 +562,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
 					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
@@ -585,11 +585,11 @@ After above Pods have been removed from the Node, the following Pods will be evi
 }
 
 func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
-	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineReadyV1Beta2Reason}
-	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyV1Beta2Reason, Message: "NotReady"}
+	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineReadyReason}
+	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "NotReady"}
 
-	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineUpToDateV1Beta2Reason}
-	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotUpToDateV1Beta2Reason, Message: "NotUpToDate"}
+	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineUpToDateReason}
+	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotUpToDateReason, Message: "NotUpToDate"}
 
 	tests := []struct {
 		name                            string
@@ -606,12 +606,12 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 			expectMachinesReadyCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesReadyNoReplicasReason,
 			},
 			expectMachinesUpToDateCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneMachinesUpToDateCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesUpToDateNoReplicasReason,
 			},
 		},
 		{
@@ -629,13 +629,13 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 			expectMachinesReadyCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneMachinesReadyCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotReadyV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneMachinesNotReadyReason,
 				Message: "* Machines m3, m4, m5: NotReady",
 			},
 			expectMachinesUpToDateCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneMachinesUpToDateCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesNotUpToDateReason,
 				Message: "* Machines m2, m3: NotUpToDate\n" +
 					"* Machine m4: Condition UpToDate not yet reported",
 			},
@@ -663,7 +663,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionTrue}
 	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionFalse}
 	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingV1Beta2Reason, Message: "Machine is deleting"}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingReason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name            string
@@ -682,7 +682,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneRemediatingCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotRemediatingReason,
 			},
 		},
 		{
@@ -698,7 +698,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneRemediatingReason,
 				Message: "* Machine m3: Machine is deleting",
 			},
 		},
@@ -715,7 +715,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingReason,
 				Message: "Machine m2 is not healthy (not to be remediated by KubeadmControlPlane)",
 			},
 		},
@@ -732,7 +732,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneRemediatingCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingReason,
 				Message: "Machines m1, m2 are not healthy (not to be remediated by KubeadmControlPlane)",
 			},
 		},
@@ -771,7 +771,7 @@ func TestDeletingCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneDeletingCondition,
 				Status: metav1.ConditionFalse,
-				Reason: controlplanev1.KubeadmControlPlaneNotDeletingV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneNotDeletingReason,
 			},
 		},
 		{
@@ -783,12 +783,12 @@ func TestDeletingCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			deletingReason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason,
+			deletingReason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason,
 			deletingMessage: "Deleting 3 Machines",
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneDeletingCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason,
 				Message: "Deleting 3 Machines",
 			},
 		},
@@ -896,7 +896,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "Control plane not yet initialized",
 			},
 		},
@@ -932,7 +932,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 			},
 		},
 		{
@@ -982,7 +982,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 			},
 		},
 
@@ -1004,7 +1004,7 @@ func Test_setAvailableCondition(t *testing.T) {
 							ControlPlaneInitialized: true,
 						},
 						Conditions: []metav1.Condition{
-							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
+							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
 						},
 					},
 				},
@@ -1013,7 +1013,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "Waiting for etcd to report the list of members",
 			},
 		},
@@ -1033,7 +1033,7 @@ func Test_setAvailableCondition(t *testing.T) {
 							ControlPlaneInitialized: true,
 						},
 						Conditions: []metav1.Condition{
-							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
+							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
 						},
 					},
 				},
@@ -1042,7 +1042,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedReason,
 				Message: "Failed to get etcd members",
 			},
 		},
@@ -1069,7 +1069,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "The list of etcd members does not match the list of Machines and Nodes",
 			},
 		},
@@ -1121,7 +1121,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 			},
 		},
 		{
@@ -1171,7 +1171,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 2 of 3 etcd members are healthy, at least 2 healthy member required for etcd quorum\n" +
 					"* 2 of 3 Machines have healthy control plane components, at least 1 required", // Note, when an etcd member is not healthy, also the corresponding CP is considered not healthy.
 			},
@@ -1223,7 +1223,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "* 1 of 3 etcd members is healthy, at least 2 healthy member required for etcd quorum",
 			},
 		},
@@ -1263,7 +1263,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "",
 			},
 		},
@@ -1323,7 +1323,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 3 of 4 etcd members are healthy, 1 learner etcd member, at least 2 healthy member required for etcd quorum\n" + // m4 is considered learner, so we have 3 voting members, quorum 2
 					"* 2 of 4 Machines have healthy control plane components, at least 1 required",
 			},
@@ -1386,7 +1386,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 3 of 4 etcd members are healthy, at least 3 healthy member required for etcd quorum\n" + // member m4 is linked to machine m4 eve if it doesn't have a node yet
 					"* 3 of 4 Machines have healthy control plane components, at least 1 required",
 			},
@@ -1447,7 +1447,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 3 of 4 etcd members are healthy, at least 3 healthy member required for etcd quorum\n" + // member m4 is linked to machine m4 eve if it doesn't have a node yet
 					"* 3 of 4 Machines have healthy control plane components, at least 1 required",
 			},
@@ -1499,7 +1499,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 2 of 3 etcd members are healthy, at least 2 healthy member required for etcd quorum",
 			},
 		},
@@ -1559,7 +1559,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status: metav1.ConditionTrue,
-				Reason: controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason: controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 2 of 4 etcd members are healthy, 1 learner etcd member, at least 2 healthy member required for etcd quorum\n" + // m4 is learner, so we have 3 voting members, quorum 2
 					"* 2 of 4 Machines have healthy control plane components, at least 1 required",
 			},
@@ -1603,7 +1603,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "",
 			},
 		},
@@ -1654,7 +1654,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expired yet
 			},
 		},
@@ -1692,7 +1692,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "* There are no Machines with healthy control plane components, at least 1 required",
 			},
 		},
@@ -1740,7 +1740,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionTrue,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 				Message: "* 2 of 3 Machines have healthy control plane components, at least 1 required", // two are not healthy, but one just flipped recently and 10s safeguard against flake did not expired yet
 			},
 		},
@@ -1785,7 +1785,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "* There are no Machines with healthy control plane components, at least 1 required",
 			},
 		},
@@ -1821,7 +1821,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "* Control plane certificates are not available",
 			},
 		},
@@ -1858,7 +1858,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "* Control plane metadata.deletionTimestamp is set",
 			},
 		},

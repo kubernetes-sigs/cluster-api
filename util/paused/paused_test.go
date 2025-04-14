@@ -139,11 +139,11 @@ func assertCondition(g Gomega, object ConditionSetter, wantIsPaused bool) {
 	g.Expect(condition.ObservedGeneration).To(Equal(object.GetGeneration()))
 	if wantIsPaused {
 		g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-		g.Expect(condition.Reason).To(Equal(clusterv1.PausedV1Beta2Reason))
+		g.Expect(condition.Reason).To(Equal(clusterv1.PausedReason))
 		g.Expect(condition.Message).ToNot(BeEmpty())
 	} else {
 		g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
-		g.Expect(condition.Reason).To(Equal(clusterv1.NotPausedV1Beta2Reason))
+		g.Expect(condition.Reason).To(Equal(clusterv1.NotPausedReason))
 		g.Expect(condition.Message).To(BeEmpty())
 	}
 }

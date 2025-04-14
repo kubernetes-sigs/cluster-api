@@ -200,7 +200,7 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 			Status: metav1.ConditionTrue,
-			Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
 		})
 		return
 	}
@@ -208,7 +208,7 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 	conditions.Set(kcp, metav1.Condition{
 		Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 		Status: metav1.ConditionFalse,
-		Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+		Reason: controlplanev1.KubeadmControlPlaneNotInitializedReason,
 	})
 }
 
@@ -236,7 +236,7 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneRollingOutCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  controlplanev1.KubeadmControlPlaneNotRollingOutV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneNotRollingOutReason,
 			Message: message,
 		})
 		return
@@ -261,7 +261,7 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneRollingOutCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneRollingOutV1Beta2Reason,
+		Reason:  controlplanev1.KubeadmControlPlaneRollingOutReason,
 		Message: message,
 	})
 }
@@ -271,7 +271,7 @@ func setScalingUpCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *c
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetReason,
 			Message: "Waiting for spec.replicas set",
 		})
 		return
@@ -293,7 +293,7 @@ func setScalingUpCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *c
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneNotScalingUpReason,
 			Message: message,
 		})
 		return
@@ -313,7 +313,7 @@ func setScalingUpCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *c
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneScalingUpCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+		Reason:  controlplanev1.KubeadmControlPlaneScalingUpReason,
 		Message: message,
 	})
 }
@@ -323,7 +323,7 @@ func setScalingDownCondition(_ context.Context, cluster *clusterv1.Cluster, kcp 
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneScalingDownCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetReason,
 			Message: "Waiting for spec.replicas set",
 		})
 		return
@@ -339,7 +339,7 @@ func setScalingDownCondition(_ context.Context, cluster *clusterv1.Cluster, kcp 
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 			Status: metav1.ConditionFalse,
-			Reason: controlplanev1.KubeadmControlPlaneNotScalingDownV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneNotScalingDownReason,
 		})
 		return
 	}
@@ -358,7 +358,7 @@ func setScalingDownCondition(_ context.Context, cluster *clusterv1.Cluster, kcp 
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneScalingDownCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+		Reason:  controlplanev1.KubeadmControlPlaneScalingDownReason,
 		Message: message,
 	})
 }
@@ -368,7 +368,7 @@ func setMachinesReadyCondition(ctx context.Context, kcp *controlplanev1.KubeadmC
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneMachinesReadyCondition,
 			Status: metav1.ConditionTrue,
-			Reason: controlplanev1.KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneMachinesReadyNoReplicasReason,
 		})
 		return
 	}
@@ -380,9 +380,9 @@ func setMachinesReadyCondition(ctx context.Context, kcp *controlplanev1.KubeadmC
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					controlplanev1.KubeadmControlPlaneMachinesNotReadyV1Beta2Reason,
-					controlplanev1.KubeadmControlPlaneMachinesReadyUnknownV1Beta2Reason,
-					controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesNotReadyReason,
+					controlplanev1.KubeadmControlPlaneMachinesReadyUnknownReason,
+					controlplanev1.KubeadmControlPlaneMachinesReadyReason,
 				)),
 			),
 		},
@@ -391,7 +391,7 @@ func setMachinesReadyCondition(ctx context.Context, kcp *controlplanev1.KubeadmC
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneMachinesReadyCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneMachinesReadyInternalErrorV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneMachinesReadyInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 
@@ -415,7 +415,7 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneMachinesUpToDateCondition,
 			Status: metav1.ConditionTrue,
-			Reason: controlplanev1.KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneMachinesUpToDateNoReplicasReason,
 		})
 		return
 	}
@@ -427,9 +427,9 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					controlplanev1.KubeadmControlPlaneMachinesNotUpToDateV1Beta2Reason,
-					controlplanev1.KubeadmControlPlaneMachinesUpToDateUnknownV1Beta2Reason,
-					controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Reason,
+					controlplanev1.KubeadmControlPlaneMachinesNotUpToDateReason,
+					controlplanev1.KubeadmControlPlaneMachinesUpToDateUnknownReason,
+					controlplanev1.KubeadmControlPlaneMachinesUpToDateReason,
 				)),
 			),
 		},
@@ -438,7 +438,7 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneMachinesUpToDateCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneMachinesUpToDateInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 
@@ -463,7 +463,7 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneRemediatingCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingReason,
 			Message: message,
 		})
 		return
@@ -479,7 +479,7 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneRemediatingCondition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneRemediatingInternalErrorV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneRemediatingInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
 
@@ -491,7 +491,7 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 	conditions.Set(kcp, metav1.Condition{
 		Type:    remediatingCondition.Type,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
+		Reason:  controlplanev1.KubeadmControlPlaneRemediatingReason,
 		Message: remediatingCondition.Message,
 	})
 }
@@ -501,7 +501,7 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneDeletingCondition,
 			Status: metav1.ConditionFalse,
-			Reason: controlplanev1.KubeadmControlPlaneNotDeletingV1Beta2Reason,
+			Reason: controlplanev1.KubeadmControlPlaneNotDeletingReason,
 		})
 		return
 	}
@@ -519,7 +519,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 			Message: "Control plane not yet initialized",
 		})
 		return
@@ -535,7 +535,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 				conditions.Set(kcp, metav1.Condition{
 					Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 					Status:  metav1.ConditionFalse,
-					Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+					Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 					Message: "Waiting for etcd to report the list of members",
 				})
 				return
@@ -544,7 +544,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 			conditions.Set(kcp, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneAvailableInspectionFailedReason,
 				Message: "Failed to get etcd members",
 			})
 			return
@@ -554,7 +554,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 			conditions.Set(kcp, metav1.Condition{
 				Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+				Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 				Message: "The list of etcd members does not match the list of Machines and Nodes",
 			})
 			return
@@ -727,7 +727,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 			Status:  metav1.ConditionTrue,
-			Reason:  controlplanev1.KubeadmControlPlaneAvailableV1Beta2Reason,
+			Reason:  controlplanev1.KubeadmControlPlaneAvailableReason,
 			Message: strings.Join(messages, "\n"),
 		})
 		return
@@ -764,7 +764,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 		Status:  metav1.ConditionFalse,
-		Reason:  controlplanev1.KubeadmControlPlaneNotAvailableV1Beta2Reason,
+		Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 		Message: strings.Join(messages, "\n"),
 	})
 }
@@ -839,7 +839,7 @@ func aggregateStaleMachines(machines collections.Machines) string {
 			deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingCondition)
 			if deletingCondition != nil &&
 				deletingCondition.Status == metav1.ConditionTrue &&
-				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
+				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
 				machine.Status.Deletion != nil && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
 				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
 					delayReasons.Insert("PodDisruptionBudgets")

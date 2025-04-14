@@ -29,18 +29,18 @@ const (
 	// This indicates all resources exist, and no errors during applying them to all clusters.
 	ResourcesAppliedCondition = "ResourcesApplied"
 
-	// ResourcesAppliedV1beta2Reason is the reason used when all resources in the ClusterResourceSet object got applied
+	// ResourcesAppliedReason is the reason used when all resources in the ClusterResourceSet object got applied
 	// to all matching clusters.
-	ResourcesAppliedV1beta2Reason = "Applied"
+	ResourcesAppliedReason = "Applied"
 
-	// ResourcesNotAppliedV1Beta2Reason is the reason used when applying at least one of the resources to one of the matching clusters failed.
-	ResourcesNotAppliedV1Beta2Reason = "NotApplied"
+	// ResourcesNotAppliedReason is the reason used when applying at least one of the resources to one of the matching clusters failed.
+	ResourcesNotAppliedReason = "NotApplied"
 
-	// ResourcesAppliedWrongSecretTypeV1Beta2Reason is the reason used when the Secret's type in the resource list is not supported.
-	ResourcesAppliedWrongSecretTypeV1Beta2Reason = "WrongSecretType"
+	// ResourcesAppliedWrongSecretTypeReason is the reason used when the Secret's type in the resource list is not supported.
+	ResourcesAppliedWrongSecretTypeReason = "WrongSecretType"
 
-	// ResourcesAppliedInternalErrorV1Beta2Reason surfaces unexpected failures when reconciling a ClusterResourceSet.
-	ResourcesAppliedInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	// ResourcesAppliedInternalErrorReason surfaces unexpected failures when reconciling a ClusterResourceSet.
+	ResourcesAppliedInternalErrorReason = clusterv1.InternalErrorReason
 )
 
 const (

@@ -124,12 +124,16 @@ func testInfrastructureClusterCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
 				// mandatory field from the Cluster API contract
-				"ready": {Type: "boolean"},
+				"initialization": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"provisioned": {Type: "boolean"},
+					},
+				},
 				// General purpose fields to be used in different test scenario.
 				"foo": {Type: "string"},
 				"bar": {Type: "string"},
 			},
-			Required: []string{"ready"},
 		},
 	})
 }
@@ -192,7 +196,12 @@ func testInfrastructureMachineCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
 				// mandatory field from the Cluster API contract
-				"ready": {Type: "boolean"},
+				"initialization": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"provisioned": {Type: "boolean"},
+					},
+				},
 				// General purpose fields to be used in different test scenario.
 				"foo": {Type: "string"},
 				"bar": {Type: "string"},

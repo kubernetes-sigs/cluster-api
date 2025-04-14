@@ -84,7 +84,12 @@ func testBootstrapConfigCRD(gvk schema.GroupVersionKind) *apiextensionsv1.Custom
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
 				// mandatory field from the Cluster API contract
-				"ready":          {Type: "boolean"},
+				"initialization": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"dataSecretCreated": {Type: "boolean"},
+					},
+				},
 				"dataSecretName": {Type: "string"},
 				// General purpose fields to be used in different test scenario.
 				"foo": {Type: "string"},

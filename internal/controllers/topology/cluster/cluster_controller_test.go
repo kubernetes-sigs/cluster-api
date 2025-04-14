@@ -1541,7 +1541,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError, "error message")).
+				WithConditions(*v1beta1conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition, clusterv1.VariableDiscoveryFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "error message")).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),

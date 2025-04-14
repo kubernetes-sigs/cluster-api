@@ -344,7 +344,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	actualResult, actualError := k.Reconcile(ctx, request)
 	g.Expect(actualResult).To(BeComparableTo(expectedResult))
 	g.Expect(actualError).ToNot(HaveOccurred())
-	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureReason)
+	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureV1Beta1Reason)
 }
 
 // Return early If the owning machine does not have an associated cluster.
@@ -476,7 +476,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
-			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, clusterv1.WaitingForControlPlaneAvailableReason)
+			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason)
 		})
 	}
 }

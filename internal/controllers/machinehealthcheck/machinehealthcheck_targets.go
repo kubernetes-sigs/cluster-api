@@ -87,7 +87,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	now := time.Now()
 
 	if annotations.HasRemediateMachine(t.Machine) {
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.HasRemediateMachineAnnotationReason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
+		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
 		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
 
 		conditions.Set(t.Machine, metav1.Condition{
@@ -100,13 +100,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	}
 
 	if t.Machine.Status.Deprecated != nil && t.Machine.Status.Deprecated.V1Beta1 != nil && t.Machine.Status.Deprecated.V1Beta1.FailureReason != nil {
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureReason)
+		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureReason)
 		logger.V(3).Info("Target is unhealthy", "failureReason", t.Machine.Status.Deprecated.V1Beta1.FailureReason)
 		return true, time.Duration(0)
 	}
 
 	if t.Machine.Status.Deprecated != nil && t.Machine.Status.Deprecated.V1Beta1 != nil && t.Machine.Status.Deprecated.V1Beta1.FailureMessage != nil {
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureMessage)
+		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureMessage)
 		logger.V(3).Info("Target is unhealthy", "failureMessage", t.Machine.Status.Deprecated.V1Beta1.FailureMessage)
 		return true, time.Duration(0)
 	}
@@ -114,7 +114,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	// Machine has Status.NodeRef set, although we couldn't find the node in the workload cluster.
 	if t.nodeMissing {
 		logger.V(3).Info("Target is unhealthy: node is missing")
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeNotFoundV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 
 		conditions.Set(t.Machine, metav1.Condition{
 			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
@@ -175,7 +175,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 		timeoutDuration := timeoutForMachineToHaveNode.Duration
 		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutDuration)
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeStartupTimeoutV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutDuration)
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutDuration)
 
 			conditions.Set(t.Machine, metav1.Condition{
@@ -206,7 +206,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		// If the condition has been in the unhealthy state for longer than the
 		// timeout, return true with no requeue time.
 		if nodeCondition.LastTransitionTime.Add(c.Timeout.Duration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionReason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String())
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String())
 			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", c.Timeout.Duration.String())
 
 			conditions.Set(t.Machine, metav1.Condition{

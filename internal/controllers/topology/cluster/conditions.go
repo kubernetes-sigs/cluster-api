@@ -59,7 +59,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconciledPausedReason,
+				clusterv1.TopologyReconciledPausedV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				strings.Join(messages, ", "),
 			),
@@ -78,7 +78,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.DeletedReason,
+				clusterv1.DeletedV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				"",
 			),
@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconcileFailedReason,
+				clusterv1.TopologyReconcileFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityError,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 				reconcileErr.Error(),
@@ -121,7 +121,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconciledClusterClassNotReconciledReason,
+				clusterv1.TopologyReconciledClusterClassNotReconciledV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				"ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if"+
 					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
@@ -143,7 +143,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconciledHookBlockingReason,
+				clusterv1.TopologyReconciledHookBlockingV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 				s.HookResponseTracker.AggregateMessage(),
@@ -183,47 +183,47 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		switch {
 		case s.UpgradeTracker.ControlPlane.IsPendingUpgrade:
 			fmt.Fprintf(msgBuilder, "Control plane rollout and upgrade to version %s on hold.", s.Blueprint.Topology.Version)
-			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingReason
+			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingV1Beta2Reason
 		case s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s on hold.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason
+			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingV1Beta2Reason
 		case s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) for Topologies %s creation on hold.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()),
 			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsCreatePendingReason
+			reason = clusterv1.TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsCreatePendingV1Beta2Reason
 		case s.UpgradeTracker.MachineDeployments.DeferredUpgrade():
 			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s deferred.",
 				computeNameList(s.UpgradeTracker.MachineDeployments.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason
+			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta2Reason
 		case s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s on hold.",
 				computeNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
-			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason
+			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingV1Beta2Reason
 		case s.UpgradeTracker.MachinePools.IsAnyPendingCreate():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) for Topologies %s creation on hold.",
 				computeNameList(s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()),
 			)
-			reason = clusterv1.TopologyReconciledMachinePoolsCreatePendingReason
+			reason = clusterv1.TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsCreatePendingV1Beta2Reason
 		case s.UpgradeTracker.MachinePools.DeferredUpgrade():
 			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s deferred.",
 				computeNameList(s.UpgradeTracker.MachinePools.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
-			reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredReason
+			reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
 			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredV1Beta2Reason
 		}
 

@@ -896,7 +896,7 @@ metadata:
 			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta1Condition)
 			g.Expect(appliedCondition).NotTo(BeNil())
 			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
-			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))
+			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedV1Beta1Reason))
 			g.Expect(appliedCondition.Message).To(ContainSubstring("creating object /v1, Kind=ConfigMap %s/cm-missing-namespace", missingNamespace))
 
 			appliedConditionV1Beta2 := conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta2Condition)

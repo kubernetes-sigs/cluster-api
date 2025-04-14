@@ -30,10 +30,10 @@ const (
 	// processing of a KubeadmControlPlane object.
 	CertificatesAvailableV1Beta1Condition clusterv1.ConditionType = "CertificatesAvailable"
 
-	// CertificatesGenerationFailedReason (Severity=Warning) documents a KubeadmControlPlane controller detecting
+	// CertificatesGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmControlPlane controller detecting
 	// an error while generating certificates; those kind of errors are usually temporary and the controller
 	// automatically recover from them.
-	CertificatesGenerationFailedReason = "CertificatesGenerationFailed"
+	CertificatesGenerationFailedV1Beta1Reason = "CertificatesGenerationFailed"
 )
 
 const (
@@ -41,9 +41,9 @@ const (
 	// and so the control plane is available and an API server instance is ready for processing requests.
 	AvailableV1Beta1Condition clusterv1.ConditionType = "Available"
 
-	// WaitingForKubeadmInitReason (Severity=Info) documents a KubeadmControlPlane object waiting for the first
+	// WaitingForKubeadmInitV1Beta1Reason (Severity=Info) documents a KubeadmControlPlane object waiting for the first
 	// control plane instance to complete the kubeadm init operation.
-	WaitingForKubeadmInitReason = "WaitingForKubeadmInit"
+	WaitingForKubeadmInitV1Beta1Reason = "WaitingForKubeadmInit"
 )
 
 const (
@@ -51,20 +51,20 @@ const (
 	// is up to date. When this condition is false, the KubeadmControlPlane is executing a rolling upgrade.
 	MachinesSpecUpToDateV1Beta1Condition clusterv1.ConditionType = "MachinesSpecUpToDate"
 
-	// RollingUpdateInProgressReason (Severity=Warning) documents a KubeadmControlPlane object executing a
+	// RollingUpdateInProgressV1Beta1Reason (Severity=Warning) documents a KubeadmControlPlane object executing a
 	// rolling upgrade for aligning the machines spec to the desired state.
-	RollingUpdateInProgressReason = "RollingUpdateInProgress"
+	RollingUpdateInProgressV1Beta1Reason = "RollingUpdateInProgress"
 )
 
 const (
 	// ResizedV1Beta1Condition documents a KubeadmControlPlane that is resizing the set of controlled machines.
 	ResizedV1Beta1Condition clusterv1.ConditionType = "Resized"
 
-	// ScalingUpReason (Severity=Info) documents a KubeadmControlPlane that is increasing the number of replicas.
-	ScalingUpReason = "ScalingUp"
+	// ScalingUpV1Beta1Reason (Severity=Info) documents a KubeadmControlPlane that is increasing the number of replicas.
+	ScalingUpV1Beta1Reason = "ScalingUp"
 
-	// ScalingDownReason (Severity=Info) documents a KubeadmControlPlane that is decreasing the number of replicas.
-	ScalingDownReason = "ScalingDown"
+	// ScalingDownV1Beta1Reason (Severity=Info) documents a KubeadmControlPlane that is decreasing the number of replicas.
+	ScalingDownV1Beta1Reason = "ScalingDown"
 )
 
 const (
@@ -73,14 +73,14 @@ const (
 	// kube-scheduler and etcd if managed.
 	ControlPlaneComponentsHealthyV1Beta1Condition clusterv1.ConditionType = "ControlPlaneComponentsHealthy"
 
-	// ControlPlaneComponentsUnhealthyReason (Severity=Error) documents a control plane component not healthy.
-	ControlPlaneComponentsUnhealthyReason = "ControlPlaneComponentsUnhealthy"
+	// ControlPlaneComponentsUnhealthyV1Beta1Reason (Severity=Error) documents a control plane component not healthy.
+	ControlPlaneComponentsUnhealthyV1Beta1Reason = "ControlPlaneComponentsUnhealthy"
 
-	// ControlPlaneComponentsUnknownReason reports a control plane component in unknown status.
-	ControlPlaneComponentsUnknownReason = "ControlPlaneComponentsUnknown"
+	// ControlPlaneComponentsUnknownV1Beta1Reason reports a control plane component in unknown status.
+	ControlPlaneComponentsUnknownV1Beta1Reason = "ControlPlaneComponentsUnknown"
 
-	// ControlPlaneComponentsInspectionFailedReason documents a failure in inspecting the control plane component status.
-	ControlPlaneComponentsInspectionFailedReason = "ControlPlaneComponentsInspectionFailed"
+	// ControlPlaneComponentsInspectionFailedV1Beta1Reason documents a failure in inspecting the control plane component status.
+	ControlPlaneComponentsInspectionFailedV1Beta1Reason = "ControlPlaneComponentsInspectionFailed"
 
 	// MachineAPIServerPodHealthyV1Beta1Condition reports a machine's kube-apiserver's operational status.
 	MachineAPIServerPodHealthyV1Beta1Condition clusterv1.ConditionType = "APIServerPodHealthy"
@@ -95,57 +95,57 @@ const (
 	// NOTE: This conditions exists only if a stacked etcd cluster is used.
 	MachineEtcdPodHealthyV1Beta1Condition clusterv1.ConditionType = "EtcdPodHealthy"
 
-	// PodProvisioningReason (Severity=Info) documents a pod waiting to be provisioned i.e., Pod is in "Pending" phase.
-	PodProvisioningReason = "PodProvisioning"
+	// PodProvisioningV1Beta1Reason (Severity=Info) documents a pod waiting to be provisioned i.e., Pod is in "Pending" phase.
+	PodProvisioningV1Beta1Reason = "PodProvisioning"
 
-	// PodMissingReason (Severity=Error) documents a pod does not exist.
-	PodMissingReason = "PodMissing"
+	// PodMissingV1Beta1Reason (Severity=Error) documents a pod does not exist.
+	PodMissingV1Beta1Reason = "PodMissing"
 
-	// PodFailedReason (Severity=Error) documents if a pod failed during provisioning i.e., e.g CrashLoopbackOff, ImagePullBackOff
+	// PodFailedV1Beta1Reason (Severity=Error) documents if a pod failed during provisioning i.e., e.g CrashLoopbackOff, ImagePullBackOff
 	// or if all the containers in a pod have terminated.
-	PodFailedReason = "PodFailed"
+	PodFailedV1Beta1Reason = "PodFailed"
 
-	// PodInspectionFailedReason documents a failure in inspecting the pod status.
-	PodInspectionFailedReason = "PodInspectionFailed"
+	// PodInspectionFailedV1Beta1Reason documents a failure in inspecting the pod status.
+	PodInspectionFailedV1Beta1Reason = "PodInspectionFailed"
 )
 
 const (
 	// EtcdClusterHealthyV1Beta1Condition documents the overall etcd cluster's health.
 	EtcdClusterHealthyV1Beta1Condition clusterv1.ConditionType = "EtcdClusterHealthy"
 
-	// EtcdClusterInspectionFailedReason documents a failure in inspecting the etcd cluster status.
-	EtcdClusterInspectionFailedReason = "EtcdClusterInspectionFailed"
+	// EtcdClusterInspectionFailedV1Beta1Reason documents a failure in inspecting the etcd cluster status.
+	EtcdClusterInspectionFailedV1Beta1Reason = "EtcdClusterInspectionFailed"
 
-	// EtcdClusterUnknownReason reports an etcd cluster in unknown status.
-	EtcdClusterUnknownReason = "EtcdClusterUnknown"
+	// EtcdClusterUnknownV1Beta1Reason reports an etcd cluster in unknown status.
+	EtcdClusterUnknownV1Beta1Reason = "EtcdClusterUnknown"
 
-	// EtcdClusterUnhealthyReason (Severity=Error) is set when the etcd cluster is unhealthy.
-	EtcdClusterUnhealthyReason = "EtcdClusterUnhealthy"
+	// EtcdClusterUnhealthyV1Beta1Reason (Severity=Error) is set when the etcd cluster is unhealthy.
+	EtcdClusterUnhealthyV1Beta1Reason = "EtcdClusterUnhealthy"
 
 	// MachineEtcdMemberHealthyV1Beta1Condition report the machine's etcd member's health status.
 	// NOTE: This conditions exists only if a stacked etcd cluster is used.
 	MachineEtcdMemberHealthyV1Beta1Condition clusterv1.ConditionType = "EtcdMemberHealthy"
 
-	// EtcdMemberInspectionFailedReason documents a failure in inspecting the etcd member status.
-	EtcdMemberInspectionFailedReason = "MemberInspectionFailed"
+	// EtcdMemberInspectionFailedV1Beta1Reason documents a failure in inspecting the etcd member status.
+	EtcdMemberInspectionFailedV1Beta1Reason = "MemberInspectionFailed"
 
-	// EtcdMemberUnhealthyReason (Severity=Error) documents a Machine's etcd member is unhealthy.
-	EtcdMemberUnhealthyReason = "EtcdMemberUnhealthy"
+	// EtcdMemberUnhealthyV1Beta1Reason (Severity=Error) documents a Machine's etcd member is unhealthy.
+	EtcdMemberUnhealthyV1Beta1Reason = "EtcdMemberUnhealthy"
 
 	// MachinesCreatedV1Beta1Condition documents that the machines controlled by the KubeadmControlPlane are created.
 	// When this condition is false, it indicates that there was an error when cloning the infrastructure/bootstrap template or
 	// when generating the machine object.
 	MachinesCreatedV1Beta1Condition clusterv1.ConditionType = "MachinesCreated"
 
-	// InfrastructureTemplateCloningFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// InfrastructureTemplateCloningFailedV1Beta1Reason (Severity=Error) documents a KubeadmControlPlane failing to
 	// clone the infrastructure template.
-	InfrastructureTemplateCloningFailedReason = "InfrastructureTemplateCloningFailed"
+	InfrastructureTemplateCloningFailedV1Beta1Reason = "InfrastructureTemplateCloningFailed"
 
-	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// BootstrapTemplateCloningFailedV1Beta1Reason (Severity=Error) documents a KubeadmControlPlane failing to
 	// clone the bootstrap template.
-	BootstrapTemplateCloningFailedReason = "BootstrapTemplateCloningFailed"
+	BootstrapTemplateCloningFailedV1Beta1Reason = "BootstrapTemplateCloningFailed"
 
-	// MachineGenerationFailedReason (Severity=Error) documents a KubeadmControlPlane failing to
+	// MachineGenerationFailedV1Beta1Reason (Severity=Error) documents a KubeadmControlPlane failing to
 	// generate a machine object.
-	MachineGenerationFailedReason = "MachineGenerationFailed"
+	MachineGenerationFailedV1Beta1Reason = "MachineGenerationFailed"
 )

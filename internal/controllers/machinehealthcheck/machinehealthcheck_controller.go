@@ -280,7 +280,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
 			Severity: clusterv1.ConditionSeverityWarning,
-			Reason:   clusterv1.TooManyUnhealthyReason,
+			Reason:   clusterv1.TooManyUnhealthyV1Beta1Reason,
 			Message:  message,
 		})
 
@@ -440,7 +440,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate)
 				if err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedV1Beta2Condition,
@@ -476,7 +476,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				logger.Info("Machine has failed health check, creating an external remediation request", "remediation request name", to.GetName(), "reason", condition.Reason, "message", condition.Message)
 				// Create the external clone.
 				if err := r.Client.Create(ctx, to); err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableV1Beta1Condition, clusterv1.ExternalRemediationRequestCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableV1Beta1Condition, clusterv1.ExternalRemediationRequestCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedV1Beta2Condition,
@@ -499,7 +499,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				// instead, if a remediation is in already progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.
 				// TODO (v1beta2): test for v1beta2 conditions
 				if !v1beta1conditions.Has(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) || v1beta1conditions.IsTrue(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
-					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 				}
 
 				if ownerRemediatedCondition := conditions.Get(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta2Condition); ownerRemediatedCondition == nil || ownerRemediatedCondition.Status == metav1.ConditionTrue {

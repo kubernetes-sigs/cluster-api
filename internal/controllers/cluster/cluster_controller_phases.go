@@ -232,9 +232,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
-		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	}
 	v1beta1conditions.SetMirror(cluster, clusterv1.InfrastructureReadyV1Beta1Condition,
 		v1beta1conditions.UnstructuredGetter(s.infraCluster),
@@ -336,9 +336,9 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// Report a summary of current status of the control plane object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(initialized, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(initialized, clusterv1.WaitingForControlPlaneFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
-		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 	}
 	v1beta1conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyV1Beta1Condition,
 		v1beta1conditions.UnstructuredGetter(s.controlPlane),
@@ -355,7 +355,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 		if initialized {
 			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 		} else {
-			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.WaitingForControlPlaneProviderInitializedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
 		}
 	}
 

@@ -28,17 +28,17 @@ const (
 	// evidence that BootstrapSecret generation is started/in progress.
 	DataSecretAvailableV1Beta1Condition clusterv1.ConditionType = "DataSecretAvailable"
 
-	// WaitingForClusterInfrastructureReason (Severity=Info) document a bootstrap secret generation process
+	// WaitingForClusterInfrastructureV1Beta1Reason (Severity=Info) document a bootstrap secret generation process
 	// waiting for the cluster infrastructure to be ready.
 	//
 	// NOTE: Having the cluster infrastructure ready is a pre-condition for starting to create machines;
 	// the KubeadmConfig controller ensure this pre-condition is satisfied.
-	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
+	WaitingForClusterInfrastructureV1Beta1Reason = "WaitingForClusterInfrastructure"
 
-	// DataSecretGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting
+	// DataSecretGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmConfig controller detecting
 	// an error while generating a data secret; those kind of errors are usually due to misconfigurations
 	// and user intervention is required to get them fixed.
-	DataSecretGenerationFailedReason = "DataSecretGenerationFailed"
+	DataSecretGenerationFailedV1Beta1Reason = "DataSecretGenerationFailed"
 )
 
 const (
@@ -50,12 +50,12 @@ const (
 	// IMPORTANT: This condition won't be re-created after clusterctl move.
 	CertificatesAvailableV1Beta1Condition clusterv1.ConditionType = "CertificatesAvailable"
 
-	// CertificatesGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting
+	// CertificatesGenerationFailedV1Beta1Reason (Severity=Warning) documents a KubeadmConfig controller detecting
 	// an error while generating certificates; those kind of errors are usually temporary and the controller
 	// automatically recover from them.
-	CertificatesGenerationFailedReason = "CertificatesGenerationFailed"
+	CertificatesGenerationFailedV1Beta1Reason = "CertificatesGenerationFailed"
 
-	// CertificatesCorruptedReason (Severity=Error) documents a KubeadmConfig controller detecting
+	// CertificatesCorruptedV1Beta1Reason (Severity=Error) documents a KubeadmConfig controller detecting
 	// an error while retrieving certificates for a joining node.
-	CertificatesCorruptedReason = "CertificatesCorrupted"
+	CertificatesCorruptedV1Beta1Reason = "CertificatesCorrupted"
 )

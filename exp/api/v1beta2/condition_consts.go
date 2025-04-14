@@ -24,7 +24,7 @@ const (
 	// ReplicasReadyV1Beta1Condition reports an aggregate of current status of the replicas controlled by the MachinePool.
 	ReplicasReadyV1Beta1Condition clusterv1.ConditionType = "ReplicasReady"
 
-	// WaitingForReplicasReadyReason (Severity=Info) documents a machinepool waiting for the required replicas
+	// WaitingForReplicasReadyV1Beta1Reason (Severity=Info) documents a machinepool waiting for the required replicas
 	// to be ready.
-	WaitingForReplicasReadyReason = "WaitingForReplicasReady"
+	WaitingForReplicasReadyV1Beta1Reason = "WaitingForReplicasReady"
 )

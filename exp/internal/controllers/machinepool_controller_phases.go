@@ -226,7 +226,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		// Report a summary of current status of the bootstrap object defined for this machine pool.
 		v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyV1Beta1Condition,
 			v1beta1conditions.UnstructuredGetter(bootstrapConfig),
-			v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+			v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 		)
 
 		if !dataSecretCreated {
@@ -282,7 +282,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
 					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
 			}
-			v1beta1conditions.MarkFalse(mp, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.IncorrectExternalRefReason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
+			v1beta1conditions.MarkFalse(mp, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.IncorrectExternalRefV1Beta1Reason, clusterv1.ConditionSeverityError, fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
 		return ctrl.Result{}, err
 	}
@@ -302,7 +302,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	// Report a summary of current status of the infrastructure object defined for this machine pool.
 	v1beta1conditions.SetMirror(mp, clusterv1.InfrastructureReadyV1Beta1Condition,
 		v1beta1conditions.UnstructuredGetter(infraConfig),
-		v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+		v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
 	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))

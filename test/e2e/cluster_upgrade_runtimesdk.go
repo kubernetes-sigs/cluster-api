@@ -459,7 +459,7 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 		g.Expect(v1beta1conditions.IsFalse(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 		machinesCreatedCondition := v1beta1conditions.Get(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)
 		g.Expect(machinesCreatedCondition).NotTo(BeNil())
-		g.Expect(machinesCreatedCondition.Reason).To(Equal(clusterv1.PreflightCheckFailedReason))
+		g.Expect(machinesCreatedCondition.Reason).To(Equal(clusterv1.PreflightCheckFailedV1Beta1Reason))
 		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
 	}).Should(Succeed(), "New Machine creation not blocked by MachineSet preflight checks")
 
@@ -596,7 +596,7 @@ func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Clie
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
 
-		if v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) != clusterv1.TopologyReconciledHookBlockingReason {
+		if v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) != clusterv1.TopologyReconciledHookBlockingV1Beta1Reason {
 			return fmt.Errorf("hook %s (via annotation) should lead to LifecycleHookBlocking reason", hookName)
 		}
 		if !strings.Contains(v1beta1conditions.GetMessage(cluster, clusterv1.TopologyReconciledV1Beta1Condition), expectedBlockingMessage) {
@@ -752,7 +752,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.
 
 // clusterConditionShowsHookBlocking checks if the TopologyReconciled condition message contains both the hook name and hookFailedMessage.
 func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName string) bool {
-	return v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) == clusterv1.TopologyReconciledHookBlockingReason &&
+	return v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) == clusterv1.TopologyReconciledHookBlockingV1Beta1Reason &&
 		strings.Contains(v1beta1conditions.GetMessage(cluster, clusterv1.TopologyReconciledV1Beta1Condition), hookName)
 }
 

@@ -2537,7 +2537,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 			g.Expect(nodeHealthyCondition).ToNot(BeNil())
 			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
-			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
+			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingV1Beta1Reason))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())

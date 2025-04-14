@@ -1133,8 +1133,8 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: true,
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
@@ -1160,8 +1160,8 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		// Assert summary conditions
@@ -1171,7 +1171,7 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
@@ -1179,10 +1179,10 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
-				v1beta1conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed")
+				v1beta1conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "MHC failed")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed"),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "MHC failed"),
 			},
 		},
 		{
@@ -1190,10 +1190,10 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
-				v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+				v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.NodeNotFoundV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, ""),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.NodeNotFoundV1Beta1Reason, clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 		{
@@ -1213,7 +1213,7 @@ func TestMachineConditions(t *testing.T) {
 				v1beta1conditions.TrueCondition(clusterv1.InfrastructureReadyV1Beta1Condition),
 				v1beta1conditions.TrueCondition(clusterv1.BootstrapReadyV1Beta1Condition),
 				v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition),
-				v1beta1conditions.UnknownCondition(clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID"),
+				v1beta1conditions.UnknownCondition(clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeInspectionFailedV1Beta1Reason, "Failed to get the Node for this Machine by ProviderID"),
 			},
 		},
 		{
@@ -1221,10 +1221,10 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
-				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "")
+				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, ""),
+				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 	}
@@ -1629,7 +1629,7 @@ func TestDrainNode(t *testing.T) {
 				Type:     clusterv1.DrainingSucceededV1Beta1Condition,
 				Status:   corev1.ConditionFalse,
 				Severity: clusterv1.ConditionSeverityInfo,
-				Reason:   clusterv1.DrainingReason,
+				Reason:   clusterv1.DrainingV1Beta1Reason,
 				Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 			},
@@ -1870,7 +1870,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 		Type:     clusterv1.DrainingSucceededV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityInfo,
-		Reason:   clusterv1.DrainingReason,
+		Reason:   clusterv1.DrainingV1Beta1Reason,
 		Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
 	}))

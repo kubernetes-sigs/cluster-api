@@ -491,17 +491,17 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 		// NOTE: The structure of calculateStatus() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateStatus() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
 		v1beta1conditions.MarkTrue(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition)
 	} else {
-		v1beta1conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, md.Status.AvailableReplicas)
+		v1beta1conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition, clusterv1.WaitingForAvailableMachinesV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, md.Status.AvailableReplicas)
 	}
 
 	if newMS != nil {
 		// Report a summary of current status of the MachineSet object owned by this MachineDeployment.
 		v1beta1conditions.SetMirror(md, clusterv1.MachineSetReadyV1Beta1Condition,
 			newMS,
-			v1beta1conditions.WithFallbackValue(false, clusterv1.WaitingForMachineSetFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+			v1beta1conditions.WithFallbackValue(false, clusterv1.WaitingForMachineSetFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 		)
 	} else {
-		v1beta1conditions.MarkFalse(md, clusterv1.MachineSetReadyV1Beta1Condition, clusterv1.WaitingForMachineSetFallbackReason, clusterv1.ConditionSeverityInfo, "MachineSet not found")
+		v1beta1conditions.MarkFalse(md, clusterv1.MachineSetReadyV1Beta1Condition, clusterv1.WaitingForMachineSetFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, "MachineSet not found")
 	}
 
 	// Set v1beta replica counters on MD status.

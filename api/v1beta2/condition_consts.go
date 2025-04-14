@@ -26,18 +26,18 @@ const (
 
 // Common ConditionReason used by Cluster API objects.
 const (
-	// DeletingReason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
-	DeletingReason = "Deleting"
+	// DeletingV1Beta1Reason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
+	DeletingV1Beta1Reason = "Deleting"
 
-	// DeletionFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
+	// DeletionFailedV1Beta1Reason (Severity=Warning) documents a condition not in Status=True because the underlying object
 	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
-	DeletionFailedReason = "DeletionFailed"
+	DeletionFailedV1Beta1Reason = "DeletionFailed"
 
-	// DeletedReason (Severity=Info) documents a condition not in Status=True because the underlying object was deleted.
-	DeletedReason = "Deleted"
+	// DeletedV1Beta1Reason (Severity=Info) documents a condition not in Status=True because the underlying object was deleted.
+	DeletedV1Beta1Reason = "Deleted"
 
-	// IncorrectExternalRefReason (Severity=Error) documents a CAPI object with an incorrect external object reference.
-	IncorrectExternalRefReason = "IncorrectExternalRef"
+	// IncorrectExternalRefV1Beta1Reason (Severity=Error) documents a CAPI object with an incorrect external object reference.
+	IncorrectExternalRefV1Beta1Reason = "IncorrectExternalRef"
 )
 
 const (
@@ -47,10 +47,10 @@ const (
 	// the infrastructure provider does not implement the Ready condition yet.
 	InfrastructureReadyV1Beta1Condition ConditionType = "InfrastructureReady"
 
-	// WaitingForInfrastructureFallbackReason (Severity=Info) documents a cluster/machine/machinepool waiting for the underlying infrastructure
+	// WaitingForInfrastructureFallbackV1Beta1Reason (Severity=Info) documents a cluster/machine/machinepool waiting for the underlying infrastructure
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
-	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
+	WaitingForInfrastructureFallbackV1Beta1Reason = "WaitingForInfrastructure"
 )
 
 // ANCHOR_END: CommonConditions
@@ -63,9 +63,9 @@ const (
 	// this ClusterClass.
 	ClusterClassVariablesReconciledV1Beta1Condition ConditionType = "VariablesReconciled"
 
-	// VariableDiscoveryFailedReason (Severity=Error) documents a ClusterClass with VariableDiscovery extensions that
+	// VariableDiscoveryFailedV1Beta1Reason (Severity=Error) documents a ClusterClass with VariableDiscovery extensions that
 	// failed.
-	VariableDiscoveryFailedReason = "VariableDiscoveryFailed"
+	VariableDiscoveryFailedV1Beta1Reason = "VariableDiscoveryFailed"
 )
 
 // Conditions and condition Reasons for the Cluster object.
@@ -77,13 +77,13 @@ const (
 	// the ControlPlaneReady condition for an indication of the current readiness of the cluster's control plane.
 	ControlPlaneInitializedV1Beta1Condition ConditionType = "ControlPlaneInitialized"
 
-	// MissingNodeRefReason (Severity=Info) documents a cluster waiting for at least one control plane Machine to have
+	// MissingNodeRefV1Beta1Reason (Severity=Info) documents a cluster waiting for at least one control plane Machine to have
 	// its node reference populated.
-	MissingNodeRefReason = "MissingNodeRef"
+	MissingNodeRefV1Beta1Reason = "MissingNodeRef"
 
-	// WaitingForControlPlaneProviderInitializedReason (Severity=Info) documents a cluster waiting for the control plane
+	// WaitingForControlPlaneProviderInitializedV1Beta1Reason (Severity=Info) documents a cluster waiting for the control plane
 	// provider to report successful control plane initialization.
-	WaitingForControlPlaneProviderInitializedReason = "WaitingForControlPlaneProviderInitialized"
+	WaitingForControlPlaneProviderInitializedV1Beta1Reason = "WaitingForControlPlaneProviderInitialized"
 
 	// ControlPlaneReadyV1Beta1Condition reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
@@ -91,17 +91,17 @@ const (
 	// the control plane provider does not implement the Ready condition yet.
 	ControlPlaneReadyV1Beta1Condition ConditionType = "ControlPlaneReady"
 
-	// WaitingForControlPlaneFallbackReason (Severity=Info) documents a cluster waiting for the control plane
+	// WaitingForControlPlaneFallbackV1Beta1Reason (Severity=Info) documents a cluster waiting for the control plane
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the control plane object is not reporting its own ready condition.
-	WaitingForControlPlaneFallbackReason = "WaitingForControlPlane"
+	WaitingForControlPlaneFallbackV1Beta1Reason = "WaitingForControlPlane"
 
-	// WaitingForControlPlaneAvailableReason (Severity=Info) documents a Cluster API object
+	// WaitingForControlPlaneAvailableV1Beta1Reason (Severity=Info) documents a Cluster API object
 	// waiting for the control plane machine to be available.
 	//
 	// NOTE: Having the control plane machine available is a pre-condition for joining additional control planes
 	// or workers nodes.
-	WaitingForControlPlaneAvailableReason = "WaitingForControlPlaneAvailable"
+	WaitingForControlPlaneAvailableV1Beta1Reason = "WaitingForControlPlaneAvailable"
 )
 
 // Conditions and condition Reasons for the Machine object.
@@ -113,20 +113,20 @@ const (
 	// the bootstrap provider does not implement the Ready condition yet.
 	BootstrapReadyV1Beta1Condition ConditionType = "BootstrapReady"
 
-	// WaitingForDataSecretFallbackReason (Severity=Info) documents a machine waiting for the bootstrap data secret
+	// WaitingForDataSecretFallbackV1Beta1Reason (Severity=Info) documents a machine waiting for the bootstrap data secret
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the bootstrap object is not reporting its own ready condition.
-	WaitingForDataSecretFallbackReason = "WaitingForDataSecret"
+	WaitingForDataSecretFallbackV1Beta1Reason = "WaitingForDataSecret"
 
 	// DrainingSucceededV1Beta1Condition provide evidence of the status of the node drain operation which happens during the machine
 	// deletion process.
 	DrainingSucceededV1Beta1Condition ConditionType = "DrainingSucceeded"
 
-	// DrainingReason (Severity=Info) documents a machine node being drained.
-	DrainingReason = "Draining"
+	// DrainingV1Beta1Reason (Severity=Info) documents a machine node being drained.
+	DrainingV1Beta1Reason = "Draining"
 
-	// DrainingFailedReason (Severity=Warning) documents a machine node drain operation failed.
-	DrainingFailedReason = "DrainingFailed"
+	// DrainingFailedV1Beta1Reason (Severity=Warning) documents a machine node drain operation failed.
+	DrainingFailedV1Beta1Reason = "DrainingFailed"
 
 	// PreDrainDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
 	PreDrainDeleteHookSucceededV1Beta1Condition ConditionType = "PreDrainDeleteHookSucceeded"
@@ -134,14 +134,14 @@ const (
 	// PreTerminateDeleteHookSucceededV1Beta1Condition reports a machine waiting for a PreDrainDeleteHook before being delete.
 	PreTerminateDeleteHookSucceededV1Beta1Condition ConditionType = "PreTerminateDeleteHookSucceeded"
 
-	// WaitingExternalHookReason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
-	WaitingExternalHookReason = "WaitingExternalHook"
+	// WaitingExternalHookV1Beta1Reason (Severity=Info) provide evidence that we are waiting for an external hook to complete.
+	WaitingExternalHookV1Beta1Reason = "WaitingExternalHook"
 
 	// VolumeDetachSucceededV1Beta1Condition reports a machine waiting for volumes to be detached.
 	VolumeDetachSucceededV1Beta1Condition ConditionType = "VolumeDetachSucceeded"
 
-	// WaitingForVolumeDetachReason (Severity=Info) provide evidence that a machine node waiting for volumes to be attached.
-	WaitingForVolumeDetachReason = "WaitingForVolumeDetach"
+	// WaitingForVolumeDetachV1Beta1Reason (Severity=Info) provide evidence that a machine node waiting for volumes to be attached.
+	WaitingForVolumeDetachV1Beta1Reason = "WaitingForVolumeDetach"
 )
 
 const (
@@ -149,18 +149,18 @@ const (
 	// In the event that the health check fails it will be set to False.
 	MachineHealthCheckSucceededV1Beta1Condition ConditionType = "HealthCheckSucceeded"
 
-	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
-	MachineHasFailureReason = "MachineHasFailure"
+	// MachineHasFailureV1Beta1Reason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
+	MachineHasFailureV1Beta1Reason = "MachineHasFailure"
 
-	// HasRemediateMachineAnnotationReason is the reason that get's set at the MachineHealthCheckSucceededCondition when a machine
+	// HasRemediateMachineAnnotationV1Beta1Reason is the reason that get's set at the MachineHealthCheckSucceededCondition when a machine
 	// has the RemediateMachineAnnotation set.
-	HasRemediateMachineAnnotationReason = "HasRemediateMachineAnnotation"
+	HasRemediateMachineAnnotationV1Beta1Reason = "HasRemediateMachineAnnotation"
 
-	// NodeStartupTimeoutReason is the reason used when a machine's node does not appear within the specified timeout.
-	NodeStartupTimeoutReason = "NodeStartupTimeout"
+	// NodeStartupTimeoutV1Beta1Reason is the reason used when a machine's node does not appear within the specified timeout.
+	NodeStartupTimeoutV1Beta1Reason = "NodeStartupTimeout"
 
-	// UnhealthyNodeConditionReason is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
-	UnhealthyNodeConditionReason = "UnhealthyNode"
+	// UnhealthyNodeConditionV1Beta1Reason is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
+	UnhealthyNodeConditionV1Beta1Reason = "UnhealthyNode"
 )
 
 const (
@@ -168,28 +168,28 @@ const (
 	// MachineOwnerRemediatedV1Beta1Condition is set to False after a health check fails, but should be changed to True by the owning controller after remediation succeeds.
 	MachineOwnerRemediatedV1Beta1Condition ConditionType = "OwnerRemediated"
 
-	// WaitingForRemediationReason is the reason used when a machine fails a health check and remediation is needed.
-	WaitingForRemediationReason = "WaitingForRemediation"
+	// WaitingForRemediationV1Beta1Reason is the reason used when a machine fails a health check and remediation is needed.
+	WaitingForRemediationV1Beta1Reason = "WaitingForRemediation"
 
-	// RemediationFailedReason is the reason used when a remediation owner fails to remediate an unhealthy machine.
-	RemediationFailedReason = "RemediationFailed"
+	// RemediationFailedV1Beta1Reason is the reason used when a remediation owner fails to remediate an unhealthy machine.
+	RemediationFailedV1Beta1Reason = "RemediationFailed"
 
-	// RemediationInProgressReason is the reason used when an unhealthy machine is being remediated by the remediation owner.
-	RemediationInProgressReason = "RemediationInProgress"
+	// RemediationInProgressV1Beta1Reason is the reason used when an unhealthy machine is being remediated by the remediation owner.
+	RemediationInProgressV1Beta1Reason = "RemediationInProgress"
 
 	// ExternalRemediationTemplateAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
 	// ExternalRemediationTemplateAvailableV1Beta1Condition is set to false if external remediation template is not found.
 	ExternalRemediationTemplateAvailableV1Beta1Condition ConditionType = "ExternalRemediationTemplateAvailable"
 
-	// ExternalRemediationTemplateNotFoundReason is the reason used when a machine health check fails to find external remediation template.
-	ExternalRemediationTemplateNotFoundReason = "ExternalRemediationTemplateNotFound"
+	// ExternalRemediationTemplateNotFoundV1Beta1Reason is the reason used when a machine health check fails to find external remediation template.
+	ExternalRemediationTemplateNotFoundV1Beta1Reason = "ExternalRemediationTemplateNotFound"
 
 	// ExternalRemediationRequestAvailableV1Beta1Condition is set on machinehealthchecks when MachineHealthCheck controller uses external remediation.
 	// ExternalRemediationRequestAvailableV1Beta1Condition is set to false if creating external remediation request fails.
 	ExternalRemediationRequestAvailableV1Beta1Condition ConditionType = "ExternalRemediationRequestAvailable"
 
-	// ExternalRemediationRequestCreationFailedReason is the reason used when a machine health check fails to create external remediation request.
-	ExternalRemediationRequestCreationFailedReason = "ExternalRemediationRequestCreationFailed"
+	// ExternalRemediationRequestCreationFailedV1Beta1Reason is the reason used when a machine health check fails to create external remediation request.
+	ExternalRemediationRequestCreationFailedV1Beta1Reason = "ExternalRemediationRequestCreationFailed"
 )
 
 // Conditions and condition Reasons for the Machine's Node object.
@@ -198,24 +198,24 @@ const (
 	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure and NodePIDPressure) are in a healthy state, it will be set to True.
 	MachineNodeHealthyV1Beta1Condition ConditionType = "NodeHealthy"
 
-	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
-	WaitingForNodeRefReason = "WaitingForNodeRef"
+	// WaitingForNodeRefV1Beta1Reason (Severity=Info) documents a machine.spec.providerId is not assigned yet.
+	WaitingForNodeRefV1Beta1Reason = "WaitingForNodeRef"
 
-	// NodeProvisioningReason (Severity=Info) documents machine in the process of provisioning a node.
+	// NodeProvisioningV1Beta1Reason (Severity=Info) documents machine in the process of provisioning a node.
 	// NB. provisioning --> NodeRef == "".
-	NodeProvisioningReason = "NodeProvisioning"
+	NodeProvisioningV1Beta1Reason = "NodeProvisioning"
 
-	// NodeNotFoundReason (Severity=Error) documents a machine's node has previously been observed but is now gone.
+	// NodeNotFoundV1Beta1Reason (Severity=Error) documents a machine's node has previously been observed but is now gone.
 	// NB. provisioned --> NodeRef != "".
-	NodeNotFoundReason = "NodeNotFound"
+	NodeNotFoundV1Beta1Reason = "NodeNotFound"
 
-	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
-	NodeConditionsFailedReason = "NodeConditionsFailed"
+	// NodeConditionsFailedV1Beta1Reason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
+	NodeConditionsFailedV1Beta1Reason = "NodeConditionsFailed"
 
-	// NodeInspectionFailedReason documents a failure in inspecting the node.
+	// NodeInspectionFailedV1Beta1Reason documents a failure in inspecting the node.
 	// This reason is used when the Machine controller is unable to list Nodes to find
 	// the corresponding Node for a Machine by ProviderID.
-	NodeInspectionFailedReason = "NodeInspectionFailed"
+	NodeInspectionFailedV1Beta1Reason = "NodeInspectionFailed"
 )
 
 // Conditions and condition Reasons for the MachineHealthCheck object.
@@ -225,9 +225,9 @@ const (
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.
 	RemediationAllowedV1Beta1Condition ConditionType = "RemediationAllowed"
 
-	// TooManyUnhealthyReason is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
+	// TooManyUnhealthyV1Beta1Reason is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
 	// from making any further remediations.
-	TooManyUnhealthyReason = "TooManyUnhealthy"
+	TooManyUnhealthyV1Beta1Reason = "TooManyUnhealthy"
 )
 
 // Conditions and condition Reasons for  MachineDeployments.
@@ -240,13 +240,13 @@ const (
 	// MachineSetReadyV1Beta1Condition reports a summary of current status of the MachineSet owned by the MachineDeployment.
 	MachineSetReadyV1Beta1Condition ConditionType = "MachineSetReady"
 
-	// WaitingForMachineSetFallbackReason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
+	// WaitingForMachineSetFallbackV1Beta1Reason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
 	// to be available.
 	// NOTE: This reason is used only as a fallback when the MachineSet object is not reporting its own ready condition.
-	WaitingForMachineSetFallbackReason = "WaitingForMachineSet"
+	WaitingForMachineSetFallbackV1Beta1Reason = "WaitingForMachineSet"
 
-	// WaitingForAvailableMachinesReason (Severity=Warning) reflects the fact that the required minimum number of machines for a machinedeployment are not available.
-	WaitingForAvailableMachinesReason = "WaitingForAvailableMachines"
+	// WaitingForAvailableMachinesV1Beta1Reason (Severity=Warning) reflects the fact that the required minimum number of machines for a machinedeployment are not available.
+	WaitingForAvailableMachinesV1Beta1Reason = "WaitingForAvailableMachines"
 )
 
 // Conditions and condition Reasons for  MachineSets.
@@ -260,30 +260,30 @@ const (
 	// MachinesReadyV1Beta1Condition reports an aggregate of current status of the machines controlled by the MachineSet.
 	MachinesReadyV1Beta1Condition ConditionType = "MachinesReady"
 
-	// PreflightCheckFailedReason (Severity=Error) documents a MachineSet failing preflight checks
+	// PreflightCheckFailedV1Beta1Reason (Severity=Error) documents a MachineSet failing preflight checks
 	// to create machine(s).
-	PreflightCheckFailedReason = "PreflightCheckFailed"
+	PreflightCheckFailedV1Beta1Reason = "PreflightCheckFailed"
 
-	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a MachineSet failing to
+	// BootstrapTemplateCloningFailedV1Beta1Reason (Severity=Error) documents a MachineSet failing to
 	// clone the bootstrap template.
-	BootstrapTemplateCloningFailedReason = "BootstrapTemplateCloningFailed"
+	BootstrapTemplateCloningFailedV1Beta1Reason = "BootstrapTemplateCloningFailed"
 
-	// InfrastructureTemplateCloningFailedReason (Severity=Error) documents a MachineSet failing to
+	// InfrastructureTemplateCloningFailedV1Beta1Reason (Severity=Error) documents a MachineSet failing to
 	// clone the infrastructure template.
-	InfrastructureTemplateCloningFailedReason = "InfrastructureTemplateCloningFailed"
+	InfrastructureTemplateCloningFailedV1Beta1Reason = "InfrastructureTemplateCloningFailed"
 
-	// MachineCreationFailedReason (Severity=Error) documents a MachineSet failing to
+	// MachineCreationFailedV1Beta1Reason (Severity=Error) documents a MachineSet failing to
 	// generate a machine object.
-	MachineCreationFailedReason = "MachineCreationFailed"
+	MachineCreationFailedV1Beta1Reason = "MachineCreationFailed"
 
 	// ResizedV1Beta1Condition documents a MachineSet is resizing the set of controlled machines.
 	ResizedV1Beta1Condition ConditionType = "Resized"
 
-	// ScalingUpReason (Severity=Info) documents a MachineSet is increasing the number of replicas.
-	ScalingUpReason = "ScalingUp"
+	// ScalingUpV1Beta1Reason (Severity=Info) documents a MachineSet is increasing the number of replicas.
+	ScalingUpV1Beta1Reason = "ScalingUp"
 
-	// ScalingDownReason (Severity=Info) documents a MachineSet is decreasing the number of replicas.
-	ScalingDownReason = "ScalingDown"
+	// ScalingDownV1Beta1Reason (Severity=Info) documents a MachineSet is decreasing the number of replicas.
+	ScalingDownV1Beta1Reason = "ScalingDown"
 )
 
 // Conditions and condition reasons for Clusters with a managed Topology.
@@ -295,51 +295,51 @@ const (
 	// the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
 	TopologyReconciledV1Beta1Condition ConditionType = "TopologyReconciled"
 
-	// TopologyReconcileFailedReason (Severity=Error) documents the reconciliation of a Cluster topology
+	// TopologyReconcileFailedV1Beta1Reason (Severity=Error) documents the reconciliation of a Cluster topology
 	// failing due to an error.
-	TopologyReconcileFailedReason = "TopologyReconcileFailed"
+	TopologyReconcileFailedV1Beta1Reason = "TopologyReconcileFailed"
 
-	// TopologyReconciledControlPlaneUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
-	TopologyReconciledControlPlaneUpgradePendingReason = "ControlPlaneUpgradePending"
+	TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason = "ControlPlaneUpgradePending"
 
-	// TopologyReconciledMachineDeploymentsCreatePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is yet to be created.
 	// This generally happens because new MachineDeployment creations are held off while the ControlPlane is not stable.
-	TopologyReconciledMachineDeploymentsCreatePendingReason = "MachineDeploymentsCreatePending"
+	TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason = "MachineDeploymentsCreatePending"
 
-	// TopologyReconciledMachineDeploymentsUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
-	TopologyReconciledMachineDeploymentsUpgradePendingReason = "MachineDeploymentsUpgradePending"
+	TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason = "MachineDeploymentsUpgradePending"
 
-	// TopologyReconciledMachineDeploymentsUpgradeDeferredReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
-	TopologyReconciledMachineDeploymentsUpgradeDeferredReason = "MachineDeploymentsUpgradeDeferred"
+	TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason = "MachineDeploymentsUpgradeDeferred"
 
-	// TopologyReconciledMachinePoolsUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
-	TopologyReconciledMachinePoolsUpgradePendingReason = "MachinePoolsUpgradePending"
+	TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason = "MachinePoolsUpgradePending"
 
-	// TopologyReconciledMachinePoolsCreatePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is yet to be created.
 	// This generally happens because new MachinePool creations are held off while the ControlPlane is not stable.
-	TopologyReconciledMachinePoolsCreatePendingReason = "MachinePoolsCreatePending"
+	TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason = "MachinePoolsCreatePending"
 
-	// TopologyReconciledMachinePoolsUpgradeDeferredReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
-	TopologyReconciledMachinePoolsUpgradeDeferredReason = "MachinePoolsUpgradeDeferred"
+	TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason = "MachinePoolsUpgradeDeferred"
 
-	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// TopologyReconciledHookBlockingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
-	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"
+	TopologyReconciledHookBlockingV1Beta1Reason = "LifecycleHookBlocking"
 
-	// TopologyReconciledClusterClassNotReconciledReason (Severity=Info) documents reconciliation of a Cluster topology not
+	// TopologyReconciledClusterClassNotReconciledV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology not
 	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue
 	// with the ClusterClass surfaced in the ClusterClass status or controller logs.
-	TopologyReconciledClusterClassNotReconciledReason = "ClusterClassNotReconciled"
+	TopologyReconciledClusterClassNotReconciledV1Beta1Reason = "ClusterClassNotReconciled"
 
-	// TopologyReconciledPausedReason (Severity=Info) surfaces when the Cluster is paused.
-	TopologyReconciledPausedReason = "Paused"
+	// TopologyReconciledPausedV1Beta1Reason (Severity=Info) surfaces when the Cluster is paused.
+	TopologyReconciledPausedV1Beta1Reason = "Paused"
 )
 
 // Conditions and condition reasons for ClusterClass.
@@ -349,12 +349,12 @@ const (
 	// the corresponding CRD).
 	ClusterClassRefVersionsUpToDateV1Beta1Condition ConditionType = "RefVersionsUpToDate"
 
-	// ClusterClassOutdatedRefVersionsReason (Severity=Warning) that the references in the ClusterClass are not
+	// ClusterClassOutdatedRefVersionsV1Beta1Reason (Severity=Warning) that the references in the ClusterClass are not
 	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassOutdatedRefVersionsReason = "OutdatedRefVersions"
+	ClusterClassOutdatedRefVersionsV1Beta1Reason = "OutdatedRefVersions"
 
-	// ClusterClassRefVersionsUpToDateInternalErrorReason (Severity=Warning) surfaces that an unexpected error occurred when validating
+	// ClusterClassRefVersionsUpToDateInternalErrorV1Beta1Reason (Severity=Warning) surfaces that an unexpected error occurred when validating
 	// if the references are up-to-date.
-	ClusterClassRefVersionsUpToDateInternalErrorReason = "InternalError"
+	ClusterClassRefVersionsUpToDateInternalErrorV1Beta1Reason = "InternalError"
 )

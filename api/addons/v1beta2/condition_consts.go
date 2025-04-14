@@ -24,18 +24,18 @@ const (
 	// all matching clusters. This indicates all resources exist, and no errors during applying them to all clusters.
 	ResourcesAppliedV1Beta1Condition clusterv1.ConditionType = "ResourcesApplied"
 
-	// RemoteClusterClientFailedReason (Severity=Error) documents failure during getting the remote cluster client.
-	RemoteClusterClientFailedReason = "RemoteClusterClientFailed"
+	// RemoteClusterClientFailedV1Beta1Reason (Severity=Error) documents failure during getting the remote cluster client.
+	RemoteClusterClientFailedV1Beta1Reason = "RemoteClusterClientFailed"
 
-	// ClusterMatchFailedReason (Severity=Warning) documents failure getting clusters that match the clusterSelector.
-	ClusterMatchFailedReason = "ClusterMatchFailed"
+	// ClusterMatchFailedV1Beta1Reason (Severity=Warning) documents failure getting clusters that match the clusterSelector.
+	ClusterMatchFailedV1Beta1Reason = "ClusterMatchFailed"
 
-	// ApplyFailedReason (Severity=Warning) documents applying at least one of the resources to one of the matching clusters is failed.
-	ApplyFailedReason = "ApplyFailed"
+	// ApplyFailedV1Beta1Reason (Severity=Warning) documents applying at least one of the resources to one of the matching clusters is failed.
+	ApplyFailedV1Beta1Reason = "ApplyFailed"
 
-	// RetrievingResourceFailedReason (Severity=Warning) documents at least one of the resources are not successfully retrieved.
-	RetrievingResourceFailedReason = "RetrievingResourceFailed"
+	// RetrievingResourceFailedV1Beta1Reason (Severity=Warning) documents at least one of the resources are not successfully retrieved.
+	RetrievingResourceFailedV1Beta1Reason = "RetrievingResourceFailed"
 
-	// WrongSecretTypeReason (Severity=Warning) documents at least one of the Secret's type in the resource list is not supported.
-	WrongSecretTypeReason = "WrongSecretType"
+	// WrongSecretTypeV1Beta1Reason (Severity=Warning) documents at least one of the Secret's type in the resource list is not supported.
+	WrongSecretTypeV1Beta1Reason = "WrongSecretType"
 )

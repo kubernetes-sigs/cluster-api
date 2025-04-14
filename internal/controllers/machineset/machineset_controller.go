@@ -688,7 +688,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 
 			s.scaleUpPreflightCheckErrMessages = preflightCheckErrMessages
-			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, strings.Join(preflightCheckErrMessages, "; "))
+			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.PreflightCheckFailedV1Beta1Reason, clusterv1.ConditionSeverityError, strings.Join(preflightCheckErrMessages, "; "))
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -731,7 +731,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 					},
 				})
 				if err != nil {
-					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a machine",
 						ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
 						klog.KRef(ms.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name))
@@ -764,7 +764,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name), (&ms.Spec.Template.Spec.InfrastructureRef).Kind)
 					}
 				}
-				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
+				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 				return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,
 					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
@@ -777,7 +777,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				log.Error(err, "Error while creating a machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine: %v", err)
 				errs = append(errs, err)
-				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationFailedReason,
+				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationFailedV1Beta1Reason,
 					clusterv1.ConditionSeverityError, err.Error())
 
 				// Try to cleanup the external objects if the Machine creation failed.
@@ -1253,10 +1253,10 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	switch {
 	// We are scaling up
 	case newStatus.Replicas < desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
 	// We are scaling down
 	case newStatus.Replicas > desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
 		// This means that there was no error in generating the desired number of machine objects
 		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedV1Beta1Condition)
 	default:
@@ -1490,7 +1490,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}, &clusterv1.Condition{
 			Type:     clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
-			Reason:   clusterv1.WaitingForRemediationReason,
+			Reason:   clusterv1.WaitingForRemediationV1Beta1Reason,
 			Severity: clusterv1.ConditionSeverityWarning,
 			Message:  strings.Join(preflightCheckErrMessages, "; "),
 		}); patchErr != nil {

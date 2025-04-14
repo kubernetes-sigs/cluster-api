@@ -447,7 +447,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				return ctrl.Result{}, nil
 			}
 			// All good - the control plane resource has been deleted
-			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyV1Beta1Condition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyV1Beta1Condition, clusterv1.DeletedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		}
 
 		if s.controlPlane != nil {
@@ -487,7 +487,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 				return ctrl.Result{}, nil
 			}
 			// All good - the infra resource has been deleted
-			v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+			v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.DeletedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		}
 
 		if s.infraCluster != nil {
@@ -735,7 +735,7 @@ func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, s *sc
 		}
 	}
 
-	v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
+	v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition, clusterv1.MissingNodeRefV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
 
 	return ctrl.Result{}, nil
 }

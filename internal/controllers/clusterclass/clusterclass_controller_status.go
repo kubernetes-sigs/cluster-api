@@ -37,7 +37,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	if reconcileExternalReferencesError != nil {
 		v1beta1conditions.MarkUnknown(clusterClass,
 			clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition,
-			clusterv1.ClusterClassRefVersionsUpToDateInternalErrorReason,
+			clusterv1.ClusterClassRefVersionsUpToDateInternalErrorV1Beta1Reason,
 			"Please check controller logs for errors",
 		)
 		conditions.Set(clusterClass, metav1.Condition{
@@ -57,7 +57,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 		v1beta1conditions.Set(clusterClass,
 			v1beta1conditions.FalseCondition(
 				clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition,
-				clusterv1.ClusterClassOutdatedRefVersionsReason,
+				clusterv1.ClusterClassOutdatedRefVersionsV1Beta1Reason,
 				clusterv1.ConditionSeverityWarning,
 				strings.Join(msg, "\n"),
 			),
@@ -85,7 +85,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 	if variableDiscoveryError != nil {
 		v1beta1conditions.MarkFalse(clusterClass,
 			clusterv1.ClusterClassVariablesReconciledV1Beta1Condition,
-			clusterv1.VariableDiscoveryFailedReason,
+			clusterv1.VariableDiscoveryFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityError,
 			variableDiscoveryError.Error(),
 		)

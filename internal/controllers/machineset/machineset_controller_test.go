@@ -998,7 +998,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	gotCond := v1beta1conditions.Get(ms, clusterv1.MachinesCreatedV1Beta1Condition)
 	g.Expect(gotCond).ToNot(BeNil())
 	g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))
-	g.Expect(gotCond.Reason).To(Equal(clusterv1.InfrastructureTemplateCloningFailedReason))
+	g.Expect(gotCond.Reason).To(Equal(clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason))
 }
 
 func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
@@ -1020,7 +1020,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 			name:            "MachineSet should have ResizedCondition=false on scale up",
 			machineSet:      newMachineSet("ms-scale-up", cluster.Name, int32(1)),
 			machines:        []*clusterv1.Machine{},
-			expectedReason:  clusterv1.ScalingUpReason,
+			expectedReason:  clusterv1.ScalingUpV1Beta1Reason,
 			expectedMessage: "Scaling up MachineSet to 1 replicas (actual 0)",
 		},
 		{
@@ -1037,7 +1037,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 					},
 				},
 			},
-			expectedReason:  clusterv1.ScalingDownReason,
+			expectedReason:  clusterv1.ScalingDownV1Beta1Reason,
 			expectedMessage: "Scaling down MachineSet to 0 replicas (actual 1)",
 		},
 	}
@@ -1745,7 +1745,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(machineOwnerRemediatedCondition.Status).
 			To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 		g.Expect(machineOwnerRemediatedCondition.Reason).
-			To(Equal(clusterv1.WaitingForRemediationReason), "%s condition should have reason %s", condition, clusterv1.WaitingForRemediationReason)
+			To(Equal(clusterv1.WaitingForRemediationV1Beta1Reason), "%s condition should have reason %s", condition, clusterv1.WaitingForRemediationV1Beta1Reason)
 		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
@@ -2365,7 +2365,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 		g.Expect(machinesCreatedCondition.Status).
 			To(Equal(corev1.ConditionFalse), "%s condition status should be %s", condition, corev1.ConditionFalse)
 		g.Expect(machinesCreatedCondition.Reason).
-			To(Equal(clusterv1.PreflightCheckFailedReason), "%s condition reason should be %s", condition, clusterv1.PreflightCheckFailedReason)
+			To(Equal(clusterv1.PreflightCheckFailedV1Beta1Reason), "%s condition reason should be %s", condition, clusterv1.PreflightCheckFailedV1Beta1Reason)
 
 		// Verify no new Machines are created.
 		machineList := &clusterv1.MachineList{}
@@ -2503,7 +2503,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		g.Expect(machinesCreatedCondition.Status).
 			To(Equal(corev1.ConditionFalse), "%s condition status should be %s", condition, corev1.ConditionFalse)
 		g.Expect(machinesCreatedCondition.Reason).
-			To(Equal(clusterv1.InfrastructureTemplateCloningFailedReason), "%s condition reason should be %s", condition, clusterv1.InfrastructureTemplateCloningFailedReason)
+			To(Equal(clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason), "%s condition reason should be %s", condition, clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason)
 
 		// Verify no new Machines are created.
 		machineList := &clusterv1.MachineList{}

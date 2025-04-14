@@ -470,7 +470,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,
-		Reason:   controlplanev1.InfrastructureTemplateCloningFailedReason,
+		Reason:   controlplanev1.InfrastructureTemplateCloningFailedV1Beta1Reason,
 		Message:  "failed to retrieve GenericMachineTemplate default/something_invalid: genericmachinetemplates.generic.io \"something_invalid\" not found",
 	}))
 }

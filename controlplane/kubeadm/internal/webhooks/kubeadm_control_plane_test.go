@@ -459,6 +459,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			ImageTag: "v9.1.1",
 		},
 	}
+	etcdLocalImageTagAndDataDir := etcdLocalImageTag.DeepCopy()
+	etcdLocalImageTagAndDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.DataDir = "/foo"
 
 	etcdLocalImageBuildTag := before.DeepCopy()
 	etcdLocalImageBuildTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
@@ -474,8 +476,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 
-	unsetEtcd := etcdLocalImageTag.DeepCopy()
-	unsetEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
+	unsetEtcdLocal := etcdLocalImageTag.DeepCopy()
+	unsetEtcdLocal.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
 
 	networking := before.DeepCopy()
 	networking.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.DNSDomain = "some dns domain"
@@ -586,6 +588,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	externalEtcd := before.DeepCopy()
 	externalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &bootstrapv1.ExternalEtcd{
 		KeyFile: "some key file",
+	}
+	externalEtcdChanged := before.DeepCopy()
+	externalEtcdChanged.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &bootstrapv1.ExternalEtcd{
+		KeyFile: "another key file",
 	}
 
 	localDataDir := before.DeepCopy()
@@ -857,6 +863,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       unsetCoreDNSToVersion,
 		},
 		{
+			name:      "should succeed when DNS is set to nil",
+			expectErr: false,
+			before:    dns,
+			kcp:       unsetCoreDNSToVersion,
+		},
+		{
 			name:      "should succeed when using an valid DNS build",
 			expectErr: false,
 			before:    before,
@@ -941,14 +953,26 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		{
 			name:      "should succeed when making a change to the cluster config's external etcd's configuration",
 			expectErr: false,
-			before:    before,
-			kcp:       externalEtcd,
+			before:    externalEtcd,
+			kcp:       externalEtcdChanged,
 		},
 		{
-			name:      "should fail when attempting to unset the etcd local object",
-			expectErr: true,
+			name:      "should succeed when adding the cluster config's local etcd's configuration",
+			expectErr: false,
+			before:    unsetEtcdLocal,
+			kcp:       etcdLocalImageTag,
+		},
+		{
+			name:      "should succeed when making a change to the cluster config's local etcd's configuration",
+			expectErr: false,
 			before:    etcdLocalImageTag,
-			kcp:       unsetEtcd,
+			kcp:       etcdLocalImageTagAndDataDir,
+		},
+		{
+			name:      "should succeed when attempting to unset the etcd local object to fallback to the default",
+			expectErr: false,
+			before:    etcdLocalImageTag,
+			kcp:       unsetEtcdLocal,
 		},
 		{
 			name:      "should fail if both local and external etcd are set",

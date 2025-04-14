@@ -26,15 +26,26 @@ import (
 func TestBootstrap(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-	t.Run("Manages status.ready", func(t *testing.T) {
+	t.Run("Manages status.initialization.dataSecretCreated", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(Bootstrap().Ready().Path()).To(Equal(Path{"status", "ready"}))
+		g.Expect(Bootstrap().DataSecretCreated("v1beta2").Path()).To(Equal(Path{"status", "initialization", "dataSecretCreated"}))
 
-		err := Bootstrap().Ready().Set(obj, true)
+		err := Bootstrap().DataSecretCreated("v1beta2").Set(obj, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := Bootstrap().Ready().Get(obj)
+		got, err := Bootstrap().DataSecretCreated("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(BeTrue())
+
+		g.Expect(Bootstrap().DataSecretCreated("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
+
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		err = Bootstrap().DataSecretCreated("v1beta1").Set(objV1beta1, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = Bootstrap().DataSecretCreated("v1beta1").Get(objV1beta1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(BeTrue())

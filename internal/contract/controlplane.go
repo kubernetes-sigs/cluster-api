@@ -69,17 +69,23 @@ func (c *ControlPlaneContract) StatusVersion() *String {
 	}
 }
 
-// Ready provide access to the status.ready field in a ControlPlane object.
-func (c *ControlPlaneContract) Ready() *Bool {
+// Initialized returns if the control plane has been initialized.
+func (c *ControlPlaneContract) Initialized(contractVersion string) *Bool {
+	if contractVersion == "v1beta1" {
+		return &Bool{
+			path: []string{"status", "ready"},
+		}
+	}
+
 	return &Bool{
-		path: []string{"status", "ready"},
+		path: []string{"status", "initialization", "controlPlaneInitialized"},
 	}
 }
 
-// Initialized provide access to status.initialized field in a ControlPlane object.
-func (c *ControlPlaneContract) Initialized() *Bool {
-	return &Bool{
-		path: []string{"status", "initialized"},
+// ControlPlaneEndpoint provides access to ControlPlaneEndpoint in an ControlPlane object.
+func (c *ControlPlaneContract) ControlPlaneEndpoint() *ControlPlaneEndpoint {
+	return &ControlPlaneEndpoint{
+		path: []string{"spec", "controlPlaneEndpoint"},
 	}
 }
 

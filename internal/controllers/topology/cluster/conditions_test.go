@@ -93,7 +93,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			wantV1Beta2ConditionStatus: metav1.ConditionFalse,
-			wantV1Beta2ConditionReason: clusterv1.TopologyReconciledClusterClassNotReconciledReason,
+			wantV1Beta2ConditionReason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledV1Beta2Reason,
 			wantV1Beta2ConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			wantErr: false,

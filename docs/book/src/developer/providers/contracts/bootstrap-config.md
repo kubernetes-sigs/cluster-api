@@ -249,7 +249,7 @@ on Machine's corresponding fields at the same time.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to initialization completed:
 
@@ -289,7 +289,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to conditions:
 
@@ -314,18 +314,18 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to terminal failures:
 
 In case a Bootstrap provider reports that a BootstrapConfig resource is in a state that cannot be recovered (terminal failure) by
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, 
-the "core" Machine controller will surface those info in the corresponding fields within in Machine's `status.deprecatd.v1beta1` struct.
+the "core" Machine controller will surface those info in the corresponding fields within in Machine's `status.deprecated.v1beta1` struct.
 
 However, those info won't have any impact on the Machine lifecycle as before. 
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
-fields in the BootstrapConfig resource will be ignored and Machine's `status.deprecatd.v1beta1` struct will be dropped.
+fields in the BootstrapConfig resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
 

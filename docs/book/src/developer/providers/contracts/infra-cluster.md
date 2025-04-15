@@ -300,7 +300,7 @@ and `status.failureDomains` will be surfaced on Cluster's corresponding fields a
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to initialization completed:
 
@@ -340,7 +340,7 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to conditions:
 
@@ -365,18 +365,18 @@ See [Improving status in CAPI resources] for more context.
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
 With regards to terminal failures:
 
 In case an infrastructure provider reports that a InfraCluster resource is in a state that cannot be recovered (terminal failure) by
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
-the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecatd.v1beta1` struct.
+the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
 
 However, those info won't have any impact on the Cluster lifecycle as before.
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
-fields in the InfraCluster resource will be ignored and Cluster's `status.deprecatd.v1beta1` struct will be dropped.
+fields in the InfraCluster resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
 

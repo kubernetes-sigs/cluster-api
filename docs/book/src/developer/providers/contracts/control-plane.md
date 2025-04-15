@@ -762,7 +762,7 @@ details about how metadata should be propagated across the hierarchy of Cluster 
 Also, please note that `metadata` MUST be propagated to control plane instances machines without triggering rollouts.
 See [In place propagation of changes affecting Kubernetes objects only] for more details.
 
-See. [Label Sync Between Machines and underlying Kubernetes Nodes] for more details about how metadata are
+See. [Label and Annotations Sync Between Machines and underlying Kubernetes Nodes] for more details about how metadata are
 propagated to Kubernetes Nodes.
 
 ### MinReadySeconds and UpToDate propagation
@@ -849,7 +849,7 @@ is implemented in ControlPlane controllers:
 [Machine placement]: #machine-placement
 [Metadata propagation]: #metadata-propagation
 [Metadata propagation rules]: https://main.cluster-api.sigs.k8s.io/reference/api/metadata-propagation
-[Label Sync Between Machines and underlying Kubernetes Nodes]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220927-label-sync-between-machine-and-nodes.md
+[Label and Annotations Sync Between Machines and underlying Kubernetes Nodes]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220927-labels-and-annotations-sync-between-machine-and-nodes.md
 [MinReadySeconds and UpToDate propagation]: #minreadyseconds-and-uptodate-propagation
 [Support for running multiple instances]: #support-for-running-multiple-instances
 [Support running multiple instances of the same provider]: ../../core/support-multiple-instances.md

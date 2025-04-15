@@ -454,8 +454,9 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               conditions:
-                description: conditions represents the observations of a IPAddressClaim's
-                  current state.
+                description: |-
+                  conditions represents the observations of a IPAddressClaim's current state.
+                  Known condition types are Ready.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

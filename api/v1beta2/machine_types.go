@@ -89,7 +89,7 @@ const (
 	ManagedNodeAnnotationDomain = "node.cluster.x-k8s.io"
 )
 
-// Machine's Available condition and corresponding reasons
+// Machine's Available condition and corresponding reasons.
 const (
 	// MachineAvailableCondition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
@@ -106,7 +106,7 @@ const (
 	MachineAvailableInternalErrorReason = InternalErrorReason
 )
 
-// Machine's Ready condition and corresponding reasons
+// Machine's Ready condition and corresponding reasons.
 const (
 	// MachineReadyCondition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
 	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
@@ -137,7 +137,7 @@ const (
 	MachineReadyInternalErrorReason = InternalErrorReason
 )
 
-// Machine's UpToDate condition and corresponding reasons
+// Machine's UpToDate condition and corresponding reasons.
 // Note: UpToDate condition is set by the controller owning the machine.
 const (
 	// MachineUpToDateCondition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.

@@ -41,6 +41,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -206,33 +207,43 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 			return ctrl.Result{}, nil
 		}
 
-		// Determine if the bootstrap provider is ready.
-		ready, err := external.IsReady(bootstrapConfig)
+		// Determine contract version used by the BootstrapConfig.
+		contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind())
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+
+		// Determine if the data secret was created.
+		var dataSecretCreated bool
+		if dataSecretCreatedPtr, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(bootstrapConfig); err != nil {
+			if !errors.Is(err, contract.ErrFieldNotFound) {
+				return ctrl.Result{}, err
+			}
+		} else {
+			dataSecretCreated = *dataSecretCreatedPtr
 		}
 
 		// Report a summary of current status of the bootstrap object defined for this machine pool.
 		v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
 			v1beta1conditions.UnstructuredGetter(bootstrapConfig),
-			v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+			v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 		)
 
-		if !ready {
+		if !dataSecretCreated {
 			log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
-			m.Status.BootstrapReady = ready
+			m.Status.BootstrapReady = dataSecretCreated
 			return ctrl.Result{}, nil
 		}
 
 		// Get and set the name of the secret containing the bootstrap data.
-		secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
+		secretName, err := contract.Bootstrap().DataSecretName().Get(bootstrapConfig)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
-		} else if secretName == "" {
+		} else if secretName == nil {
 			return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
 		}
 
-		m.Spec.Template.Spec.Bootstrap.DataSecretName = ptr.To(secretName)
+		m.Spec.Template.Spec.Bootstrap.DataSecretName = secretName
 		m.Status.BootstrapReady = true
 		return ctrl.Result{}, nil
 	}

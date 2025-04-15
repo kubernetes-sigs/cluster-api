@@ -208,7 +208,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -248,7 +248,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -311,7 +311,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -383,7 +383,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -426,7 +426,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -489,7 +489,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -559,7 +559,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -625,7 +625,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -693,7 +693,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Change bootstrap reference.
 		newBootstrapConfig := defaultBootstrap.DeepCopy()
 		newBootstrapConfig.SetName("bootstrap-config2")
-		err = unstructured.SetNestedField(newBootstrapConfig.Object, true, "status", "ready")
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 		err = unstructured.SetNestedField(newBootstrapConfig.Object, "secret-data-new", "status", "dataSecretName")
 		g.Expect(err).ToNot(HaveOccurred())
@@ -721,7 +721,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
@@ -789,7 +789,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Change bootstrap reference
 		newBootstrapConfig := defaultBootstrap.DeepCopy()
 		newBootstrapConfig.SetName("bootstrap-config2")
-		err = unstructured.SetNestedField(newBootstrapConfig.Object, false, "status", "ready")
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, false, "status", "initialization", "dataSecretCreated")
 		g.Expect(err).ToNot(HaveOccurred())
 		// Fill the `dataSecretName` so we can check if the machine pool uses the non-ready secret immediately or,
 		// as it should, not yet
@@ -869,7 +869,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 					"dataSecretName": "secret-data",
 				},
 			},
@@ -891,7 +893,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 				},
 			},
 			expectError: true,
@@ -960,7 +964,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 					"dataSecretName": "secret-data",
 				},
 			},
@@ -1005,7 +1011,9 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 					"dataSecretName": "secret-data",
 				},
 			},
@@ -1044,8 +1052,10 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": false,
-					"data":  "#!/bin/bash ... data",
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": false,
+					},
+					"data": "#!/bin/bash ... data",
 				},
 			},
 			machinepool: &expv1.MachinePool{
@@ -1245,7 +1255,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 					"dataSecretName": "secret-data",
 				},
 			},
@@ -1306,7 +1318,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":          true,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": true,
+					},
 					"dataSecretName": "secret-data",
 				},
 			},
@@ -1817,7 +1831,9 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 			"spec": map[string]interface{}{},
 			"status": map[string]interface{}{
-				"ready":          true,
+				"initialization": map[string]interface{}{
+					"dataSecretCreated": true,
+				},
 				"dataSecretName": "secret-data",
 			},
 		},

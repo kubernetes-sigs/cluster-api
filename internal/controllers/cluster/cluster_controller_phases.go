@@ -213,25 +213,26 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraCluster = obj
 
 	// Determine contract version used by the InfrastructureCluster.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, obj.GroupVersionKind())
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Determine if the InfrastructureCluster is provisioned.
-	provisioned, err := contract.InfrastructureCluster().Provisioned(contractVersion).Get(obj)
-	if err != nil {
+	var provisioned bool
+	if provisionedPtr, err := contract.InfrastructureCluster().Provisioned(contractVersion).Get(s.infraCluster); err != nil {
 		if !errors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
-		provisioned = ptr.To(false)
+	} else {
+		provisioned = *provisionedPtr
 	}
-	if *provisioned && !cluster.Status.InfrastructureReady {
+	if provisioned && !cluster.Status.InfrastructureReady {
 		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.InfrastructureRef.Kind, klog.KObj(s.infraCluster))
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(*provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
@@ -246,7 +247,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// If the InfrastructureCluster is not provisioned (and it wasn't already provisioned before), return.
-	if !*provisioned && !cluster.Status.InfrastructureReady {
+	if !provisioned && !cluster.Status.InfrastructureReady {
 		log.V(3).Info("Infrastructure provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
@@ -316,25 +317,26 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	s.controlPlane = obj
 
 	// Determine contract version used by the ControlPlane.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, obj.GroupVersionKind())
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Determine if the ControlPlane is provisioned.
-	initialized, err := contract.ControlPlane().Initialized(contractVersion).Get(obj)
-	if err != nil {
+	var initialized bool
+	if initializedPtr, err := contract.ControlPlane().Initialized(contractVersion).Get(s.controlPlane); err != nil {
 		if !errors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, err
 		}
-		initialized = ptr.To(false)
+	} else {
+		initialized = *initializedPtr
 	}
-	if *initialized && !cluster.Status.ControlPlaneReady {
+	if initialized && !cluster.Status.ControlPlaneReady {
 		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
 	}
 
 	// Report a summary of current status of the control plane object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(*initialized, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(initialized, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
@@ -350,7 +352,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 
 	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set.
 	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		if *initialized {
+		if initialized {
 			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		} else {
 			v1beta1conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
@@ -358,7 +360,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// If the control plane is not ready (and it wasn't ready before), return early.
-	if !*initialized && !cluster.Status.ControlPlaneReady {
+	if !initialized && !cluster.Status.ControlPlaneReady {
 		log.V(3).Info("Control Plane provider is not ready yet")
 		return ctrl.Result{}, nil
 	}

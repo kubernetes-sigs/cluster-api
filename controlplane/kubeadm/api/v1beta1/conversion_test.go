@@ -78,5 +78,6 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Contin
 		}
 	}
 
-	in.Ready = in.Initialized
+	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
+	in.Ready = in.ReadyReplicas > 0
 }

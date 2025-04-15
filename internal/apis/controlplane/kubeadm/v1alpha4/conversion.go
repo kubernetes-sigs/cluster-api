@@ -52,12 +52,12 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.UpdatedReplicas = src.Status.UpdatedReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
-	// Move ready to Initialization
-	if src.Status.Ready {
+	// Move Initialized to ControlPlaneInitialized
+	if src.Status.Initialized {
 		if dst.Status.Initialization == nil {
 			dst.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
 		}
-		dst.Status.Initialization.ControlPlaneInitialized = src.Status.Ready
+		dst.Status.Initialization.ControlPlaneInitialized = src.Status.Initialized
 	}
 
 	// Manually restore data.
@@ -120,11 +120,11 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
-	// Move initialization to old fields
+	// Move ControlPlaneInitialized to old fields, rebuild ready
 	if src.Status.Initialization != nil {
 		dst.Status.Initialized = src.Status.Initialization.ControlPlaneInitialized
-		dst.Status.Ready = src.Status.Initialization.ControlPlaneInitialized
 	}
+	dst.Status.Ready = src.Status.Deprecated.V1Beta1.ReadyReplicas > 0
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)

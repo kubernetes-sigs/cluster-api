@@ -84,7 +84,8 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
-	in.Ready = in.Initialized
+	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
+	in.Ready = in.ReadyReplicas > 0
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {

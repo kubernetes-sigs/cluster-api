@@ -153,7 +153,7 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 	return &res
 }
 
-func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefProvisioned(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
@@ -165,7 +165,7 @@ func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]inte
 	g.Expect(env.Patch(ctx, iref, irefPatch)).To(Succeed())
 
 	irefPatch = client.MergeFrom(iref.DeepCopy())
-	g.Expect(unstructured.SetNestedField(iref.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(iref.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, iref, irefPatch)).To(Succeed())
 	return providerID
 }

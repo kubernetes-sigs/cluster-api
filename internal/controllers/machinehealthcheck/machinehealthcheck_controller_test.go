@@ -2605,7 +2605,7 @@ func createMachinesWithNodes(
 		// NB. Status cannot be set during object creation so we need to patch
 		// it separately.
 		infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
 		machine.Spec.InfrastructureRef = corev1.ObjectReference{

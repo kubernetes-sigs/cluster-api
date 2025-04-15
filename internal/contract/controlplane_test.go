@@ -56,31 +56,47 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("1.2.3"))
 	})
-	t.Run("Manages status.ready", func(t *testing.T) {
+	t.Run("Manages status.initialization.controlPlaneInitialized", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().Ready().Path()).To(Equal(Path{"status", "ready"}))
+		g.Expect(ControlPlane().Initialized("v1beta2").Path()).To(Equal(Path{"status", "initialization", "controlPlaneInitialized"}))
 
-		err := ControlPlane().Ready().Set(obj, true)
+		err := ControlPlane().Initialized("v1beta2").Set(obj, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().Ready().Get(obj)
+		got, err := ControlPlane().Initialized("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(BeTrue())
+
+		g.Expect(ControlPlane().Initialized("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
+
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		err = ControlPlane().Initialized("v1beta1").Set(objV1beta1, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().Initialized("v1beta1").Get(objV1beta1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(BeTrue())
 	})
-	t.Run("Manages status.initialized", func(t *testing.T) {
+	t.Run("Manages spec.ControlPlaneEndpoint", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().Initialized().Path()).To(Equal(Path{"status", "initialized"}))
+		g.Expect(ControlPlane().ControlPlaneEndpoint().Path()).To(Equal(Path{"spec", "controlPlaneEndpoint"}))
 
-		err := ControlPlane().Initialized().Set(obj, true)
+		endpoint := clusterv1.APIEndpoint{
+			Host: "example.com",
+			Port: 1234,
+		}
+
+		err := ControlPlane().ControlPlaneEndpoint().Set(obj, endpoint)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().Initialized().Get(obj)
+		got, err := ControlPlane().ControlPlaneEndpoint().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(BeTrue())
+		g.Expect(*got).To(Equal(endpoint))
 	})
 	t.Run("Manages spec.replicas", func(t *testing.T) {
 		g := NewWithT(t)

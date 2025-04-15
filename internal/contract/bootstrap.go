@@ -32,13 +32,6 @@ func Bootstrap() *BootstrapContract {
 	return bootstrap
 }
 
-// Ready provide access to status.ready field in a bootstrap object.
-func (b *BootstrapContract) Ready() *Bool {
-	return &Bool{
-		path: []string{"status", "ready"},
-	}
-}
-
 // DataSecretCreated returns if the data secret has been created.
 func (b *BootstrapContract) DataSecretCreated(contractVersion string) *Bool {
 	if contractVersion == "v1beta1" {

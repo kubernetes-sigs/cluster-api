@@ -340,8 +340,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
+			fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
 		}
 
 		// Verify that in-place mutable fields propagate from MachineSet to Machines.
@@ -406,8 +406,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 			g.Expect(m.Spec.Version).ToNot(BeNil())
 			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeBootstrapRefReady(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			providerID := fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
+			providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
 		}
 

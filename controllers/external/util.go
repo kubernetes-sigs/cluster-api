@@ -247,13 +247,3 @@ func IsReady(obj *unstructured.Unstructured) (bool, error) {
 	}
 	return ready && found, nil
 }
-
-// IsInitialized returns true if the Status.Initialized field on an external object is true.
-func IsInitialized(obj *unstructured.Unstructured) (bool, error) {
-	initialized, found, err := unstructured.NestedBool(obj.Object, "status", "initialized")
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to determine %v %q initialized",
-			obj.GroupVersionKind(), obj.GetName())
-	}
-	return initialized && found, nil
-}

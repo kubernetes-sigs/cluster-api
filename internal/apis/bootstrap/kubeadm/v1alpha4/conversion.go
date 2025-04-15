@@ -46,6 +46,14 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.FailureReason = src.Status.FailureReason
 	dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 
+	// Move ready to Initialization
+	if src.Status.Ready {
+		if dst.Status.Initialization == nil {
+			dst.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
+		}
+		dst.Status.Initialization.DataSecretCreated = src.Status.Ready
+	}
+
 	// Manually restore data.
 	restored := &bootstrapv1.KubeadmConfig{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -144,6 +152,11 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 			dst.Status.FailureReason = src.Status.Deprecated.V1Beta1.FailureReason
 			dst.Status.FailureMessage = src.Status.Deprecated.V1Beta1.FailureMessage
 		}
+	}
+
+	// Move initialization to old fields
+	if src.Status.Initialization != nil {
+		dst.Status.Ready = src.Status.Initialization.DataSecretCreated
 	}
 
 	// Preserve Hub data on down-conversion except for metadata.

@@ -917,7 +917,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
-	bootstrapConfig := func(ready bool) *unstructured.Unstructured {
+	bootstrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       builder.TestBootstrapConfigKind,
@@ -927,7 +927,9 @@ func TestMachinePoolConditions(t *testing.T) {
 					"namespace": metav1.NamespaceDefault,
 				},
 				"status": map[string]interface{}{
-					"ready":          ready,
+					"initialization": map[string]interface{}{
+						"dataSecretCreated": dataSecretCreated,
+					},
 					"dataSecretName": "data",
 				},
 			},
@@ -1018,7 +1020,7 @@ func TestMachinePoolConditions(t *testing.T) {
 
 	testcases := []struct {
 		name                string
-		bootstrapReady      bool
+		dataSecretCreated   bool
 		infrastructureReady bool
 		expectError         bool
 		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
@@ -1026,7 +1028,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	}{
 		{
 			name:                "all conditions true",
-			bootstrapReady:      true,
+			dataSecretCreated:   true,
 			infrastructureReady: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
@@ -1055,7 +1057,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		{
 			name:                "boostrap not ready",
-			bootstrapReady:      false,
+			dataSecretCreated:   false,
 			infrastructureReady: true,
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
@@ -1079,7 +1081,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		{
 			name:                "bootstrap not ready with fallback condition",
-			bootstrapReady:      false,
+			dataSecretCreated:   false,
 			infrastructureReady: true,
 			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
@@ -1096,7 +1098,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		{
 			name:                "infrastructure not ready",
-			bootstrapReady:      true,
+			dataSecretCreated:   true,
 			infrastructureReady: false,
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
@@ -1121,7 +1123,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		{
 			name:                "infrastructure not ready with fallback condition",
-			bootstrapReady:      true,
+			dataSecretCreated:   true,
 			infrastructureReady: false,
 			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
 				t.Helper()
@@ -1137,9 +1139,9 @@ func TestMachinePoolConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "incorrect infrastructure reference",
-			bootstrapReady: true,
-			expectError:    true,
+			name:              "incorrect infrastructure reference",
+			dataSecretCreated: true,
+			expectError:       true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
@@ -1163,7 +1165,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			g := NewWithT(t)
 
 			// setup objects
-			bootstrap := bootstrapConfig(tt.bootstrapReady)
+			bootstrap := bootstrapConfig(tt.dataSecretCreated)
 			infra := infraConfig(tt.infrastructureReady)
 			mp := machinePool.DeepCopy()
 			nodes := nodeList.DeepCopy()

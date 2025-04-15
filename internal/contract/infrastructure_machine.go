@@ -42,13 +42,6 @@ func InfrastructureMachine() *InfrastructureMachineContract {
 	return infrastructureMachine
 }
 
-// Ready provides access to status.ready field in an InfrastructureMachine object.
-func (m *InfrastructureMachineContract) Ready() *Bool {
-	return &Bool{
-		path: []string{"status", "ready"},
-	}
-}
-
 // Provisioned returns if the InfrastructureMachine is provisioned.
 func (m *InfrastructureMachineContract) Provisioned(contractVersion string) *Bool {
 	if contractVersion == "v1beta1" {

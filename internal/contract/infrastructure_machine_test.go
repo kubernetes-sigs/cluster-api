@@ -41,15 +41,26 @@ func TestInfrastructureMachine(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("fake-provider-id"))
 	})
-	t.Run("Manages status.ready", func(t *testing.T) {
+	t.Run("Manages status.initialization.provisioned", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(InfrastructureMachine().Ready().Path()).To(Equal(Path{"status", "ready"}))
+		g.Expect(InfrastructureMachine().Provisioned("v1beta2").Path()).To(Equal(Path{"status", "initialization", "provisioned"}))
 
-		err := InfrastructureMachine().Ready().Set(obj, true)
+		err := InfrastructureMachine().Provisioned("v1beta2").Set(obj, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := InfrastructureMachine().Ready().Get(obj)
+		got, err := InfrastructureMachine().Provisioned("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(BeTrue())
+
+		g.Expect(InfrastructureMachine().Provisioned("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
+
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		err = InfrastructureMachine().Provisioned("v1beta1").Set(objV1beta1, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = InfrastructureMachine().Provisioned("v1beta1").Get(objV1beta1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(BeTrue())

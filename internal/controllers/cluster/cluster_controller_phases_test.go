@@ -433,7 +433,9 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{
+						"controlPlaneInitialized": true,
+					},
 				},
 			},
 			expectErr: false,
@@ -455,8 +457,9 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":       true,
-					"initialized": true,
+					"initialization": map[string]interface{}{
+						"controlPlaneInitialized": true,
+					},
 				},
 			},
 			expectErr: false,

@@ -28,15 +28,44 @@ import (
 func TestInfrastructureCluster(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-	t.Run("Manages status.ready", func(t *testing.T) {
+	t.Run("Manages spec.ControlPlaneEndpoint", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(InfrastructureCluster().Ready().Path()).To(Equal(Path{"status", "ready"}))
+		g.Expect(InfrastructureCluster().ControlPlaneEndpoint().Path()).To(Equal(Path{"spec", "controlPlaneEndpoint"}))
 
-		err := InfrastructureCluster().Ready().Set(obj, true)
+		endpoint := clusterv1.APIEndpoint{
+			Host: "example.com",
+			Port: 1234,
+		}
+
+		err := InfrastructureCluster().ControlPlaneEndpoint().Set(obj, endpoint)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := InfrastructureCluster().Ready().Get(obj)
+		got, err := InfrastructureCluster().ControlPlaneEndpoint().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(endpoint))
+	})
+	t.Run("Manages status.initialization.provisioned", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(InfrastructureCluster().Provisioned("v1beta2").Path()).To(Equal(Path{"status", "initialization", "provisioned"}))
+
+		err := InfrastructureCluster().Provisioned("v1beta2").Set(obj, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureCluster().Provisioned("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(BeTrue())
+
+		g.Expect(InfrastructureCluster().Provisioned("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
+
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		err = InfrastructureCluster().Provisioned("v1beta1").Set(objV1beta1, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = InfrastructureCluster().Provisioned("v1beta1").Get(objV1beta1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(BeTrue())
@@ -98,7 +127,7 @@ func TestInfrastructureCluster(t *testing.T) {
 	})
 }
 
-func TestInfrastructureClusterControlPlaneEndpoint(t *testing.T) {
+func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 	tests := []struct {
 		name                  string
 		infrastructureCluster *unstructured.Unstructured

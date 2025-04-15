@@ -200,15 +200,19 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Determine if the data secret was created.
-	dataSecretCreated, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(s.bootstrapConfig)
-	if err != nil {
-		return ctrl.Result{}, err
+	var dataSecretCreated bool
+	if dataSecretCreatedPtr, err := contract.Bootstrap().DataSecretCreated(contractVersion).Get(s.bootstrapConfig); err != nil {
+		if !errors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		dataSecretCreated = *dataSecretCreatedPtr
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
-	fallBack := v1beta1conditions.WithFallbackValue(*dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = v1beta1conditions.WithFallbackValue(*dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(dataSecretCreated, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
 	v1beta1conditions.SetMirror(m, clusterv1.BootstrapReadyCondition, v1beta1conditions.UnstructuredGetter(s.bootstrapConfig), fallBack)
 
@@ -217,7 +221,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// If the data secret was not created yet, return.
-	if !*dataSecretCreated {
+	if !dataSecretCreated {
 		log.Info(fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s",
 			contract.Bootstrap().DataSecretCreated(contractVersion).Path().String()),
 			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
@@ -290,18 +294,22 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Determine if the InfrastructureMachine is provisioned.
-	provisioned, err := contract.InfrastructureMachine().Provisioned(contractVersion).Get(s.infraMachine)
-	if err != nil {
-		return ctrl.Result{}, err
+	var provisioned bool
+	if provisionedPtr, err := contract.InfrastructureMachine().Provisioned(contractVersion).Get(s.infraMachine); err != nil {
+		if !errors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		provisioned = *provisionedPtr
 	}
-	if *provisioned && !m.Status.InfrastructureReady {
+	if provisioned && !m.Status.InfrastructureReady {
 		log.Info("Infrastructure provider has completed provisioning", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	}
 
 	// Report a summary of current status of the InfrastructureMachine for this Machine.
-	fallBack := v1beta1conditions.WithFallbackValue(*provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.machine.DeletionTimestamp.IsZero() {
-		fallBack = v1beta1conditions.WithFallbackValue(*provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		fallBack = v1beta1conditions.WithFallbackValue(provisioned, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
 	v1beta1conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition, v1beta1conditions.UnstructuredGetter(s.infraMachine), fallBack)
 
@@ -310,7 +318,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// If the InfrastructureMachine is not provisioned (and it wasn't already provisioned before), return.
-	if !*provisioned && !m.Status.InfrastructureReady {
+	if !provisioned && !m.Status.InfrastructureReady {
 		log.Info(fmt.Sprintf("Waiting for infrastructure provider to create machine infrastructure and set %s",
 			contract.InfrastructureMachine().Provisioned(contractVersion).Path().String()),
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))

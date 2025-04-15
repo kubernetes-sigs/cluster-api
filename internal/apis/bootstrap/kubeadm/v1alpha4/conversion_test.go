@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -63,6 +64,13 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue
 	}
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &bootstrapv1.KubeadmConfigV1Beta1DeprecatedStatus{}
+	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &bootstrapv1.KubeadmConfigInitializationStatus{}) {
+			in.Initialization = nil
+		}
 	}
 }
 

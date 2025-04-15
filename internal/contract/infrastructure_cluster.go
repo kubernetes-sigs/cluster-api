@@ -43,32 +43,22 @@ func InfrastructureCluster() *InfrastructureClusterContract {
 }
 
 // ControlPlaneEndpoint provides access to ControlPlaneEndpoint in an InfrastructureCluster object.
-func (c *InfrastructureClusterContract) ControlPlaneEndpoint() *InfrastructureClusterControlPlaneEndpoint {
-	return &InfrastructureClusterControlPlaneEndpoint{}
-}
-
-// InfrastructureClusterControlPlaneEndpoint provides a helper struct for working with ControlPlaneEndpoint
-// in an InfrastructureCluster object.
-type InfrastructureClusterControlPlaneEndpoint struct{}
-
-// Host provides access to the host field in the ControlPlaneEndpoint in an InfrastructureCluster object.
-func (c *InfrastructureClusterControlPlaneEndpoint) Host() *String {
-	return &String{
-		path: []string{"spec", "controlPlaneEndpoint", "host"},
+func (c *InfrastructureClusterContract) ControlPlaneEndpoint() *ControlPlaneEndpoint {
+	return &ControlPlaneEndpoint{
+		path: []string{"spec", "controlPlaneEndpoint"},
 	}
 }
 
-// Port provides access to the port field in the ControlPlaneEndpoint in an InfrastructureCluster object.
-func (c *InfrastructureClusterControlPlaneEndpoint) Port() *Int64 {
-	return &Int64{
-		path: []string{"spec", "controlPlaneEndpoint", "port"},
+// Provisioned returns if the infrastructure cluster has been provisioned.
+func (c *InfrastructureClusterContract) Provisioned(contractVersion string) *Bool {
+	if contractVersion == "v1beta1" {
+		return &Bool{
+			path: []string{"status", "ready"},
+		}
 	}
-}
 
-// Ready provides access to the status.ready field in an InfrastructureCluster object.
-func (c *InfrastructureClusterContract) Ready() *Bool {
 	return &Bool{
-		path: []string{"status", "ready"},
+		path: []string{"status", "initialization", "provisioned"},
 	}
 }
 
@@ -110,20 +100,20 @@ func (c *InfrastructureClusterContract) FailureDomains() *FailureDomains {
 func (c *InfrastructureClusterContract) IgnorePaths(infrastructureCluster *unstructured.Unstructured) ([]Path, error) {
 	var ignorePaths []Path
 
-	host, ok, err := unstructured.NestedString(infrastructureCluster.UnstructuredContent(), InfrastructureCluster().ControlPlaneEndpoint().Host().Path()...)
+	host, ok, err := unstructured.NestedString(infrastructureCluster.UnstructuredContent(), InfrastructureCluster().ControlPlaneEndpoint().host().Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s", InfrastructureCluster().ControlPlaneEndpoint().Host().Path().String())
+		return nil, errors.Wrapf(err, "failed to retrieve %s", InfrastructureCluster().ControlPlaneEndpoint().host().Path().String())
 	}
 	if ok && host == "" {
-		ignorePaths = append(ignorePaths, InfrastructureCluster().ControlPlaneEndpoint().Host().Path())
+		ignorePaths = append(ignorePaths, InfrastructureCluster().ControlPlaneEndpoint().host().Path())
 	}
 
-	port, ok, err := unstructured.NestedInt64(infrastructureCluster.UnstructuredContent(), InfrastructureCluster().ControlPlaneEndpoint().Port().Path()...)
+	port, ok, err := unstructured.NestedInt64(infrastructureCluster.UnstructuredContent(), InfrastructureCluster().ControlPlaneEndpoint().port().Path()...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s", InfrastructureCluster().ControlPlaneEndpoint().Port().Path().String())
+		return nil, errors.Wrapf(err, "failed to retrieve %s", InfrastructureCluster().ControlPlaneEndpoint().port().Path().String())
 	}
 	if ok && port == 0 {
-		ignorePaths = append(ignorePaths, InfrastructureCluster().ControlPlaneEndpoint().Port().Path())
+		ignorePaths = append(ignorePaths, InfrastructureCluster().ControlPlaneEndpoint().port().Path())
 	}
 
 	return ignorePaths, nil
@@ -178,4 +168,70 @@ func (d *FailureDomains) Set(obj *unstructured.Unstructured, values clusterv1.Fa
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(d.path, "."), obj.GroupVersionKind())
 	}
 	return nil
+}
+
+// ControlPlaneEndpoint provides a helper struct for working with ControlPlaneEndpoint
+// in an InfrastructureCluster object.
+type ControlPlaneEndpoint struct {
+	path Path
+}
+
+// Path returns the path to the ControlPlaneEndpoint in an InfrastructureCluster object.
+func (c *ControlPlaneEndpoint) Path() Path {
+	return c.path
+}
+
+// Get gets the ControlPlaneEndpoint value.
+func (c *ControlPlaneEndpoint) Get(obj *unstructured.Unstructured) (*clusterv1.APIEndpoint, error) {
+	controlPlaneEndpointMap, ok, err := unstructured.NestedMap(obj.UnstructuredContent(), c.path...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(c.path, "."))
+	}
+	if !ok {
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(c.path, "."))
+	}
+
+	endpoint := &clusterv1.APIEndpoint{}
+	s, err := json.Marshal(controlPlaneEndpointMap)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(c.path, "."))
+	}
+	err = json.Unmarshal(s, &endpoint)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(c.path, "."))
+	}
+
+	return endpoint, nil
+}
+
+// Set sets the ControlPlaneEndpoint value.
+func (c *ControlPlaneEndpoint) Set(obj *unstructured.Unstructured, value clusterv1.APIEndpoint) error {
+	controlPlaneEndpointMap := make(map[string]interface{})
+	s, err := json.Marshal(value)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(c.path, "."))
+	}
+	err = json.Unmarshal(s, &controlPlaneEndpointMap)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(c.path, "."))
+	}
+
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), controlPlaneEndpointMap, c.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(c.path, "."), obj.GroupVersionKind())
+	}
+	return nil
+}
+
+// host provides access to the host field in the ControlPlaneEndpoint in an InfrastructureCluster object.
+func (c *ControlPlaneEndpoint) host() *String {
+	return &String{
+		path: c.path.Append("host"),
+	}
+}
+
+// port provides access to the port field in the ControlPlaneEndpoint in an InfrastructureCluster object.
+func (c *ControlPlaneEndpoint) port() *Int64 {
+	return &Int64{
+		path: c.path.Append("port"),
+	}
 }

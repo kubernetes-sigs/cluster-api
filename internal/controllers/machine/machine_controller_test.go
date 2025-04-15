@@ -131,13 +131,13 @@ func TestWatches(t *testing.T) {
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 
@@ -272,13 +272,13 @@ func TestWatchesDelete(t *testing.T) {
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 
@@ -479,12 +479,12 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).ToNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).ToNot(HaveOccurred())
 	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
 	infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
-	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
 	// Wait for Machine Ready Condition to become True.
@@ -981,7 +981,7 @@ func TestReconcileRequest(t *testing.T) {
 }
 
 func TestMachineConditions(t *testing.T) {
-	infraConfig := func(ready bool) *unstructured.Unstructured {
+	infraConfig := func(provisioned bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
@@ -994,7 +994,9 @@ func TestMachineConditions(t *testing.T) {
 					"providerID": "test://id-1",
 				},
 				"status": map[string]interface{}{
-					"ready": ready,
+					"initialization": map[string]interface{}{
+						"provisioned": provisioned,
+					},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1006,11 +1008,13 @@ func TestMachineConditions(t *testing.T) {
 		}
 	}
 
-	boostrapConfig := func(ready bool) *unstructured.Unstructured {
+	boostrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
 		status := map[string]interface{}{
-			"ready": ready,
+			"initialization": map[string]interface{}{
+				"dataSecretCreated": dataSecretCreated,
+			},
 		}
-		if ready {
+		if dataSecretCreated {
 			status["dataSecretName"] = "data"
 		}
 		return &unstructured.Unstructured{
@@ -1081,18 +1085,18 @@ func TestMachineConditions(t *testing.T) {
 	}
 
 	testcases := []struct {
-		name               string
-		infraReady         bool
-		bootstrapReady     bool
-		beforeFunc         func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
-		additionalObjects  []client.Object
-		conditionsToAssert []*clusterv1.Condition
-		wantErr            bool
+		name                       string
+		infraProvisioned           bool
+		bootstrapDataSecretCreated bool
+		beforeFunc                 func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
+		additionalObjects          []client.Object
+		conditionsToAssert         []*clusterv1.Condition
+		wantErr                    bool
 	}{
 		{
-			name:           "all conditions true",
-			infraReady:     true,
-			bootstrapReady: true,
+			name:                       "all conditions true",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				// since these conditions are set by an external controller
 				v1beta1conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
@@ -1107,9 +1111,9 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "infra condition consumes reason from the infra config",
-			infraReady:     false,
-			bootstrapReady: true,
+			name:                       "infra condition consumes reason from the infra config",
+			infraProvisioned:           false,
+			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
@@ -1125,18 +1129,18 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "infra condition consumes the fallback reason",
-			infraReady:     false,
-			bootstrapReady: true,
+			name:                       "infra condition consumes the fallback reason",
+			infraProvisioned:           false,
+			bootstrapDataSecretCreated: true,
 			conditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 				v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
-			name:           "bootstrap condition consumes reason from the bootstrap config",
-			infraReady:     true,
-			bootstrapReady: false,
+			name:                       "bootstrap condition consumes reason from the bootstrap config",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: false,
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
@@ -1152,9 +1156,9 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "bootstrap condition consumes the fallback reason",
-			infraReady:     true,
-			bootstrapReady: false,
+			name:                       "bootstrap condition consumes the fallback reason",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyCondition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 				v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
@@ -1163,17 +1167,17 @@ func TestMachineConditions(t *testing.T) {
 		// Assert summary conditions
 		// infra condition takes precedence over bootstrap condition in generating summary
 		{
-			name:           "ready condition summary consumes reason from the infra condition",
-			infraReady:     false,
-			bootstrapReady: false,
+			name:                       "ready condition summary consumes reason from the infra condition",
+			infraProvisioned:           false,
+			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},
 		{
-			name:           "ready condition summary consumes reason from the machine owner remediated condition",
-			infraReady:     true,
-			bootstrapReady: true,
+			name:                       "ready condition summary consumes reason from the machine owner remediated condition",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				v1beta1conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed")
 			},
@@ -1182,9 +1186,9 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "ready condition summary consumes reason from the MHC succeeded condition",
-			infraReady:     true,
-			bootstrapReady: true,
+			name:                       "ready condition summary consumes reason from the MHC succeeded condition",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 			},
@@ -1193,9 +1197,9 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "machine ready and MachineNodeHealthy unknown",
-			infraReady:     true,
-			bootstrapReady: true,
+			name:                       "machine ready and MachineNodeHealthy unknown",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: true,
 			additionalObjects: []client.Object{&corev1.Node{
 				// This is a duplicate node with the same providerID
 				// This should lead to an error when trying to get the Node for a Machine.
@@ -1213,9 +1217,9 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
-			name:           "ready condition summary consumes reason from the draining succeeded condition",
-			infraReady:     true,
-			bootstrapReady: true,
+			name:                       "ready condition summary consumes reason from the draining succeeded condition",
+			infraProvisioned:           true,
+			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "")
 			},
@@ -1230,8 +1234,8 @@ func TestMachineConditions(t *testing.T) {
 			g := NewWithT(t)
 
 			// setup objects
-			bootstrap := boostrapConfig(tt.bootstrapReady)
-			infra := infraConfig(tt.infraReady)
+			bootstrap := boostrapConfig(tt.bootstrapDataSecretCreated)
+			infra := infraConfig(tt.infraProvisioned)
 			m := machine.DeepCopy()
 			if tt.beforeFunc != nil {
 				tt.beforeFunc(bootstrap, infra, m)
@@ -2999,19 +3003,19 @@ func TestNodeToMachine(t *testing.T) {
 	// Patch infra expectedMachine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra randomMachine ready
 	patchHelper, err = patch.NewHelper(infraMachine2, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 

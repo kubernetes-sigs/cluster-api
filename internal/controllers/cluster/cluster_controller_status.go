@@ -22,6 +22,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +31,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
@@ -73,7 +73,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// conditions
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
-	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
+	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
 	setWorkersAvailableCondition(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
 	setControlPlaneMachinesReadyCondition(ctx, s.cluster, controlPlaneMachines, s.getDescendantsSucceeded)
 	setWorkerMachinesReadyCondition(ctx, s.cluster, workerMachines, s.getDescendantsSucceeded)
@@ -445,7 +445,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	})
 }
 
-func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, contractVersion string, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// No-op if control plane is already initialized.
@@ -490,19 +490,23 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 			return
 		}
 
-		initialized, err := external.IsInitialized(controlPlane)
+		// Determine if the ControlPlane is provisioned.
+		initialized, err := contract.ControlPlane().Initialized(contractVersion).Get(controlPlane)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to get status.initialized from %s", cluster.Spec.ControlPlaneRef.Kind))
-			conditions.Set(cluster, metav1.Condition{
-				Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
-				Message: "Please check controller logs for errors",
-			})
-			return
+			if !errors.Is(err, contract.ErrFieldNotFound) {
+				log.Error(err, fmt.Sprintf("Failed to get status.initialized from %s", cluster.Spec.ControlPlaneRef.Kind))
+				conditions.Set(cluster, metav1.Condition{
+					Type:    clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.ClusterControlPlaneInitializedInternalErrorV1Beta2Reason,
+					Message: "Please check controller logs for errors",
+				})
+				return
+			}
+			initialized = ptr.To(false)
 		}
 
-		if initialized {
+		if *initialized {
 			conditions.Set(cluster, metav1.Condition{
 				Type:   clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
 				Status: metav1.ConditionTrue,

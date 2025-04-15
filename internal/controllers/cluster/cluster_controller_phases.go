@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -36,6 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -210,17 +212,27 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 	s.infraCluster = obj
 
-	// Determine if the infrastructure provider is ready.
-	ready, err := external.IsReady(s.infraCluster)
+	// Determine contract version used by the InfrastructureCluster.
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if ready && !cluster.Status.InfrastructureReady {
-		log.Info("Infrastructure provider has completed cluster infrastructure provisioning and reports status.ready", cluster.Spec.InfrastructureRef.Kind, klog.KObj(s.infraCluster))
+
+	// Determine if the InfrastructureCluster is provisioned.
+	var provisioned bool
+	if provisionedPtr, err := contract.InfrastructureCluster().Provisioned(contractVersion).Get(s.infraCluster); err != nil {
+		if !errors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		provisioned = *provisionedPtr
+	}
+	if provisioned && !cluster.Status.InfrastructureReady {
+		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.InfrastructureRef.Kind, klog.KObj(s.infraCluster))
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(provisioned, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
@@ -234,27 +246,35 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	// If the infrastructure provider is not ready (and it wasn't ready before), return early.
-	if !ready && !cluster.Status.InfrastructureReady {
+	// If the InfrastructureCluster is not provisioned (and it wasn't already provisioned before), return.
+	if !provisioned && !cluster.Status.InfrastructureReady {
 		log.V(3).Info("Infrastructure provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the infrastructure provider.
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		if err := util.UnstructuredUnmarshalField(s.infraCluster, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil && err != util.ErrUnstructuredFieldNotFound {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
-				cluster.Name, cluster.Namespace)
+		if endpoint, err := contract.InfrastructureCluster().ControlPlaneEndpoint().Get(obj); err == nil {
+			cluster.Spec.ControlPlaneEndpoint = *endpoint
+		} else {
+			if !errors.Is(err, contract.ErrFieldNotFound) {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
+					strings.Join(contract.InfrastructureCluster().ControlPlaneEndpoint().Path(), "."), cluster.Name, cluster.Namespace)
+			}
+			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{}
 		}
 	}
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.
-	failureDomains := clusterv1.FailureDomains{}
-	if err := util.UnstructuredUnmarshalField(s.infraCluster, &failureDomains, "status", "failureDomains"); err != nil && err != util.ErrUnstructuredFieldNotFound {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+	if failureDomains, err := contract.InfrastructureCluster().FailureDomains().Get(obj); err == nil {
+		cluster.Status.FailureDomains = *failureDomains
+	} else {
+		if !errors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
+				strings.Join(contract.InfrastructureCluster().FailureDomains().Path(), "."), cluster.Name, cluster.Namespace)
+		}
+		cluster.Status.FailureDomains = clusterv1.FailureDomains{}
 	}
-	cluster.Status.FailureDomains = failureDomains
 
 	// Only record the event if the status has changed
 	if !cluster.Status.InfrastructureReady {
@@ -296,17 +316,27 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 	s.controlPlane = obj
 
-	// Determine if the control plane provider is ready.
-	ready, err := external.IsReady(s.controlPlane)
+	// Determine contract version used by the ControlPlane.
+	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if ready && !cluster.Status.ControlPlaneReady {
-		log.Info("ControlPlane provider has completed provisioning and reports status.ready", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
+
+	// Determine if the ControlPlane is provisioned.
+	var initialized bool
+	if initializedPtr, err := contract.ControlPlane().Initialized(contractVersion).Get(s.controlPlane); err != nil {
+		if !errors.Is(err, contract.ErrFieldNotFound) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		initialized = *initializedPtr
+	}
+	if initialized && !cluster.Status.ControlPlaneReady {
+		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
 	}
 
 	// Report a summary of current status of the control plane object defined for this cluster.
-	fallBack := v1beta1conditions.WithFallbackValue(ready, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	fallBack := v1beta1conditions.WithFallbackValue(initialized, clusterv1.WaitingForControlPlaneFallbackReason, clusterv1.ConditionSeverityInfo, "")
 	if !s.cluster.DeletionTimestamp.IsZero() {
 		fallBack = v1beta1conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	}
@@ -320,13 +350,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set
-	// Determine if the control plane provider is initialized.
+	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set.
 	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		initialized, err := external.IsInitialized(s.controlPlane)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 		if initialized {
 			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		} else {
@@ -335,16 +360,21 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// If the control plane is not ready (and it wasn't ready before), return early.
-	if !ready && !cluster.Status.ControlPlaneReady {
+	if !initialized && !cluster.Status.ControlPlaneReady {
 		log.V(3).Info("Control Plane provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the control plane provider.
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		if err := util.UnstructuredUnmarshalField(s.controlPlane, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil && err != util.ErrUnstructuredFieldNotFound {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from control plane provider for Cluster %q in namespace %q",
-				cluster.Name, cluster.Namespace)
+		if endpoint, err := contract.ControlPlane().ControlPlaneEndpoint().Get(obj); err == nil {
+			cluster.Spec.ControlPlaneEndpoint = *endpoint
+		} else {
+			if !errors.Is(err, contract.ErrFieldNotFound) {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from control plane provider for Cluster %q in namespace %q",
+					strings.Join(contract.ControlPlane().ControlPlaneEndpoint().Path(), "."), cluster.Name, cluster.Namespace)
+			}
+			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{}
 		}
 	}
 

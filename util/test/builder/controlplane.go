@@ -84,7 +84,12 @@ func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomRes
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
 				// mandatory field from the Cluster API contract
-				"ready": {Type: "boolean"},
+				"initialization": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"controlPlaneInitialized": {Type: "boolean"},
+					},
+				},
 				// mandatory field from the Cluster API contract - replicas support
 				"replicas":            {Type: "integer", Format: "int32"},
 				"selector":            {Type: "string"},

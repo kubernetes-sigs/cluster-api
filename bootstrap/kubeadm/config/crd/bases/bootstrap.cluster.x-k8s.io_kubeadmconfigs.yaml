@@ -6159,15 +6159,22 @@ spec:
                         type: string
                     type: object
                 type: object
+              initialization:
+                description: |-
+                  initialization provides observations of the KubeadmConfig initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                properties:
+                  dataSecretCreated:
+                    description: |-
+                      dataSecretCreated is true when the Machine's boostrap secret is created.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               observedGeneration:
                 description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
-              ready:
-                description: ready indicates the BootstrapData field is ready to be
-                  consumed
-                type: boolean
             type: object
         type: object
     served: true

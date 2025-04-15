@@ -60,6 +60,13 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
 	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }
 
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
@@ -70,4 +77,7 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Contin
 			in.V1Beta2 = nil
 		}
 	}
+
+	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
+	in.Ready = in.ReadyReplicas > 0
 }

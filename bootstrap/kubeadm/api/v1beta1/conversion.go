@@ -68,6 +68,11 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
+	// Move initialization to old fields
+	if in.Initialization != nil {
+		out.Ready = in.Initialization.DataSecretCreated
+	}
+
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
 		return nil
@@ -103,6 +108,14 @@ func Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *Kube
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+
+	// Move ready to Initialization
+	if in.Ready {
+		if out.Initialization == nil {
+			out.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
+		}
+		out.Initialization.DataSecretCreated = in.Ready
+	}
 	return nil
 }
 

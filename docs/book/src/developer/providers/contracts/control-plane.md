@@ -281,33 +281,33 @@ Following fields MUST be implemented in the ControlPlane `status`.
 
 ```go
 type FooControlPlaneStatus struct {
-// selector is the label selector in string format to avoid introspection
-// by clients, and is used to provide the CRD-based integration for the
-// scale subresource and additional integrations for things like kubectl
-// describe. The string will be in the same format as the query-param syntax.
-// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
-// +optional
-Selector string `json:"selector,omitempty"`
+    // selector is the label selector in string format to avoid introspection
+    // by clients, and is used to provide the CRD-based integration for the
+    // scale subresource and additional integrations for things like kubectl
+    // describe. The string will be in the same format as the query-param syntax.
+    // More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+    // +optional
+    Selector string `json:"selector,omitempty"`
 
-// replicas is the total number of machines targeted by this control plane
-// (their labels match the selector).
-// +optional
-Replicas *int32 `json:"replicas,omitempty"`
+    // replicas is the total number of machines targeted by this control plane
+    // (their labels match the selector).
+    // +optional
+    Replicas *int32 `json:"replicas,omitempty"`
 
-// readyReplicas is the number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
-// +optional
-ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+    // readyReplicas is the number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
+    // +optional
+    ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
-// availableReplicas is the number of available replicas for this ControlPlane. A machine is considered available when Machine's Available condition is true.
-// +optional
-AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+    // availableReplicas is the number of available replicas for this ControlPlane. A machine is considered available when Machine's Available condition is true.
+    // +optional
+    AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
-// upToDateReplicas is the number of up-to-date replicas targeted by this ControlPlane. A machine is considered available when Machine's  UpToDate condition is true.
-// +optional
-UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+    // upToDateReplicas is the number of up-to-date replicas targeted by this ControlPlane. A machine is considered available when Machine's  UpToDate condition is true.
+    // +optional
+    UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
-// See other rules for more details about mandatory/optional fields in ControlPlane status.
-// Other fields SHOULD be added based on the needs of your provider.
+    // See other rules for more details about mandatory/optional fields in ControlPlane status.
+    // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
 
@@ -330,10 +330,10 @@ documentation][scale].
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to replicas:
+With regards to replicas:
 
 Cluster API will continue to temporarily support ControlPlane resource using the `status.ready` field to
 report initialization completed.
@@ -560,7 +560,7 @@ type FooControlPlaneInitializationStatus struct {
 }
 ```
 
-Once `status.initialization.controlPlaneInitialized` the Cluster "core" controller will bubble up this info in Cluster's
+Once `status.initialization.controlPlaneInitialized` is set the Cluster "core" controller will bubble up this info in Cluster's
 `status.initialization.controlPlaneInitialized` field and in the `ControlPlaneInitialized` condition.
 
 If defined, also ControlPlane's `spec.controlPlaneEndpoint` will be surfaced on Cluster's corresponding fields at the same time.
@@ -569,10 +569,10 @@ If defined, also ControlPlane's `spec.controlPlaneEndpoint` will be surfaced on 
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to initialization completed:
+With regards to initialization completed:
 
 Cluster API will continue to temporarily support ControlPlane resource using `status.initialize` and the `status.ready` field to
 report initialization completed.
@@ -589,7 +589,7 @@ According to [Kubernetes API Conventions], Conditions provide a standard mechani
 status reporting from a controller.
 
 Providers implementers SHOULD implement `status.conditions` for their ControlPlane resource.
-In case conditions are implemented on a ControlPlane resource, Cluster API will consider only condition providing the following information:
+In case conditions are implemented on a ControlPlane resource, Cluster API will only consider conditions providing the following information:
 - `type` (required)
 - `status` (required, one of True, False, Unknown)
 - `reason` (optional, if omitted a default one will be used)
@@ -607,7 +607,7 @@ even if there is a certain degree of not readiness / disruption in the system, o
 Last, but not least, in order to ensure a consistent users experience, it is also recommended to consider aligning also other
 ControlPlane conditions to conditions existing on other Cluster API objects.
 
-For example `KubeadmControlPlane` implements following conditions on top of the `Available` defined by this contract:
+For example `KubeadmControlPlane` implements the following conditions on top of the `Available` defined by this contract:
 `CertificatesAvailable`, `EtcdClusterAvailable`, `MachinesReady`, `MachinesUpToDate`, `RollingOut`, `ScalingUp`, `ScalingDown`,
 `Remediating`, `Deleting`, `Paused`.
 
@@ -620,14 +620,14 @@ See [Improving status in CAPI resources] for more context.
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to conditions:
+With regards to conditions:
 
-Cluster API will continue to read conditions from providers using deprecates Cluster API condition types.
+Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
 
-Please note that provider that will continue to use deprecates Cluster API condition types MUST carefully take into account
+Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
 the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 </aside>
@@ -645,10 +645,10 @@ See [Improving status in CAPI resources] for more context.
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to terminal failures:
+With regards to terminal failures:
 
 In case a Control Plane provider reports that a ControlPlane resource is in a state that cannot be recovered (terminal failure) by
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,

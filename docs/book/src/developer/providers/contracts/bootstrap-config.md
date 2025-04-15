@@ -248,12 +248,12 @@ on Machine's corresponding fields at the same time.
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to initialization completed:
+With regards to initialization completed:
 
-Cluster API will continue to temporarily support BootstrapConfig resource using `status.ready` field to
+Cluster API will continue to temporarily support BootstrapConfig resources using the `status.ready` field to
 report initialization completed.
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in 
@@ -267,7 +267,7 @@ According to [Kubernetes API Conventions], Conditions provide a standard mechani
 status reporting from a controller.
 
 Providers implementers SHOULD implement `status.conditions` for their BootstrapConfig resource.
-In case conditions are implemented on a BootstrapConfig resource, Cluster API will consider only condition providing the following information:
+In case conditions are implemented on a BootstrapConfig resource, Cluster API will only consider conditions providing the following information:
 - `type` (required)
 - `status` (required, one of True, False, Unknown)
 - `reason` (optional, if omitted a default one will be used)
@@ -288,14 +288,14 @@ See [Improving status in CAPI resources] for more context.
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to conditions:
+With regards to conditions:
 
-Cluster API will continue to read conditions from providers using deprecates Cluster API condition types.
+Cluster API will continue to read conditions from providers using deprecated Cluster API condition types.
 
-Please note that provider that will continue to use deprecates Cluster API condition types MUST carefully take into account
+Please note that provider that will continue to use deprecated Cluster API condition types MUST carefully take into account
 the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 </aside>
@@ -313,10 +313,10 @@ See [Improving status in CAPI resources] for more context.
 
 <h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
-preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regard to terminal failures:
+With regards to terminal failures:
 
 In case a Bootstrap provider reports that a BootstrapConfig resource is in a state that cannot be recovered (terminal failure) by
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, 

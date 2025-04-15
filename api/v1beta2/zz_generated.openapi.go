@@ -465,7 +465,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref common.Refere
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.\n\nNOTE: this field is considered only for computing v1beta2 conditions. NOTE: If a Cluster is using this ClusterClass, and this Cluster defines a custom list of availabilityGates, such list overrides availabilityGates defined in this field.",
+							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.\n\nNOTE: If a Cluster is using this ClusterClass, and this Cluster defines a custom list of availabilityGates, such list overrides availabilityGates defined in this field.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1032,7 +1032,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterSpec(ref common.ReferenceCa
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.\n\nIf this field is not defined and the Cluster implements a managed topology, availabilityGates from the corresponding ClusterClass will be used, if any.\n\nNOTE: this field is considered only for computing v1beta2 conditions.",
+							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.\n\nIf this field is not defined and the Cluster implements a managed topology, availabilityGates from the corresponding ClusterClass will be used, if any.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

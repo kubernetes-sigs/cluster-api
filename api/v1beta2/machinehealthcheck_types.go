@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// MachineHealthCheck's RemediationAllowed condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineHealthCheck's RemediationAllowed condition and corresponding reasons.
 const (
 	// MachineHealthCheckRemediationAllowedCondition surfaces whether the MachineHealthCheck is
 	// allowed to remediate any Machines or whether it is blocked from remediating any further.

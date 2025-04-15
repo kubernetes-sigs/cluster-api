@@ -41,7 +41,7 @@ const (
 	ClusterKind = "Cluster"
 )
 
-// Cluster's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's Available condition and corresponding reasons.
 const (
 	// ClusterAvailableCondition is true if the Cluster is not deleted, and RemoteConnectionProbe, InfrastructureReady,
 	// ControlPlaneAvailable, WorkersAvailable, TopologyReconciled (if present) conditions are true.
@@ -68,7 +68,7 @@ const (
 	ClusterAvailableInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's TopologyReconciled condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's TopologyReconciled condition and corresponding reasons.
 const (
 	// ClusterTopologyReconciledCondition is true if the topology controller is working properly.
 	// Note: This condition is added only if the Cluster is referencing a ClusterClass / defining a managed Topology.
@@ -128,7 +128,7 @@ const (
 	ClusterTopologyReconcilePausedReason = PausedReason
 )
 
-// Cluster's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's InfrastructureReady condition and corresponding reasons.
 const (
 	// ClusterInfrastructureReadyCondition mirrors Cluster's infrastructure Ready condition.
 	ClusterInfrastructureReadyCondition = InfrastructureReadyCondition
@@ -156,7 +156,7 @@ const (
 	ClusterInfrastructureDeletedReason = ObjectDeletedReason
 )
 
-// Cluster's ControlPlaneInitialized condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ControlPlaneInitialized condition and corresponding reasons.
 const (
 	// ClusterControlPlaneInitializedCondition is true when the Cluster's control plane is functional enough
 	// to accept requests. This information is usually used as a signal for starting all the provisioning operations
@@ -175,7 +175,7 @@ const (
 	ClusterControlPlaneInitializedInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's ControlPlaneAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ControlPlaneAvailable condition and corresponding reasons.
 const (
 	// ClusterControlPlaneAvailableCondition is a mirror of Cluster's control plane Available condition.
 	ClusterControlPlaneAvailableCondition = "ControlPlaneAvailable"
@@ -203,7 +203,7 @@ const (
 	ClusterControlPlaneDeletedReason = ObjectDeletedReason
 )
 
-// Cluster's WorkersAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's WorkersAvailable condition and corresponding reasons.
 const (
 	// ClusterWorkersAvailableCondition is the summary of MachineDeployment and MachinePool's Available conditions.
 	// Note: Stand-alone MachineSets and stand-alone Machines are not included in this condition.
@@ -228,7 +228,7 @@ const (
 	ClusterWorkersAvailableInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's ControlPlaneMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ControlPlaneMachinesReady condition and corresponding reasons.
 const (
 	// ClusterControlPlaneMachinesReadyCondition surfaces detail of issues on control plane machines, if any.
 	ClusterControlPlaneMachinesReadyCondition = "ControlPlaneMachinesReady"
@@ -251,7 +251,7 @@ const (
 	ClusterControlPlaneMachinesReadyInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's WorkerMachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's WorkerMachinesReady condition and corresponding reasons.
 const (
 	// ClusterWorkerMachinesReadyCondition surfaces detail of issues on the worker machines, if any.
 	ClusterWorkerMachinesReadyCondition = "WorkerMachinesReady"
@@ -274,7 +274,7 @@ const (
 	ClusterWorkerMachinesReadyInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's ControlPlaneMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ControlPlaneMachinesUpToDate condition and corresponding reasons.
 const (
 	// ClusterControlPlaneMachinesUpToDateCondition surfaces details of control plane machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
@@ -298,7 +298,7 @@ const (
 	ClusterControlPlaneMachinesUpToDateInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's WorkerMachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's WorkerMachinesUpToDate condition and corresponding reasons.
 const (
 	// ClusterWorkerMachinesUpToDateCondition surfaces details of worker machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
@@ -322,7 +322,7 @@ const (
 	ClusterWorkerMachinesUpToDateInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's RemoteConnectionProbe condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's RemoteConnectionProbe condition and corresponding reasons.
 const (
 	// ClusterRemoteConnectionProbeCondition is true when control plane can be reached; in case of connection problems.
 	// The condition turns to false only if the cluster cannot be reached for 50s after the first connection problem
@@ -336,7 +336,7 @@ const (
 	ClusterRemoteConnectionProbeSucceededReason = "ProbeSucceeded"
 )
 
-// Cluster's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's RollingOut condition and corresponding reasons.
 const (
 	// ClusterRollingOutCondition is the summary of `RollingOut` conditions from ControlPlane, MachineDeployments
 	// and MachinePools.
@@ -359,7 +359,7 @@ const (
 	ClusterRollingOutInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ScalingUp condition and corresponding reasons.
 const (
 	// ClusterScalingUpCondition is the summary of `ScalingUp` conditions from ControlPlane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets.
@@ -382,7 +382,7 @@ const (
 	ClusterScalingUpInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's ScalingDown condition and corresponding reasons.
 const (
 	// ClusterScalingDownCondition is the summary of `ScalingDown` conditions from ControlPlane, MachineDeployments,
 	// MachinePools and stand-alone MachineSets.
@@ -405,7 +405,7 @@ const (
 	ClusterScalingDownInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's Remediating condition and corresponding reasons.
 const (
 	// ClusterRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
 	ClusterRemediatingCondition = RemediatingCondition
@@ -422,7 +422,7 @@ const (
 	ClusterRemediatingInternalErrorReason = InternalErrorReason
 )
 
-// Cluster's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+// Cluster's Deleting condition and corresponding reasons.
 const (
 	// ClusterDeletingCondition surfaces details about ongoing deletion of the cluster.
 	ClusterDeletingCondition = DeletingCondition
@@ -496,7 +496,6 @@ type ClusterSpec struct {
 	// If this field is not defined and the Cluster implements a managed topology, availabilityGates
 	// from the corresponding ClusterClass will be used, if any.
 	//
-	// NOTE: this field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType

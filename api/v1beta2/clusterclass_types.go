@@ -28,7 +28,7 @@ import (
 // ClusterClassKind represents the Kind of ClusterClass.
 const ClusterClassKind = "ClusterClass"
 
-// ClusterClass VariablesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// ClusterClass VariablesReady condition and corresponding reasons.
 const (
 	// ClusterClassVariablesReadyCondition is true if the ClusterClass variables, including both inline and external
 	// variables, have been successfully reconciled and thus ready to be used to default and validate variables on Clusters using
@@ -42,7 +42,7 @@ const (
 	ClusterClassVariablesReadyVariableDiscoveryFailedReason = "VariableDiscoveryFailed"
 )
 
-// ClusterClass RefVersionsUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// ClusterClass RefVersionsUpToDate condition and corresponding reasons.
 const (
 	// ClusterClassRefVersionsUpToDateCondition documents if the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
@@ -90,7 +90,6 @@ type ClusterClass struct {
 type ClusterClassSpec struct {
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//
-	// NOTE: this field is considered only for computing v1beta2 conditions.
 	// NOTE: If a Cluster is using this ClusterClass, and this Cluster defines a custom list of availabilityGates,
 	// such list overrides availabilityGates defined in this field.
 	// +optional

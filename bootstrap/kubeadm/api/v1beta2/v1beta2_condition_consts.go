@@ -18,7 +18,7 @@ package v1beta2
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
-// KubeadmConfig's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+// KubeadmConfig's Ready condition and corresponding reasons.
 const (
 	// KubeadmConfigReadyCondition is true if the KubeadmConfig is not deleted,
 	// and both DataSecretCreated, CertificatesAvailable conditions are true.
@@ -34,7 +34,7 @@ const (
 	KubeadmConfigReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
-// KubeadmConfig's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// KubeadmConfig's CertificatesAvailable condition and corresponding reasons.
 const (
 	// KubeadmConfigCertificatesAvailableCondition documents that cluster certificates required
 	// for generating the bootstrap data secret are available.
@@ -48,7 +48,7 @@ const (
 	KubeadmConfigCertificatesAvailableInternalErrorReason = clusterv1.InternalErrorReason
 )
 
-// KubeadmConfig's DataSecretAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// KubeadmConfig's DataSecretAvailable condition and corresponding reasons.
 const (
 	// KubeadmConfigDataSecretAvailableCondition is true if the bootstrap secret is available.
 	KubeadmConfigDataSecretAvailableCondition = "DataSecretAvailable"

@@ -89,7 +89,7 @@ const (
 	ManagedNodeAnnotationDomain = "node.cluster.x-k8s.io"
 )
 
-// Machine's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's Available condition and corresponding reasons
 const (
 	// MachineAvailableCondition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
@@ -106,7 +106,7 @@ const (
 	MachineAvailableInternalErrorReason = InternalErrorReason
 )
 
-// Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's Ready condition and corresponding reasons
 const (
 	// MachineReadyCondition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
 	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
@@ -137,7 +137,7 @@ const (
 	MachineReadyInternalErrorReason = InternalErrorReason
 )
 
-// Machine's UpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's UpToDate condition and corresponding reasons
 // Note: UpToDate condition is set by the controller owning the machine.
 const (
 	// MachineUpToDateCondition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
@@ -153,7 +153,7 @@ const (
 	MachineNotUpToDateReason = "NotUpToDate"
 )
 
-// Machine's BootstrapConfigReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's BootstrapConfigReady condition and corresponding reasons.
 // Note: when possible, BootstrapConfigReady condition will use reasons surfaced from the underlying bootstrap config object.
 const (
 	// MachineBootstrapConfigReadyCondition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
@@ -186,7 +186,7 @@ const (
 	MachineBootstrapConfigDeletedReason = ObjectDeletedReason
 )
 
-// Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's InfrastructureReady condition and corresponding reasons.
 // Note: when possible, InfrastructureReady condition will use reasons surfaced from the underlying infra machine object.
 const (
 	// MachineInfrastructureReadyCondition mirrors the corresponding Ready condition from the Machine's infrastructure resource.
@@ -215,7 +215,7 @@ const (
 	MachineInfrastructureDeletedReason = ObjectDeletedReason
 )
 
-// Machine's NodeHealthy and NodeReady conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's NodeHealthy and NodeReady conditions and corresponding reasons.
 // Note: when possible, NodeHealthy and NodeReady conditions will use reasons surfaced from the underlying node.
 const (
 	// MachineNodeHealthyCondition is true if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure.
@@ -262,7 +262,7 @@ const (
 	MachineNodeConnectionDownReason = ConnectionDownReason
 )
 
-// Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's HealthCheckSucceeded condition and corresponding reasons.
 // Note: HealthCheckSucceeded condition is set by the MachineHealthCheck controller.
 const (
 	// MachineHealthCheckSucceededCondition is true if MHC instances targeting this machine report the Machine
@@ -289,7 +289,7 @@ const (
 	MachineHealthCheckHasRemediateAnnotationReason = "HasRemediateAnnotation"
 )
 
-// Machine's OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's OwnerRemediated conditions and corresponding reasons.
 // Note: OwnerRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the Machine's
 // owner controller to update or delete this condition.
 const (
@@ -302,7 +302,7 @@ const (
 	MachineOwnerRemediatedWaitingForRemediationReason = "WaitingForRemediation"
 )
 
-// Machine's ExternallyRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's ExternallyRemediated conditions and corresponding reasons.
 // Note: ExternallyRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the external
 // remediation controller to update or delete this condition.
 const (
@@ -323,7 +323,7 @@ const (
 	MachineExternallyRemediatedRemediationRequestCreationFailedReason = "RemediationRequestCreationFailed"
 )
 
-// Machine's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+// Machine's Deleting condition and corresponding reasons.
 const (
 	// MachineDeletingCondition surfaces details about progress in the machine deletion workflow.
 	MachineDeletingCondition = DeletingCondition

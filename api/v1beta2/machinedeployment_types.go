@@ -77,7 +77,7 @@ const (
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 
-// MachineDeployment's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's Available condition and corresponding reasons.
 const (
 	// MachineDeploymentAvailableCondition is true if the MachineDeployment is not deleted, and it has minimum
 	// availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy,
@@ -102,7 +102,7 @@ const (
 	MachineDeploymentAvailableInternalErrorReason = InternalErrorReason
 )
 
-// MachineDeployment's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's MachinesReady condition and corresponding reasons.
 const (
 	// MachineDeploymentMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
 	MachineDeploymentMachinesReadyCondition = MachinesReadyCondition
@@ -125,7 +125,7 @@ const (
 	MachineDeploymentMachinesReadyInternalErrorReason = InternalErrorReason
 )
 
-// MachineDeployment's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's MachinesUpToDate condition and corresponding reasons.
 const (
 	// MachineDeploymentMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
@@ -149,7 +149,7 @@ const (
 	MachineDeploymentMachinesUpToDateInternalErrorReason = InternalErrorReason
 )
 
-// MachineDeployment's RollingOut condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's RollingOut condition and corresponding reasons.
 const (
 	// MachineDeploymentRollingOutCondition is true if there is at least one machine not up-to-date.
 	MachineDeploymentRollingOutCondition = RollingOutCondition
@@ -164,7 +164,7 @@ const (
 	MachineDeploymentRollingOutInternalErrorReason = InternalErrorReason
 )
 
-// MachineDeployment's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's ScalingUp condition and corresponding reasons.
 const (
 	// MachineDeploymentScalingUpCondition is true if actual replicas < desired replicas.
 	MachineDeploymentScalingUpCondition = ScalingUpCondition
@@ -183,7 +183,7 @@ const (
 	MachineDeploymentScalingUpWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineDeployment's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's ScalingDown condition and corresponding reasons.
 const (
 	// MachineDeploymentScalingDownCondition is true if actual replicas > desired replicas.
 	MachineDeploymentScalingDownCondition = ScalingDownCondition
@@ -202,7 +202,7 @@ const (
 	MachineDeploymentScalingDownWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineDeployment's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's Remediating condition and corresponding reasons.
 const (
 	// MachineDeploymentRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineDeploymentRemediatingCondition = RemediatingCondition
@@ -219,7 +219,7 @@ const (
 	MachineDeploymentRemediatingInternalErrorReason = InternalErrorReason
 )
 
-// MachineDeployment's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineDeployment's Deleting condition and corresponding reasons.
 const (
 	// MachineDeploymentDeletingCondition surfaces details about ongoing deletion of the controlled machines.
 	MachineDeploymentDeletingCondition = DeletingCondition

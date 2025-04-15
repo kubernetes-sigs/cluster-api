@@ -95,7 +95,7 @@ type MachineSetSpec struct {
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
-// MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's ScalingUp condition and corresponding reasons.
 const (
 	// MachineSetScalingUpCondition is true if actual replicas < desired replicas.
 	// Note: In case a MachineSet preflight check is preventing scale up, this will surface in the condition message.
@@ -115,7 +115,7 @@ const (
 	MachineSetScalingUpWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's ScalingDown condition and corresponding reasons.
 const (
 	// MachineSetScalingDownCondition is true if actual replicas > desired replicas.
 	MachineSetScalingDownCondition = ScalingDownCondition
@@ -134,7 +134,7 @@ const (
 	MachineSetScalingDownWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's MachinesReady condition and corresponding reasons.
 // Note: Reason's could also be derived from the aggregation of machine's Ready conditions.
 const (
 	// MachineSetMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
@@ -158,7 +158,7 @@ const (
 	MachineSetMachinesReadyInternalErrorReason = InternalErrorReason
 )
 
-// MachineSet's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's MachinesUpToDate condition and corresponding reasons.
 // Note: Reason's could also be derived from the aggregation of machine's MachinesUpToDate conditions.
 const (
 	// MachineSetMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
@@ -183,7 +183,7 @@ const (
 	MachineSetMachinesUpToDateInternalErrorReason = InternalErrorReason
 )
 
-// MachineSet's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's Remediating condition and corresponding reasons.
 const (
 	// MachineSetRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineSetRemediatingCondition = RemediatingCondition
@@ -216,7 +216,7 @@ const (
 	MachineSetMachineRemediationMachineDeletingReason = "MachineDeleting"
 )
 
-// MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's Deleting condition and corresponding reasons.
 const (
 	// MachineSetDeletingCondition surfaces details about ongoing deletion of the controlled machines.
 	MachineSetDeletingCondition = DeletingCondition

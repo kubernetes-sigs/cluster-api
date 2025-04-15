@@ -304,8 +304,11 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
-		config.Status.Ready = true
+	case configOwner.DataSecretName() != nil && (!(config.Status.Initialization != nil && config.Status.Initialization.DataSecretCreated) || config.Status.DataSecretName == nil):
+		if config.Status.Initialization == nil {
+			config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
+		}
+		config.Status.Initialization.DataSecretCreated = true
 		config.Status.DataSecretName = configOwner.DataSecretName()
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
 		conditions.Set(scope.Config, metav1.Condition{
@@ -321,7 +324,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Status is ready means a config has been generated.
 	// This also solves the upgrade scenario to a version which includes v1beta2 to ensure v1beta2 conditions are properly set.
-	case config.Status.Ready:
+	case config.Status.Initialization != nil && config.Status.Initialization.DataSecretCreated:
 		// Based on existing code paths status.Ready is only true if status.dataSecretName is set
 		// So we can assume that the DataSecret is available.
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
@@ -1416,7 +1419,10 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		}
 	}
 	scope.Config.Status.DataSecretName = ptr.To(secret.Name)
-	scope.Config.Status.Ready = true
+	if scope.Config.Status.Initialization == nil {
+		scope.Config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
+	}
+	scope.Config.Status.Initialization.DataSecretCreated = true
 	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
 	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigDataSecretAvailableV1Beta2Condition,

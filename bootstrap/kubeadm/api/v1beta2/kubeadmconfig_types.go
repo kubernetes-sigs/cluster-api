@@ -460,9 +460,10 @@ type KubeadmConfigStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ready indicates the BootstrapData field is ready to be consumed
+	// initialization provides observations of the KubeadmConfig initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization *KubeadmConfigInitializationStatus `json:"initialization,omitempty"`
 
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional
@@ -477,6 +478,14 @@ type KubeadmConfigStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *KubeadmConfigDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// KubeadmConfigInitializationStatus provides observations of the KubeadmConfig initialization process.
+type KubeadmConfigInitializationStatus struct {
+	// dataSecretCreated is true when the Machine's boostrap secret is created.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	DataSecretCreated bool `json:"dataSecretCreated,omitempty"`
 }
 
 // KubeadmConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

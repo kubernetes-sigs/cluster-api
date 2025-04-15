@@ -556,12 +556,10 @@ func Test_createGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -572,11 +570,11 @@ func Test_createGroupNode(t *testing.T) {
 	// Some values are generated randomly, so pick up them.
 	want.SetName(got.GetName())
 	want.SetUID(got.GetUID())
-	for i := range got.Status.V1Beta2.Conditions {
-		if got.Status.V1Beta2.Conditions[i].Type == clusterv1.ReadyCondition {
+	for i := range got.Status.Conditions {
+		if got.Status.Conditions[i].Type == clusterv1.ReadyCondition {
 			continue
 		}
-		got.Status.V1Beta2.Conditions[i].LastTransitionTime = metav1.Time{}
+		got.Status.Conditions[i].LastTransitionTime = metav1.Time{}
 	}
 
 	g.Expect(got).To(BeComparableTo(want))
@@ -687,12 +685,10 @@ func Test_updateGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -733,12 +729,10 @@ func Test_updateGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}

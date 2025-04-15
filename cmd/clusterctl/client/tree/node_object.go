@@ -37,11 +37,6 @@ type NodeObject struct {
 // NodeStatus is the status of a node object.
 type NodeStatus struct {
 	Deprecated *NodeDeprecatedStatus
-	V1Beta2    *NodeObjectV1Beta2Status
-}
-
-// NodeObjectV1Beta2Status is the v1Beta2 status of a node object.
-type NodeObjectV1Beta2Status struct {
 	Conditions []metav1.Condition
 }
 
@@ -77,18 +72,12 @@ func (o *NodeObject) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 
 // GetConditions returns the set of conditions for this object.
 func (o *NodeObject) GetConditions() []metav1.Condition {
-	if o.Status.V1Beta2 == nil {
-		return nil
-	}
-	return o.Status.V1Beta2.Conditions
+	return o.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
 func (o *NodeObject) SetConditions(conditions []metav1.Condition) {
-	if o.Status.V1Beta2 == nil && conditions != nil {
-		o.Status.V1Beta2 = &NodeObjectV1Beta2Status{}
-	}
-	o.Status.V1Beta2.Conditions = conditions
+	o.Status.Conditions = conditions
 }
 
 // GetUID returns object's UID.

@@ -41,7 +41,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 
 </aside>
 
-## Rules (contract version v1beta1)
+## Rules (contract version v1beta2)
 
 | Rule                                                                       | Mandatory | Note                                 |
 |----------------------------------------------------------------------------|-----------|--------------------------------------|
@@ -218,33 +218,46 @@ the Machine controller will surface this info in Machine's `spec.boostrap.dataSe
 ### BootstrapConfig: initialization completed
 
 Each BootstrapConfig MUST report when the bootstrap data secret is fully provisioned (initialization) by setting
-`status.ready` in the BootstrapConfig resource.
+`status.initialization.dataSecretCreated` in the BootstrapConfig resource.
 
 ```go
 type FooConfigStatus struct {
-    // ready denotes that the foo bootstrap data secret is fully provisioned.
-	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-	// The value of this field is never updated after provisioning is completed. Please use conditions
-	// to check the operational state of the bootstrap config.
+    // initialization provides observations of the FooConfig initialization process.
+    // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
     // +optional
-    Ready bool `json:"ready"`
+    Initialization *FooConfigInitializationStatus `json:"initialization,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in BootstrapConfig status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
+
+// FooConfigInitializationStatus provides observations of the FooConfig initialization process.
+type FooConfigInitializationStatus struct {
+    // dataSecretCreated is true when the Machine's boostrap secret is created.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+    // +optional
+    DataSecretCreated bool `json:"dataSecretCreated,omitempty"`
+}
 ```
 
-Once `status.ready` the Machine "core" controller will bubble up this info in Machine's `status.bootstrapConfigReady`;
-Also BootstrapConfig's `status.dataSecretName` will be surfaced on Machine's corresponding fields at the same time.
+Once `status.initialization.dataSecretCreated` the Machine "core" controller will bubble up this info in Machine's 
+`status.initialization.bootstrapDataSecretCreated`; also BootstrapConfig's `status.dataSecretName` will be surfaced 
+on Machine's corresponding fields at the same time.
 
 <aside class="note warning">
 
-<h1>Heads up! this will change with the v1beta2 contract</h1>
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-When the v1beta2 contract will be released (tentative Apr 2025), `status.initialization.dataSecretCreated` will be used
-instead of `status.ready`. However, `status.ready` will be supported until v1beta1 removal (~one year later).
+In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
 
-See [Improving status in CAPI resources].
+With regard to initialization completed:
+
+Cluster API will continue to temporarily support BootstrapConfig resource using `status.ready` field to
+report initialization completed.
+
+After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in 
+the BootstrapConfig resource will be ignored.
 
 </aside>
 
@@ -254,82 +267,65 @@ According to [Kubernetes API Conventions], Conditions provide a standard mechani
 status reporting from a controller.
 
 Providers implementers SHOULD implement `status.conditions` for their BootstrapConfig resource.
-In case conditions are implemented, Cluster API condition type MUST be used.
+In case conditions are implemented on a BootstrapConfig resource, Cluster API will consider only condition providing the following information:
+- `type` (required)
+- `status` (required, one of True, False, Unknown)
+- `reason` (optional, if omitted a default one will be used)
+- `message` (optional, if omitted an empty message will be used)
+- `lastTransitionTime` (optional, if omitted time.Now will be used)
+- `observedGeeneration` (optional, if omitted the generation of the BootstrapConfig resource will be used)
+
+Other fields will be ignored.
 
 If a condition with type `Ready` exist, such condition will be mirrored in Machine's `BootstrapConfigReady` condition.
 
 Please note that the `Ready` condition is expected to surface the status of the BootstrapConfig during its own entire lifecycle,
 including initial provisioning, but not limited to that.
 
-See [Cluster API condition proposal] for more context.
+See [Improving status in CAPI resources] for more context.
 
 <aside class="note warning">
 
-<h1>Heads up! this will change with the v1beta2 contract</h1>
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-When the v1beta2 contract will be released (tentative Apr 2025), Cluster API will start using Kubernetes metav1.Condition
-types and fully comply to [Kubernetes API Conventions].
+In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
 
-In order to support providers continuing to use legacy Cluster API condition types, providers transitioning to
-metav1.Condition or even providers adopting custom condition types, Cluster API will start to accept `Ready` condition that
-provides following information:
-- `type`
-- `status`
-- `reason` ((optional, if omitted, a default one will be used)
-- `message` (optional)
-- `lastTransitionTime` (optional, if omitted, time.Now will be used)
+With regard to conditions:
 
-Other fields will be ignored
+Cluster API will continue to read conditions from providers using deprecates Cluster API condition types.
 
-See [Improving status in CAPI resources] for more context.
-
-Please note that provider that will continue to use legacy Cluster API condition types MUST carefully take into account
-the implication of this choice which are described both in the document above and in the notice at the beginning of the [Cluster API condition proposal]..
+Please note that provider that will continue to use deprecates Cluster API condition types MUST carefully take into account
+the implication of this choice which are described both in the [Cluster API v1.11 migration notes] and in the [Improving status in CAPI resources] proposal.
 
 </aside>
 
 ### BootstrapConfig: terminal failures
 
-Each BootstrapConfig SHOULD report when BootstrapConfig's enter in a state that cannot be recovered (terminal failure) by
-setting `status.failureReason` and `status.failureMessage` in the BootstrapConfig resource.
+Starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API.
 
-```go
-type FooConfigStatus struct {
-    // failureReason will be set in the event that there is a terminal problem reconciling the FooConfig 
-    // and will contain a succinct value suitable for machine interpretation.
-    //
-    // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
-    // but instead indicate that something is fundamentally wrong with the FooConfig and that it cannot be recovered.
-    // +optional
-    FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
-    
-    // failureMessage will be set in the event that there is a terminal problem reconciling the FooConfig
-    // and will contain a more verbose string suitable for logging and human consumption.
-    //
-    // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
-    // but instead indicate that something is fundamentally wrong with the FooConfig and that it cannot be recovered.
-    // +optional
-    FailureMessage *string `json:"failureMessage,omitempty"`
-    
-    // See other rules for more details about mandatory/optional fields in BootstrapConfig status.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-```
+In case necessary, "terminal failures" should be surfaced using conditions, with a well documented type/reason; 
+it is up to consumers to treat them accordingly. 
 
-Once `status.failureReason` and `status.failureMessage` are set on the BootstrapConfig resource, the Machine "core" controller
-will surface those info in the corresponding fields in Machine's `status`.
-
-Please note that once failureReason/failureMessage is set in Machine's `status`, the only way to recover is to delete and
-recreate the Machine (it is a terminal failure).
+See [Improving status in CAPI resources] for more context.
 
 <aside class="note warning">
 
-<h1>Heads up! this will change with the v1beta2 contract</h1>
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-When the v1beta2 contract will be released (tentative Apr 2025), support for `status.failureReason` and `status.failureMessage`
-will be dropped.
+In order to ease the transition for providers, the v1bet2 version of the Cluster API contract _temporarily_
+preserve compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in AUG 26.
 
-See [Improving status in CAPI resources].
+With regard to terminal failures:
+
+In case a Bootstrap provider reports that a BootstrapConfig resource is in a state that cannot be recovered (terminal failure) by
+setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, 
+the "core" Machine controller will surface those info in the corresponding fields within in Machine's `status.deprecatd.v1beta1` struct.
+
+However, those info won't have any impact on the Machine lifecycle as before. 
+
+After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
+fields in the BootstrapConfig resource will be ignored and Machine's `status.deprecatd.v1beta1` struct will be dropped.
 
 </aside>
 
@@ -458,13 +454,12 @@ The following diagram shows the typical logic for a bootstrap provider:
 1. If the resource does not have a `Machine` owner, exit the reconciliation
     1. The Cluster API `Machine` reconciler populates this based on the value in the `Machine`'s `spec.bootstrap.configRef`
        field.
-1. If the resource has `status.failureReason` or `status.failureMessage` set, exit the reconciliation
 1. If the `Cluster` to which this resource belongs cannot be found, exit the reconciliation
 1. Deterministically generate the name for the bootstrap data secret
 1. Try to retrieve the `Secret` with the name from the previous step
     1. If it does not exist, generate bootstrap data and create the `Secret`
 1. Set `status.dataSecretName` to the generated name
-1. Set `status.ready` to true
+1. Set `status.initialization.dataSecretCreated` to true
 1. Patch the resource to persist changes
 
 [cloud-init]: https://cloudinit.readthedocs.io/en/latest/
@@ -479,7 +474,6 @@ The following diagram shows the typical logic for a bootstrap provider:
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md
 [BootstrapConfig: conditions]: #bootstrapconfig-conditions
 [Kubernetes API Conventions]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-[Cluster API condition proposal]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md
 [BootstrapConfig: terminal failures]: #bootstrapconfig-terminal-failures
 [BootstrapConfigTemplate, BootstrapConfigTemplateList resource definition]: #bootstrapconfigtemplate-bootstrapconfigtemplatelist-resource-definition
 [BootstrapConfigTemplate: support for SSA dry run]: #bootstrapconfigtemplate-support-for-ssa-dry-run
@@ -493,3 +487,4 @@ The following diagram shows the typical logic for a bootstrap provider:
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
 [the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
 [BootstrapConfig: pausing]: #bootstrapconfig-pausing
+[Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md

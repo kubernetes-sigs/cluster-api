@@ -1357,10 +1357,59 @@ Following changes are planned for the contract for the ControlPlane resource:
 - Remove `failureReason` and `failureMessage`.
 - Align replica counters with CAPI core objects
 
+Below you can find the relevant fields in ControlPlane v1beta2, after v1beta1 removal (end state);
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+```golang
+type KubeadmControlPlaneStatus struct {
+
+    // Initialization provides observations of the ControlPlane initialization process.
+    // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+    // The value of those fields is never updated after provisioning is completed.
+    // Use conditions to monitor the operational state of the Cluster.
+    // +optional
+    Initialization *KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty"`
+    
+    // Conditions represent the observations of a ControlPlane's current state.
+    // +optional
+    // +listType=map
+    // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
+    Conditions []metav1.Condition `json:"conditions,omitempty"`
+	
+    // The number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
+    // +optional
+    ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+    // The number of available replicas for this ControlPlane. A machine is considered available when Machine's Available condition is true.
+    // +optional
+    AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+    // The number of up-to-date replicas for this ControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+    // +optional
+    UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+	
+    // Other fields...
+    // NOTE: `FailureReason`, `FailureMessage`, `Ready`, `Initialized`, `updatedReplicas` fields won't be there anymore
+}
+
+// KubeadmControlPlaneInitializationStatus provides observations of the ControlPlane initialization process.
+type KubeadmControlPlaneInitializationStatus struct {
+	
+    // controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized; 
+    // usually a control plane is considered initialized when it can accept requests, no matter if this happens before 
+    // the control plane is fully provisioned or not.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+    // +optional 
+    ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
+}
+```
+
 | v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Aug 2026)                                                          |
 |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                                                        | (removed)                                                                                                   |
-| `status.initialized`, required                                        | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                          | `status.initialization.controlPlaneInitialized`, required                                                   |
+|                                                                       | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                          | `status.initialization.controlPlaneInitialized`, required                                                   |
+| `status.initialized`, required                                        | `status.initialized` (deprecated)                                                                                                                                     | (removed)                                                                                                   |
 | `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.deprecated.v1beta1.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set | (removed)                                                                                                   |
 |                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set        | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |

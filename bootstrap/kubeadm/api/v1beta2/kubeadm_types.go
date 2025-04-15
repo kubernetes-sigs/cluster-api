@@ -26,9 +26,53 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KubeadmConfig's Ready condition and corresponding reasons.
+const (
+	// KubeadmConfigReadyCondition is true if the KubeadmConfig is not deleted,
+	// and both DataSecretCreated, CertificatesAvailable conditions are true.
+	KubeadmConfigReadyCondition = clusterv1.ReadyCondition
+
+	// KubeadmConfigReadyReason surfaces when the KubeadmConfig is ready.
+	KubeadmConfigReadyReason = clusterv1.ReadyReason
+
+	// KubeadmConfigNotReadyReason surfaces when the KubeadmConfig is not ready.
+	KubeadmConfigNotReadyReason = clusterv1.NotReadyReason
+
+	// KubeadmConfigReadyUnknownReason surfaces when KubeadmConfig readiness is unknown.
+	KubeadmConfigReadyUnknownReason = clusterv1.ReadyUnknownReason
+)
+
+// KubeadmConfig's CertificatesAvailable condition and corresponding reasons.
+const (
+	// KubeadmConfigCertificatesAvailableCondition documents that cluster certificates required
+	// for generating the bootstrap data secret are available.
+	KubeadmConfigCertificatesAvailableCondition = "CertificatesAvailable"
+
+	// KubeadmConfigCertificatesAvailableReason surfaces when certificates required for machine bootstrap are is available.
+	KubeadmConfigCertificatesAvailableReason = clusterv1.AvailableReason
+
+	// KubeadmConfigCertificatesAvailableInternalErrorReason surfaces unexpected failures when reading or
+	// generating certificates required for machine bootstrap.
+	KubeadmConfigCertificatesAvailableInternalErrorReason = clusterv1.InternalErrorReason
+)
+
+// KubeadmConfig's DataSecretAvailable condition and corresponding reasons.
+const (
+	// KubeadmConfigDataSecretAvailableCondition is true if the bootstrap secret is available.
+	KubeadmConfigDataSecretAvailableCondition = "DataSecretAvailable"
+
+	// KubeadmConfigDataSecretAvailableReason surfaces when the bootstrap secret is available.
+	KubeadmConfigDataSecretAvailableReason = clusterv1.AvailableReason
+
+	// KubeadmConfigDataSecretNotAvailableReason surfaces when the bootstrap secret is not available.
+	KubeadmConfigDataSecretNotAvailableReason = clusterv1.NotAvailableReason
+)
 
 // InitConfiguration contains a list of elements that is specific "kubeadm init"-only runtime
 // information.

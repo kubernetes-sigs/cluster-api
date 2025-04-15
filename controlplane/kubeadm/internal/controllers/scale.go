@@ -204,14 +204,14 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
 	allMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyCondition,
-		controlplanev1.MachineControllerManagerPodHealthyCondition,
-		controlplanev1.MachineSchedulerPodHealthyCondition,
+		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
 	}
 	if controlPlane.IsEtcdManaged() {
 		allMachineHealthConditions = append(allMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyCondition,
-			controlplanev1.MachineEtcdMemberHealthyCondition,
+			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
+			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 		)
 	}
 	machineErrors := []error{}
@@ -240,7 +240,7 @@ loopmachines:
 		} else {
 			for _, condition := range allMachineHealthConditions {
 				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
-					if condition == controlplanev1.MachineEtcdMemberHealthyCondition {
+					if condition == controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition {
 						controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
 					} else {
 						controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true

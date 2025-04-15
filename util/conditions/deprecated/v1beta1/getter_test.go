@@ -112,7 +112,7 @@ func TestIsMethods(t *testing.T) {
 
 func TestMirror(t *testing.T) {
 	foo := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
-	ready := TrueCondition(clusterv1.ReadyCondition)
+	ready := TrueCondition(clusterv1.ReadyV1Beta1Condition)
 	readyBar := ready.DeepCopy()
 	readyBar.Type = "bar"
 
@@ -155,7 +155,7 @@ func TestSummary(t *testing.T) {
 	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
 	fooWithNegativePolarity := FalseConditionWithNegativePolarity("foo-negative-polarity")
 	barWithNegativePolarity := TrueConditionWithNegativePolarity("bar-negative-polarity", "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity")
-	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
+	existingReady := FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
 
 	tests := []struct {
 		name    string
@@ -171,102 +171,102 @@ func TestSummary(t *testing.T) {
 		{
 			name: "Returns ready condition with the summary of existing conditions (with default options)",
 			from: getterWithConditions(foo, bar),
-			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+			want: FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions with negative polarity (with default options)",
 			from:    getterWithConditions(fooWithNegativePolarity, barWithNegativePolarity),
 			options: []MergeOption{WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions with mixed polarity (with default options)",
 			from:    getterWithConditions(foo, bar, fooWithNegativePolarity, barWithNegativePolarity),
 			options: []MergeOption{WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"), // bar take precedence on barWithNegativePolarity because it is listed first
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"), // bar take precedence on barWithNegativePolarity because it is listed first
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounter options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithStepCounter()},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithStepCounterIf(false)},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithStepCounterIf(true)},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(bar),
 			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("bar")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounterIf and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithStepCounter(), WithStepCounterIfOnly("foo")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions options)",
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithConditions("foo")}, // bar should be ignored
-			want:    TrueCondition(clusterv1.ReadyCondition),
+			want:    TrueCondition(clusterv1.ReadyV1Beta1Condition),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions with negative polarity (using WithConditions options)",
 			from:    getterWithConditions(fooWithNegativePolarity, barWithNegativePolarity),
 			options: []MergeOption{WithConditions("foo-negative-polarity"), WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")}, // bar-negative-polarity should be ignored because it is not listed in WithConditions
-			want:    TrueCondition(clusterv1.ReadyCondition),
+			want:    TrueCondition(clusterv1.ReadyV1Beta1Condition),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions with mixed polarity (using WithConditions options)",
 			from:    getterWithConditions(foo, bar, fooWithNegativePolarity, barWithNegativePolarity),
 			options: []MergeOption{WithConditions("foo", "foo-negative-polarity", "bar-negative-polarity"), WithNegativePolarityConditions("foo-negative-polarity", "bar-negative-polarity")},
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason trueInfo1-negative-polarity", clusterv1.ConditionSeverityInfo, "message trueInfo1-negative-polarity"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounter options)",
 			from:    getterWithConditions(foo, bar, baz),
 			options: []MergeOption{WithConditions("foo", "bar"), WithStepCounter()}, // baz should be ignored, total steps should be 2
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "1 of 2 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(bar),
 			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is only bar, the step counter should be set and counts only a subset of conditions
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 1 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options - with inconsistent order between the two)",
 			from:    getterWithConditions(bar),
 			options: []MergeOption{WithConditions("baz", "bar"), WithStepCounter(), WithStepCounterIfOnly("bar", "baz")}, // conditions in WithStepCounterIfOnly could be in different order than in WithConditions
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 2 completed"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "0 of 2 completed"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounterIfOnly options)",
 			from:    getterWithConditions(bar, baz),
 			options: []MergeOption{WithConditions("bar", "baz"), WithStepCounter(), WithStepCounterIfOnly("bar")}, // there is also baz, so the step counter should not be set
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 		{
 			name:    "Ready condition respects merge order",
 			from:    getterWithConditions(bar, baz),
 			options: []MergeOption{WithConditions("baz", "bar")}, // baz should take precedence on bar
-			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2"),
+			want:    FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2"),
 		},
 		{
 			name: "Ignores existing Ready condition when computing the summary",
 			from: getterWithConditions(existingReady, foo, bar),
-			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+			want: FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
 		},
 	}
 
@@ -285,8 +285,8 @@ func TestSummary(t *testing.T) {
 }
 
 func TestAggregate(t *testing.T) {
-	ready1 := TrueCondition(clusterv1.ReadyCondition)
-	ready2 := FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	ready1 := TrueCondition(clusterv1.ReadyV1Beta1Condition)
+	ready2 := FalseCondition(clusterv1.ReadyV1Beta1Condition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
 	bar := FalseCondition("bar", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. bar has higher priority than other conditions
 
 	tests := []struct {

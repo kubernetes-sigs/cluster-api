@@ -308,28 +308,28 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 	// Always update the readyCondition by summarizing the state of other conditions.
 	v1beta1conditions.SetSummary(machineSet,
 		v1beta1conditions.WithConditions(
-			clusterv1.MachinesCreatedCondition,
-			clusterv1.ResizedCondition,
-			clusterv1.MachinesReadyCondition,
+			clusterv1.MachinesCreatedV1Beta1Condition,
+			clusterv1.ResizedV1Beta1Condition,
+			clusterv1.MachinesReadyV1Beta1Condition,
 		),
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options := []patch.Option{
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			clusterv1.MachinesCreatedCondition,
-			clusterv1.ResizedCondition,
-			clusterv1.MachinesReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			clusterv1.MachinesCreatedV1Beta1Condition,
+			clusterv1.ResizedV1Beta1Condition,
+			clusterv1.MachinesReadyV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			clusterv1.MachineSetScalingUpV1Beta2Condition,
-			clusterv1.MachineSetScalingDownV1Beta2Condition,
-			clusterv1.MachineSetMachinesReadyV1Beta2Condition,
-			clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
-			clusterv1.MachineSetRemediatingV1Beta2Condition,
-			clusterv1.MachineSetDeletingV1Beta2Condition,
+			clusterv1.PausedCondition,
+			clusterv1.MachineSetScalingUpCondition,
+			clusterv1.MachineSetScalingDownCondition,
+			clusterv1.MachineSetMachinesReadyCondition,
+			clusterv1.MachineSetMachinesUpToDateCondition,
+			clusterv1.MachineSetRemediatingCondition,
+			clusterv1.MachineSetDeletingCondition,
 		}},
 	}
 	return patchHelper.Patch(ctx, machineSet, options...)
@@ -517,7 +517,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 				conditions.Set(m, *upToDateCondition)
 			}
 
-			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateCondition}}); err != nil {
 				return ctrl.Result{}, err
 			}
 			continue
@@ -532,7 +532,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 				return ctrl.Result{}, err
 			}
 			conditions.Set(m, *upToDateCondition)
-			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateV1Beta2Condition}}); err != nil {
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []string{clusterv1.MachineUpToDateCondition}}); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -640,18 +640,18 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 			conditionMessages[i] = fmt.Sprintf("* %s", conditionMessages[i])
 		}
 		return &metav1.Condition{
-			Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineNotUpToDateV1Beta2Reason,
+			Reason: clusterv1.MachineNotUpToDateReason,
 			// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
 			Message: strings.Join(conditionMessages, "\n"),
 		}
 	}
 
 	return &metav1.Condition{
-		Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+		Type:   clusterv1.MachineUpToDateCondition,
 		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineUpToDateV1Beta2Reason,
+		Reason: clusterv1.MachineUpToDateReason,
 	}
 }
 
@@ -688,7 +688,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 
 			s.scaleUpPreflightCheckErrMessages = preflightCheckErrMessages
-			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, strings.Join(preflightCheckErrMessages, "; "))
+			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.PreflightCheckFailedV1Beta1Reason, clusterv1.ConditionSeverityError, strings.Join(preflightCheckErrMessages, "; "))
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -731,7 +731,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 					},
 				})
 				if err != nil {
-					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.BootstrapTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a machine",
 						ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
 						klog.KRef(ms.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name))
@@ -764,7 +764,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name), (&ms.Spec.Template.Spec.InfrastructureRef).Kind)
 					}
 				}
-				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
+				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
 				return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,
 					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
@@ -777,7 +777,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				log.Error(err, "Error while creating a machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine: %v", err)
 				errs = append(errs, err)
-				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.MachineCreationFailedReason,
+				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationFailedV1Beta1Reason,
 					clusterv1.ConditionSeverityError, err.Error())
 
 				// Try to cleanup the external objects if the Machine creation failed.
@@ -1253,30 +1253,30 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	switch {
 	// We are scaling up
 	case newStatus.Replicas < desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
 	// We are scaling down
 	case newStatus.Replicas > desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
 		// This means that there was no error in generating the desired number of machine objects
-		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedV1Beta1Condition)
 	default:
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
 		// TODO (v1beta2) Use new replica counters
 		if newStatus.Deprecated.V1Beta1.ReadyReplicas == newStatus.Replicas {
-			if v1beta1conditions.IsFalse(ms, clusterv1.ResizedCondition) {
+			if v1beta1conditions.IsFalse(ms, clusterv1.ResizedV1Beta1Condition) {
 				log.Info("All the replicas are ready", "replicas", newStatus.Deprecated.V1Beta1.ReadyReplicas)
 			}
-			v1beta1conditions.MarkTrue(ms, clusterv1.ResizedCondition)
+			v1beta1conditions.MarkTrue(ms, clusterv1.ResizedV1Beta1Condition)
 		}
 		// This means that there was no error in generating the desired number of machine objects
-		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedV1Beta1Condition)
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	v1beta1conditions.SetAggregate(ms, clusterv1.MachinesReadyCondition, collections.FromMachines(filteredMachines...).ConditionGetters(), v1beta1conditions.AddSourceRef())
+	v1beta1conditions.SetAggregate(ms, clusterv1.MachinesReadyV1Beta1Condition, collections.FromMachines(filteredMachines...).ConditionGetters(), v1beta1conditions.AddSourceRef())
 
 	return nil
 }
@@ -1338,8 +1338,8 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			continue
 		}
 
-		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
-		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta2Condition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
 
 		if !(shouldCleanupV1Beta1 || shouldCleanup) {
 			continue
@@ -1352,17 +1352,17 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 
 		if shouldCleanupV1Beta1 {
-			v1beta1conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
+			v1beta1conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
 		}
 
 		if shouldCleanup {
-			conditions.Delete(m, clusterv1.MachineOwnerRemediatedV1Beta2Condition)
+			conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 		}
 
 		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.MachineOwnerRemediatedCondition,
+			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 		}}, patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			clusterv1.MachineOwnerRemediatedCondition,
 		}}); err != nil {
 			errList = append(errList, err)
 		}
@@ -1390,9 +1390,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
 			// MachineSet is part of a MachineDeployment but isn't the current revision, no remediations allowed.
 			if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+				Type:    clusterv1.MachineOwnerRemediatedCondition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineSetMachineCannotBeRemediatedV1Beta2Reason,
+				Reason:  clusterv1.MachineSetMachineCannotBeRemediatedReason,
 				Message: "Machine won't be remediated because it is pending removal due to rollout",
 			}, nil); err != nil {
 				return ctrl.Result{}, err
@@ -1421,7 +1421,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			// TODO (v1beta2): test for v1beta2 conditions
 			// TODO: Check for Status: False and Reason: MachineSetMachineRemediationMachineDeletingV1Beta2Reason
 			// instead when starting to use v1beta2 conditions for control flow.
-			if v1beta1conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedCondition) {
+			if v1beta1conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 				// Remediation for this Machine has been triggered by this controller but it is still in flight,
 				// i.e. it still goes through the deletion workflow and exists in etcd.
 				maxInFlight--
@@ -1434,9 +1434,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		// No tokens available to remediate machines.
 		log.V(3).Info("Remediation strategy is set, and maximum in flight has been reached", "machinesToBeRemediated", len(machinesToRemediate))
 		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
@@ -1458,9 +1458,9 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		machinesToDeferRemediation := allMachinesToRemediate[maxInFlight:]
 
 		if err := patchMachineConditions(ctx, r.Client, machinesToDeferRemediation, metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
@@ -1483,14 +1483,14 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
 		// WaitingForRemediationReason reason.
 		if patchErr := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-			Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineSetMachineRemediationDeferredV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
 			Message: strings.Join(listMessages, "\n"),
 		}, &clusterv1.Condition{
-			Type:     clusterv1.MachineOwnerRemediatedCondition,
+			Type:     clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
-			Reason:   clusterv1.WaitingForRemediationReason,
+			Reason:   clusterv1.WaitingForRemediationV1Beta1Reason,
 			Severity: clusterv1.ConditionSeverityWarning,
 			Message:  strings.Join(preflightCheckErrMessages, "; "),
 		}); patchErr != nil {
@@ -1511,12 +1511,12 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Instead if we set the condition but the deletion does not go through on next reconcile either the
 	// condition will be fixed/updated or the Machine deletion will be retried.
 	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
-		Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+		Type:    clusterv1.MachineOwnerRemediatedCondition,
 		Status:  metav1.ConditionFalse,
-		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingV1Beta2Reason,
+		Reason:  clusterv1.MachineSetMachineRemediationMachineDeletingReason,
 		Message: "Machine is deleting",
 	}, &clusterv1.Condition{
-		Type:   clusterv1.MachineOwnerRemediatedCondition,
+		Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 		Status: corev1.ConditionTrue,
 	}); err != nil {
 		return ctrl.Result{}, err
@@ -1553,9 +1553,9 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 
 		if err := patchHelper.Patch(ctx, m,
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.MachineOwnerRemediatedCondition,
+				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			}}, patch.WithOwnedConditions{Conditions: []string{
-				clusterv1.MachineOwnerRemediatedV1Beta2Condition,
+				clusterv1.MachineOwnerRemediatedCondition,
 			}}); err != nil {
 			errs = append(errs, err)
 		}

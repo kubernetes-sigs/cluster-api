@@ -316,7 +316,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	if len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas) && len(dockerMachineList.Items) == int(*machinePool.Spec.Replicas) {
 		dockerMachinePool.Status.Ready = true
-		v1beta1conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyCondition)
+		v1beta1conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyV1Beta1Condition)
 
 		return ctrl.Result{}, nil
 	}
@@ -407,22 +407,22 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 	switch {
 	// We are scaling up
 	case readyReplicaCount < desiredReplicas:
-		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling up MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	// We are scaling down
 	case readyReplicaCount > desiredReplicas:
-		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		v1beta1conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling down MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	default:
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
 		if len(dockerMachines) == readyReplicaCount {
-			if v1beta1conditions.IsFalse(dockerMachinePool, clusterv1.ResizedCondition) {
+			if v1beta1conditions.IsFalse(dockerMachinePool, clusterv1.ResizedV1Beta1Condition) {
 				log.Info("All the replicas are ready", "replicas", readyReplicaCount)
 			}
-			v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.ResizedCondition)
+			v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.ResizedV1Beta1Condition)
 		}
 		// This means that there was no error in generating the desired number of machine objects
-		v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.MachinesCreatedCondition)
+		v1beta1conditions.MarkTrue(dockerMachinePool, clusterv1.MachinesCreatedV1Beta1Condition)
 	}
 
 	getters := make([]v1beta1conditions.Getter, 0, len(dockerMachines))
@@ -432,7 +432,7 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	v1beta1conditions.SetAggregate(dockerMachinePool, expv1.ReplicasReadyCondition, getters, v1beta1conditions.AddSourceRef())
+	v1beta1conditions.SetAggregate(dockerMachinePool, expv1.ReplicasReadyV1Beta1Condition, getters, v1beta1conditions.AddSourceRef())
 
 	return ctrl.Result{}, nil
 }
@@ -440,7 +440,7 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	v1beta1conditions.SetSummary(dockerMachinePool,
 		v1beta1conditions.WithConditions(
-			expv1.ReplicasReadyCondition,
+			expv1.ReplicasReadyV1Beta1Condition,
 		),
 	)
 
@@ -449,8 +449,8 @@ func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dock
 		ctx,
 		dockerMachinePool,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			expv1.ReplicasReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			expv1.ReplicasReadyV1Beta1Condition,
 		}},
 	)
 }

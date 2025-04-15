@@ -54,7 +54,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	// will be "now". See https://github.com/kubernetes-sigs/cluster-api/issues/3798#issuecomment-708619826 for more
 	// discussion.
 	if src.Status.ControlPlaneInitialized {
-		v1beta1conditions.MarkTrue(dst, clusterv1.ControlPlaneInitializedCondition)
+		v1beta1conditions.MarkTrue(dst, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 	}
 
 	// Manually restore data.
@@ -97,7 +97,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Set the v1alpha3 boolean status field if the v1alpha4 condition was true
-	if v1beta1conditions.IsTrue(src, clusterv1.ControlPlaneInitializedCondition) {
+	if v1beta1conditions.IsTrue(src, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		dst.Status.ControlPlaneInitialized = true
 	}
 

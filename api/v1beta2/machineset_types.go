@@ -95,142 +95,142 @@ type MachineSetSpec struct {
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
-// MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's ScalingUp condition and corresponding reasons.
 const (
-	// MachineSetScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
+	// MachineSetScalingUpCondition is true if actual replicas < desired replicas.
 	// Note: In case a MachineSet preflight check is preventing scale up, this will surface in the condition message.
-	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+	MachineSetScalingUpCondition = ScalingUpCondition
 
-	// MachineSetScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
-	MachineSetScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
+	// MachineSetScalingUpReason surfaces when actual replicas < desired replicas.
+	MachineSetScalingUpReason = ScalingUpReason
 
-	// MachineSetNotScalingUpV1Beta2Reason surfaces when actual replicas >= desired replicas.
-	MachineSetNotScalingUpV1Beta2Reason = NotScalingUpV1Beta2Reason
+	// MachineSetNotScalingUpReason surfaces when actual replicas >= desired replicas.
+	MachineSetNotScalingUpReason = NotScalingUpReason
 
-	// MachineSetScalingUpInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
-	MachineSetScalingUpInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetScalingUpInternalErrorReason surfaces unexpected failures when listing machines.
+	MachineSetScalingUpInternalErrorReason = InternalErrorReason
 
-	// MachineSetScalingUpWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// MachineSetScalingUpWaitingForReplicasSetReason surfaces when the .spec.replicas
 	// field of the MachineSet is not set.
-	MachineSetScalingUpWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
+	MachineSetScalingUpWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's ScalingDown condition and corresponding reasons.
 const (
-	// MachineSetScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
-	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+	// MachineSetScalingDownCondition is true if actual replicas > desired replicas.
+	MachineSetScalingDownCondition = ScalingDownCondition
 
-	// MachineSetScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
-	MachineSetScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
+	// MachineSetScalingDownReason surfaces when actual replicas > desired replicas.
+	MachineSetScalingDownReason = ScalingDownReason
 
-	// MachineSetNotScalingDownV1Beta2Reason surfaces when actual replicas <= desired replicas.
-	MachineSetNotScalingDownV1Beta2Reason = NotScalingDownV1Beta2Reason
+	// MachineSetNotScalingDownReason surfaces when actual replicas <= desired replicas.
+	MachineSetNotScalingDownReason = NotScalingDownReason
 
-	// MachineSetScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
-	MachineSetScalingDownInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetScalingDownInternalErrorReason surfaces unexpected failures when listing machines.
+	MachineSetScalingDownInternalErrorReason = InternalErrorReason
 
-	// MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// MachineSetScalingDownWaitingForReplicasSetReason surfaces when the .spec.replicas
 	// field of the MachineSet is not set.
-	MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
+	MachineSetScalingDownWaitingForReplicasSetReason = WaitingForReplicasSetReason
 )
 
-// MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's MachinesReady condition and corresponding reasons.
 // Note: Reason's could also be derived from the aggregation of machine's Ready conditions.
 const (
-	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+	// MachineSetMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	MachineSetMachinesReadyCondition = MachinesReadyCondition
 
-	// MachineSetMachinesReadyV1Beta2Reason surfaces when all the controlled machine's Ready conditions are true.
-	MachineSetMachinesReadyV1Beta2Reason = ReadyV1Beta2Reason
+	// MachineSetMachinesReadyReason surfaces when all the controlled machine's Ready conditions are true.
+	MachineSetMachinesReadyReason = ReadyReason
 
-	// MachineSetMachinesNotReadyV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is false.
-	MachineSetMachinesNotReadyV1Beta2Reason = NotReadyV1Beta2Reason
+	// MachineSetMachinesNotReadyReason surfaces when at least one of the controlled machine's Ready conditions is false.
+	MachineSetMachinesNotReadyReason = NotReadyReason
 
-	// MachineSetMachinesReadyUnknownV1Beta2Reason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// MachineSetMachinesReadyUnknownReason surfaces when at least one of the controlled machine's Ready conditions is unknown
 	// and none of the controlled machine's Ready conditions is false.
-	MachineSetMachinesReadyUnknownV1Beta2Reason = ReadyUnknownV1Beta2Reason
+	MachineSetMachinesReadyUnknownReason = ReadyUnknownReason
 
-	// MachineSetMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
-	MachineSetMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+	// MachineSetMachinesReadyNoReplicasReason surfaces when no machines exist for the MachineSet.
+	MachineSetMachinesReadyNoReplicasReason = NoReplicasReason
 
-	// MachineSetMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// MachineSetMachinesReadyInternalErrorReason surfaces unexpected failures when listing machines
 	// or aggregating machine's conditions.
-	MachineSetMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	MachineSetMachinesReadyInternalErrorReason = InternalErrorReason
 )
 
-// MachineSet's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's MachinesUpToDate condition and corresponding reasons.
 // Note: Reason's could also be derived from the aggregation of machine's MachinesUpToDate conditions.
 const (
-	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	// MachineSetMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
 	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
-	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+	MachineSetMachinesUpToDateCondition = MachinesUpToDateCondition
 
-	// MachineSetMachinesUpToDateV1Beta2Reason surfaces when all the controlled machine's UpToDate conditions are true.
-	MachineSetMachinesUpToDateV1Beta2Reason = UpToDateV1Beta2Reason
+	// MachineSetMachinesUpToDateReason surfaces when all the controlled machine's UpToDate conditions are true.
+	MachineSetMachinesUpToDateReason = UpToDateReason
 
-	// MachineSetMachinesNotUpToDateV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is false.
-	MachineSetMachinesNotUpToDateV1Beta2Reason = NotUpToDateV1Beta2Reason
+	// MachineSetMachinesNotUpToDateReason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	MachineSetMachinesNotUpToDateReason = NotUpToDateReason
 
-	// MachineSetMachinesUpToDateUnknownV1Beta2Reason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// MachineSetMachinesUpToDateUnknownReason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
 	// and none of the controlled machine's UpToDate conditions is false.
-	MachineSetMachinesUpToDateUnknownV1Beta2Reason = UpToDateUnknownV1Beta2Reason
+	MachineSetMachinesUpToDateUnknownReason = UpToDateUnknownReason
 
-	// MachineSetMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
-	MachineSetMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+	// MachineSetMachinesUpToDateNoReplicasReason surfaces when no machines exist for the MachineSet.
+	MachineSetMachinesUpToDateNoReplicasReason = NoReplicasReason
 
-	// MachineSetMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// MachineSetMachinesUpToDateInternalErrorReason surfaces unexpected failures when listing machines
 	// or aggregating status.
-	MachineSetMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	MachineSetMachinesUpToDateInternalErrorReason = InternalErrorReason
 )
 
-// MachineSet's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's Remediating condition and corresponding reasons.
 const (
-	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
-	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+	// MachineSetRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachineSetRemediatingCondition = RemediatingCondition
 
-	// MachineSetRemediatingV1Beta2Reason surfaces when the MachineSet has at least one machine with HealthCheckSucceeded set to false
+	// MachineSetRemediatingReason surfaces when the MachineSet has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
-	MachineSetRemediatingV1Beta2Reason = RemediatingV1Beta2Reason
+	MachineSetRemediatingReason = RemediatingReason
 
-	// MachineSetNotRemediatingV1Beta2Reason surfaces when the MachineSet does not have any machine with HealthCheckSucceeded set to false
+	// MachineSetNotRemediatingReason surfaces when the MachineSet does not have any machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
-	MachineSetNotRemediatingV1Beta2Reason = NotRemediatingV1Beta2Reason
+	MachineSetNotRemediatingReason = NotRemediatingReason
 
-	// MachineSetRemediatingInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Remediating condition.
-	MachineSetRemediatingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetRemediatingInternalErrorReason surfaces unexpected failures when computing the Remediating condition.
+	MachineSetRemediatingInternalErrorReason = InternalErrorReason
 )
 
 // Reasons that will be used for the OwnerRemediated condition set by MachineHealthCheck on MachineSet controlled machines
 // being remediated in v1Beta2 API version.
 const (
-	// MachineSetMachineCannotBeRemediatedV1Beta2Reason surfaces when remediation of a MachineSet machine can't be started.
-	MachineSetMachineCannotBeRemediatedV1Beta2Reason = "CannotBeRemediated"
+	// MachineSetMachineCannotBeRemediatedReason surfaces when remediation of a MachineSet machine can't be started.
+	MachineSetMachineCannotBeRemediatedReason = "CannotBeRemediated"
 
-	// MachineSetMachineRemediationDeferredV1Beta2Reason surfaces when remediation of a MachineSet machine must be deferred.
-	MachineSetMachineRemediationDeferredV1Beta2Reason = "RemediationDeferred"
+	// MachineSetMachineRemediationDeferredReason surfaces when remediation of a MachineSet machine must be deferred.
+	MachineSetMachineRemediationDeferredReason = "RemediationDeferred"
 
-	// MachineSetMachineRemediationMachineDeletingV1Beta2Reason surfaces when remediation of a MachineSet machine
+	// MachineSetMachineRemediationMachineDeletingReason surfaces when remediation of a MachineSet machine
 	// has been completed by deleting the unhealthy machine.
 	// Note: After an unhealthy machine is deleted, a new one is created by the MachineSet as part of the
 	// regular reconcile loop that ensures the correct number of replicas exist.
-	MachineSetMachineRemediationMachineDeletingV1Beta2Reason = "MachineDeleting"
+	MachineSetMachineRemediationMachineDeletingReason = "MachineDeleting"
 )
 
-// MachineSet's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+// MachineSet's Deleting condition and corresponding reasons.
 const (
-	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
+	// MachineSetDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	MachineSetDeletingCondition = DeletingCondition
 
-	// MachineSetNotDeletingV1Beta2Reason surfaces when the MachineSet is not deleting because the
+	// MachineSetNotDeletingReason surfaces when the MachineSet is not deleting because the
 	// DeletionTimestamp is not set.
-	MachineSetNotDeletingV1Beta2Reason = NotDeletingV1Beta2Reason
+	MachineSetNotDeletingReason = NotDeletingReason
 
-	// MachineSetDeletingV1Beta2Reason surfaces when the MachineSet is deleting because the
+	// MachineSetDeletingReason surfaces when the MachineSet is deleting because the
 	// DeletionTimestamp is set.
-	MachineSetDeletingV1Beta2Reason = DeletingV1Beta2Reason
+	MachineSetDeletingReason = DeletingReason
 
-	// MachineSetDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a MachineSet.
-	MachineSetDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetDeletingInternalErrorReason surfaces unexpected failures when deleting a MachineSet.
+	MachineSetDeletingInternalErrorReason = InternalErrorReason
 )
 
 // ANCHOR_END: MachineSetSpec

@@ -268,22 +268,22 @@ func init() {
 
 // ExtensionConfig's Discovered conditions and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
+	// ExtensionConfigDiscoveredCondition is true if the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredCondition = "Discovered"
 
-	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
+	// ExtensionConfigDiscoveredReason surfaces that the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredReason = "Discovered"
 
-	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.
-	ExtensionConfigNotDiscoveredV1Beta2Reason = "NotDiscovered"
+	// ExtensionConfigNotDiscoveredReason surfaces that the runtime extension has not been successfully discovered.
+	ExtensionConfigNotDiscoveredReason = "NotDiscovered"
 )
 
 const (
-	// RuntimeExtensionDiscoveredCondition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
-	RuntimeExtensionDiscoveredCondition clusterv1.ConditionType = "Discovered"
+	// RuntimeExtensionDiscoveredV1Beta1Condition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
+	RuntimeExtensionDiscoveredV1Beta1Condition clusterv1.ConditionType = "Discovered"
 
-	// DiscoveryFailedReason documents failure of a Discovery call.
-	DiscoveryFailedReason string = "DiscoveryFailed"
+	// DiscoveryFailedV1Beta1Reason documents failure of a Discovery call.
+	DiscoveryFailedV1Beta1Reason string = "DiscoveryFailed"
 
 	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
 	// object wants injection of CAs. The value is a reference to a Secret

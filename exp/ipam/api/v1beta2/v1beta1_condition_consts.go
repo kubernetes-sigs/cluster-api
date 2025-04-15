@@ -18,15 +18,15 @@ package v1beta2
 
 // These reasons are intended to be used with failed Ready conditions on an [IPAddressClaim].
 const (
-	// AllocationFailedReason is the reason used when allocating an IP address for a claim fails. More details should be
+	// AllocationFailedV1Beta1Reason is the reason used when allocating an IP address for a claim fails. More details should be
 	// provided in the condition's message.
 	// When the IP pool is full, [PoolExhaustedReason] should be used for better visibility instead.
-	AllocationFailedReason = "AllocationFailed"
+	AllocationFailedV1Beta1Reason = "AllocationFailed"
 
-	// PoolNotReadyReason is the reason used when the referenced IP pool is not ready.
-	PoolNotReadyReason = "PoolNotReady"
+	// PoolNotReadyV1Beta1Reason is the reason used when the referenced IP pool is not ready.
+	PoolNotReadyV1Beta1Reason = "PoolNotReady"
 
-	// PoolExhaustedReason is the reason used when an IP pool referenced by an [IPAddressClaim] is full and no address
+	// PoolExhaustedV1Beta1Reason is the reason used when an IP pool referenced by an [IPAddressClaim] is full and no address
 	// can be allocated for the claim.
-	PoolExhaustedReason = "PoolExhausted"
+	PoolExhaustedV1Beta1Reason = "PoolExhausted"
 )

@@ -36,39 +36,48 @@ type NodeObject struct {
 
 // NodeStatus is the status of a node object.
 type NodeStatus struct {
-	Conditions clusterv1.Conditions
-	V1Beta2    *NodeObjectV1Beta2Status
+	Deprecated *NodeDeprecatedStatus
+	Conditions []metav1.Condition
 }
 
-// NodeObjectV1Beta2Status is the v1Beta2 status of a node object.
-type NodeObjectV1Beta2Status struct {
-	Conditions []metav1.Condition
+// NodeDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type NodeDeprecatedStatus struct {
+	V1Beta1 *NodeV1Beta1DeprecatedStatus
+}
+
+// NodeV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+type NodeV1Beta1DeprecatedStatus struct {
+	Conditions clusterv1.Conditions
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
 func (o *NodeObject) GetV1Beta1Conditions() clusterv1.Conditions {
-	return o.Status.Conditions
+	if o.Status.Deprecated == nil || o.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return o.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
 func (o *NodeObject) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
-	o.Status.Conditions = conditions
+	if o.Status.Deprecated == nil {
+		o.Status.Deprecated = &NodeDeprecatedStatus{}
+	}
+	if o.Status.Deprecated.V1Beta1 == nil {
+		o.Status.Deprecated.V1Beta1 = &NodeV1Beta1DeprecatedStatus{}
+	}
+	o.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetConditions returns the set of conditions for this object.
 func (o *NodeObject) GetConditions() []metav1.Condition {
-	if o.Status.V1Beta2 == nil {
-		return nil
-	}
-	return o.Status.V1Beta2.Conditions
+	return o.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
 func (o *NodeObject) SetConditions(conditions []metav1.Condition) {
-	if o.Status.V1Beta2 == nil && conditions != nil {
-		o.Status.V1Beta2 = &NodeObjectV1Beta2Status{}
-	}
-	o.Status.V1Beta2.Conditions = conditions
+	o.Status.Conditions = conditions
 }
 
 // GetUID returns object's UID.

@@ -204,26 +204,26 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	// Always update the readyCondition by summarizing the state of other conditions.
 	v1beta1conditions.SetSummary(md,
 		v1beta1conditions.WithConditions(
-			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 		),
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			clusterv1.MachineDeploymentAvailableV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
-			clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
-			clusterv1.MachineDeploymentRollingOutV1Beta2Condition,
-			clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
-			clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
-			clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
-			clusterv1.MachineDeploymentDeletingV1Beta2Condition,
+			clusterv1.PausedCondition,
+			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.MachineDeploymentMachinesReadyCondition,
+			clusterv1.MachineDeploymentMachinesUpToDateCondition,
+			clusterv1.MachineDeploymentRollingOutCondition,
+			clusterv1.MachineDeploymentScalingDownCondition,
+			clusterv1.MachineDeploymentScalingUpCondition,
+			clusterv1.MachineDeploymentRemediatingCondition,
+			clusterv1.MachineDeploymentDeletingCondition,
 		}},
 	)
 	return patchHelper.Patch(ctx, md, options...)

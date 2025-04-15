@@ -1486,7 +1486,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
 									},
 								},
 							},
@@ -1535,7 +1535,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.FalseCondition(clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityInfo, ""),
+										*v1beta1conditions.FalseCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition, "", clusterv1.ConditionSeverityInfo, ""),
 									},
 								},
 							},
@@ -1566,7 +1566,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
 									},
 								},
 							},
@@ -1596,7 +1596,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
 									},
 								},
 							},
@@ -1646,7 +1646,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedCondition),
+										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
 									},
 								},
 							},

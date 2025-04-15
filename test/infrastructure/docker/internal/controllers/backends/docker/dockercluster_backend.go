@@ -140,8 +140,8 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 	// Set the LoadBalancerAvailableCondition reporting delete is started, and requeue in order to make
 	// this visible to the users.
 	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.GetReason(dockerCluster, infrav1.LoadBalancerAvailableCondition) != clusterv1.DeletingReason {
-		v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if v1beta1conditions.GetReason(dockerCluster, infrav1.LoadBalancerAvailableCondition) != clusterv1.DeletingV1Beta1Reason {
+		v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(dockerCluster, metav1.Condition{
 			Type:   infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -199,11 +199,11 @@ func (r *ClusterBackEndReconciler) PatchDevCluster(ctx context.Context, patchHel
 		ctx,
 		dockerCluster,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
 			infrav1.LoadBalancerAvailableCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
+			clusterv1.PausedCondition,
 			infrav1.DevClusterReadyV1Beta2Condition,
 			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
 		}},

@@ -467,10 +467,10 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
-		Type:     controlplanev1.MachinesCreatedCondition,
+		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,
-		Reason:   controlplanev1.InfrastructureTemplateCloningFailedReason,
+		Reason:   controlplanev1.InfrastructureTemplateCloningFailedV1Beta1Reason,
 		Message:  "failed to retrieve GenericMachineTemplate default/something_invalid: genericmachinetemplates.generic.io \"something_invalid\" not found",
 	}))
 }

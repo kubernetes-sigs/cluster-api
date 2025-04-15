@@ -114,7 +114,7 @@ func TestClusterCacheTracker(t *testing.T) {
 				},
 			}
 			g.Expect(k8sClient.Create(ctx, clusterA)).To(Succeed())
-			v1beta1conditions.MarkTrue(clusterA, clusterv1.ControlPlaneInitializedCondition)
+			v1beta1conditions.MarkTrue(clusterA, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 			clusterA.Status.InfrastructureReady = true
 			g.Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 

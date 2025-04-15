@@ -74,17 +74,17 @@ const (
 	// - The DevMachine's is using a docker backend and LoadBalancerAvailable is true.
 	// - The DevMachine's is using an in memory backend and VMProvisioned, NodeProvisioned,
 	//	 EtcdProvisioned (if present) and APIServerProvisioned (if present) conditions are true
-	DevMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	DevMachineReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// DevMachineReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is met.
-	DevMachineReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	DevMachineReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// DevMachineNotReadyV1Beta2Reason surfaces when the DevMachine readiness criteria is not met.
-	DevMachineNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	DevMachineNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// DevMachineReadyUnknownV1Beta2Reason surfaces when at least one DevMachine readiness criteria is unknown
 	// and no DevMachine readiness criteria is not met.
-	DevMachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+	DevMachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
 )
 
 // DevMachine's v1Beta2 conditions that apply to the docker backend.
@@ -100,26 +100,26 @@ const (
 
 	// DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason documents the container for a DevMachine's docker backend waiting for the cluster
 	// infrastructure to be ready.
-	DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+	DevMachineDockerContainerWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyReason
 
 	// DevMachineDockerContainerWaitingForControlPlaneInitializedV1Beta2Reason documents a container for a DevMachine's docker backend waiting
 	// for the control plane to be initialized.
-	DevMachineDockerContainerWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedV1Beta2Reason
+	DevMachineDockerContainerWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedReason
 
 	// DevMachineDockerContainerWaitingForBootstrapDataV1Beta2Reason documents a container for a DevMachine's docker backend waiting for the bootstrap
 	// data to be ready.
-	DevMachineDockerContainerWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataV1Beta2Reason
+	DevMachineDockerContainerWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataReason
 
 	// DevMachineDockerContainerProvisionedV1Beta2Reason documents the container for a DevMachine's docker backend is provisioned.
-	DevMachineDockerContainerProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	DevMachineDockerContainerProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
 
 	// DevMachineDockerContainerNotProvisionedV1Beta2Reason documents the container for a DevMachine's docker
 	// backend is not provisioned.
-	DevMachineDockerContainerNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
+	DevMachineDockerContainerNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedReason
 
 	// DevMachineDockerContainerDeletingV1Beta2Reason surfaces when the container for a DevMachine's docker
 	// backend is deleting.
-	DevMachineDockerContainerDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	DevMachineDockerContainerDeletingV1Beta2Reason = clusterv1.DeletingReason
 )
 
 // BootstrapExecSucceeded condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's docker backend.
@@ -151,25 +151,25 @@ const (
 
 	// DevMachineInMemoryVMWaitingForClusterInfrastructureV1Beta2Reason documents a fake VM for a DevMachine's in memory backend waiting for the cluster
 	// infrastructure to be ready.
-	DevMachineInMemoryVMWaitingForClusterInfrastructureV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+	DevMachineInMemoryVMWaitingForClusterInfrastructureV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyReason
 
 	// DevMachineInMemoryVMWaitingForControlPlaneInitializedV1Beta2Reason documents a fake VM for a DevMachine's in memory backend waiting
 	// for the control plane to be initialized.
-	DevMachineInMemoryVMWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedV1Beta2Reason
+	DevMachineInMemoryVMWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedReason
 
 	// DevMachineInMemoryVMWaitingForBootstrapDataV1Beta2Reason documents a fake VM for a DevMachine's in memory backend waiting for the bootstrap
 	// data to be ready.
-	DevMachineInMemoryVMWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataV1Beta2Reason
+	DevMachineInMemoryVMWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataReason
 
 	// DevMachineInMemoryVMWaitingForStartupTimeoutV1Beta2Reason documents when the infrastructure for a fake VM for a DevMachine's in memory backend
 	// is provisioning (it waits for a startup timeout).
 	DevMachineInMemoryVMWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
 
 	// DevMachineInMemoryVMProvisionedV1Beta2Reason documents when a fake VM for a DevMachine's in memory backend is fully provisioned.
-	DevMachineInMemoryVMProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	DevMachineInMemoryVMProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
 
 	// DevMachineInMemoryVMInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake VM for a DevMachine's in memory backend.
-	DevMachineInMemoryVMInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	DevMachineInMemoryVMInternalErrorV1Beta2Reason = clusterv1.InternalErrorReason
 )
 
 // NodeProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's in memory backend.
@@ -186,10 +186,10 @@ const (
 	DevMachineInMemoryNodeWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
 
 	// DevMachineInMemoryNodeProvisionedV1Beta2Reason documents when a fake Node for a DevMachine's in memory backend is fully provisioned.
-	DevMachineInMemoryNodeProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	DevMachineInMemoryNodeProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
 
 	// DevMachineInMemoryNodeInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake Node for a DevMachine's in memory backend.
-	DevMachineInMemoryNodeInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	DevMachineInMemoryNodeInternalErrorV1Beta2Reason = clusterv1.InternalErrorReason
 )
 
 // EtcdProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's in memory backend.
@@ -210,10 +210,10 @@ const (
 	DevMachineInMemoryEtcdWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
 
 	// DevMachineInMemoryEtcdProvisionedV1Beta2Reason documents when a fake Etcd for a DevMachine's in memory backend is fully provisioned.
-	DevMachineInMemoryEtcdProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	DevMachineInMemoryEtcdProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
 
 	// DevMachineInMemoryEtcdInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake Etcd for a DevMachine's in memory backend.
-	DevMachineInMemoryEtcdInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	DevMachineInMemoryEtcdInternalErrorV1Beta2Reason = clusterv1.InternalErrorReason
 )
 
 // APIServerProvisioned condition and corresponding reasons that will be used in v1Beta2 API version for a DevMachine's in memory backend.
@@ -233,10 +233,10 @@ const (
 	DevMachineInMemoryAPIServerWaitingForStartupTimeoutV1Beta2Reason = "WaitingForStartupTimeout"
 
 	// DevMachineInMemoryAPIServerProvisionedV1Beta2Reason documents when a fake APIServer for a DevMachine's in memory backend is fully provisioned.
-	DevMachineInMemoryAPIServerProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	DevMachineInMemoryAPIServerProvisionedV1Beta2Reason = clusterv1.ProvisionedReason
 
 	// DevMachineInMemoryAPIServerInternalErrorV1Beta2Reason surfaces unexpected error when reconciling a fake APIServer for a DevMachine's in memory backend.
-	DevMachineInMemoryAPIServerInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+	DevMachineInMemoryAPIServerInternalErrorV1Beta2Reason = clusterv1.InternalErrorReason
 )
 
 // DevMachineSpec defines the desired state of DevMachine.

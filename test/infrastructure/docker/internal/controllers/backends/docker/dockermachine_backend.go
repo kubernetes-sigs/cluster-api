@@ -166,9 +166,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Make sure bootstrap data is available and populated.
 	if dataSecretName == nil {
 		// TODO (v1beta2): test for v1beta2 conditions
-		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			log.Info("Waiting for the control plane to be initialized")
-			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
+			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -342,7 +342,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
 	// TODO (v1beta2): test for v1beta2 conditions
 	if cluster.Spec.ControlPlaneRef != nil &&
-		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -423,8 +423,8 @@ func (r *MachineBackendReconciler) ReconcileDelete(ctx context.Context, cluster 
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
 	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
 	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.GetReason(dockerMachine, infrav1.ContainerProvisionedCondition) != clusterv1.DeletingReason {
-		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if v1beta1conditions.GetReason(dockerMachine, infrav1.ContainerProvisionedCondition) != clusterv1.DeletingV1Beta1Reason {
+		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(dockerCluster, metav1.Condition{
 			Type:   infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -489,12 +489,12 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 		ctx,
 		dockerMachine,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
+			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,

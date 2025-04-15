@@ -245,7 +245,7 @@ func lexicographicLess(i, j *clusterv1.Condition) bool {
 	if j == nil {
 		return false
 	}
-	return (i.Type == clusterv1.ReadyCondition || i.Type < j.Type) && j.Type != clusterv1.ReadyCondition
+	return (i.Type == clusterv1.ReadyV1Beta1Condition || i.Type < j.Type) && j.Type != clusterv1.ReadyV1Beta1Condition
 }
 
 // HasSameState returns true if a condition has the same state of another; state is defined

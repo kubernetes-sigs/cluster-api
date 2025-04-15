@@ -893,16 +893,16 @@ metadata:
 			crs := &addonsv1.ClusterResourceSet{}
 			g.Expect(env.Get(ctx, clusterResourceSetKey, crs)).To(Succeed())
 
-			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedCondition)
+			appliedCondition := v1beta1conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta1Condition)
 			g.Expect(appliedCondition).NotTo(BeNil())
 			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
-			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))
+			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedV1Beta1Reason))
 			g.Expect(appliedCondition.Message).To(ContainSubstring("creating object /v1, Kind=ConfigMap %s/cm-missing-namespace", missingNamespace))
 
-			appliedConditionV1Beta2 := conditions.Get(crs, addonsv1.ResourcesAppliedV1Beta2Condition)
+			appliedConditionV1Beta2 := conditions.Get(crs, addonsv1.ClusterResourceSetResourcesAppliedCondition)
 			g.Expect(appliedConditionV1Beta2).NotTo(BeNil())
 			g.Expect(appliedConditionV1Beta2.Status).To(BeEquivalentTo(corev1.ConditionFalse))
-			g.Expect(appliedConditionV1Beta2.Reason).To(Equal(addonsv1.ResourcesNotAppliedV1Beta2Reason))
+			g.Expect(appliedConditionV1Beta2.Reason).To(Equal(addonsv1.ClusterResourceSetResourcesNotAppliedReason))
 			g.Expect(appliedConditionV1Beta2.Message).To(Equal("Failed to apply ClusterResourceSet resources to Cluster"))
 		}, timeout).Should(Succeed())
 

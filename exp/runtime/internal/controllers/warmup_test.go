@@ -98,7 +98,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			conditions := config.GetV1Beta1Conditions()
 			g.Expect(conditions).To(HaveLen(1))
 			g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
-			g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+			g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 		}
 	})
 
@@ -163,7 +163,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			if config.Name == brokenExtension {
 				g.Expect(conditions).To(HaveLen(1))
 				g.Expect(conditions[0].Status).To(Equal(corev1.ConditionFalse))
-				g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+				g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 				g.Expect(handlers).To(BeEmpty())
 
 				continue
@@ -177,7 +177,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 
 			g.Expect(conditions).To(HaveLen(1))
 			g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
-			g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
+			g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition))
 		}
 	})
 }

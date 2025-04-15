@@ -162,7 +162,7 @@ func clusterSpokeAfterMutation(c conversion.Convertible) {
 		condition := cluster.Status.Conditions[i]
 
 		// Keep everything that is not ControlPlaneInitializedCondition
-		if condition.Type != ConditionType(clusterv1.ControlPlaneInitializedCondition) {
+		if condition.Type != ConditionType(clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			tmp = append(tmp, condition)
 		}
 	}

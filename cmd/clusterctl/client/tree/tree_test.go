@@ -247,10 +247,10 @@ func Test_hasSameAvailableReadyUptoDateStatusAndReason(t *testing.T) {
 }
 
 func Test_hasSameReadyStatusSeverityAndReason(t *testing.T) {
-	readyTrue := v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)
-	readyFalseReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	readyFalseAnotherReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "AnotherReason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
-	readyFalseReasonWarning := v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "Reason", clusterv1.ConditionSeverityWarning, "message falseInfo1")
+	readyTrue := v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)
+	readyFalseReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, "Reason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	readyFalseAnotherReasonInfo := v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, "AnotherReason", clusterv1.ConditionSeverityInfo, "message falseInfo1")
+	readyFalseReasonWarning := v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, "Reason", clusterv1.ConditionSeverityWarning, "message falseInfo1")
 
 	type args struct {
 		a *clusterv1.Condition
@@ -515,9 +515,9 @@ func Test_createGroupNode(t *testing.T) {
 		},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
-				{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-				{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
-				{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -532,7 +532,7 @@ func Test_createGroupNode(t *testing.T) {
 		},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
-				{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
+				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
 			},
 		},
 	}
@@ -556,12 +556,10 @@ func Test_createGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -572,11 +570,11 @@ func Test_createGroupNode(t *testing.T) {
 	// Some values are generated randomly, so pick up them.
 	want.SetName(got.GetName())
 	want.SetUID(got.GetUID())
-	for i := range got.Status.V1Beta2.Conditions {
-		if got.Status.V1Beta2.Conditions[i].Type == clusterv1.ReadyV1Beta2Condition {
+	for i := range got.Status.Conditions {
+		if got.Status.Conditions[i].Type == clusterv1.ReadyCondition {
 			continue
 		}
-		got.Status.V1Beta2.Conditions[i].LastTransitionTime = metav1.Time{}
+		got.Status.Conditions[i].LastTransitionTime = metav1.Time{}
 	}
 
 	g.Expect(got).To(BeComparableTo(want))
@@ -598,7 +596,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
-						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+						clusterv1.Condition{Type: clusterv1.ReadyV1Beta1Condition, LastTransitionTime: now},
 					},
 				},
 			},
@@ -617,7 +615,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
-						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+						clusterv1.Condition{Type: clusterv1.ReadyV1Beta1Condition, LastTransitionTime: beforeNow},
 					},
 				},
 			},
@@ -640,11 +638,15 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},
@@ -683,12 +685,10 @@ func Test_updateGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -703,9 +703,9 @@ func Test_updateGroupNode(t *testing.T) {
 		},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
-				{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-				{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
-				{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -729,12 +729,10 @@ func Test_updateGroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			V1Beta2: &NodeObjectV1Beta2Status{
-				Conditions: []metav1.Condition{
-					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
-					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
+				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
+				{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionFalse},
 			},
 		},
 	}
@@ -765,11 +763,15 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},
@@ -787,7 +789,7 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
-						clusterv1.Condition{Type: clusterv1.ReadyCondition, LastTransitionTime: now},
+						clusterv1.Condition{Type: clusterv1.ReadyV1Beta1Condition, LastTransitionTime: now},
 					},
 				},
 			},
@@ -810,11 +812,15 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},
@@ -1001,7 +1007,7 @@ func Test_Add_setsObjectMetaNameAnnotation(t *testing.T) {
 
 func Test_Add_NoEcho(t *testing.T) {
 	parent := fakeCluster("parent",
-		withClusterCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+		withClusterCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 	)
 
 	type args struct {
@@ -1020,7 +1026,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  nil,
 				obj: fakeMachine("my-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNode: true,
@@ -1031,7 +1037,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNode: false,
@@ -1042,7 +1048,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionFalse}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionFalse}),
 				),
 			},
 			wantNode: true,
@@ -1053,7 +1059,7 @@ func Test_Add_NoEcho(t *testing.T) {
 				treeOptions: ObjectTreeOptions{Echo: true},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNode: true,
@@ -1083,7 +1089,7 @@ func Test_Add_NoEcho(t *testing.T) {
 
 func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 	parent := fakeCluster("parent",
-		withClusterV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+		withClusterV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 	)
 
 	type args struct {
@@ -1102,7 +1108,7 @@ func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  nil,
 				obj: fakeMachine("my-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNode: true,
@@ -1113,7 +1119,7 @@ func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNode: false,
@@ -1124,7 +1130,7 @@ func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 				treeOptions: ObjectTreeOptions{},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.FalseCondition(clusterv1.ReadyCondition, "", clusterv1.ConditionSeverityInfo, "")),
+					withMachineV1Beta1Condition(v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, "", clusterv1.ConditionSeverityInfo, "")),
 				),
 			},
 			wantNode: true,
@@ -1135,7 +1141,7 @@ func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 				treeOptions: ObjectTreeOptions{Echo: true},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNode: true,
@@ -1192,11 +1198,11 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 				},
 				obj: fakeMachine("second-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1208,14 +1214,14 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 					fakeMachine("second-machine",
-						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 				},
 				obj: fakeMachine("third-machine",
-					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1227,10 +1233,10 @@ func Test_Add_Grouping(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 					fakeMachine("second-machine",
-						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue}),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 				},
 				obj: VirtualObject("ns", "NotAMachine", "other-object"),
@@ -1304,11 +1310,11 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 				},
 				obj: fakeMachine("second-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1320,14 +1326,14 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 					fakeMachine("second-machine",
-						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 				},
 				obj: fakeMachine("third-machine",
-					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
@@ -1339,10 +1345,10 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 			args: args{
 				siblings: []client.Object{
 					fakeMachine("first-machine",
-						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 					fakeMachine("second-machine",
-						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyCondition)),
+						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 				},
 				obj: VirtualObject("ns", "NotAMachine", "other-object"),

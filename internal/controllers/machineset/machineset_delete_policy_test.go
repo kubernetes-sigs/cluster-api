@@ -60,7 +60,7 @@ func TestMachineToDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionFalse,
 						},
 					},
@@ -75,7 +75,7 @@ func TestMachineToDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionUnknown,
 						},
 					},
@@ -90,7 +90,7 @@ func TestMachineToDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineHealthCheckSucceededCondition,
+							Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
 							Status: corev1.ConditionFalse,
 						},
 					},
@@ -105,7 +105,7 @@ func TestMachineToDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineHealthCheckSucceededCondition,
+							Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
 							Status: corev1.ConditionUnknown,
 						},
 					},
@@ -353,7 +353,7 @@ func TestMachineNewestDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionFalse,
 						},
 					},
@@ -369,7 +369,7 @@ func TestMachineNewestDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionUnknown,
 						},
 					},
@@ -536,7 +536,7 @@ func TestMachineOldestDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionFalse,
 						},
 					},
@@ -552,7 +552,7 @@ func TestMachineOldestDelete(t *testing.T) {
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
 						{
-							Type:   clusterv1.MachineNodeHealthyCondition,
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 							Status: corev1.ConditionUnknown,
 						},
 					},
@@ -813,7 +813,7 @@ func TestIsMachineHealthy(t *testing.T) {
 						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								{
-									Type:   clusterv1.MachineNodeHealthyCondition,
+									Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 									Status: corev1.ConditionFalse,
 								},
 							},
@@ -832,7 +832,7 @@ func TestIsMachineHealthy(t *testing.T) {
 						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
 							Conditions: clusterv1.Conditions{
 								{
-									Type:   clusterv1.MachineNodeHealthyCondition,
+									Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
 									Status: corev1.ConditionUnknown,
 								},
 							},

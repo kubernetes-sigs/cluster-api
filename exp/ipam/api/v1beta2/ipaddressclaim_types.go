@@ -23,6 +23,24 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
+// IPAddressClaim's Ready condition and corresponding reasons.
+const (
+	// IPAddressClaimReadyCondition is true if the IPAddressClaim allocation succeeded.
+	IPAddressClaimReadyCondition = clusterv1.ReadyCondition
+
+	// IPAddressClaimReadyAllocationFailedReason is the reason used when allocating an IP address for a claim fails.
+	// More details should be provided in the condition's message.
+	// When the IP pool is full, [PoolExhaustedReason] should be used for better visibility instead.
+	IPAddressClaimReadyAllocationFailedReason = "AllocationFailed"
+
+	// IPAddressClaimReadyPoolNotReadyReason is the reason used when the referenced IP pool is not ready.
+	IPAddressClaimReadyPoolNotReadyReason = "PoolNotReady"
+
+	// IPAddressClaimReadyPoolExhaustedReason is the reason used when an IP pool referenced by an [IPAddressClaim] is full and no address
+	// can be allocated for the claim.
+	IPAddressClaimReadyPoolExhaustedReason = "PoolExhausted"
+)
+
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
 type IPAddressClaimSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -39,6 +57,7 @@ type IPAddressClaimSpec struct {
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
 type IPAddressClaimStatus struct {
 	// conditions represents the observations of a IPAddressClaim's current state.
+	// Known condition types are Ready.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

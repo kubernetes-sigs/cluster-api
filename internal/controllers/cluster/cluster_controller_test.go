@@ -88,10 +88,10 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedReason))
 		}, timeout).Should(Succeed())
 
 		t.Log("Creating the Cluster Kubeconfig Secret")
@@ -100,10 +100,10 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 
-			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			condition := conditions.Get(instance, clusterv1.ClusterRemoteConnectionProbeCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededReason))
 		}, timeout).Should(Succeed())
 	})
 
@@ -226,7 +226,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -237,7 +237,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			return v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		}, timeout).Should(BeTrue())
 	})
 
@@ -418,7 +418,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
-			return v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+			return v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 		}, timeout).Should(BeTrue())
 	})
 }
@@ -922,5 +922,5 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	res, err := r.reconcileControlPlaneInitialized(ctx, s)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(v1beta1conditions.Has(c, clusterv1.ControlPlaneInitializedCondition)).To(BeFalse())
+	g.Expect(v1beta1conditions.Has(c, clusterv1.ControlPlaneInitializedV1Beta1Condition)).To(BeFalse())
 }

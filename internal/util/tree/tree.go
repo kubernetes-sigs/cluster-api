@@ -286,12 +286,12 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 	}
 
 	negativePolarityConditions := sets.New(
-		clusterv1.PausedV1Beta2Condition,
-		clusterv1.DeletingV1Beta2Condition,
-		clusterv1.RollingOutV1Beta2Condition,
-		clusterv1.ScalingUpV1Beta2Condition,
-		clusterv1.ScalingDownV1Beta2Condition,
-		clusterv1.RemediatingV1Beta2Condition,
+		clusterv1.PausedCondition,
+		clusterv1.DeletingCondition,
+		clusterv1.RollingOutCondition,
+		clusterv1.ScalingUpCondition,
+		clusterv1.ScalingDownCondition,
+		clusterv1.RemediatingCondition,
 	)
 
 	conditions := tree.GetAllV1Beta2Conditions(obj)

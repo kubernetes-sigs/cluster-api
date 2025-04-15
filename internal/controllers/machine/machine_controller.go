@@ -290,18 +290,18 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	v1beta1conditions.SetSummary(machine,
 		v1beta1conditions.WithConditions(
 			// Infrastructure problems should take precedence over all the other conditions
-			clusterv1.InfrastructureReadyCondition,
+			clusterv1.InfrastructureReadyV1Beta1Condition,
 			// Bootstrap comes after, but it is relevant only during initial machine provisioning.
-			clusterv1.BootstrapReadyCondition,
+			clusterv1.BootstrapReadyV1Beta1Condition,
 			// MHC reported condition should take precedence over the remediation progress
-			clusterv1.MachineHealthCheckSucceededCondition,
-			clusterv1.MachineOwnerRemediatedCondition,
-			clusterv1.DrainingSucceededCondition,
+			clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
+			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			clusterv1.DrainingSucceededV1Beta1Condition,
 		),
 		v1beta1conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
 		v1beta1conditions.WithStepCounterIfOnly(
-			clusterv1.BootstrapReadyCondition,
-			clusterv1.InfrastructureReadyCondition,
+			clusterv1.BootstrapReadyV1Beta1Condition,
+			clusterv1.InfrastructureReadyV1Beta1Condition,
 		),
 	)
 
@@ -310,20 +310,20 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	// patch at the end of the reconcile loop.
 	options = append(options,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			clusterv1.BootstrapReadyCondition,
-			clusterv1.InfrastructureReadyCondition,
-			clusterv1.DrainingSucceededCondition,
+			clusterv1.ReadyV1Beta1Condition,
+			clusterv1.BootstrapReadyV1Beta1Condition,
+			clusterv1.InfrastructureReadyV1Beta1Condition,
+			clusterv1.DrainingSucceededV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
-			clusterv1.MachineAvailableV1Beta2Condition,
-			clusterv1.MachineReadyV1Beta2Condition,
-			clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-			clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-			clusterv1.MachineNodeReadyV1Beta2Condition,
-			clusterv1.MachineNodeHealthyV1Beta2Condition,
-			clusterv1.MachineDeletingV1Beta2Condition,
+			clusterv1.PausedCondition,
+			clusterv1.MachineAvailableCondition,
+			clusterv1.MachineReadyCondition,
+			clusterv1.MachineBootstrapConfigReadyCondition,
+			clusterv1.MachineInfrastructureReadyCondition,
+			clusterv1.MachineNodeReadyCondition,
+			clusterv1.MachineNodeHealthyCondition,
+			clusterv1.MachineDeletingCondition,
 		}},
 	)
 
@@ -432,7 +432,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(s.machine, time.Now().Add(1*time.Second)))
 
 	// Set "fallback" reason and message. This is used if we don't set a more specific reason and message below.
-	s.deletingReason = clusterv1.MachineDeletingV1Beta2Reason
+	s.deletingReason = clusterv1.MachineDeletingReason
 	s.deletingMessage = "Deletion started"
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
@@ -446,7 +446,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
-			s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 			s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
 			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}
@@ -464,18 +464,18 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			slices.Sort(hooks)
 			log.Info("Waiting for pre-drain hooks to succeed", "hooks", strings.Join(hooks, ","))
-			v1beta1conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
-			s.deletingReason = clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason
+			v1beta1conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+			s.deletingReason = clusterv1.MachineDeletingWaitingForPreDrainHookReason
 			s.deletingMessage = fmt.Sprintf("Waiting for pre-drain hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
 			return ctrl.Result{}, nil
 		}
-		v1beta1conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededCondition)
+		v1beta1conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededV1Beta1Condition)
 
 		// Drain node before deletion and issue a patch in order to make this operation visible to the users.
 		if r.isNodeDrainAllowed(m) {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+				s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 				s.deletingMessage = "Please check controller logs for errors"
 				return ctrl.Result{}, err
 			}
@@ -489,22 +489,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 			// The DrainingSucceededCondition never exists before the node is drained for the first time.
 			// TODO (v1beta2): test for v1beta2 conditions
-			if v1beta1conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
-				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
+			if v1beta1conditions.Get(m, clusterv1.DrainingSucceededV1Beta1Condition) == nil {
+				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
 			}
-			s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+			s.deletingReason = clusterv1.MachineDeletingDrainingNodeReason
 			s.deletingMessage = fmt.Sprintf("Drain not completed yet (started at %s):", m.Status.Deletion.NodeDrainStartTime.Format(time.RFC3339))
 
 			if err := patchMachine(ctx, patchHelper, m); err != nil {
-				s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+				s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 				s.deletingMessage = "Please check controller logs for errors"
 				return ctrl.Result{}, err
 			}
 
 			result, err := r.drainNode(ctx, s)
 			if err != nil {
-				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-				s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, err.Error())
+				s.deletingReason = clusterv1.MachineDeletingDrainingNodeReason
 				s.deletingMessage = "Error draining Node, please check controller logs for errors"
 				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
@@ -514,7 +514,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				return result, nil
 			}
 
-			v1beta1conditions.MarkTrue(m, clusterv1.DrainingSucceededCondition)
+			v1beta1conditions.MarkTrue(m, clusterv1.DrainingSucceededV1Beta1Condition)
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
 		}
 
@@ -531,15 +531,15 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
 			// TODO (v1beta2): test for v1beta2 conditions
-			if v1beta1conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
-				v1beta1conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
+			if v1beta1conditions.Get(m, clusterv1.VolumeDetachSucceededV1Beta1Condition) == nil {
+				v1beta1conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededV1Beta1Condition, clusterv1.WaitingForVolumeDetachV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}
-			s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+			s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachReason
 			s.deletingMessage = fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", m.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
 
 			result, err := r.shouldWaitForNodeVolumes(ctx, s)
 			if err != nil {
-				s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+				s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachReason
 				s.deletingMessage = "Error waiting for volumes to be detached from Node, please check controller logs for errors"
 				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error waiting for node volumes detaching, Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
@@ -547,7 +547,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			if !result.IsZero() {
 				return result, nil
 			}
-			v1beta1conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededCondition)
+			v1beta1conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededV1Beta1Condition)
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "NodeVolumesDetached", "success waiting for node volumes detaching Machine's node %q", m.Status.NodeRef.Name)
 		}
 	}
@@ -563,22 +563,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 		slices.Sort(hooks)
 		log.Info("Waiting for pre-terminate hooks to succeed", "hooks", strings.Join(hooks, ","))
-		v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
-		s.deletingReason = clusterv1.MachineDeletingWaitingForPreTerminateHookV1Beta2Reason
+		v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+		s.deletingReason = clusterv1.MachineDeletingWaitingForPreTerminateHookReason
 		s.deletingMessage = fmt.Sprintf("Waiting for pre-terminate hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
 		return ctrl.Result{}, nil
 	}
-	v1beta1conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
+	v1beta1conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition)
 
 	infrastructureDeleted, err := r.reconcileDeleteInfrastructure(ctx, s)
 	if err != nil {
-		s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+		s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 		s.deletingMessage = fmt.Sprintf("Failed to delete %s, please check controller logs for errors", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, err
 	}
 	if !infrastructureDeleted {
 		log.Info("Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
-		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason
+		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason
 		s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, nil
 	}
@@ -586,13 +586,13 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if m.Spec.Bootstrap.ConfigRef != nil {
 		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
 		if err != nil {
-			s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 			s.deletingMessage = fmt.Sprintf("Failed to delete %s, please check controller logs for errors", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, err
 		}
 		if !bootstrapDeleted {
 			log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
-			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason
+			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionReason
 			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, nil
 		}
@@ -612,12 +612,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		})
 		if waitErr != nil {
 			log.Error(deleteNodeErr, "Timed out deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
-			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
+			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
 			if m.Spec.NodeDeletionTimeout == nil || m.Spec.NodeDeletionTimeout.Nanoseconds() == 0 || m.DeletionTimestamp.Add(m.Spec.NodeDeletionTimeout.Duration).After(time.Now()) {
-				s.deletingReason = clusterv1.MachineDeletingDeletingNodeV1Beta2Reason
+				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
 				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
 				return ctrl.Result{}, deleteNodeErr
 			}
@@ -625,7 +625,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 	}
 
-	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason
+	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
@@ -878,8 +878,8 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(machine, time.Now().Add(drainRetryInterval)))
 
 	conditionMessage := evictionResult.ConditionMessage(machine.Status.Deletion.NodeDrainStartTime)
-	v1beta1conditions.MarkFalse(machine, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, conditionMessage)
-	s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+	v1beta1conditions.MarkFalse(machine, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingV1Beta1Reason, clusterv1.ConditionSeverityInfo, conditionMessage)
+	s.deletingReason = clusterv1.MachineDeletingDrainingNodeReason
 	s.deletingMessage = conditionMessage
 	podsFailedEviction := []*corev1.Pod{}
 	for _, p := range evictionResult.PodsFailedEviction {
@@ -963,7 +963,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, s *scope) (ct
 	// Add entry to the reconcileDeleteCache so we won't retry shouldWaitForNodeVolumes again before waitForVolumeDetachRetryInterval.
 	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(machine, time.Now().Add(waitForVolumeDetachRetryInterval)))
 
-	s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+	s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachReason
 	s.deletingMessage = attachedVolumeInformation.conditionMessage(machine)
 
 	log.Info("Waiting for Node volumes to be detached",
@@ -992,7 +992,7 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 
 func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bool, error) {
 	if s.bootstrapConfig == nil && s.bootstrapConfigIsNotFound {
-		v1beta1conditions.MarkFalse(s.machine, clusterv1.BootstrapReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(s.machine, clusterv1.BootstrapReadyV1Beta1Condition, clusterv1.DeletedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
@@ -1009,7 +1009,7 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bo
 
 func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope) (bool, error) {
 	if s.infraMachine == nil && s.infraMachineIsNotFound {
-		v1beta1conditions.MarkFalse(s.machine, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(s.machine, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.DeletedV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
@@ -1054,7 +1054,7 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
 		return nil
 	}

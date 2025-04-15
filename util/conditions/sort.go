@@ -94,42 +94,42 @@ func defaultSortLessFunc(i, j metav1.Condition) bool {
 // | Deleting                       | x       | x   | x  | x  | x  | x       |
 // .
 var order = []string{
-	clusterv1.AvailableV1Beta2Condition,
-	clusterv1.ReadyV1Beta2Condition,
-	clusterv1.MachineUpToDateV1Beta2Condition,
-	clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
-	clusterv1.BootstrapConfigReadyV1Beta2Condition,
-	clusterv1.InfrastructureReadyV1Beta2Condition,
-	clusterv1.ClusterControlPlaneInitializedV1Beta2Condition,
-	clusterv1.ClusterControlPlaneAvailableV1Beta2Condition,
-	clusterv1.ClusterWorkersAvailableV1Beta2Condition,
-	kubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
-	kubeadmControlPlaneInitializedV1Beta2Condition,
-	kubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
-	kubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
-	clusterv1.MachineNodeHealthyV1Beta2Condition,
-	clusterv1.MachineNodeReadyV1Beta2Condition,
-	kubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
-	kubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
-	kubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
-	kubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
-	kubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
-	clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
-	clusterv1.MachineOwnerRemediatedV1Beta2Condition,
-	clusterv1.ClusterTopologyReconciledV1Beta2Condition,
-	clusterv1.RollingOutV1Beta2Condition,
-	clusterv1.RemediatingV1Beta2Condition,
-	clusterv1.ScalingDownV1Beta2Condition,
-	clusterv1.ScalingUpV1Beta2Condition,
-	clusterv1.MachinesReadyV1Beta2Condition,
-	clusterv1.ClusterControlPlaneMachinesReadyV1Beta2Condition,
-	clusterv1.ClusterWorkerMachinesReadyV1Beta2Condition,
-	clusterv1.MachinesUpToDateV1Beta2Condition,
-	clusterv1.ClusterControlPlaneMachinesUpToDateV1Beta2Condition,
-	clusterv1.ClusterWorkerMachinesUpToDateV1Beta2Condition,
+	clusterv1.AvailableCondition,
+	clusterv1.ReadyCondition,
+	clusterv1.MachineUpToDateCondition,
+	clusterv1.ClusterRemoteConnectionProbeCondition,
+	clusterv1.BootstrapConfigReadyCondition,
+	clusterv1.InfrastructureReadyCondition,
+	clusterv1.ClusterControlPlaneInitializedCondition,
+	clusterv1.ClusterControlPlaneAvailableCondition,
+	clusterv1.ClusterWorkersAvailableCondition,
+	kubeadmControlPlaneCertificatesAvailableCondition,
+	kubeadmControlPlaneInitializedCondition,
+	kubeadmControlPlaneEtcdClusterHealthyCondition,
+	kubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+	clusterv1.MachineNodeHealthyCondition,
+	clusterv1.MachineNodeReadyCondition,
+	kubeadmControlPlaneMachineEtcdPodHealthyCondition,
+	kubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+	kubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+	kubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+	kubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+	clusterv1.MachineHealthCheckSucceededCondition,
+	clusterv1.MachineOwnerRemediatedCondition,
+	clusterv1.ClusterTopologyReconciledCondition,
+	clusterv1.RollingOutCondition,
+	clusterv1.RemediatingCondition,
+	clusterv1.ScalingDownCondition,
+	clusterv1.ScalingUpCondition,
+	clusterv1.MachinesReadyCondition,
+	clusterv1.ClusterControlPlaneMachinesReadyCondition,
+	clusterv1.ClusterWorkerMachinesReadyCondition,
+	clusterv1.MachinesUpToDateCondition,
+	clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
+	clusterv1.ClusterWorkerMachinesUpToDateCondition,
 	readinessAndAvailabilityGates,
-	clusterv1.PausedV1Beta2Condition,
-	clusterv1.DeletingV1Beta2Condition,
+	clusterv1.PausedCondition,
+	clusterv1.DeletingCondition,
 }
 
 // Constants defining a placeholder for readiness and availability gates.
@@ -139,13 +139,13 @@ const (
 
 // Constants inlined for ordering (we want to avoid importing the KCP API package).
 const (
-	kubeadmControlPlaneCertificatesAvailableV1Beta2Condition              = "CertificatesAvailable"
-	kubeadmControlPlaneInitializedV1Beta2Condition                        = "Initialized"
-	kubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition                 = "EtcdClusterHealthy"
-	kubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition      = "ControlPlaneComponentsHealthy"
-	kubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition         = "APIServerPodHealthy"
-	kubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition = "ControllerManagerPodHealthy"
-	kubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition         = "SchedulerPodHealthy"
-	kubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition              = "EtcdPodHealthy"
-	kubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition           = "EtcdMemberHealthy"
+	kubeadmControlPlaneCertificatesAvailableCondition              = "CertificatesAvailable"
+	kubeadmControlPlaneInitializedCondition                        = "Initialized"
+	kubeadmControlPlaneEtcdClusterHealthyCondition                 = "EtcdClusterHealthy"
+	kubeadmControlPlaneControlPlaneComponentsHealthyCondition      = "ControlPlaneComponentsHealthy"
+	kubeadmControlPlaneMachineAPIServerPodHealthyCondition         = "APIServerPodHealthy"
+	kubeadmControlPlaneMachineControllerManagerPodHealthyCondition = "ControllerManagerPodHealthy"
+	kubeadmControlPlaneMachineSchedulerPodHealthyCondition         = "SchedulerPodHealthy"
+	kubeadmControlPlaneMachineEtcdPodHealthyCondition              = "EtcdPodHealthy"
+	kubeadmControlPlaneMachineEtcdMemberHealthyCondition           = "EtcdMemberHealthy"
 )

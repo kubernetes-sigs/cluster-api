@@ -16,15 +16,38 @@ limitations under the License.
 
 package v1beta2
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+/*
+NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
+However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
+counters at cluster level is already implemented.
 
-// Conditions and condition Reasons for the MachinePool object.
-
+// Conditions that will be used for the MachinePool object in v1Beta2 API version.
 const (
-	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
-	ReplicasReadyCondition clusterv1.ConditionType = "ReplicasReady"
+	// MachinePoolAvailableCondition is true when InfrastructureReady and available replicas >= desired replicas.
+	MachinePoolAvailableCondition = clusterv1.AvailableCondition
 
-	// WaitingForReplicasReadyReason (Severity=Info) documents a machinepool waiting for the required replicas
-	// to be ready.
-	WaitingForReplicasReadyReason = "WaitingForReplicasReady"
-)
+	// MachinePoolBootstrapConfigReadyCondition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
+	MachinePoolBootstrapConfigReadyCondition = clusterv1.BootstrapConfigReadyCondition
+
+	// MachinePoolInfrastructureReadyCondition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
+	MachinePoolInfrastructureReadyCondition = clusterv1.InfrastructureReadyCondition
+
+	// MachinePoolMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	MachinePoolMachinesReadyCondition = clusterv1.MachinesReadyCondition
+
+	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
+	MachinePoolMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
+
+	// MachinePoolScalingUpCondition is true if available replicas < desired replicas.
+	MachinePoolScalingUpCondition = clusterv1.ScalingUpCondition
+
+	// MachinePoolScalingDownCondition is true if replicas > desired replicas.
+	MachinePoolScalingDownCondition = clusterv1.ScalingDownCondition
+
+	// MachinePoolRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachinePoolRemediatingCondition = clusterv1.RemediatingCondition
+
+	// MachinePoolDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	MachinePoolDeletingCondition = clusterv1.DeletingCondition
+).
+*/

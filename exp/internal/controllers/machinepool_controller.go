@@ -196,9 +196,9 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Always update the readyCondition with the summary of the machinepool conditions.
 		v1beta1conditions.SetSummary(mp,
 			v1beta1conditions.WithConditions(
-				clusterv1.BootstrapReadyCondition,
-				clusterv1.InfrastructureReadyCondition,
-				expv1.ReplicasReadyCondition,
+				clusterv1.BootstrapReadyV1Beta1Condition,
+				clusterv1.InfrastructureReadyV1Beta1Condition,
+				expv1.ReplicasReadyV1Beta1Condition,
 			),
 		)
 
@@ -206,13 +206,13 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				clusterv1.ReadyCondition,
-				clusterv1.BootstrapReadyCondition,
-				clusterv1.InfrastructureReadyCondition,
-				expv1.ReplicasReadyCondition,
+				clusterv1.ReadyV1Beta1Condition,
+				clusterv1.BootstrapReadyV1Beta1Condition,
+				clusterv1.InfrastructureReadyV1Beta1Condition,
+				expv1.ReplicasReadyV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{
-				clusterv1.PausedV1Beta2Condition,
+				clusterv1.PausedCondition,
 			}},
 		}
 		if reterr == nil {
@@ -364,7 +364,7 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 	log := ctrl.LoggerFrom(ctx)
 
 	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
 		return nil
 	}

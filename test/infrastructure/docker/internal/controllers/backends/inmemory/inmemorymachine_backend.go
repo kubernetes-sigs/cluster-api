@@ -110,7 +110,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// provisioning workflow.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
 		// TODO (v1beta2): test for v1beta2 conditions
-		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 			v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingControlPlaneInitializedReason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(inMemoryMachine, metav1.Condition{
 				Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
@@ -1271,14 +1271,14 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 
 	return patchHelper.Patch(ctx, inMemoryMachine,
 		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1.ReadyV1Beta1Condition,
 			infrav1.VMProvisionedCondition,
 			infrav1.NodeProvisionedCondition,
 			infrav1.EtcdProvisionedCondition,
 			infrav1.APIServerProvisionedCondition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
-			clusterv1.PausedV1Beta2Condition,
+			clusterv1.PausedCondition,
 			infrav1.DevMachineReadyV1Beta2Condition,
 			infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,
 			infrav1.DevMachineInMemoryNodeProvisionedV1Beta2Condition,

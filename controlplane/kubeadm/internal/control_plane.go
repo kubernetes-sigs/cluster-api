@@ -331,18 +331,18 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 		machine := c.Machines[i]
 		if helper, ok := c.machinesPatchHelpers[machine.Name]; ok {
 			if err := helper.Patch(ctx, machine, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
-				controlplanev1.MachineAPIServerPodHealthyCondition,
-				controlplanev1.MachineControllerManagerPodHealthyCondition,
-				controlplanev1.MachineSchedulerPodHealthyCondition,
-				controlplanev1.MachineEtcdPodHealthyCondition,
-				controlplanev1.MachineEtcdMemberHealthyCondition,
+				controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
+				controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
+				controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
+				controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
+				controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 			}}, patch.WithOwnedConditions{Conditions: []string{
-				clusterv1.MachineUpToDateV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
-				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
+				clusterv1.MachineUpToDateCondition,
+				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 			}}); err != nil {
 				errList = append(errList, err)
 			}
@@ -399,15 +399,16 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 //
 // - etcdMembers list as reported by etcd.
 func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
+	// TODO (v1beta2) switch to v1beta2 conditions
 	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyCondition,
-		controlplanev1.MachineControllerManagerPodHealthyCondition,
-		controlplanev1.MachineSchedulerPodHealthyCondition,
+		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
+		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
 	}
 	if c.IsEtcdManaged() {
 		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyCondition,
-			controlplanev1.MachineEtcdMemberHealthyCondition,
+			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
+			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
 		)
 	}
 

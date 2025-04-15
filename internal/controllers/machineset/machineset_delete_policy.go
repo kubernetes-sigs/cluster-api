@@ -148,11 +148,11 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.
 	// TODO (v1beta2): test for v1beta2 conditions
-	nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+	nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 	if nodeHealthyCondition != nil && nodeHealthyCondition.Status == corev1.ConditionFalse {
 		return false
 	}
-	healthCheckCondition := v1beta1conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	healthCheckCondition := v1beta1conditions.Get(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 	if healthCheckCondition != nil && healthCheckCondition.Status == corev1.ConditionFalse {
 		return false
 	}

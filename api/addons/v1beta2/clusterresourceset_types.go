@@ -23,24 +23,24 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
-// ClusterResourceSet's ResourcesApplied condition and corresponding reasons that will be used in v1Beta2 API version.
+// ClusterResourceSet's ResourcesApplied condition and corresponding reasons.
 const (
-	// ResourcesAppliedCondition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
+	// ClusterResourceSetResourcesAppliedCondition surfaces wether the resources in the ClusterResourceSet are applied to all matching clusters.
 	// This indicates all resources exist, and no errors during applying them to all clusters.
-	ResourcesAppliedCondition = "ResourcesApplied"
+	ClusterResourceSetResourcesAppliedCondition = "ResourcesApplied"
 
-	// ResourcesAppliedReason is the reason used when all resources in the ClusterResourceSet object got applied
+	// ClusterResourceSetResourcesAppliedReason is the reason used when all resources in the ClusterResourceSet object got applied
 	// to all matching clusters.
-	ResourcesAppliedReason = "Applied"
+	ClusterResourceSetResourcesAppliedReason = "Applied"
 
-	// ResourcesNotAppliedReason is the reason used when applying at least one of the resources to one of the matching clusters failed.
-	ResourcesNotAppliedReason = "NotApplied"
+	// ClusterResourceSetResourcesNotAppliedReason is the reason used when applying at least one of the resources to one of the matching clusters failed.
+	ClusterResourceSetResourcesNotAppliedReason = "NotApplied"
 
-	// ResourcesAppliedWrongSecretTypeReason is the reason used when the Secret's type in the resource list is not supported.
-	ResourcesAppliedWrongSecretTypeReason = "WrongSecretType"
+	// ClusterResourceSetResourcesAppliedWrongSecretTypeReason is the reason used when the Secret's type in the resource list is not supported.
+	ClusterResourceSetResourcesAppliedWrongSecretTypeReason = "WrongSecretType"
 
-	// ResourcesAppliedInternalErrorReason surfaces unexpected failures when reconciling a ClusterResourceSet.
-	ResourcesAppliedInternalErrorReason = clusterv1.InternalErrorReason
+	// ClusterResourceSetResourcesAppliedInternalErrorReason surfaces unexpected failures when reconciling a ClusterResourceSet.
+	ClusterResourceSetResourcesAppliedInternalErrorReason = clusterv1.InternalErrorReason
 )
 
 const (
@@ -120,7 +120,7 @@ func (c *ClusterResourceSetSpec) SetTypedStrategy(p ClusterResourceSetStrategy) 
 // ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
 type ClusterResourceSetStatus struct {
 	// conditions represents the observations of a ClusterResourceSet's current state.
-	// Known condition types are ResourceSetApplied, Deleting.
+	// Known condition types are ResourcesApplied.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

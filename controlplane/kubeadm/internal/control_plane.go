@@ -399,6 +399,7 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 //
 // - etcdMembers list as reported by etcd.
 func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
+	// TODO (v1beta2) switch to v1beta2 conditions
 	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
 		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
 		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,

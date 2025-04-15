@@ -77,6 +77,12 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 		out.UnavailableReplicas = in.Deprecated.V1Beta1.UnavailableReplicas
 	}
 
+	// Move initialization to old fields
+	if in.Initialization != nil {
+		out.Initialized = in.Initialization.ControlPlaneInitialized
+		out.Ready = in.Initialization.ControlPlaneInitialized
+	}
+
 	// Move new conditions (v1beta2) and replica counter to the v1beta2 field.
 	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {
 		return nil
@@ -125,6 +131,14 @@ func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneSta
 	out.Deprecated.V1Beta1.UpdatedReplicas = in.UpdatedReplicas
 	out.Deprecated.V1Beta1.ReadyReplicas = in.ReadyReplicas
 	out.Deprecated.V1Beta1.UnavailableReplicas = in.UnavailableReplicas
+
+	// Move ready to Initialization
+	if in.Ready {
+		if out.Initialization == nil {
+			out.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
+		}
+		out.Initialization.ControlPlaneInitialized = in.Ready
+	}
 	return nil
 }
 

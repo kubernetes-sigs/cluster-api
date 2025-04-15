@@ -7418,14 +7418,19 @@ spec:
                         type: integer
                     type: object
                 type: object
-              initialized:
+              initialization:
                 description: |-
-                  initialized denotes that the KubeadmControlPlane API Server is initialized and thus
-                  it can accept requests.
-                  NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-                  The value of this field is never updated after provisioning is completed. Please use conditions
-                  to check the operational state of the control plane.
-                type: boolean
+                  initialization provides observations of the KubeadmControlPlane initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                properties:
+                  controlPlaneInitialized:
+                    description: |-
+                      controlPlaneInitialized is true when the KubeadmControlPlane provider reports that the Kubernetes control plane is initialized;
+                      A control plane is considered initialized when it can accept requests, no matter if this happens before
+                      the control plane is fully provisioned or not.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               lastRemediation:
                 description: lastRemediation stores info about last remediation performed.
                 properties:
@@ -7456,14 +7461,6 @@ spec:
                   by the controller.
                 format: int64
                 type: integer
-              ready:
-                description: |-
-                  ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
-                  to receive requests.
-                  NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-                  The value of this field is never updated after provisioning is completed. Please use conditions
-                  to check the operational state of the control plane.
-                type: boolean
               readyReplicas:
                 description: readyReplicas is the number of ready replicas for this
                   KubeadmControlPlane. A machine is considered ready when Machine's

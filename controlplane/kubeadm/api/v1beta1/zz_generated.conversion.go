@@ -406,8 +406,8 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 		return err
 	}
 	// WARNING: in.UnavailableReplicas requires manual conversion: does not exist in peer-type
-	out.Initialized = in.Initialized
-	out.Ready = in.Ready
+	// WARNING: in.Initialized requires manual conversion: does not exist in peer-type
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
@@ -439,6 +439,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	} else {
 		out.Conditions = nil
 	}
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Selector = in.Selector
 	out.Replicas = in.Replicas
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
@@ -447,8 +448,6 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	// WARNING: in.AvailableReplicas requires manual conversion: does not exist in peer-type
 	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
 	out.Version = (*string)(unsafe.Pointer(in.Version))
-	out.Initialized = in.Initialized
-	out.Ready = in.Ready
 	out.ObservedGeneration = in.ObservedGeneration
 	out.LastRemediation = (*LastRemediationStatus)(unsafe.Pointer(in.LastRemediation))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

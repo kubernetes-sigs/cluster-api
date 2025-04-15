@@ -111,12 +111,11 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 
 	// This only gets initialized once and does not change if the kubeadm config map goes away.
 	if status.HasKubeadmConfig {
-		controlPlane.KCP.Status.Initialized = true
+		if controlPlane.KCP.Status.Initialization == nil {
+			controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
+		}
+		controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
 		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
-	}
-
-	if controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas > 0 {
-		controlPlane.KCP.Status.Ready = true
 	}
 
 	// Surface lastRemediation data in status.
@@ -197,7 +196,7 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 }
 
 func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {
-	if kcp.Status.Initialized {
+	if kcp.Status.Initialization != nil && kcp.Status.Initialization.ControlPlaneInitialized {
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
 			Status: metav1.ConditionTrue,
@@ -516,7 +515,7 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 }
 
 func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, etcdIsManaged bool, etcdMembers []*etcd.Member, etcdMembersAndMachinesAreMatching bool, machines collections.Machines) {
-	if !kcp.Status.Initialized {
+	if kcp.Status.Initialization == nil || !kcp.Status.Initialization.ControlPlaneInitialized {
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,

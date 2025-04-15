@@ -114,7 +114,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("Machine", klog.KObj(machineToBeRemediated), "initialized", controlPlane.KCP.Status.Initialized)
+	initialized := false
+	if controlPlane.KCP.Status.Initialization != nil && controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
+		initialized = true
+	}
+	log = log.WithValues("Machine", klog.KObj(machineToBeRemediated), "initialized", initialized)
 
 	// Returns if another remediation is in progress but the new Machine is not yet created.
 	// Note: This condition is checked after we check for machines to be remediated and if machineToBeRemediated
@@ -203,7 +207,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, nil
 	}
 
-	if controlPlane.KCP.Status.Initialized {
+	if controlPlane.KCP.Status.Initialization != nil && controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
 		// Executes checks that apply only if the control plane is already initialized; in this case KCP can
 		// remediate only if it can safely assume that the operation preserves the operation state of the
 		// existing cluster (or at least it doesn't make it worse).

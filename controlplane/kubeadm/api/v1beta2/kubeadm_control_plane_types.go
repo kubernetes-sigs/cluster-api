@@ -291,6 +291,11 @@ type KubeadmControlPlaneStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// initialization provides observations of the KubeadmControlPlane initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+	// +optional
+	Initialization *KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty"`
+
 	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
 	// scale subresource and additional integrations for things like kubectl
@@ -325,22 +330,6 @@ type KubeadmControlPlaneStatus struct {
 	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 
-	// initialized denotes that the KubeadmControlPlane API Server is initialized and thus
-	// it can accept requests.
-	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-	// The value of this field is never updated after provisioning is completed. Please use conditions
-	// to check the operational state of the control plane.
-	// +optional
-	Initialized bool `json:"initialized"`
-
-	// ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
-	// to receive requests.
-	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-	// The value of this field is never updated after provisioning is completed. Please use conditions
-	// to check the operational state of the control plane.
-	// +optional
-	Ready bool `json:"ready"`
-
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -352,6 +341,16 @@ type KubeadmControlPlaneStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *KubeadmControlPlaneDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// KubeadmControlPlaneInitializationStatus provides observations of the KubeadmControlPlane initialization process.
+type KubeadmControlPlaneInitializationStatus struct {
+	// controlPlaneInitialized is true when the KubeadmControlPlane provider reports that the Kubernetes control plane is initialized;
+	// A control plane is considered initialized when it can accept requests, no matter if this happens before
+	// the control plane is fully provisioned or not.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized,omitempty"`
 }
 
 // KubeadmControlPlaneDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

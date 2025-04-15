@@ -982,7 +982,11 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	kcp := &controlplanev1.KubeadmControlPlane{
-		Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+		Status: controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: true,
+			},
+		},
 	}
 	machineWithoutExpiryAnnotation := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2125,7 +2129,9 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			Version: "v1.31.0",
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
-			Initialized: true,
+			Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: true,
+			},
 			Deprecated: &controlplanev1.KubeadmControlPlaneDeprecatedStatus{
 				V1Beta1: &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
@@ -2159,7 +2165,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			controlPlane: &internal.ControlPlane{
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					kcp.Status.Initialized = false
+					kcp.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{ControlPlaneInitialized: false}
 					v1beta1conditions.MarkFalse(kcp, controlplanev1.AvailableCondition, "", clusterv1.ConditionSeverityError, "")
 					conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,

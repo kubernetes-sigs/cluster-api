@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -44,6 +45,7 @@ func TestFuzzyConversion(t *testing.T) {
 func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmControlPlaneStatus,
+		spokeKubeadmControlPlaneStatus,
 		spokeDNS,
 		spokeKubeadmClusterConfiguration,
 		// This custom function is needed when ConvertTo/ConvertFrom functions
@@ -70,6 +72,19 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
 	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
+}
+
+func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	in.Ready = in.Initialized
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {

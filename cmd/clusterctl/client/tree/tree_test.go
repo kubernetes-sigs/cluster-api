@@ -640,11 +640,15 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},
@@ -765,11 +769,15 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},
@@ -810,11 +818,15 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
-			Conditions: clusterv1.Conditions{
-				{
-					Type:               "Ready",
-					Status:             "",
-					LastTransitionTime: beforeNow,
+			Deprecated: &NodeDeprecatedStatus{
+				V1Beta1: &NodeV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               "Ready",
+							Status:             "",
+							LastTransitionTime: beforeNow,
+						},
+					},
 				},
 			},
 		},

@@ -30,8 +30,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // KubeadmConfig's Ready condition and corresponding reasons.
 const (
 	// KubeadmConfigReadyCondition is true if the KubeadmConfig is not deleted,
@@ -73,6 +71,8 @@ const (
 	// KubeadmConfigDataSecretNotAvailableReason surfaces when the bootstrap secret is not available.
 	KubeadmConfigDataSecretNotAvailableReason = clusterv1.NotAvailableReason
 )
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InitConfiguration contains a list of elements that is specific "kubeadm init"-only runtime
 // information.

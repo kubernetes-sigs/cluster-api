@@ -282,8 +282,8 @@ const (
 	// RuntimeExtensionDiscoveredV1Beta1Condition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
 	RuntimeExtensionDiscoveredV1Beta1Condition clusterv1.ConditionType = "Discovered"
 
-	// DiscoveryFailedReason documents failure of a Discovery call.
-	DiscoveryFailedReason string = "DiscoveryFailed"
+	// DiscoveryFailedV1Beta1Reason documents failure of a Discovery call.
+	DiscoveryFailedV1Beta1Reason string = "DiscoveryFailed"
 
 	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
 	// object wants injection of CAs. The value is a reference to a Secret

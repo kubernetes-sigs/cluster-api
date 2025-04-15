@@ -231,7 +231,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	discoveredExtension, err := runtimeClient.Discover(ctx, extensionConfig.DeepCopy())
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
-		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
+		v1beta1conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition, runtimev1.DiscoveryFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Error in discovery: %v", err)
 		conditions.Set(modifiedExtensionConfig, metav1.Condition{
 			Type:    runtimev1.ExtensionConfigDiscoveredCondition,
 			Status:  metav1.ConditionFalse,

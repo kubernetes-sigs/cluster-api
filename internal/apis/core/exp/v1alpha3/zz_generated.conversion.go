@@ -210,8 +210,8 @@ func autoConvert_v1alpha3_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *Mac
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
-	out.BootstrapReady = in.BootstrapReady
-	out.InfrastructureReady = in.InfrastructureReady
+	// WARNING: in.BootstrapReady requires manual conversion: does not exist in peer-type
+	// WARNING: in.InfrastructureReady requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -239,6 +239,7 @@ func autoConvert_v1beta2_MachinePoolStatus_To_v1alpha3_MachinePoolStatus(in *v1b
 	} else {
 		out.Conditions = nil
 	}
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.NodeRefs = *(*[]corev1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
 	out.Replicas = in.Replicas
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
@@ -249,8 +250,6 @@ func autoConvert_v1beta2_MachinePoolStatus_To_v1alpha3_MachinePoolStatus(in *v1b
 	}
 	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
-	out.BootstrapReady = in.BootstrapReady
-	out.InfrastructureReady = in.InfrastructureReady
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil

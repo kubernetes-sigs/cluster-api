@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"reflect"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
@@ -53,5 +54,12 @@ func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
 	}
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &expv1.MachinePoolInitializationStatus{}) {
+			in.Initialization = nil
+		}
 	}
 }

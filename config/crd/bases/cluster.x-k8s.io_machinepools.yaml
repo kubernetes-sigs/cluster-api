@@ -1956,9 +1956,6 @@ spec:
                   Available condition is true.
                 format: int32
                 type: integer
-              bootstrapReady:
-                description: bootstrapReady is the state of the bootstrap provider.
-                type: boolean
               conditions:
                 description: |-
                   conditions represents the observations of a MachinePool's current state.
@@ -2130,10 +2127,24 @@ spec:
                         type: integer
                     type: object
                 type: object
-              infrastructureReady:
-                description: infrastructureReady is the state of the infrastructure
-                  provider.
-                type: boolean
+              initialization:
+                description: |-
+                  initialization provides observations of the MachinePool initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+                properties:
+                  bootstrapDataSecretCreated:
+                    description: |-
+                      bootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap secret is created.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+                      The value of this field is never updated after provisioning is completed.
+                    type: boolean
+                  infrastructureProvisioned:
+                    description: |-
+                      infrastructureProvisioned is true when the infrastructure provider reports that MachinePool's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+                      The value of this field is never updated after provisioning is completed.
+                    type: boolean
+                type: object
               nodeRefs:
                 description: nodeRefs will point to the corresponding Nodes if it
                   they exist.

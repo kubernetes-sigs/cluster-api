@@ -283,7 +283,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 						return
 					default:
 						updatedDockerMachine := &infrav1.DockerMachine{}
-						if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
+						if err := r.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
 							!updatedDockerMachine.DeletionTimestamp.IsZero() {
 							log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
 							cancel()
@@ -462,7 +462,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		),
-		v1beta1conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(dockerMachine.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		conditions.ForConditionTypes{
@@ -506,7 +506,7 @@ func (r *MachineBackendReconciler) reconcileLoadBalancerConfiguration(ctx contex
 	controlPlaneWeight := map[string]int{}
 
 	controlPlaneMachineList := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, controlPlaneMachineList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
+	if err := r.List(ctx, controlPlaneMachineList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
 		clusterv1.MachineControlPlaneLabel: "",
 		clusterv1.ClusterNameLabel:         cluster.Name,
 	}); err != nil {
@@ -534,7 +534,7 @@ func (r *MachineBackendReconciler) reconcileLoadBalancerConfiguration(ctx contex
 func (r *MachineBackendReconciler) getBootstrapData(ctx context.Context, namespace string, dataSecretName string) (string, bootstrapv1.Format, error) {
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: namespace, Name: dataSecretName}
-	if err := r.Client.Get(ctx, key, s); err != nil {
+	if err := r.Get(ctx, key, s); err != nil {
 		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret %s", dataSecretName)
 	}
 

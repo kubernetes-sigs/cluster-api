@@ -319,7 +319,7 @@ func handlePluginCommand(pluginHandler pluginHandler, cmdArgs []string, minArgs 
 		if strings.HasPrefix(arg, "-") {
 			break
 		}
-		remainingArgs = append(remainingArgs, strings.Replace(arg, "-", "_", -1))
+		remainingArgs = append(remainingArgs, strings.ReplaceAll(arg, "-", "_"))
 	}
 
 	if len(remainingArgs) == 0 {

@@ -183,7 +183,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Handle deletion reconciliation loop.
-	if !clusterResourceSet.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !clusterResourceSet.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, clusters, clusterResourceSet)
 	}
 

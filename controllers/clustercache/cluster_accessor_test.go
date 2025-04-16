@@ -56,8 +56,8 @@ func TestConnect(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 	defer func() { g.Expect(env.CleanupAndWait(ctx, testCluster)).To(Succeed()) }()
 
-	config := buildClusterAccessorConfig(env.Manager.GetScheme(), Options{
-		SecretClient: env.Manager.GetClient(),
+	config := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -157,8 +157,8 @@ func TestDisconnect(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
-	config := buildClusterAccessorConfig(env.Manager.GetScheme(), Options{
-		SecretClient: env.Manager.GetClient(),
+	config := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -317,8 +317,8 @@ func TestWatch(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
-	config := buildClusterAccessorConfig(env.Manager.GetScheme(), Options{
-		SecretClient: env.Manager.GetClient(),
+	config := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,

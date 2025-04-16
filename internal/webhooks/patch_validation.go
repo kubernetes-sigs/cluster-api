@@ -165,10 +165,9 @@ func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
 func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	// Return an error if none of the possible selectors are enabled.
-	if !(selector.MatchResources.InfrastructureCluster || selector.MatchResources.ControlPlane ||
-		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0) ||
-		(selector.MatchResources.MachinePoolClass != nil && len(selector.MatchResources.MachinePoolClass.Names) > 0)) {
+	if !selector.MatchResources.InfrastructureCluster && !selector.MatchResources.ControlPlane &&
+		(selector.MatchResources.MachineDeploymentClass == nil || len(selector.MatchResources.MachineDeploymentClass.Names) == 0) &&
+		(selector.MatchResources.MachinePoolClass == nil || len(selector.MatchResources.MachinePoolClass.Names) == 0) {
 		return append(allErrs,
 			field.Invalid(
 				path,
@@ -292,7 +291,7 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 		}
 
 		// the * rune can appear only at the beginning, or ending of the selector.
-		if strings.Contains(name, "*") && !(strings.HasPrefix(name, "*") || strings.HasSuffix(name, "*")) {
+		if strings.Contains((name), "*") && !strings.HasPrefix(name, "*") && !strings.HasSuffix(name, "*") {
 			// templateMDClass or templateMPClass can only have "*" rune at the start or end of the string
 			return field.Invalid(
 				path.Child("matchResources", resourceName, "names").Index(index),

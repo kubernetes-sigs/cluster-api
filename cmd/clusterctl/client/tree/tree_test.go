@@ -314,7 +314,7 @@ func Test_hasSameReadyStatusSeverityAndReason(t *testing.T) {
 
 func Test_minLastTransitionTime(t *testing.T) {
 	now := &metav1.Condition{Type: "now", LastTransitionTime: metav1.Now()}
-	beforeNow := &metav1.Condition{Type: "beforeNow", LastTransitionTime: metav1.Time{Time: now.LastTransitionTime.Time.Add(-1 * time.Hour)}}
+	beforeNow := &metav1.Condition{Type: "beforeNow", LastTransitionTime: metav1.Time{Time: now.LastTransitionTime.Add(-1 * time.Hour)}}
 	type args struct {
 		a *metav1.Condition
 		b *metav1.Condition
@@ -377,7 +377,7 @@ func Test_minLastTransitionTime(t *testing.T) {
 
 func Test_minLastTransitionTimeV1Beta1(t *testing.T) {
 	now := &clusterv1.Condition{Type: "now", LastTransitionTime: metav1.Now()}
-	beforeNow := &clusterv1.Condition{Type: "beforeNow", LastTransitionTime: metav1.Time{Time: now.LastTransitionTime.Time.Add(-1 * time.Hour)}}
+	beforeNow := &clusterv1.Condition{Type: "beforeNow", LastTransitionTime: metav1.Time{Time: now.LastTransitionTime.Add(-1 * time.Hour)}}
 	type args struct {
 		a *clusterv1.Condition
 		b *clusterv1.Condition
@@ -582,7 +582,7 @@ func Test_createGroupNode(t *testing.T) {
 
 func Test_createV1Beta1GroupNode(t *testing.T) {
 	now := metav1.Now()
-	beforeNow := metav1.Time{Time: now.Time.Add(-1 * time.Hour)}
+	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
 	obj := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -664,7 +664,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 
 func Test_updateGroupNode(t *testing.T) {
 	now := metav1.Now()
-	beforeNow := metav1.Time{Time: now.Time.Add(-1 * time.Hour)}
+	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
@@ -745,7 +745,7 @@ func Test_updateGroupNode(t *testing.T) {
 
 func Test_updateV1Beta1GroupNode(t *testing.T) {
 	now := metav1.Now()
-	beforeNow := metav1.Time{Time: now.Time.Add(-1 * time.Hour)}
+	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{

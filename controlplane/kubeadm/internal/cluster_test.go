@@ -212,7 +212,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			}
 
 			clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
-				SecretClient: env.Manager.GetClient(),
+				SecretClient: env.GetClient(),
 				Client: clustercache.ClientOptions{
 					UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 					Cache: clustercache.ClientCacheOptions{
@@ -304,7 +304,7 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 		}
 	}
 	controlPlaneMachine := machine("first-machine")
-	controlPlaneMachine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabel] = ""
+	controlPlaneMachine.Labels[clusterv1.MachineControlPlaneLabel] = ""
 	controlPlaneMachine.OwnerReferences = ownedRef
 
 	return &clusterv1.MachineList{

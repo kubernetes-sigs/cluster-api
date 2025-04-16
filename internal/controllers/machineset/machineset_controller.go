@@ -184,7 +184,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.Namespace, machineSet.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1072,7 +1072,7 @@ func (r *Reconciler) MachineToMachineSets(ctx context.Context, o client.Object) 
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
-	for _, ref := range m.ObjectMeta.GetOwnerReferences() {
+	for _, ref := range m.GetOwnerReferences() {
 		if ref.Controller != nil && *ref.Controller {
 			return result
 		}
@@ -1341,7 +1341,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
 		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
 
-		if !(shouldCleanupV1Beta1 || shouldCleanup) {
+		if !shouldCleanupV1Beta1 && !shouldCleanup {
 			continue
 		}
 

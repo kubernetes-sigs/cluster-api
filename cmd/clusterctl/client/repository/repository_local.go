@@ -86,12 +86,13 @@ func (r *localRepository) ComponentsPath() string {
 func (r *localRepository) GetFile(ctx context.Context, version, fileName string) ([]byte, error) {
 	var err error
 
-	if version == latestVersionTag {
+	switch version {
+	case latestVersionTag:
 		version, err = latestRelease(ctx, r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the latest release")
 		}
-	} else if version == "" {
+	case "":
 		version = r.defaultVersion
 	}
 

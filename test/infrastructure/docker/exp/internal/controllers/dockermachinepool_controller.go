@@ -136,7 +136,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}()
 
 	// Handle deleted machines
-	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !dockerMachinePool.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
 	}
 

@@ -873,7 +873,7 @@ func TestPatchHelper(t *testing.T) {
 			obj.Status.ReadyReplicas = ptr.To[int32](6)
 
 			t.Log("Updating the object metadata")
-			obj.ObjectMeta.Annotations = map[string]string{
+			obj.Annotations = map[string]string{
 				"test1": "annotation",
 			}
 

@@ -60,7 +60,7 @@ type ControlPlaneInput struct {
 // NewInitControlPlane returns the user data string to be used on a controlplane instance.
 func NewInitControlPlane(input *ControlPlaneInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
-	input.WriteFiles = input.Certificates.AsFiles()
+	input.WriteFiles = input.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	input.SentinelFileCommand = sentinelFileCommand
 	userData, err := generate("InitControlplane", controlPlaneCloudInit, input)

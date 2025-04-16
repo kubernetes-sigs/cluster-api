@@ -151,7 +151,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 
 func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck], preflightCheck clusterv1.MachineSetPreflightCheck) bool {
 	return (preflightChecks.Has(clusterv1.MachineSetPreflightCheckAll) || preflightChecks.Has(preflightCheck)) &&
-		!(skippedPreflightChecks.Has(clusterv1.MachineSetPreflightCheckAll) || skippedPreflightChecks.Has(preflightCheck))
+		(!skippedPreflightChecks.Has(clusterv1.MachineSetPreflightCheckAll) && !skippedPreflightChecks.Has(preflightCheck))
 }
 
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {

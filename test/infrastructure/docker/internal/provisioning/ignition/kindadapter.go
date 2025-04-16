@@ -124,7 +124,7 @@ func hackKubeadmIgnoreErrors(s string) string {
 	lines := strings.Split(s, "\n")
 
 	for idx, line := range lines {
-		if !(strings.Contains(line, "kubeadm init") || strings.Contains(line, "kubeadm join")) {
+		if !strings.Contains(line, "kubeadm init") && !strings.Contains(line, "kubeadm join") {
 			continue
 		}
 

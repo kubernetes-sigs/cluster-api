@@ -570,6 +570,9 @@ func NewStaticBootstrapConfig(name string) *clusterv1.Bootstrap {
 	}
 }
 
+// NewBootstrapConfigTemplate return a clusterv1.Bootstrap where
+// - the ConfigRef is set to the provided machineBootstrapTemplate
+// - the DataSecretName is nil.
 func NewBootstrapConfigTemplate(machineBootstrapTemplate *fakebootstrap.GenericBootstrapConfigTemplate) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
 		ConfigRef: &corev1.ObjectReference{
@@ -581,6 +584,9 @@ func NewBootstrapConfigTemplate(machineBootstrapTemplate *fakebootstrap.GenericB
 	}
 }
 
+// NewBootstrapConfig return a clusterv1.Bootstrap where
+// - the ConfigRef is set to the provided machineBootstrap
+// - the DataSecretName is nil.
 func NewBootstrapConfig(machineBootstrap *fakebootstrap.GenericBootstrapConfig) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
 		ConfigRef: &corev1.ObjectReference{

@@ -231,7 +231,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	}
 
 	// Handle deletion reconciliation loop.
-	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !cluster.DeletionTimestamp.IsZero() {
 		reconcileDelete := append(
 			alwaysReconcile,
 			r.reconcileDelete,

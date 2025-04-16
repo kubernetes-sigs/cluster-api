@@ -140,7 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Handle deletion reconciliation loop.
-	if !extensionConfig.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !extensionConfig.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extensionConfig)
 	}
 

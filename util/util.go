@@ -133,7 +133,7 @@ func GetMachineIfExists(ctx context.Context, c client.Client, namespace, name st
 
 // IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	_, ok := machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabel]
+	_, ok := machine.Labels[clusterv1.MachineControlPlaneLabel]
 	return ok
 }
 

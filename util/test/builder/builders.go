@@ -1986,7 +1986,7 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 		if len(m.labels) == 0 {
 			machine.Labels = map[string]string{}
 		}
-		machine.ObjectMeta.Labels[clusterv1.ClusterNameLabel] = m.clusterName
+		machine.Labels[clusterv1.ClusterNameLabel] = m.clusterName
 	}
 	return machine
 }

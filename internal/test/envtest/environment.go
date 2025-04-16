@@ -389,11 +389,11 @@ func newEnvironment(managerCacheOptions cache.Options, uncachedObjs ...client.Ob
 func (e *Environment) start(ctx context.Context) {
 	go func() {
 		fmt.Println("Starting the test environment manager")
-		if err := e.Manager.Start(ctx); err != nil {
+		if err := e.Start(ctx); err != nil {
 			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
 		}
 	}()
-	<-e.Manager.Elected()
+	<-e.Elected()
 	e.waitForWebhooks()
 }
 
@@ -434,7 +434,7 @@ func (e *Environment) CreateKubeconfigSecret(ctx context.Context, cluster *clust
 func (e *Environment) Cleanup(ctx context.Context, objs ...client.Object) error {
 	errs := []error{}
 	for _, o := range objs {
-		err := e.Client.Delete(ctx, o)
+		err := e.Delete(ctx, o)
 		if apierrors.IsNotFound(err) {
 			continue
 		}
@@ -481,7 +481,7 @@ func (e *Environment) CleanupAndWait(ctx context.Context, objs ...client.Object)
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
 func (e *Environment) CreateAndWait(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	if err := e.Client.Create(ctx, obj, opts...); err != nil {
+	if err := e.Create(ctx, obj, opts...); err != nil {
 		return err
 	}
 
@@ -518,7 +518,7 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 	// Store old resource version, empty string if not found.
 	oldResourceVersion := objCopy.GetResourceVersion()
 
-	if err := e.Client.Patch(ctx, obj, client.Apply, opts...); err != nil {
+	if err := e.Patch(ctx, obj, client.Apply, opts...); err != nil {
 		return err
 	}
 
@@ -552,7 +552,7 @@ func (e *Environment) CreateNamespace(ctx context.Context, generateName string) 
 			},
 		},
 	}
-	if err := e.Client.Create(ctx, ns); err != nil {
+	if err := e.Create(ctx, ns); err != nil {
 		return nil, err
 	}
 

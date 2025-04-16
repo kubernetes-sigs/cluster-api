@@ -387,7 +387,7 @@ func minLastTransitionTime(a, b *metav1.Condition) metav1.Time {
 	if a == nil {
 		return b.LastTransitionTime
 	}
-	if a.LastTransitionTime.Time.After(b.LastTransitionTime.Time) {
+	if a.LastTransitionTime.After(b.LastTransitionTime.Time) {
 		return b.LastTransitionTime
 	}
 	return a.LastTransitionTime
@@ -434,7 +434,7 @@ func minLastTransitionTimeV1Beta1(a, b *clusterv1.Condition) metav1.Time {
 	if a == nil {
 		return b.LastTransitionTime
 	}
-	if a.LastTransitionTime.Time.After(b.LastTransitionTime.Time) {
+	if a.LastTransitionTime.After(b.LastTransitionTime.Time) {
 		return b.LastTransitionTime
 	}
 	return a.LastTransitionTime

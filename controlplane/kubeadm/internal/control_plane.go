@@ -427,10 +427,10 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 		// TODO (v1beta2): test for v1beta2 conditions
 		for _, condition := range controlPlaneMachineHealthConditions {
 			if v1beta1conditions.IsUnknown(m, condition) {
-				notes = append(notes, strings.Replace(string(condition), "Healthy", " health unknown", -1))
+				notes = append(notes, strings.ReplaceAll(string(condition), "Healthy", " health unknown"))
 			}
 			if v1beta1conditions.IsFalse(m, condition) {
-				notes = append(notes, strings.Replace(string(condition), "Healthy", " not healthy", -1))
+				notes = append(notes, strings.ReplaceAll(string(condition), "Healthy", " not healthy"))
 			}
 		}
 

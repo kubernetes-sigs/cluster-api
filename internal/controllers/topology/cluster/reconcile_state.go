@@ -560,7 +560,7 @@ func (r *Reconciler) getCurrentMachineDeployments(ctx context.Context, s *scope.
 
 	currentMDs := sets.Set[string]{}
 	for _, md := range mdList.Items {
-		mdTopologyName, ok := md.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
+		mdTopologyName, ok := md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 		if ok || mdTopologyName != "" {
 			currentMDs.Insert(mdTopologyName)
 		}
@@ -904,7 +904,7 @@ func (r *Reconciler) getCurrentMachinePools(ctx context.Context, s *scope.Scope)
 
 	currentMPs := sets.Set[string]{}
 	for _, mp := range mpList.Items {
-		mpTopologyName, ok := mp.ObjectMeta.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
+		mpTopologyName, ok := mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 		if ok || mpTopologyName != "" {
 			currentMPs.Insert(mpTopologyName)
 		}

@@ -2656,7 +2656,7 @@ func addKubeadmConfigToMachine(config *bootstrapv1.KubeadmConfig, machine *clust
 	if machine == nil {
 		panic("no machine passed to function")
 	}
-	config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+	config.OwnerReferences = []metav1.OwnerReference{
 		{
 			Kind:       "Machine",
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -2678,7 +2678,7 @@ func addKubeadmConfigToMachinePool(config *bootstrapv1.KubeadmConfig, machinePoo
 	if machinePool == nil {
 		panic("no machinePool passed to function")
 	}
-	config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+	config.OwnerReferences = []metav1.OwnerReference{
 		{
 			Kind:       "MachinePool",
 			APIVersion: expv1.GroupVersion.String(),

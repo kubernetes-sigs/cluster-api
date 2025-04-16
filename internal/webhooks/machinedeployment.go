@@ -306,7 +306,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	}
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, newMD.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, newMD.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

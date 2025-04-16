@@ -8,8 +8,18 @@ authors:
   - "@@mogliang"
   - "@sbueringer"
   - "@fabriziopandini"
+  - "@Danil-Grigorev"
+  - "@yiannistri"
 reviewers:
-  - TBD
+  - "@neolit123"
+  - "@vincepri"
+  - "@enxebre"
+  - "@sbueringer"
+  - "@t-lo"
+  - "@mhrivnak"
+  - "@atanasdinov"
+  - "@elmiko"
+  - "@wking"
 creation-date: "2024-08-07"
 last-updated: "2024-08-07"
 status: experimental
@@ -72,9 +82,9 @@ __Update Extension__: Runtime Extension (Implementation) is a component responsi
 
 ## Summary
 
-The proposal introduces update extensions allowing users to execute custom strategies when performing Cluster API rollouts.
+The proposal introduces update extensions allowing users to execute changes on existing machines without deleting the machines and creating a new one.
 
-An External Update Extension implementing custom update strategies will report the subset of changes they know how to perform. Cluster API will orchestrate the different extensions, polling the update progress from them.
+An External Update Extension will report the subset of changes they know how to perform. Cluster API will orchestrate the different extensions, polling the update progress from them.
 
 If the totality of the required changes cannot be covered by the defined extensions, Cluster API will fall back to the current behavior (rolling update).
 
@@ -97,7 +107,6 @@ Even if the project continues to improve immutable rollouts, most probably there
 * More efficient updates (multiple instances) that don't require re-bootstrap. Re-bootstrapping a bare metal machine takes ~10-15 mins on average. Speed matters when you have 100s - 1000s of nodes to upgrade. For a common telco RAN use case, users can have 30000-ish nodes. Depending on the parallelism, that could take days / weeks to upgrade because of the re-bootstrap time.
 * Credentials rotation, e.g. rotating authorized keys for SSH.
 
-
 With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems by implementing an Update extension.
 
 With the implementation of an Update extension, users can take ownership of the rollout process and embrace in-place rollout strategies, intentionally trading off some of the benefits that you get from immutable infrastructure.
@@ -118,7 +127,7 @@ Cluster API user experience MUST be the same when using default, immutable updat
 
 #### Fallback to Immutable rollouts
 
-If external update extensions can not cover the totality of the desired changes, CAPI WILL defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
+If external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
 * It allows to implement custom rollout strategies incrementally, without the need to cover all use cases up-front.
 * There are cases when replacing the machine will always be necessary:
@@ -128,9 +137,9 @@ If external update extensions can not cover the totality of the desired changes,
 
 #### Clean separation of concern
 
-It is the responsibility of the extension to decide if it can perform changes in-place and to perform these changes on a single machine. If the extension decides that it cannot perform changes in-place, CAPI will fall back to rollout.
+It is the responsibility of the extension to decide if it can perform changes in-place and to perform these changes on a single machine.
 
-The responsibility to determine which machine should be rolled out as well as the responsibility to handle rollout options like MaxSurge/MaxUnavailable will remain on the controllers owning the machine (e.g. KCP, MD controller). 
+The responsibility to determine which machine should be updated, the responsibility to handle CAPI resources during in-place update or immutable rollouts as well as the responsibility to handle rollout options like MaxSurge/MaxUnavailable will remain on the controllers owning the machine (e.g. KCP, MD controller).
 
 ### Goals
 
@@ -141,8 +150,7 @@ The responsibility to determine which machine should be rolled out as well as th
 ### Non-Goals/Future work
 
 - To provide rollbacks in case of an in-place update failure. Failed updates need to be fixed manually by the user on the machine or by replacing the machine.
-- Introduce any changes to KCP (or any other control plane provider), MachineDeployment, MachineSet, Machine APIs.
-- Maintain a coherent user experience for both rolling and in-place updates.
+- Introduce any API changes both in core Cluster API or in KCP (or any other control plane provider).
 - Allow in-place updates for single-node clusters without the requirement to reprovision hosts (future goal).
 
 ## Proposal
@@ -252,7 +260,7 @@ sequenceDiagram
     end
 ```
 
-Both `KCP` and `MachineDeployment` controllers follow a similar pattern around updates, they first detect if an update is required and then based on the configured strategy follow the appropiate update logic (note that today there is only one valid strategy, `RollingUpdate`).
+Both `KCP` and `MachineDeployment` controllers follow a similar pattern around updates; as a first step they detect if an update is required.
 
 With `InPlaceUpdates` feature gate enabled, CAPI controllers will compute the set of desired changes and iterate over the registered external updaters, requesting through the Runtime Hook the set of changes each updater can handle. The changes supported by an updater can be the complete set of desired changes, a subset of them or an empty set, signaling it cannot handle any of the desired changes.
 
@@ -368,7 +376,7 @@ Once a Machine is marked as pending and `UpToDate` condition is set and the Mach
 
 The Machine controller currently calls registered external updaters sequentially but without a defined order. We are explicitly not trying to design a solution for ordering of execution at this stage. However, determining a specific ordering mechanism or dependency management between update extensions will need to be addressed in future iterations of this proposal.
 
-The controller will trigger updaters by hitting a RuntimeHook endpoint (eg. `/UpdateMachine`). The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until it reaches a terminal state.
+The controller will trigger updaters by hitting a RuntimeHook endpoint (eg. `/UpdateMachine`). The updater could respond saying "update completed", "update failed" or "update in progress" with an optional "retry after X seconds". The CAPI controller will continuously poll the status of the update by hitting the same endpoint until the operation reports "update completed" or "update failed".
 
 CAPI expects the `/UpdateMachine` endpoint of an updater to be idempotent: for the same Machine with the same spec, the endpoint can be called any number of times (before and after it completes), and the end result should be the same. CAPI guarantees that once an `/UpdateMachine` endpoint has been called once, it won't change the Machine spec until the update either completes or fails.
 
@@ -911,11 +919,14 @@ we will provide a way to toggle the in-place possibly though the API.
 
 ## Implementation History
 
-- [ ] MM/DD/YYYY: Proposed idea in an issue or [community meeting]
-- [ ] MM/DD/YYYY: Compile a Google Doc following the CAEP template (link here)
-- [ ] MM/DD/YYYY: First round of feedback from community
-- [ ] MM/DD/YYYY: Present proposal at a [community meeting]
-- [ ] MM/DD/YYYY: Open proposal PR
+- [x] 2023-09: Proposed idea in an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/9489).
+- [x] 2023-10: Feature Group is created.
+- [x] 2023-11: Discussed [preliminary idea](https://docs.google.com/document/d/1CqQ1SAqJD264PsDeMj_Z3HhZxe7DViNkpJ9d5q-2Zck/edit?tab=t.0#heading=h.vum8h55q3k9f) with the community in Kubecon NA.
+- [x] 2024-02: Compile a Google Doc following the CAEP template [(link here)](https://hackmd.io/fJ9kmuVZSgODjraFWY0kLw?edit).
+- [x] 2024-03: First round of feedback.
+- [x] 2024-05: Second round of feedback.
+- [x] 2024-07: Present proposal at a [community meeting].
+- [x] 2024-08: Open proposal [PR](https://github.com/kubernetes-sigs/cluster-api/pull/11029).
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

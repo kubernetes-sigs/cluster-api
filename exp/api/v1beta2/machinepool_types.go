@@ -86,6 +86,11 @@ type MachinePoolStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// initialization provides observations of the MachinePool initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+	// +optional
+	Initialization *MachinePoolInitializationStatus `json:"initialization,omitempty"`
+
 	// nodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
 	// +kubebuilder:validation:MaxItems=10000
@@ -112,14 +117,6 @@ type MachinePoolStatus struct {
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;ScalingUp;ScalingDown;Scaling;Deleting;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
-	// bootstrapReady is the state of the bootstrap provider.
-	// +optional
-	BootstrapReady bool `json:"bootstrapReady"`
-
-	// infrastructureReady is the state of the infrastructure provider.
-	// +optional
-	InfrastructureReady bool `json:"infrastructureReady"`
-
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -127,6 +124,22 @@ type MachinePoolStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *MachinePoolDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// MachinePoolInitializationStatus provides observations of the MachinePool initialization process.
+// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+type MachinePoolInitializationStatus struct {
+	// infrastructureProvisioned is true when the infrastructure provider reports that MachinePool's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// +optional
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+
+	// bootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap secret is created.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// +optional
+	BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"`
 }
 
 // MachinePoolDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

@@ -1369,7 +1369,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	workerMachinePool.Status.InfrastructureReady = true
+	workerMachinePool.Status.Initialization = &expv1.MachinePoolInitializationStatus{InfrastructureProvisioned: true}
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	result, err = k.Reconcile(ctx, request)

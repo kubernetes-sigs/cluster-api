@@ -84,6 +84,15 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.AvailableReplicas = src.Status.AvailableReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
+	// Move BootstrapReady and InfrastructureReady to Initialization
+	if src.Status.BootstrapReady || src.Status.InfrastructureReady {
+		if dst.Status.Initialization == nil {
+			dst.Status.Initialization = &expv1.MachinePoolInitializationStatus{}
+		}
+		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
+		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
+	}
+
 	// Manually restore data.
 	restored := &expv1.MachinePool{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -128,6 +137,12 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 			dst.Status.AvailableReplicas = src.Status.Deprecated.V1Beta1.AvailableReplicas
 			dst.Status.UnavailableReplicas = src.Status.Deprecated.V1Beta1.UnavailableReplicas
 		}
+	}
+
+	// Move initialization to old fields
+	if src.Status.Initialization != nil {
+		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
+		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
 
 	return utilconversion.MarshalData(src, dst)

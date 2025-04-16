@@ -64,6 +64,12 @@ func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *expv1.Ma
 		out.UnavailableReplicas = in.Deprecated.V1Beta1.UnavailableReplicas
 	}
 
+	// Move initialization to old fields
+	if in.Initialization != nil {
+		out.BootstrapReady = in.Initialization.BootstrapDataSecretCreated
+		out.InfrastructureReady = in.Initialization.InfrastructureProvisioned
+	}
+
 	// Move new conditions (v1beta2) and replica counters to the v1beta2 field.
 	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {
 		return nil
@@ -96,6 +102,15 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 		out.ReadyReplicas = in.V1Beta2.ReadyReplicas
 		out.AvailableReplicas = in.V1Beta2.AvailableReplicas
 		out.UpToDateReplicas = in.V1Beta2.UpToDateReplicas
+	}
+
+	// Move BootstrapReady and InfrastructureReady to Initialization
+	if in.BootstrapReady || in.InfrastructureReady {
+		if out.Initialization == nil {
+			out.Initialization = &expv1.MachinePoolInitializationStatus{}
+		}
+		out.Initialization.BootstrapDataSecretCreated = in.BootstrapReady
+		out.Initialization.InfrastructureProvisioned = in.InfrastructureReady
 	}
 
 	// Move legacy conditions (v1beta1), failureReason, failureMessage and replica counters to the deprecated field.

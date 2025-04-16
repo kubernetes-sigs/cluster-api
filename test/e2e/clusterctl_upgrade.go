@@ -813,7 +813,7 @@ func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, cl
 		return c.Get(ctx, key, cluster)
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(clusterNamespace, clusterName))
 
-	if cluster.Status.V1Beta2 != nil && cluster.Status.V1Beta2.Conditions == nil {
+	if cluster.Status.V1Beta2 != nil && len(cluster.Status.V1Beta2.Conditions) > 0 {
 		for _, conditionType := range v1beta2conditionTypes {
 			for _, condition := range cluster.Status.V1Beta2.Conditions {
 				if condition.Type != conditionType {
@@ -832,8 +832,11 @@ func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, cl
 				clusterv1.ClusterNameLabel: clusterName,
 			})
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KObj(cluster))
-	if cluster.Status.V1Beta2 != nil && cluster.Status.V1Beta2.Conditions == nil {
+	if cluster.Status.V1Beta2 != nil && len(cluster.Status.V1Beta2.Conditions) > 0 {
 		for _, machine := range machineList.Items {
+			if machine.Status.V1Beta2 == nil || len(machine.Status.V1Beta2.Conditions) == 0 {
+				continue
+			}
 			for _, conditionType := range v1beta2conditionTypes {
 				for _, condition := range machine.Status.V1Beta2.Conditions {
 					if condition.Type != conditionType {

@@ -172,7 +172,7 @@ func TestControlPlane(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.31.0"), // deleted
 					FailureDomain:     ptr.To("one"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m1"},
 				}},
 		}
 		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), &cluster, kcp, machines)
@@ -223,7 +223,7 @@ func TestControlPlane(t *testing.T) {
 		infraMachine := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": ns.Name,
@@ -296,7 +296,7 @@ func TestControlPlane(t *testing.T) {
 					Namespace: ns.Name},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 						Namespace:  ns.Name,

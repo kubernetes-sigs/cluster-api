@@ -35,9 +35,9 @@ linters:
             - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
           lintersConfig:
             conditions:
-              isFirstField: Warn
-              usePatchStrategy: Forbid
-              useProtobuf: Forbid
+              isFirstField: Warn # Require conditions to be the first field in the status struct.
+              usePatchStrategy: Forbid # Require conditions to be the first field in the status struct.
+              useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
           # jsonTags:
           #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
           # optionalOrRequired:

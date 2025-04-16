@@ -247,25 +247,31 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated'
-        # v1Beta1 deprecated fields
+        # Specific exclude rules for deprecated packages that are still part of the codebase. These
+        # should be removed as the referenced deprecated packages are removed from the project.
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This package will be removed in one of the next releases.'
+        # Specific exclude rules for deprecated types that are still part of the codebase. These
+        # should be removed as the referenced deprecated types are removed from the project.
       - linters:
           - staticcheck
         text: 'SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases.'
+        # Specific exclude rules for deprecated feature flags
       - linters:
           - staticcheck
         text: 'SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release.'
+        # v1Beta1 deprecated fields
       - linters:
           - staticcheck
-        text: 'SA1019: .* is deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
       - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+        # Exclude some packages or code to require comments, for example test code, or fake clients.
       - linters:
           - revive
         text: exported (method|function|type|const) (.+) should have comment or be unexported
@@ -282,9 +288,13 @@ linters:
           - revive
         path: (framework|e2e)/.*.go
         text: exported (method|function|type|const) (.+) should have comment or be unexported
+        # Disable unparam "always receives" which might not be really
+        # useful when building libraries.
       - linters:
           - unparam
         text: always receives
+        # Dot imports for gomega and ginkgo are allowed
+        # within test files and test utils.
       - linters:
           - revive
           - staticcheck
@@ -295,32 +305,44 @@ linters:
           - staticcheck
         path: (framework|e2e)/.*.go
         text: should not use dot imports
+        # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
+        # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
       - linters:
           - gocritic
         path: internal/topology/variables/clusterclass_variable_validation.go
         text: emptyStringTest
+        # Append should be able to assign to a different var/slice.
       - linters:
           - gocritic
         text: 'appendAssign: append result not assigned to the same slice'
+        # Disable linters for conversion
       - linters:
           - staticcheck
         path: .*(api|types)\/.*\/conversion.*\.go$
         text: 'SA1019: in.(.+) is deprecated'
       - linters:
           - revive
+        # Ignoring stylistic checks for generated code
         path: .*(api|types|test)\/.*\/conversion.*\.go$
+        # Checking if an error is nil to just after return the error or nil is redundant
         text: 'if-return: redundant if ...; err != nil check, just return error instead'
       - linters:
           - revive
+        # Ignoring stylistic checks for generated code
         path: .*(api|types|test)\/.*\/conversion.*\.go$
+        # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
         text: exported (method|function|type|const) (.+) should have comment or be unexported
       - linters:
           - revive
+        # Ignoring stylistic checks for generated code
         path: .*(api|types|test)\/.*\/conversion.*\.go$
+        # This rule warns when initialism, variable or package naming conventions are not followed.
         text: 'var-naming: don''t use underscores in Go names;'
       - linters:
           - revive
+        # Ignoring stylistic checks for generated code
         path: .*(api|types)\/.*\/conversion.*\.go$
+        # By convention, receiver names in a method should reflect their identity.
         text: 'receiver-naming: receiver name'
       - linters:
           - staticcheck
@@ -330,10 +352,12 @@ linters:
           - staticcheck
         path: .*(api|types)\/.*\/conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
+        # We don't care about defer in for loops in test files.
       - linters:
           - gocritic
         path: _test\.go
         text: 'deferInLoop: Possible resource leak, ''defer'' is called in the ''for'' loop'
+        # Ignore non-constant format string in call to condition utils
       - linters:
           - govet
         text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.

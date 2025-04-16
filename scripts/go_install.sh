@@ -27,7 +27,6 @@ if [ -z "${2}" ]; then
   exit 1
 fi
 
-echo "${3}"
 if [ -z "${3}" ]; then
   echo "must provide version as third parameter"
   exit 1

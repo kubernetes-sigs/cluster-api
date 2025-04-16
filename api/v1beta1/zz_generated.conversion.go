@@ -3158,8 +3158,8 @@ func autoConvert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatu
 	out.Addresses = *(*v1beta2.MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.CertificatesExpiryDate = (*v1.Time)(unsafe.Pointer(in.CertificatesExpiryDate))
-	out.BootstrapReady = in.BootstrapReady
-	out.InfrastructureReady = in.InfrastructureReady
+	// WARNING: in.BootstrapReady requires manual conversion: does not exist in peer-type
+	// WARNING: in.InfrastructureReady requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -3189,14 +3189,13 @@ func autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *v1beta2.Mach
 	} else {
 		out.Conditions = nil
 	}
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.NodeRef = (*corev1.ObjectReference)(unsafe.Pointer(in.NodeRef))
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.CertificatesExpiryDate = (*v1.Time)(unsafe.Pointer(in.CertificatesExpiryDate))
-	out.BootstrapReady = in.BootstrapReady
-	out.InfrastructureReady = in.InfrastructureReady
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Deletion = (*MachineDeletionStatus)(unsafe.Pointer(in.Deletion))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

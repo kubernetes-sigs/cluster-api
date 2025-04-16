@@ -84,13 +84,14 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	}
 
 	if bootstrapConfig != nil {
+		dataSecretCreated := machine.Status.Initialization != nil && machine.Status.Initialization.BootstrapDataSecretCreated
 		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			bootstrapConfig,
 			contract.Bootstrap().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineBootstrapConfigReadyCondition),
 			conditions.FallbackCondition{
-				Status:  conditions.BoolToStatus(machine.Status.BootstrapReady),
-				Reason:  fallbackReason(machine.Status.BootstrapReady, clusterv1.MachineBootstrapConfigReadyReason, clusterv1.MachineBootstrapConfigNotReadyReason),
-				Message: bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, machine.Status.BootstrapReady),
+				Status:  conditions.BoolToStatus(dataSecretCreated),
+				Reason:  fallbackReason(dataSecretCreated, clusterv1.MachineBootstrapConfigReadyReason, clusterv1.MachineBootstrapConfigNotReadyReason),
+				Message: bootstrapConfigReadyFallBackMessage(machine.Spec.Bootstrap.ConfigRef.Kind, dataSecretCreated),
 			},
 		)
 		if err != nil {
@@ -125,7 +126,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 	}
 
 	// Bootstrap config missing when the machine is deleting and we know that the BootstrapConfig actually existed.
-	if !machine.DeletionTimestamp.IsZero() && machine.Status.BootstrapReady {
+	if !machine.DeletionTimestamp.IsZero() && machine.Status.Initialization != nil && machine.Status.Initialization.BootstrapDataSecretCreated {
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineBootstrapConfigReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -163,13 +164,14 @@ func bootstrapConfigReadyFallBackMessage(kind string, ready bool) string {
 
 func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured, infraMachineIsNotFound bool) {
 	if infraMachine != nil {
+		infrastructureProvisioned := machine.Status.Initialization != nil && machine.Status.Initialization.InfrastructureProvisioned
 		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			infraMachine,
 			contract.InfrastructureMachine().ReadyConditionType(), conditions.TargetConditionType(clusterv1.MachineInfrastructureReadyCondition),
 			conditions.FallbackCondition{
-				Status:  conditions.BoolToStatus(machine.Status.InfrastructureReady),
-				Reason:  fallbackReason(machine.Status.InfrastructureReady, clusterv1.MachineInfrastructureReadyReason, clusterv1.MachineInfrastructureNotReadyReason),
-				Message: infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, machine.Status.InfrastructureReady),
+				Status:  conditions.BoolToStatus(infrastructureProvisioned),
+				Reason:  fallbackReason(infrastructureProvisioned, clusterv1.MachineInfrastructureReadyReason, clusterv1.MachineInfrastructureNotReadyReason),
+				Message: infrastructureReadyFallBackMessage(machine.Spec.InfrastructureRef.Kind, infrastructureProvisioned),
 			},
 		)
 		if err != nil {
@@ -207,7 +209,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	// NOTE: in case an accidental deletion happens before volume detach is completed, the Node hosted on the Machine
 	// will be considered unreachable Machine deletion will complete.
 	if !machine.DeletionTimestamp.IsZero() {
-		if machine.Status.InfrastructureReady {
+		if machine.Status.Initialization != nil && machine.Status.Initialization.InfrastructureProvisioned {
 			conditions.Set(machine, metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
@@ -227,7 +229,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	}
 
 	// Report an issue if infra machine missing after the machine has been initialized (and the machine is still running).
-	if machine.Status.InfrastructureReady {
+	if machine.Status.Initialization != nil && machine.Status.Initialization.InfrastructureProvisioned {
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineInfrastructureReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -790,7 +792,7 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
-	if m.Status.BootstrapReady && !m.Status.InfrastructureReady {
+	if m.Status.Initialization != nil && m.Status.Initialization.BootstrapDataSecretCreated && !m.Status.Initialization.InfrastructureProvisioned {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioning)
 	}
 
@@ -800,7 +802,7 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	}
 
 	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
-	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
+	if m.Status.NodeRef != nil && m.Status.Initialization != nil && m.Status.Initialization.InfrastructureProvisioned {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
 

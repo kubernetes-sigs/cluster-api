@@ -94,6 +94,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckStatus":                  schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckTopology":                schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus": schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta1DeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.MachineInitializationStatus":               schema_sigsk8sio_cluster_api_api_v1beta2_MachineInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachineList":                               schema_sigsk8sio_cluster_api_api_v1beta2_MachineList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachineNamingStrategy":                     schema_sigsk8sio_cluster_api_api_v1beta2_MachineNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.MachinePoolClass":                          schema_sigsk8sio_cluster_api_api_v1beta2_MachinePoolClass(ref),
@@ -3520,6 +3521,35 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckV1Beta1Deprecate
 	}
 }
 
+func schema_sigsk8sio_cluster_api_api_v1beta2_MachineInitializationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineInitializationStatus provides observations of the Machine initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"infrastructureProvisioned": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureProvisioned is true when the infrastructure provider reports that Machine's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"bootstrapDataSecretCreated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_sigsk8sio_cluster_api_api_v1beta2_MachineList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -4385,6 +4415,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 							},
 						},
 					},
+					"initialization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "initialization provides observations of the Machine initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineInitializationStatus"),
+						},
+					},
 					"nodeRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeRef will point to the corresponding Node if it exists.",
@@ -4430,22 +4466,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"bootstrapReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "bootstrapReady is the state of the bootstrap provider.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"infrastructureReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureReady is the state of the infrastructure provider.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "observedGeneration is the latest generation observed by the controller.",
@@ -4469,7 +4489,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeprecatedStatus"},
+			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/v1beta2.MachineDeprecatedStatus", "sigs.k8s.io/cluster-api/api/v1beta2.MachineInitializationStatus"},
 	}
 }
 

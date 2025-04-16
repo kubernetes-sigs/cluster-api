@@ -493,6 +493,12 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
+	// Move initialization to old fields
+	if in.Initialization != nil {
+		out.BootstrapReady = in.Initialization.BootstrapDataSecretCreated
+		out.InfrastructureReady = in.Initialization.InfrastructureProvisioned
+	}
+
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
 		return nil
@@ -514,6 +520,15 @@ func Convert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, o
 	// Retrieve new conditions (v1beta2) from the v1beta2 field.
 	if in.V1Beta2 != nil {
 		out.Conditions = in.V1Beta2.Conditions
+	}
+
+	// Move BootstrapReady and InfrastructureReady to Initialization
+	if in.BootstrapReady || in.InfrastructureReady {
+		if out.Initialization == nil {
+			out.Initialization = &clusterv1.MachineInitializationStatus{}
+		}
+		out.Initialization.BootstrapDataSecretCreated = in.BootstrapReady
+		out.Initialization.InfrastructureProvisioned = in.InfrastructureReady
 	}
 
 	// Move legacy conditions (v1beta1), failureReason and failureMessage to the deprecated field.

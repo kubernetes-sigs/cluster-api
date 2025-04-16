@@ -234,6 +234,15 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 	}
 
+	// Move BootstrapReady and InfrastructureReady to Initialization
+	if src.Status.BootstrapReady || src.Status.InfrastructureReady {
+		if dst.Status.Initialization == nil {
+			dst.Status.Initialization = &clusterv1.MachineInitializationStatus{}
+		}
+		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
+		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
+	}
+
 	// Manually restore data.
 	restored := &clusterv1.Machine{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -272,6 +281,12 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
+	// Move initialization to old fields
+	if src.Status.Initialization != nil {
+		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
+		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
+	}
+	
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err

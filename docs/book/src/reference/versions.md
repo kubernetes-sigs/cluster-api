@@ -275,6 +275,7 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 | Kubernetes v1.30 | ✓                        | ✓                 | ✓                 |
 | Kubernetes v1.31 | ✓ >= v1.8.1              | ✓                 | ✓                 |
 | Kubernetes v1.32 |                          | ✓ >= v1.9.1       | ✓                 |
+| Kubernetes v1.33 |                          |                   | ✓ >= v1.10.1      |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 
@@ -304,6 +305,7 @@ using the [kubeadm API](https://kubernetes.io/docs/setup/production-environment/
 | Kubernetes v1.30 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
 | Kubernetes v1.31 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 | Kubernetes v1.32 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+| Kubernetes v1.33 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 
 ### Kubeadm Control Plane provider (`kubeadm-control-plane-controller`)
 

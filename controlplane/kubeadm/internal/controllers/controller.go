@@ -123,7 +123,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 					predicates.Any(mgr.GetScheme(), predicateLog,
-						predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+						predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 						predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
 					),
 				),
@@ -274,7 +274,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the cluster is not yet in a state where control plane machines exists
-	if !cluster.Status.InfrastructureReady || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
+	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
 			log.Error(err, "Failed to initialize control plane scope")
@@ -368,7 +368,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Wait for the cluster infrastructure to be ready before creating machines
-	if !controlPlane.Cluster.Status.InfrastructureReady {
+	if controlPlane.Cluster.Status.Initialization == nil || !controlPlane.Cluster.Status.Initialization.InfrastructureProvisioned {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
 		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,

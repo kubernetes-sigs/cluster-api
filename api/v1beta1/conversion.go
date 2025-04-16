@@ -172,6 +172,12 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
+	// Move initialization to old fields
+	if in.Initialization != nil {
+		out.ControlPlaneReady = in.Initialization.ControlPlaneInitialized
+		out.InfrastructureReady = in.Initialization.InfrastructureProvisioned
+	}
+
 	// Move new conditions (v1beta2), controlPlane and workers counters to the v1beta2 field.
 	if in.Conditions == nil && in.ControlPlane == nil && in.Workers == nil {
 		return nil
@@ -229,6 +235,15 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 				AvailableReplicas: in.V1Beta2.Workers.AvailableReplicas,
 			}
 		}
+	}
+
+	// Move ControlPlaneReady and InfrastructureReady to Initialization
+	if in.ControlPlaneReady || in.InfrastructureReady {
+		if out.Initialization == nil {
+			out.Initialization = &clusterv1.ClusterInitializationStatus{}
+		}
+		out.Initialization.ControlPlaneInitialized = in.ControlPlaneReady
+		out.Initialization.InfrastructureProvisioned = in.InfrastructureReady
 	}
 
 	// Move legacy conditions (v1beta1), FailureReason and FailureMessage to the deprecated field.

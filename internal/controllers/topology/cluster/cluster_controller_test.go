@@ -916,12 +916,12 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessors.
 	patch := client.MergeFrom(cluster1.DeepCopy())
-	cluster1.Status.InfrastructureReady = true
+	cluster1.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	if err := env.Status().Patch(ctx, cluster1, patch); err != nil {
 		return nil, err
 	}
 	patch = client.MergeFrom(cluster2.DeepCopy())
-	cluster2.Status.InfrastructureReady = true
+	cluster2.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	if err := env.Status().Patch(ctx, cluster2, patch); err != nil {
 		return nil, err
 	}

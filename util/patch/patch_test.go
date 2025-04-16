@@ -669,7 +669,9 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
-			obj.Status.InfrastructureReady = true
+			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: true,
+			}
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -715,7 +717,9 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Log("Updating the object status")
-			obj.Status.InfrastructureReady = true
+			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: true,
+			}
 
 			t.Log("Setting Ready condition")
 			v1beta1conditions.MarkTrue(obj, clusterv1.ReadyV1Beta1Condition)
@@ -730,7 +734,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
+				return cmp.Equal(obj.Status.Initialization, objAfter.Status.Initialization) &&
 					v1beta1conditions.IsTrue(objAfter, clusterv1.ReadyV1Beta1Condition) &&
 					cmp.Equal(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())

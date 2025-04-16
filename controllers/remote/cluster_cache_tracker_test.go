@@ -115,7 +115,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			}
 			g.Expect(k8sClient.Create(ctx, clusterA)).To(Succeed())
 			v1beta1conditions.MarkTrue(clusterA, clusterv1.ControlPlaneInitializedV1Beta1Condition)
-			clusterA.Status.InfrastructureReady = true
+			clusterA.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 			g.Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 
 			t.Log("Creating a test cluster kubeconfig")

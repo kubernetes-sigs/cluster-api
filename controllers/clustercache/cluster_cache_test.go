@@ -98,7 +98,7 @@ func TestReconcile(t *testing.T) {
 
 	// Set Cluster.Status.InfrastructureReady == true
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.InfrastructureReady = true
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	// Reconcile, kubeconfig Secret doesn't exist
@@ -749,7 +749,7 @@ func createCluster(g Gomega, testCluster testCluster) {
 	}
 
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.InfrastructureReady = true
+	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 }
 

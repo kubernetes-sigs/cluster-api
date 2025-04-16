@@ -694,7 +694,7 @@ var backupRestoreTests = []struct {
 			objs: test.NewFakeCluster("ns1", "foo").Objs(),
 		},
 		files: map[string]string{
-			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{"controlPlaneReady":false,"infrastructureReady":false}}` + "\n",
+			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{}}` + "\n",
 			"Secret_ns1_foo-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-kubeconfig","namespace":"ns1","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"foo","uid":"$CAPI, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-kubeconfig"}}` + "\n",
 			"Secret_ns1_foo-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-ca","namespace":"ns1","resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns1_foo.yaml": `{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"foo"},"name":"foo","namespace":"ns1","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"foo","uid":"$CAPI, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"$INFRA, Kind=GenericInfrastructureCluster, ns1/foo"}}` + "\n",
@@ -712,11 +712,11 @@ var backupRestoreTests = []struct {
 			}(),
 		},
 		files: map[string]string{
-			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{"controlPlaneReady":false,"infrastructureReady":false}}` + "\n",
+			"Cluster_ns1_foo.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"foo","namespace":"ns1","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns1/foo"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"foo","namespace":"ns1"}},"status":{}}` + "\n",
 			"Secret_ns1_foo-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-kubeconfig","namespace":"ns1","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"foo","uid":"$CAPI, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-kubeconfig"}}` + "\n",
 			"Secret_ns1_foo-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"foo-ca","namespace":"ns1","resourceVersion":"999","uid":"/v1, Kind=Secret, ns1/foo-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns1_foo.yaml": `{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"foo"},"name":"foo","namespace":"ns1","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"foo","uid":"$CAPI, Kind=Cluster, ns1/foo"}],"resourceVersion":"999","uid":"$INFRA, Kind=GenericInfrastructureCluster, ns1/foo"}}` + "\n",
-			"Cluster_ns2_bar.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"bar","namespace":"ns2","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns2/bar"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"bar","namespace":"ns2"}},"status":{"controlPlaneReady":false,"infrastructureReady":false}}` + "\n",
+			"Cluster_ns2_bar.yaml":                      `{"apiVersion":"$CAPI","kind":"Cluster","metadata":{"creationTimestamp":null,"name":"bar","namespace":"ns2","resourceVersion":"999","uid":"$CAPI, Kind=Cluster, ns2/bar"},"spec":{"controlPlaneEndpoint":{"host":"","port":0},"infrastructureRef":{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","name":"bar","namespace":"ns2"}},"status":{}}` + "\n",
 			"Secret_ns2_bar-kubeconfig.yaml":            `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"bar-kubeconfig","namespace":"ns2","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"bar","uid":"$CAPI, Kind=Cluster, ns2/bar"}],"resourceVersion":"999","uid":"/v1, Kind=Secret, ns2/bar-kubeconfig"}}` + "\n",
 			"Secret_ns2_bar-ca.yaml":                    `{"apiVersion":"v1","kind":"Secret","metadata":{"creationTimestamp":null,"name":"bar-ca","namespace":"ns2","resourceVersion":"999","uid":"/v1, Kind=Secret, ns2/bar-ca"}}` + "\n",
 			"GenericInfrastructureCluster_ns2_bar.yaml": `{"apiVersion":"$INFRA","kind":"GenericInfrastructureCluster","metadata":{"creationTimestamp":null,"labels":{"cluster.x-k8s.io/cluster-name":"bar"},"name":"bar","namespace":"ns2","ownerReferences":[{"apiVersion":"$CAPI","kind":"Cluster","name":"bar","uid":"$CAPI, Kind=Cluster, ns2/bar"}],"resourceVersion":"999","uid":"$INFRA, Kind=GenericInfrastructureCluster, ns2/bar"}}` + "\n",
@@ -1482,7 +1482,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: false,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: false},
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
@@ -1510,7 +1510,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: true,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 						},
 					},
 				},
@@ -1531,7 +1531,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: true,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
@@ -1562,7 +1562,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							ControlPlaneRef: &corev1.ObjectReference{},
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: true,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
@@ -1570,7 +1570,6 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 									},
 								},
 							},
-							ControlPlaneReady: false,
 						},
 					},
 				},
@@ -1592,7 +1591,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: true,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{
@@ -1642,7 +1641,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							InfrastructureReady: true,
+							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true, ControlPlaneInitialized: true},
 							Deprecated: &clusterv1.ClusterDeprecatedStatus{
 								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 									Conditions: clusterv1.Conditions{

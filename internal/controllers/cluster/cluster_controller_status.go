@@ -262,13 +262,14 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	}
 
 	if infraCluster != nil {
+		infrastructureProvisioned := cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned
 		ready, err := conditions.NewMirrorConditionFromUnstructured(
 			infraCluster,
 			contract.InfrastructureCluster().ReadyConditionType(), conditions.TargetConditionType(clusterv1.ClusterInfrastructureReadyCondition),
 			conditions.FallbackCondition{
-				Status:  conditions.BoolToStatus(cluster.Status.InfrastructureReady),
-				Reason:  fallbackReason(cluster.Status.InfrastructureReady, clusterv1.ClusterInfrastructureReadyReason, clusterv1.ClusterInfrastructureNotReadyReason),
-				Message: infrastructureReadyFallBackMessage(cluster.Spec.InfrastructureRef.Kind, cluster.Status.InfrastructureReady),
+				Status:  conditions.BoolToStatus(infrastructureProvisioned),
+				Reason:  fallbackReason(infrastructureProvisioned, clusterv1.ClusterInfrastructureReadyReason, clusterv1.ClusterInfrastructureNotReadyReason),
+				Message: infrastructureReadyFallBackMessage(cluster.Spec.InfrastructureRef.Kind, infrastructureProvisioned),
 			},
 		)
 		if err != nil {
@@ -304,7 +305,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 
 	// Infra cluster missing when the cluster is deleting.
 	if !cluster.DeletionTimestamp.IsZero() {
-		if cluster.Status.InfrastructureReady {
+		if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned {
 			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
@@ -324,7 +325,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 	}
 
 	// Report an issue if infra cluster missing after the cluster has been initialized (and the cluster is still running).
-	if cluster.Status.InfrastructureReady {
+	if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned {
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterInfrastructureReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -362,13 +363,14 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	}
 
 	if controlPlane != nil {
+		controlPlaneInitialized := cluster.Status.Initialization != nil && cluster.Status.Initialization.ControlPlaneInitialized
 		available, err := conditions.NewMirrorConditionFromUnstructured(
 			controlPlane,
 			contract.ControlPlane().AvailableConditionType(), conditions.TargetConditionType(clusterv1.ClusterControlPlaneAvailableCondition),
 			conditions.FallbackCondition{
-				Status:  conditions.BoolToStatus(cluster.Status.ControlPlaneReady),
-				Reason:  fallbackReason(cluster.Status.ControlPlaneReady, clusterv1.ClusterControlPlaneAvailableReason, clusterv1.ClusterControlPlaneNotAvailableReason),
-				Message: controlPlaneAvailableFallBackMessage(cluster.Spec.ControlPlaneRef.Kind, cluster.Status.ControlPlaneReady),
+				Status:  conditions.BoolToStatus(controlPlaneInitialized),
+				Reason:  fallbackReason(controlPlaneInitialized, clusterv1.ClusterControlPlaneAvailableReason, clusterv1.ClusterControlPlaneNotAvailableReason),
+				Message: controlPlaneAvailableFallBackMessage(cluster.Spec.ControlPlaneRef.Kind, controlPlaneInitialized),
 			},
 		)
 		if err != nil {
@@ -404,7 +406,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 
 	// Infra cluster missing when the cluster is deleting.
 	if !cluster.DeletionTimestamp.IsZero() {
-		if cluster.Status.ControlPlaneReady {
+		if cluster.Status.Initialization != nil && cluster.Status.Initialization.ControlPlaneInitialized {
 			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
@@ -424,7 +426,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 	}
 
 	// Report an issue if control plane missing after the cluster has been initialized (and the cluster is still running).
-	if cluster.Status.ControlPlaneReady {
+	if cluster.Status.Initialization != nil && cluster.Status.Initialization.ControlPlaneInitialized {
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 			Status:  metav1.ConditionFalse,

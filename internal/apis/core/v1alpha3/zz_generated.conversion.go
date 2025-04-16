@@ -546,9 +546,9 @@ func autoConvert_v1alpha3_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStat
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
-	out.InfrastructureReady = in.InfrastructureReady
+	// WARNING: in.InfrastructureReady requires manual conversion: does not exist in peer-type
 	// WARNING: in.ControlPlaneInitialized requires manual conversion: does not exist in peer-type
-	out.ControlPlaneReady = in.ControlPlaneReady
+	// WARNING: in.ControlPlaneReady requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -576,12 +576,11 @@ func autoConvert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in *v1beta2.Clu
 	} else {
 		out.Conditions = nil
 	}
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	// WARNING: in.ControlPlane requires manual conversion: does not exist in peer-type
 	// WARNING: in.Workers requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Phase = in.Phase
-	out.InfrastructureReady = in.InfrastructureReady
-	out.ControlPlaneReady = in.ControlPlaneReady
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil

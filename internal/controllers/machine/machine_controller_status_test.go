@@ -168,7 +168,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing (ready true)",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.BootstrapReady = true
+				m.Status.Initialization = &clusterv1.MachineInitializationStatus{BootstrapDataSecretCreated: true}
 				return m
 			}(),
 			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -231,7 +231,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "bootstrap config that was ready not found while machine is deleting",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.BootstrapReady = true
+				m.Status.Initialization = &clusterv1.MachineInitializationStatus{BootstrapDataSecretCreated: true}
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
 				return m
 			}(),
@@ -392,7 +392,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name: "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing (ready true)",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.InfrastructureReady = true
+				m.Status.Initialization = &clusterv1.MachineInitializationStatus{InfrastructureProvisioned: true}
 				return m
 			}(),
 			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -460,7 +460,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
-				m.Status.InfrastructureReady = true
+				m.Status.Initialization = &clusterv1.MachineInitializationStatus{InfrastructureProvisioned: true}
 				return m
 			}(),
 			infraMachine:           nil,
@@ -492,7 +492,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name: "infra machine not found after the machine has been initialized",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.InfrastructureReady = true
+				m.Status.Initialization = &clusterv1.MachineInitializationStatus{InfrastructureProvisioned: true}
 				return m
 			}(),
 			infraMachine:           nil,

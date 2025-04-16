@@ -225,6 +225,13 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
 			in.Deprecated = nil
 		}
 	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &clusterv1.MachineInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }
 
 func spokeMachineStatus(in *MachineStatus, c fuzz.Continue) {

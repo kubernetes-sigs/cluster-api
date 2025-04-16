@@ -1166,12 +1166,16 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	patchHelper, err := patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	workerMachine.Status.InfrastructureReady = true
+	workerMachine.Status.Initialization = &clusterv1.MachineInitializationStatus{
+		InfrastructureProvisioned: true,
+	}
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	controlPlaneJoinMachine.Status.InfrastructureReady = true
+	controlPlaneJoinMachine.Status.Initialization = &clusterv1.MachineInitializationStatus{
+		InfrastructureProvisioned: true,
+	}
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 
 	for _, req := range []ctrl.Request{

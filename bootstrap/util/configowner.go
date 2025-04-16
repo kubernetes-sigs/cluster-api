@@ -42,7 +42,14 @@ type ConfigOwner struct {
 
 // IsInfrastructureReady extracts infrastructure status from the config owner.
 func (co ConfigOwner) IsInfrastructureReady() bool {
-	infrastructureReady, _, err := unstructured.NestedBool(co.Object, "status", "infrastructureReady")
+	if co.IsMachinePool() {
+		infrastructureReady, _, err := unstructured.NestedBool(co.Object, "status", "infrastructureReady")
+		if err != nil {
+			return false
+		}
+		return infrastructureReady
+	}
+	infrastructureReady, _, err := unstructured.NestedBool(co.Object, "status", "initialization", "infrastructureProvisioned")
 	if err != nil {
 		return false
 	}

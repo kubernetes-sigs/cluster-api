@@ -58,7 +58,9 @@ func TestGetConfigOwner(t *testing.T) {
 					Version: ptr.To("v1.19.6"),
 				},
 				Status: clusterv1.MachineStatus{
-					InfrastructureReady: true,
+					Initialization: &clusterv1.MachineInitializationStatus{
+						InfrastructureProvisioned: true,
+					},
 				},
 			}
 
@@ -215,7 +217,9 @@ func TestHasNodeRefs(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 			Status: clusterv1.MachineStatus{
-				InfrastructureReady: true,
+				Initialization: &clusterv1.MachineInitializationStatus{
+					InfrastructureProvisioned: true,
+				},
 				NodeRef: &corev1.ObjectReference{
 					Kind:      "Node",
 					Namespace: metav1.NamespaceDefault,

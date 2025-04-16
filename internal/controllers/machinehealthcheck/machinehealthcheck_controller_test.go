@@ -2482,10 +2482,12 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			InfrastructureReady: true,
-			BootstrapReady:      true,
-			Phase:               string(clusterv1.MachinePhaseRunning),
-			ObservedGeneration:  1,
+			Initialization: &clusterv1.MachineInitializationStatus{
+				InfrastructureProvisioned:  true,
+				BootstrapDataSecretCreated: true,
+			},
+			Phase:              string(clusterv1.MachinePhaseRunning),
+			ObservedGeneration: 1,
 		},
 	}
 }

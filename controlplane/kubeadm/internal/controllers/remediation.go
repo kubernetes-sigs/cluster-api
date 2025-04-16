@@ -114,7 +114,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, nil
 	}
 
-	initialized := false
+	var initialized bool
 	if controlPlane.KCP.Status.Initialization != nil && controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
 		initialized = true
 	}

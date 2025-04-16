@@ -256,10 +256,10 @@ func infrastructureReadyFallBackMessage(kind string, ready bool) string {
 }
 
 func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
-	if !cluster.Status.InfrastructureReady {
+	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedReason,
-			"Waiting for Cluster status.infrastructureReady to be true")
+			"Waiting for Cluster status.initialization.infrastructureProvisioned to be true")
 		return
 	}
 

@@ -91,7 +91,7 @@ func (r *DevMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			handler.EnqueueRequestsFromMapFunc(clusterToDevMachines),
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
 				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 			)),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("devmachine", clusterToDevMachines)).

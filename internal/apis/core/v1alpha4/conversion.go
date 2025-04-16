@@ -49,6 +49,15 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 	}
 
+	// Move ControlPlaneReady and InfrastructureReady to Initialization
+	if src.Status.ControlPlaneReady || src.Status.InfrastructureReady {
+		if dst.Status.Initialization == nil {
+			dst.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+		}
+		dst.Status.Initialization.ControlPlaneInitialized = src.Status.ControlPlaneReady
+		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
+	}
+
 	// Manually restore data.
 	restored := &clusterv1.Cluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -127,6 +136,12 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 			dst.Status.FailureReason = src.Status.Deprecated.V1Beta1.FailureReason
 			dst.Status.FailureMessage = src.Status.Deprecated.V1Beta1.FailureMessage
 		}
+	}
+
+	// Move initialization to old fields
+	if src.Status.Initialization != nil {
+		dst.Status.ControlPlaneReady = src.Status.Initialization.ControlPlaneInitialized
+		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
 
 	// Preserve Hub data on down-conversion except for metadata

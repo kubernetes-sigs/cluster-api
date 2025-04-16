@@ -69,7 +69,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
-	if !cluster.Status.InfrastructureReady {
+	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned {
 		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
 		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(dockerMachine, metav1.Condition{

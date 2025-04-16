@@ -186,7 +186,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
 				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
 				//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
-				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 			)),
 		).Build(r)
 	if err != nil {

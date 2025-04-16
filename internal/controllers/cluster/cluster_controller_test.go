@@ -182,7 +182,10 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			cluster.Status.InfrastructureReady = true
+			if cluster.Status.Initialization == nil {
+				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			cluster.Status.Initialization.InfrastructureProvisioned = true
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -193,7 +196,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return instance.Status.InfrastructureReady
+			return instance.Status.Initialization != nil && instance.Status.Initialization.InfrastructureProvisioned
 		}, timeout).Should(BeTrue())
 	})
 
@@ -271,7 +274,10 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			cluster.Status.InfrastructureReady = true
+			if cluster.Status.Initialization == nil {
+				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			cluster.Status.Initialization.InfrastructureProvisioned = true
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
@@ -283,7 +289,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return instance.Status.InfrastructureReady &&
+			return instance.Status.Initialization != nil && instance.Status.Initialization.InfrastructureProvisioned &&
 				instance.Spec.InfrastructureRef != nil &&
 				instance.Spec.InfrastructureRef.Name == "test"
 		}, timeout).Should(BeTrue())

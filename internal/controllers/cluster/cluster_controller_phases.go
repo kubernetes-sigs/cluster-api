@@ -60,7 +60,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
-	if cluster.Status.InfrastructureReady && cluster.Spec.ControlPlaneEndpoint.IsValid() {
+	if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned && cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
@@ -184,7 +184,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if s.cluster.Spec.InfrastructureRef == nil {
 		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
-			cluster.Status.InfrastructureReady = true
+			if cluster.Status.Initialization == nil {
+				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			cluster.Status.Initialization.InfrastructureProvisioned = true
 			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		}
 		return ctrl.Result{}, nil
@@ -201,9 +204,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 				return ctrl.Result{}, nil
 			}
 
-			if cluster.Status.InfrastructureReady {
+			if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned {
 				// Infra object went missing after the cluster was up and running
-				return ctrl.Result{}, errors.Errorf("%s has been deleted after being ready", cluster.Spec.InfrastructureRef.Kind)
+				return ctrl.Result{}, errors.Errorf("%s has been deleted after being provisioned", cluster.Spec.InfrastructureRef.Kind)
 			}
 			log.Info(fmt.Sprintf("Could not find %s, requeuing", cluster.Spec.InfrastructureRef.Kind))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
@@ -227,7 +230,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	} else {
 		provisioned = *provisionedPtr
 	}
-	if provisioned && !cluster.Status.InfrastructureReady {
+	if provisioned && (cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned) {
 		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.InfrastructureRef.Kind, klog.KObj(s.infraCluster))
 	}
 
@@ -247,7 +250,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// If the InfrastructureCluster is not provisioned (and it wasn't already provisioned before), return.
-	if !provisioned && !cluster.Status.InfrastructureReady {
+	if !provisioned && (cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned) {
 		log.V(3).Info("Infrastructure provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
@@ -277,10 +280,13 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Only record the event if the status has changed
-	if !cluster.Status.InfrastructureReady {
-		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "InfrastructureReady", "Cluster %s InfrastructureReady is now True", cluster.Name)
+	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned {
+		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "InfrastructureReady", "Cluster %s InfrastructureProvisioned is now True", cluster.Name)
 	}
-	cluster.Status.InfrastructureReady = true
+	if cluster.Status.Initialization == nil {
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
+	cluster.Status.Initialization.InfrastructureProvisioned = true
 
 	return ctrl.Result{}, nil
 }
@@ -305,9 +311,9 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 				return ctrl.Result{}, nil
 			}
 
-			if cluster.Status.ControlPlaneReady {
+			if cluster.Status.Initialization != nil && cluster.Status.Initialization.ControlPlaneInitialized {
 				// Control plane went missing after the cluster was up and running
-				return ctrl.Result{}, errors.Errorf("%s has been deleted after being ready", cluster.Spec.ControlPlaneRef.Kind)
+				return ctrl.Result{}, errors.Errorf("%s has been deleted after being initialized", cluster.Spec.ControlPlaneRef.Kind)
 			}
 			log.Info(fmt.Sprintf("Could not find %s, requeuing", cluster.Spec.ControlPlaneRef.Kind))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
@@ -331,8 +337,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	} else {
 		initialized = *initializedPtr
 	}
-	if initialized && !cluster.Status.ControlPlaneReady {
-		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
+	if initialized && (cluster.Status.Initialization == nil || !cluster.Status.Initialization.ControlPlaneInitialized) {
+		log.Info("ControlPlane has completed initialization", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
 	}
 
 	// Report a summary of current status of the control plane object defined for this cluster.
@@ -360,8 +366,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// If the control plane is not ready (and it wasn't ready before), return early.
-	if !initialized && !cluster.Status.ControlPlaneReady {
-		log.V(3).Info("Control Plane provider is not ready yet")
+	if !initialized && (cluster.Status.Initialization == nil || !cluster.Status.Initialization.ControlPlaneInitialized) {
+		log.V(3).Info("Control Plane is not initialized yet")
 		return ctrl.Result{}, nil
 	}
 
@@ -379,10 +385,13 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// Only record the event if the status has changed
-	if !cluster.Status.ControlPlaneReady {
-		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "ControlPlaneReady", "Cluster %s ControlPlaneReady is now True", cluster.Name)
+	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.ControlPlaneInitialized {
+		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "ControlPlaneInitialized", "Cluster %s ControlPlaneInitialized is now True", cluster.Name)
 	}
-	cluster.Status.ControlPlaneReady = true
+	if cluster.Status.Initialization == nil {
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
+	cluster.Status.Initialization.ControlPlaneInitialized = true
 
 	return ctrl.Result{}, nil
 }

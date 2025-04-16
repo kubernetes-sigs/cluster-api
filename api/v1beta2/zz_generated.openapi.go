@@ -45,6 +45,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariableMetadata":              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassVariableMetadata(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus":                 schema_sigsk8sio_cluster_api_api_v1beta2_ClusterControlPlaneStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus":                   schema_sigsk8sio_cluster_api_api_v1beta2_ClusterDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterInitializationStatus":               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterList":                               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterNetwork":                            schema_sigsk8sio_cluster_api_api_v1beta2_ClusterNetwork(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterSpec":                               schema_sigsk8sio_cluster_api_api_v1beta2_ClusterSpec(ref),
@@ -885,6 +886,35 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterDeprecatedStatus(ref common
 	}
 }
 
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterInitializationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterInitializationStatus provides observations of the Cluster initialization process.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"infrastructureProvisioned": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"controlPlaneInitialized": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneInitialized denotes when the control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines, install core addons like CNI, CPI, CSI etc. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after initialization is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1081,6 +1111,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref common.Reference
 							},
 						},
 					},
+					"initialization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "initialization provides observations of the Cluster initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterInitializationStatus"),
+						},
+					},
 					"controlPlane": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlane groups all the observations about Cluster's ControlPlane current state.",
@@ -1115,22 +1151,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref common.Reference
 							Format:      "",
 						},
 					},
-					"infrastructureReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureReady is the state of the infrastructure provider.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"controlPlaneReady": {
-						SchemaProps: spec.SchemaProps{
-							Description: "controlPlaneReady denotes if the control plane became ready during initial provisioning to receive requests. NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed. Please use conditions to check the operational state of the control plane.",
-							Default:     false,
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "observedGeneration is the latest generation observed by the controller.",
@@ -1148,7 +1168,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus", "sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterDeprecatedStatus", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterInitializationStatus", "sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersStatus"},
 	}
 }
 

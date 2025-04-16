@@ -275,7 +275,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		},
 		{
 			name:                   "Use status.InfrastructureReady flag as a fallback Ready condition from infra cluster is missing (ready true)",
-			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureReady(true)),
+			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureProvisioned(true)),
 			infraCluster:           fakeInfraCluster("i1", provisioned(true)),
 			infraClusterIsNotFound: false,
 			expectCondition: metav1.Condition{
@@ -310,7 +310,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		},
 		{
 			name:                   "infra cluster that was ready not found while cluster is deleting",
-			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureReady(true), deleted(true)),
+			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureProvisioned(true), deleted(true)),
 			infraCluster:           nil,
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
@@ -334,7 +334,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 		},
 		{
 			name:                   "infra cluster not found after the cluster has been initialized",
-			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureReady(true)),
+			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureProvisioned(true)),
 			infraCluster:           nil,
 			infraClusterIsNotFound: true,
 			expectCondition: metav1.Condition{
@@ -440,7 +440,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		},
 		{
 			name:                   "Use status.controlPlaneReady flag as a fallback Available condition from control plane is missing (ready true)",
-			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneReady(true)),
+			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneInitialized(true)),
 			controlPlane:           fakeControlPlane("cp1", initialized(true)),
 			controlPlaneIsNotFound: false,
 			expectCondition: metav1.Condition{
@@ -475,7 +475,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		},
 		{
 			name:                   "control plane that was ready not found while cluster is deleting",
-			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneReady(true), deleted(true)),
+			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneInitialized(true), deleted(true)),
 			controlPlane:           nil,
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
@@ -499,7 +499,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 		},
 		{
 			name:                   "control plane not found after the cluster has been initialized",
-			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneReady(true)),
+			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneInitialized(true)),
 			controlPlane:           nil,
 			controlPlaneIsNotFound: true,
 			expectCondition: metav1.Condition{
@@ -2917,16 +2917,22 @@ func (r infrastructureRef) ApplyToCluster(c *clusterv1.Cluster) {
 	c.Spec.InfrastructureRef = ptr.To(corev1.ObjectReference(r))
 }
 
-type infrastructureReady bool
+type infrastructureProvisioned bool
 
-func (r infrastructureReady) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Status.InfrastructureReady = bool(r)
+func (r infrastructureProvisioned) ApplyToCluster(c *clusterv1.Cluster) {
+	if c.Status.Initialization == nil {
+		c.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
+	c.Status.Initialization.InfrastructureProvisioned = bool(r)
 }
 
-type controlPlaneReady bool
+type controlPlaneInitialized bool
 
-func (r controlPlaneReady) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Status.ControlPlaneReady = bool(r)
+func (r controlPlaneInitialized) ApplyToCluster(c *clusterv1.Cluster) {
+	if c.Status.Initialization == nil {
+		c.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
+	c.Status.Initialization.ControlPlaneInitialized = bool(r)
 }
 
 type desiredReplicas int32

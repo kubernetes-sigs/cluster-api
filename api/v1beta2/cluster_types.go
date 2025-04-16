@@ -965,6 +965,11 @@ type ClusterStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// initialization provides observations of the Cluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+	// +optional
+	Initialization *ClusterInitializationStatus `json:"initialization,omitempty"`
+
 	// controlPlane groups all the observations about Cluster's ControlPlane current state.
 	// +optional
 	ControlPlane *ClusterControlPlaneStatus `json:"controlPlane,omitempty"`
@@ -982,18 +987,6 @@ type ClusterStatus struct {
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Deleting;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
-	// infrastructureReady is the state of the infrastructure provider.
-	// +optional
-	InfrastructureReady bool `json:"infrastructureReady"`
-
-	// controlPlaneReady denotes if the control plane became ready during initial provisioning
-	// to receive requests.
-	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
-	// The value of this field is never updated after provisioning is completed. Please use conditions
-	// to check the operational state of the control plane.
-	// +optional
-	ControlPlaneReady bool `json:"controlPlaneReady"`
-
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -1001,6 +994,27 @@ type ClusterStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *ClusterDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// ClusterInitializationStatus provides observations of the Cluster initialization process.
+// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+
+// ClusterInitializationStatus provides observations of the Cluster initialization process.
+type ClusterInitializationStatus struct {
+	// infrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// +optional
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+
+	// controlPlaneInitialized denotes when the control plane is functional enough to accept requests.
+	// This information is usually used as a signal for starting all the provisioning operations that depends on
+	// a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines,
+	// install core addons like CNI, CPI, CSI etc.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
+	// The value of this field is never updated after initialization is completed.
+	// +optional
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 }
 
 // ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

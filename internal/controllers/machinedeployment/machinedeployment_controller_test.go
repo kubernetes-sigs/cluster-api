@@ -64,7 +64,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.InfrastructureReady = true
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		return ns, cluster

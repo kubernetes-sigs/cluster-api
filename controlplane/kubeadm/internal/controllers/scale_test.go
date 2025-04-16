@@ -206,7 +206,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.UID = types.UID(util.RandomString(10))
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.InfrastructureReady = true
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 
 		beforeMachines := collections.New()
 		for i := range 2 {

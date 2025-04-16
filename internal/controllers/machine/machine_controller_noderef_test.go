@@ -247,7 +247,7 @@ func TestGetNode(t *testing.T) {
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.InfrastructureReady = true
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
@@ -548,7 +548,7 @@ func TestNodeLabelSync(t *testing.T) {
 		g.Expect(env.CreateAndWait(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.InfrastructureReady = true
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())

@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
@@ -144,9 +145,7 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 		return false
 	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.
-	// TODO (v1beta2): test for v1beta2 conditions
-	nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
-	if nodeHealthyCondition != nil && nodeHealthyCondition.Status == corev1.ConditionFalse {
+	if conditions.IsFalse(machine, clusterv1.MachineNodeReadyCondition) {
 		return false
 	}
 	healthCheckCondition := v1beta1conditions.Get(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)

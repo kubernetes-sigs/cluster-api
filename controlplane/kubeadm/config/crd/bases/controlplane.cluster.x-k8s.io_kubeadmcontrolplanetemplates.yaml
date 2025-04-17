@@ -2641,7 +2641,7 @@ spec:
                                           token is a token used to validate cluster information
                                           fetched from the control-plane.
                                         maxLength: 512
-                                        minLength: 1
+                                        minLength: 0
                                         type: string
                                       unsafeSkipCAVerification:
                                         description: |-
@@ -4846,7 +4846,7 @@ spec:
                                           token is a token used to validate cluster information
                                           fetched from the control-plane.
                                         maxLength: 512
-                                        minLength: 1
+                                        minLength: 0
                                         type: string
                                       unsafeSkipCAVerification:
                                         description: |-

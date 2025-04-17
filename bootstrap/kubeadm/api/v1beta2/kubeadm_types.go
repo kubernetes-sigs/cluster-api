@@ -629,7 +629,7 @@ type BootstrapTokenDiscovery struct {
 	// token is a token used to validate cluster information
 	// fetched from the control-plane.
 	// +required
-	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=512
 	Token string `json:"token"`
 

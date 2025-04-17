@@ -1314,7 +1314,11 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1342,7 +1346,11 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().WithTopology(topologyBase.DeepCopy().WithVariables(
 				clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}}).
@@ -1398,7 +1406,11 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}...).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().
@@ -1505,7 +1517,11 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			cluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1523,7 +1539,11 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
@@ -1541,12 +1561,16 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition, clusterv1.VariableDiscoveryFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "error message")).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedReason,
+				}).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
 			wantValidationErr:        true,
-			wantValidationErrMessage: "ClusterClass is not successfully reconciled: status of VariablesReconciled condition on ClusterClass must be \"True\"",
+			wantValidationErrMessage: "ClusterClass is not successfully reconciled: status of VariablesReady condition on ClusterClass must be \"True\"",
 		},
 		{
 			name: "Cluster invalid as it defines an MDTopology without a corresponding MDClass",
@@ -1560,7 +1584,11 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
-				WithConditions(*v1beta1conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)).
+				WithConditions(metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				}).
 				Build(),
 			cluster: clusterBuilder.WithTopology(
 				builder.ClusterTopology().DeepCopy().

@@ -43,7 +43,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -100,7 +100,11 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 		WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 		WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("aa").Build()).
 		Build()
-	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+	conditions.Set(clusterClass, metav1.Condition{
+		Type:   clusterv1.ClusterClassVariablesReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterClassVariablesReadyReason,
+	})
 	// Sets up the fakeClient for the test case. This is required because the test uses a Managed Topology.
 	fakeClient := fake.NewClientBuilder().
 		WithObjects(clusterClass).
@@ -1304,7 +1308,11 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				Build()
 
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			v1beta1conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+			conditions.Set(tt.clusterClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.clusterClass).
 				WithScheme(fakeScheme).
@@ -1373,7 +1381,11 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 		Build()
 
 	clusterClass := builder.ClusterClass("fooboo", "foo").Build()
-	v1beta1conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+	conditions.Set(clusterClass, metav1.Condition{
+		Type:   clusterv1.ClusterClassVariablesReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterClassVariablesReadyReason,
+	})
 	// Sets up the fakeClient for the test case. This is required because the test uses a Managed Topology.
 	fakeClient := fake.NewClientBuilder().
 		WithObjects(clusterClass).
@@ -2186,7 +2198,11 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build()
 
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			v1beta1conditions.MarkTrue(class, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+			conditions.Set(class, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(class).
@@ -2508,7 +2524,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			if tt.classReconciled {
-				v1beta1conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+				conditions.Set(tt.class, metav1.Condition{
+					Type:   clusterv1.ClusterClassVariablesReadyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.ClusterClassVariablesReadyReason,
+				})
 			}
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
@@ -3040,8 +3060,16 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			v1beta1conditions.MarkTrue(tt.firstClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
-			v1beta1conditions.MarkTrue(tt.secondClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+			conditions.Set(tt.firstClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
+			conditions.Set(tt.secondClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
 
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
@@ -3165,7 +3193,11 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			v1beta1conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+			conditions.Set(tt.clusterClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.clusterClass, tt.cluster).
@@ -3216,7 +3248,11 @@ func TestClusterClassPollingErrors(t *testing.T) {
 	ccFullyReconciled := baseClusterClass.DeepCopy().Build()
 	ccFullyReconciled.Generation = 1
 	ccFullyReconciled.Status.ObservedGeneration = 1
-	v1beta1conditions.MarkTrue(ccFullyReconciled, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+	conditions.Set(ccFullyReconciled, metav1.Condition{
+		Type:   clusterv1.ClusterClassVariablesReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterClassVariablesReadyReason,
+	})
 
 	// secondFullyReconciled is a second ClusterClass with a matching generation and observed generation, and VariablesReconciled=True.
 	secondFullyReconciled := ccFullyReconciled.DeepCopy()
@@ -3226,11 +3262,19 @@ func TestClusterClassPollingErrors(t *testing.T) {
 	ccGenerationMismatch := baseClusterClass.DeepCopy().Build()
 	ccGenerationMismatch.Generation = 999
 	ccGenerationMismatch.Status.ObservedGeneration = 1
-	v1beta1conditions.MarkTrue(ccGenerationMismatch, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+	conditions.Set(ccGenerationMismatch, metav1.Condition{
+		Type:   clusterv1.ClusterClassVariablesReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterClassVariablesReadyReason,
+	})
 
 	// ccVariablesReconciledFalse with VariablesReconciled=False.
-	ccVariablesReconciledFalse := baseClusterClass.DeepCopy().Build()
-	v1beta1conditions.MarkFalse(ccGenerationMismatch, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition, "", clusterv1.ConditionSeverityError, "")
+	ccVariablesReconciledFalse := baseClusterClass.Build().DeepCopy()
+	conditions.Set(ccVariablesReconciledFalse, metav1.Condition{
+		Type:   clusterv1.ClusterClassVariablesReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.ClusterClassVariablesReadyVariableDiscoveryFailedReason,
+	})
 
 	tests := []struct {
 		name           string

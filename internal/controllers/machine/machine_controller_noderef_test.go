@@ -694,7 +694,7 @@ func TestSummarizeNodeConditions(t *testing.T) {
 					Conditions: test.conditions,
 				},
 			}
-			status, _ := summarizeNodeConditions(node)
+			status, _ := summarizeNodeV1beta1Conditions(node)
 			g.Expect(status).To(Equal(test.status))
 		})
 	}

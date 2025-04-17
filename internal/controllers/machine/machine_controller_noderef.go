@@ -163,7 +163,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
-	status, message := summarizeNodeConditions(s.node)
+	status, message := summarizeNodeV1beta1Conditions(s.node)
 	if status == corev1.ConditionFalse {
 		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, message)
 		return ctrl.Result{}, nil
@@ -177,12 +177,12 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
-// summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
+// summarizeNodeV1beta1Conditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
 // if there is at least 1 semantically-negative condition, summarized status = False;
 // if there is at least 1 semantically-positive condition when there is 0 semantically negative condition, summarized status = True;
 // if all conditions are unknown,  summarized status = Unknown.
 // (semantically true conditions: NodeMemoryPressure/NodeDiskPressure/NodePIDPressure == false or Ready == true.)
-func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string) {
+func summarizeNodeV1beta1Conditions(node *corev1.Node) (corev1.ConditionStatus, string) {
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 

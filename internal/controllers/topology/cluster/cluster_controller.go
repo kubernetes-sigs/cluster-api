@@ -62,7 +62,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -350,10 +350,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// is not up to date.
 	// Note: This doesn't require requeue as a change to ClusterClass observedGeneration will cause an additional reconcile
 	// in the Cluster.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) ||
-		v1beta1conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledV1Beta1Condition) {
-		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReconciledV1Beta1Condition)
+	if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReadyCondition) ||
+		conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReadyCondition) {
+		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: status of %s condition on ClusterClass must be \"True\"", clusterv1.ClusterClassVariablesReadyCondition)
 	}
 	if clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
 		return ctrl.Result{}, errors.Errorf("ClusterClass is not successfully reconciled: ClusterClass.status.observedGeneration must be %d, but is %d", clusterClass.GetGeneration(), clusterClass.Status.ObservedGeneration)

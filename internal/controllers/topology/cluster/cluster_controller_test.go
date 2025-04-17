@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -930,7 +930,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 }
 
 func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
-	if !v1beta1conditions.Has(cluster, clusterv1.TopologyReconciledV1Beta1Condition) {
+	if !conditions.Has(cluster, clusterv1.ClusterTopologyReconciledCondition) {
 		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
 	}
 	return nil

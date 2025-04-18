@@ -165,8 +165,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Make sure bootstrap data is available and populated.
 	if dataSecretName == nil {
-		// TODO (v1beta2): test for v1beta2 conditions
-		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 			log.Info("Waiting for the control plane to be initialized")
 			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(dockerMachine, metav1.Condition{
@@ -340,9 +339,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// NOTE: If the Cluster doesn't use a control plane, the ControlPlaneInitialized condition is only
 	// set to true after a control plane machine has a node ref. If we would requeue here in this case, the
 	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
-	// TODO (v1beta2): test for v1beta2 conditions
 	if cluster.Spec.ControlPlaneRef != nil &&
-		!v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		!conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 

@@ -31,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -195,17 +196,17 @@ func TestHealthCheckTargets(t *testing.T) {
 			Name:      clusterName,
 		},
 	}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterInfrastructureReadyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
-	conds := clusterv1.Conditions{}
-	for _, condition := range cluster.GetV1Beta1Conditions() {
+	conds := []metav1.Condition{}
+	for _, condition := range cluster.GetConditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
 		conds = append(conds, condition)
 	}
-	cluster.SetV1Beta1Conditions(conds)
+	cluster.SetConditions(conds)
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
@@ -242,14 +243,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 	testMachineWithInfraReady := testMachine.DeepCopy()
 	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
-	testMachineWithInfraReady.SetV1Beta1Conditions(clusterv1.Conditions{
-		{
-			Type:               clusterv1.InfrastructureReadyV1Beta1Condition,
-			Status:             corev1.ConditionTrue,
-			Severity:           clusterv1.ConditionSeverityInfo,
-			LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second)),
-		},
-	})
+	conditions.Set(testMachineWithInfraReady, metav1.Condition{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second))})
 
 	nodeNotYetStartedTargetAndInfraReady := healthCheckTarget{
 		Cluster: cluster,

@@ -229,7 +229,11 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+			conditions.Set(cluster, metav1.Condition{
+				Type:   clusterv1.ClusterInfrastructureReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterInfrastructureReadyReason,
+			})
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -240,7 +244,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+			return conditions.IsTrue(cluster, clusterv1.ClusterInfrastructureReadyCondition)
 		}, timeout).Should(BeTrue())
 	})
 
@@ -424,7 +428,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, cluster); err != nil {
 				return false
 			}
-			return v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+			return conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
 		}, timeout).Should(BeTrue())
 	})
 }
@@ -904,7 +908,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 	})
 }
 
-func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
+func TestReconcileV1Beta1ControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	g := NewWithT(t)
 
 	c := &clusterv1.Cluster{
@@ -925,7 +929,7 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	s := &scope{
 		cluster: c,
 	}
-	res, err := r.reconcileControlPlaneInitialized(ctx, s)
+	res, err := r.reconcileV1Beta1ControlPlaneInitialized(ctx, s)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(v1beta1conditions.Has(c, clusterv1.ControlPlaneInitializedV1Beta1Condition)).To(BeFalse())

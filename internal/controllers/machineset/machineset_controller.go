@@ -1263,7 +1263,6 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
-		// TODO (v1beta2) Use new replica counters
 		if newStatus.Deprecated.V1Beta1.ReadyReplicas == newStatus.Replicas {
 			if v1beta1conditions.IsFalse(ms, clusterv1.ResizedV1Beta1Condition) {
 				log.Info("All the replicas are ready", "replicas", newStatus.Deprecated.V1Beta1.ReadyReplicas)

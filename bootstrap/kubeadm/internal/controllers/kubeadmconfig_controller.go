@@ -358,8 +358,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 
 	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
 	}
 

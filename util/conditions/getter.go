@@ -86,6 +86,30 @@ func IsUnknown(from Getter, conditionType string) bool {
 	return true
 }
 
+// GetReason returns a nil safe string of Reason for the condition with the given type.
+func GetReason(from Getter, conditionType string) string {
+	if c := Get(from, conditionType); c != nil {
+		return c.Reason
+	}
+	return ""
+}
+
+// GetMessage returns a nil safe string of Message.
+func GetMessage(from Getter, conditionType string) string {
+	if c := Get(from, conditionType); c != nil {
+		return c.Message
+	}
+	return ""
+}
+
+// GetLastTransitionTime returns a nil safe metav1.Time of LastTransitionTime.
+func GetLastTransitionTime(from Getter, conditionType string) *metav1.Time {
+	if c := Get(from, conditionType); c != nil {
+		return &c.LastTransitionTime
+	}
+	return nil
+}
+
 // UnstructuredGetAll returns conditions from an Unstructured object.
 //
 // UnstructuredGetAll supports retrieving conditions from objects at different stages of the transition from

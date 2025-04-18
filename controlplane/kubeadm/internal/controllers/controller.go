@@ -1174,9 +1174,8 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	}
 
 	// Return early because the Machine controller is not yet waiting for the pre-terminate hook.
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(deletingMachine, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition)
-	if c == nil || c.Status != corev1.ConditionFalse || c.Reason != clusterv1.WaitingExternalHookV1Beta1Reason {
+	c := conditions.Get(deletingMachine, clusterv1.MachineDeletingCondition)
+	if c == nil || c.Status != metav1.ConditionTrue || c.Reason != clusterv1.MachineDeletingWaitingForPreTerminateHookReason {
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 

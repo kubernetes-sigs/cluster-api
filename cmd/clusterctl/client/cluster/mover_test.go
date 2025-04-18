@@ -42,7 +42,6 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 type moveTestsFields struct {
@@ -1483,12 +1482,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: false},
-							Deprecated: &clusterv1.ClusterDeprecatedStatus{
-								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
-									},
-								},
+							Conditions: []metav1.Condition{
+								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
 						},
 					},
@@ -1532,12 +1527,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-							Deprecated: &clusterv1.ClusterDeprecatedStatus{
-								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.FalseCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition, "", clusterv1.ConditionSeverityInfo, ""),
-									},
-								},
+							Conditions: []metav1.Condition{
+								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse},
 							},
 						},
 					},
@@ -1563,12 +1554,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-							Deprecated: &clusterv1.ClusterDeprecatedStatus{
-								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
-									},
-								},
+							Conditions: []metav1.Condition{
+								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
 						},
 					},
@@ -1592,12 +1579,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-							Deprecated: &clusterv1.ClusterDeprecatedStatus{
-								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
-									},
-								},
+							Conditions: []metav1.Condition{
+								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
 						},
 					},
@@ -1642,12 +1625,8 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true, ControlPlaneInitialized: true},
-							Deprecated: &clusterv1.ClusterDeprecatedStatus{
-								V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-									Conditions: clusterv1.Conditions{
-										*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
-									},
-								},
+							Conditions: []metav1.Condition{
+								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
 						},
 					},

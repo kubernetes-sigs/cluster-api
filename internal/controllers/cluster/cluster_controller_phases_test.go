@@ -463,6 +463,8 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
+				g.Expect(in.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+
 				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneReadyV1Beta1Condition)).To(BeTrue())
 				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneInitializedV1Beta1Condition)).To(BeTrue())
 			},

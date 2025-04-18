@@ -115,8 +115,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 	// Don't penalize any Machine/Node if the control plane has not been initialized
 	// Exception of this rule are control plane machine itself, so the first control plane machine can be remediated.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) && !util.IsControlPlaneMachine(t.Machine) {
+	if !conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && !util.IsControlPlaneMachine(t.Machine) {
 		logger.V(5).Info("Not evaluating target health because the control plane has not yet been initialized")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
 		return false, 0
@@ -137,7 +136,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			return false, 0
 		}
 
-		controlPlaneInitialized := v1beta1conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+		controlPlaneInitialized := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition)
 		clusterInfraReady := v1beta1conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		machineInfraReady := v1beta1conditions.GetLastTransitionTime(t.Machine, clusterv1.InfrastructureReadyV1Beta1Condition)
 		machineCreationTime := t.Machine.CreationTimestamp.Time
@@ -150,7 +149,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			"controlPlaneInitializedTime", controlPlaneInitialized,
 			"machineInfraReadyTime", machineInfraReady,
 		)
-		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) && controlPlaneInitialized != nil && controlPlaneInitialized.After(comparisonTime) {
+		if conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && controlPlaneInitialized != nil && controlPlaneInitialized.After(comparisonTime) {
 			comparisonTime = controlPlaneInitialized.Time
 		}
 		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyV1Beta1Condition) && clusterInfraReady != nil && clusterInfraReady.After(comparisonTime) {

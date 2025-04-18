@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -195,16 +196,23 @@ func TestHealthCheckTargets(t *testing.T) {
 		},
 	}
 	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
-	conds := clusterv1.Conditions{}
-	for _, condition := range cluster.GetV1Beta1Conditions() {
+	conds := []metav1.Condition{}
+	for _, condition := range cluster.GetConditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
 		conds = append(conds, condition)
 	}
-	cluster.SetV1Beta1Conditions(conds)
+	cluster.SetConditions(conds)
+
+	v1beta1Conditions := clusterv1.Conditions{}
+	for _, condition := range cluster.GetV1Beta1Conditions() {
+		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
+		v1beta1Conditions = append(v1beta1Conditions, condition)
+	}
+	cluster.SetV1Beta1Conditions(v1beta1Conditions)
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 

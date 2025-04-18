@@ -345,7 +345,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set.
+	// Update ControlPlaneInitializedV1Beta1Condition if it hasn't already been set.
 	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		if initialized {
 			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)

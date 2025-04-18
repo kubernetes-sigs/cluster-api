@@ -494,11 +494,11 @@ func TestMachine_Reconcile(t *testing.T) {
 		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
-		if !v1beta1conditions.Has(machine, clusterv1.InfrastructureReadyV1Beta1Condition) {
+		if !conditions.Has(machine, clusterv1.MachineInfrastructureReadyCondition) {
 			return false
 		}
-		readyCondition := v1beta1conditions.Get(machine, clusterv1.ReadyV1Beta1Condition)
-		return readyCondition.Status == corev1.ConditionTrue
+		readyCondition := conditions.Get(machine, clusterv1.MachineInfrastructureReadyCondition)
+		return readyCondition.Status == metav1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
 	g.Expect(env.Delete(ctx, machine)).ToNot(HaveOccurred())
@@ -1256,6 +1256,9 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			wantErr: true,
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionUnknown, Reason: clusterv1.MachineReadyUnknownReason, Message: "* NodeHealthy: Please check controller logs for errors"},
+				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineBootstrapConfigReadyReason, Message: ""},
+				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineInfrastructureReadyReason, Message: ""},
+				{Type: clusterv1.MachineNodeHealthyCondition, Status: metav1.ConditionUnknown, Reason: clusterv1.MachineNodeInternalErrorReason, Message: "Please check controller logs for errors"},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.TrueCondition(clusterv1.InfrastructureReadyV1Beta1Condition),

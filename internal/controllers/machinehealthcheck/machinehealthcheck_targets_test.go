@@ -195,7 +195,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			Name:      clusterName,
 		},
 	}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterInfrastructureReadyCondition, Status: metav1.ConditionTrue})
 	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
@@ -206,13 +206,6 @@ func TestHealthCheckTargets(t *testing.T) {
 		conds = append(conds, condition)
 	}
 	cluster.SetConditions(conds)
-
-	v1beta1Conditions := clusterv1.Conditions{}
-	for _, condition := range cluster.GetV1Beta1Conditions() {
-		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
-		v1beta1Conditions = append(v1beta1Conditions, condition)
-	}
-	cluster.SetV1Beta1Conditions(v1beta1Conditions)
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
@@ -249,14 +242,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 	testMachineWithInfraReady := testMachine.DeepCopy()
 	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
-	testMachineWithInfraReady.SetV1Beta1Conditions(clusterv1.Conditions{
-		{
-			Type:               clusterv1.InfrastructureReadyV1Beta1Condition,
-			Status:             corev1.ConditionTrue,
-			Severity:           clusterv1.ConditionSeverityInfo,
-			LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second)),
-		},
-	})
+	conditions.Set(testMachineWithInfraReady, metav1.Condition{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second))})
 
 	nodeNotYetStartedTargetAndInfraReady := healthCheckTarget{
 		Cluster: cluster,

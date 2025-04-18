@@ -109,8 +109,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// NOTE: we are not using bootstrap data, but we wait for it in order to simulate a real machine
 	// provisioning workflow.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		// TODO (v1beta2): test for v1beta2 conditions
-		if !util.IsControlPlaneMachine(machine) && !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 			v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingControlPlaneInitializedReason, clusterv1.ConditionSeverityInfo, "")
 			conditions.Set(inMemoryMachine, metav1.Condition{
 				Type:   infrav1.DevMachineInMemoryVMProvisionedV1Beta2Condition,

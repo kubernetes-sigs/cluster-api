@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // ClusterCreateInfraProvisioned returns a predicate that returns true for a create event when the Cluster infrastructure is provisioned.
@@ -243,10 +243,8 @@ func ClusterControlPlaneInitialized(scheme *runtime.Scheme, logger logr.Logger) 
 			}
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
-
-			// TODO (v1beta2): test for v1beta2 conditions
-			if !v1beta1conditions.IsTrue(oldCluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) &&
-				v1beta1conditions.IsTrue(newCluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+			if !conditions.IsTrue(oldCluster, clusterv1.ClusterControlPlaneInitializedCondition) &&
+				conditions.IsTrue(newCluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 				log.V(6).Info("Cluster ControlPlaneInitialized was set, allow further processing")
 				return true
 			}

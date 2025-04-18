@@ -1047,13 +1047,6 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 					Status: metav1.ConditionTrue,
 				},
 			},
-			Deprecated: &clusterv1.ClusterDeprecatedStatus{
-				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
-					},
-				},
-			},
 		},
 	}
 

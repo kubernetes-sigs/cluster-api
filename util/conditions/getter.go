@@ -102,6 +102,14 @@ func GetMessage(from Getter, conditionType string) string {
 	return ""
 }
 
+// GetLastTransitionTime returns a nil safe metav1.Time of LastTransitionTime.
+func GetLastTransitionTime(from Getter, conditionType string) *metav1.Time {
+	if c := Get(from, conditionType); c != nil {
+		return &c.LastTransitionTime
+	}
+	return nil
+}
+
 // UnstructuredGetAll returns conditions from an Unstructured object.
 //
 // UnstructuredGetAll supports retrieving conditions from objects at different stages of the transition from

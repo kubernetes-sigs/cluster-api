@@ -50,7 +50,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/certs"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -699,8 +699,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 			return false, nil
 		}
 
-		// TODO (v1beta2): test for v1beta2 conditions
-		if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned || !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned || !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 			// If the infrastructure or control plane aren't marked as provisioned/initialized, we should requeue and wait.
 			return false, nil
 		}

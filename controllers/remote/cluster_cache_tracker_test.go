@@ -37,7 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func mapper(_ context.Context, i client.Object) []reconcile.Request {
@@ -114,7 +114,7 @@ func TestClusterCacheTracker(t *testing.T) {
 				},
 			}
 			g.Expect(k8sClient.Create(ctx, clusterA)).To(Succeed())
-			v1beta1conditions.MarkTrue(clusterA, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+			conditions.Set(clusterA, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedReason})
 			clusterA.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 			g.Expect(k8sClient.Status().Update(ctx, clusterA)).To(Succeed())
 

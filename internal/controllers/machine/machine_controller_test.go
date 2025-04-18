@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/api/v1beta2/index"
@@ -50,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1035,6 +1037,24 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Status: clusterv1.ClusterStatus{
+			Initialization: &clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: true,
+			},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ClusterControlPlaneInitializedCondition,
+					Status: metav1.ConditionTrue,
+				},
+			},
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						*v1beta1conditions.TrueCondition(clusterv1.ControlPlaneInitializedV1Beta1Condition),
+					},
+				},
+			},
+		},
 	}
 
 	machine := clusterv1.Machine{
@@ -1082,6 +1102,14 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			Name: "test",
 		},
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+		},
 	}
 
 	testcases := []struct {
@@ -1090,6 +1118,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		bootstrapDataSecretCreated bool
 		beforeFunc                 func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
 		additionalObjects          []client.Object
+		conditionsToAssert         []metav1.Condition
 		v1beta1ConditionsToAssert  []*clusterv1.Condition
 		wantErr                    bool
 	}{
@@ -1101,6 +1130,11 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 				// since these conditions are set by an external controller
 				v1beta1conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
 				v1beta1conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+			},
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineReadyReason, Message: ""},
+				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineBootstrapConfigReadyReason, Message: ""},
+				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineInfrastructureReadyReason, Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.TrueCondition(clusterv1.InfrastructureReadyV1Beta1Condition),
@@ -1124,6 +1158,9 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 					},
 				})
 			},
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
 			},
@@ -1132,6 +1169,10 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			name:                       "infra condition consumes the fallback reason",
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: true,
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineInfrastructureNotReadyReason, Message: "GenericInfrastructureMachine status.ready is false"},
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* InfrastructureReady: GenericInfrastructureMachine status.ready is false"},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
@@ -1151,6 +1192,9 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 					},
 				})
 			},
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
 			},
@@ -1159,6 +1203,10 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			name:                       "bootstrap condition consumes the fallback reason",
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: false,
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineBootstrapConfigNotReadyReason, Message: "GenericBootstrapConfig status.ready is false"},
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.ready is false"},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
@@ -1167,9 +1215,12 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		// Assert summary conditions
 		// infra condition takes precedence over bootstrap condition in generating summary
 		{
-			name:                       "ready condition summary consumes reason from the infra condition",
+			name:                       "ready condition summary use a generic reason in case of multiple issues",
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: false,
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.ready is false\n* InfrastructureReady: GenericInfrastructureMachine status.ready is false"},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				// in V1beta1 ready condition summary consumes reason from the infra condition
 				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
@@ -1210,6 +1261,9 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 				Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 			}},
 			wantErr: true,
+			conditionsToAssert: []metav1.Condition{
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionUnknown, Reason: clusterv1.MachineReadyUnknownReason, Message: "* NodeHealthy: Please check controller logs for errors"},
+			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.TrueCondition(clusterv1.InfrastructureReadyV1Beta1Condition),
 				v1beta1conditions.TrueCondition(clusterv1.BootstrapReadyV1Beta1Condition),
@@ -1224,6 +1278,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 			},
+			// conditionsToAssert: in v1beta1  clusterv1.DrainingSucceededV1Beta1Condition has been merged into Deleting.
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, ""),
 			},
@@ -1264,6 +1319,9 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 					Scheme:          clientFake.Scheme(),
 					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
 				},
+				controller:                  &fakeController{},
+				predicateLog:                ptr.To(logr.New(log.NullLogSink{})),
+				RemoteConditionsGracePeriod: time.Since(time.Time{}),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -1276,9 +1334,28 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			m = &clusterv1.Machine{}
 			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).ToNot(HaveOccurred())
 
+			assertConditions(t, m, tt.conditionsToAssert...)
 			assertV1Beta1Conditions(t, m, tt.v1beta1ConditionsToAssert...)
 		})
 	}
+}
+
+type fakeController struct{}
+
+func (f fakeController) Reconcile(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
+	panic("implement me")
+}
+
+func (f fakeController) Watch(_ source.TypedSource[reconcile.Request]) error {
+	return nil
+}
+
+func (f fakeController) Start(_ context.Context) error {
+	panic("implement me")
+}
+
+func (f fakeController) GetLogger() logr.Logger {
+	panic("implement me")
 }
 
 func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
@@ -3508,6 +3585,18 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 	}
 	existingConditions = append(existingConditions, newConditions...)
 	v1beta1conditions.UnstructuredSetter(u).SetV1Beta1Conditions(existingConditions)
+}
+
+// asserts the conditions set on the Getter object.
+func assertConditions(t *testing.T, from conditions.Getter, conditionsToAssert ...metav1.Condition) {
+	t.Helper()
+
+	g := NewWithT(t)
+	for _, condition := range conditionsToAssert {
+		actualCondition := conditions.Get(from, condition.Type)
+		g.Expect(actualCondition).ToNot(BeNil(), "condition %s is missing", condition.Type)
+		g.Expect(*actualCondition).To(conditions.MatchCondition(condition, conditions.IgnoreLastTransitionTime(true)))
+	}
 }
 
 // asserts the conditions set on the Getter object.

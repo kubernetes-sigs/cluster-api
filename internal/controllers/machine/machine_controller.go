@@ -529,7 +529,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
-			// TODO (v1beta2): test for v1beta2 conditions
 			if v1beta1conditions.Get(m, clusterv1.VolumeDetachSucceededV1Beta1Condition) == nil {
 				v1beta1conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededV1Beta1Condition, clusterv1.WaitingForVolumeDetachV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}

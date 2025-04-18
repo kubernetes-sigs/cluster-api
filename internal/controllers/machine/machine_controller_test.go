@@ -1512,16 +1512,16 @@ func TestDrainNode(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	tests := []struct {
-		name                string
-		nodeName            string
-		node                *corev1.Node
-		pods                []*corev1.Pod
-		nodeDrainStartTime  *metav1.Time
-		wantCondition       *clusterv1.Condition
-		wantResult          ctrl.Result
-		wantErr             string
-		wantDeletingReason  string
-		wantDeletingMessage string
+		name                 string
+		nodeName             string
+		node                 *corev1.Node
+		pods                 []*corev1.Pod
+		nodeDrainStartTime   *metav1.Time
+		wantV1Beta1Condition *clusterv1.Condition
+		wantResult           ctrl.Result
+		wantErr              string
+		wantDeletingReason   string
+		wantDeletingMessage  string
 	}{
 		{
 			name:     "Node does not exist, no-op",
@@ -1626,7 +1626,7 @@ func TestDrainNode(t *testing.T) {
 			},
 			nodeDrainStartTime: &metav1.Time{Time: nodeDrainStartTime},
 			wantResult:         ctrl.Result{RequeueAfter: 20 * time.Second},
-			wantCondition: &clusterv1.Condition{
+			wantV1Beta1Condition: &clusterv1.Condition{
 				Type:     clusterv1.DrainingSucceededV1Beta1Condition,
 				Status:   corev1.ConditionFalse,
 				Severity: clusterv1.ConditionSeverityInfo,
@@ -1742,13 +1742,13 @@ func TestDrainNode(t *testing.T) {
 			}
 
 			gotCondition := v1beta1conditions.Get(testMachine, clusterv1.DrainingSucceededV1Beta1Condition)
-			if tt.wantCondition == nil {
+			if tt.wantV1Beta1Condition == nil {
 				g.Expect(gotCondition).To(BeNil())
 			} else {
 				g.Expect(gotCondition).ToNot(BeNil())
 				// Cleanup for easier comparison
 				gotCondition.LastTransitionTime = metav1.Time{}
-				g.Expect(gotCondition).To(BeComparableTo(tt.wantCondition))
+				g.Expect(gotCondition).To(BeComparableTo(tt.wantV1Beta1Condition))
 			}
 
 			g.Expect(s.deletingReason).To(Equal(tt.wantDeletingReason))

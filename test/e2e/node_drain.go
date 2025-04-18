@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 // NodeDrainTimeoutSpecInput is the input for NodeDrainTimeoutSpec.
@@ -552,21 +551,23 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				waitingCPMachine := &clusterv1.Machine{}
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, waitingCPMachine)).To(Succeed())
 
-				condition := v1beta1conditions.Get(waitingCPMachine, clusterv1.VolumeDetachSucceededV1Beta1Condition)
+				condition := conditions.Get(waitingCPMachine, clusterv1.MachineDeletingCondition)
 				g.Expect(condition).ToNot(BeNil())
-				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(condition.Reason).To(Equal(clusterv1.MachineDeletingWaitingForVolumeDetachReason))
 				// Deletion still not be blocked because of the volume.
-				g.Expect(condition.Message).To(ContainSubstring("Waiting for node volumes to be detached"))
+				g.Expect(condition.Message).To(ContainSubstring("Waiting for Node volumes to be detached"))
 			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
 			for _, machineKey := range drainingMDMachineKeys {
 				Eventually(func(g Gomega) {
 					drainedMDMachine := &clusterv1.Machine{}
 					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, machineKey, drainedMDMachine)).To(Succeed())
 
-					condition := v1beta1conditions.Get(drainedMDMachine, clusterv1.VolumeDetachSucceededV1Beta1Condition)
+					condition := conditions.Get(drainedMDMachine, clusterv1.MachineDeletingCondition)
 					g.Expect(condition).ToNot(BeNil())
-					g.Expect(condition.Status).To(Equal(corev1.ConditionFalse)) // Deletion still not be blocked because of the volume.
-					g.Expect(condition.Message).To(ContainSubstring("Waiting for node volumes to be detached"))
+					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+					g.Expect(condition.Reason).To(Equal(clusterv1.MachineDeletingWaitingForVolumeDetachReason)) // Deletion still not be blocked because of the volume.
+					g.Expect(condition.Message).To(ContainSubstring("Waiting for Node volumes to be detached"))
 				}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
 			}
 

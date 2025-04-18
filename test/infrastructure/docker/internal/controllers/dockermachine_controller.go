@@ -68,7 +68,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Fetch the DockerMachine instance.
 	dockerMachine := &infrav1.DockerMachine{}
-	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachine); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, dockerMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -120,7 +120,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		Namespace: dockerMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Client.Get(ctx, dockerClusterName, dockerCluster); err != nil {
+	if err := r.Get(ctx, dockerClusterName, dockerCluster); err != nil {
 		log.Info("DockerCluster is not available yet")
 		return ctrl.Result{}, nil
 	}
@@ -155,7 +155,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}()
 
 	// Handle deleted machines
-	if !devMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !devMachine.DeletionTimestamp.IsZero() {
 		return r.backendReconciler.ReconcileDelete(ctx, cluster, devCluster, machine, devMachine)
 	}
 
@@ -231,7 +231,7 @@ func (r *DockerMachineReconciler) dockerClusterToDockerMachines(ctx context.Cont
 
 	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		return nil
 	}
 	for _, m := range machineList.Items {
@@ -253,7 +253,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,
 		),
-		v1beta1conditions.WithStepCounterIf(dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(dockerMachine.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		conditions.ForConditionTypes{

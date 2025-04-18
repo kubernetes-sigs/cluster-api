@@ -1250,7 +1250,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
 	v1beta1conditions.SetSummary(inMemoryMachine,
 		v1beta1conditions.WithConditions(inMemoryMachineConditions...),
-		v1beta1conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(inMemoryMachine.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
 	)
 	if err := conditions.SetSummaryCondition(inMemoryMachine, inMemoryMachine, infrav1.DevMachineReadyV1Beta2Condition,
 		inMemoryMachineV1Beta2Conditions,

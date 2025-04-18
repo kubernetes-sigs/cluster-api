@@ -217,7 +217,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *expv1.MachinePool) error {
 	}
 
 	// Validate the metadata of the MachinePool template.
-	allErrs = append(allErrs, newObj.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, newObj.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

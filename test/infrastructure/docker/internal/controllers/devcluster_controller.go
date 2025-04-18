@@ -96,7 +96,7 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Fetch the DevCluster instance
 	devCluster := &infrav1.DevCluster{}
-	if err := r.Client.Get(ctx, req.NamespacedName, devCluster); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, devCluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}

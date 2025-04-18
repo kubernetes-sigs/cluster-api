@@ -121,7 +121,8 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Type: provider.Type,
 		}
 		providers = append(providers, p)
-		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.AddonProviderType) {
+		providerType := clusterctlv1.ProviderType(provider.Type)
+		if providerType != clusterctlv1.IPAMProviderType && providerType != clusterctlv1.RuntimeExtensionProviderType && providerType != clusterctlv1.AddonProviderType {
 			providersV1_2 = append(providersV1_2, p)
 		}
 	}
@@ -196,7 +197,7 @@ func AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath string
 	Expect(err).ToNot(HaveOccurred())
 
 	if version.LT(semver.MustParse("1.3.0")) {
-		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
+		return strings.ReplaceAll(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName)
 	}
 	return clusterctlConfigPath
 }

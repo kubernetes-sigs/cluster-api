@@ -79,7 +79,7 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("controlplane join input can't be nil")
 	}
 
-	input.WriteFiles = input.Certificates.AsFiles()
+	input.WriteFiles = input.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	input.KubeadmCommand = fmt.Sprintf(kubeadmCommandTemplate, joinSubcommand, input.KubeadmVerbosity)
 
@@ -96,7 +96,7 @@ func NewInitControlPlane(input *ControlPlaneInput) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("controlplane input can't be nil")
 	}
 
-	input.WriteFiles = input.Certificates.AsFiles()
+	input.WriteFiles = input.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	input.KubeadmCommand = fmt.Sprintf(kubeadmCommandTemplate, initSubcommand, input.KubeadmVerbosity)
 

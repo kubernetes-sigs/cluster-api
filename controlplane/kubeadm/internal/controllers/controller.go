@@ -237,7 +237,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 
 		// Only requeue if there is no error, Requeue or RequeueAfter and the object does not have a deletion timestamp.
-		if reterr == nil && res.IsZero() && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+		if reterr == nil && res.IsZero() && kcp.DeletionTimestamp.IsZero() {
 			// Make KCP requeue in case node status is not ready, so we can check for node status without waiting for a full
 			// resync (by default 10 minutes).
 			// The alternative solution would be to watch the control plane nodes in the Cluster - similar to how the
@@ -257,7 +257,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}()
 
-	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !kcp.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
 		return r.reconcileDelete(ctx, controlPlane)
 	}
@@ -292,12 +292,12 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 
 	// If we are not deleting the CP, adopt stand alone CP machines if any
 	adoptableMachines := controlPlaneMachines.Filter(collections.AdoptableControlPlaneMachines(cluster.Name))
-	if kcp.ObjectMeta.DeletionTimestamp.IsZero() && len(adoptableMachines) > 0 {
+	if kcp.DeletionTimestamp.IsZero() && len(adoptableMachines) > 0 {
 		return nil, true, r.adoptMachines(ctx, kcp, adoptableMachines, cluster)
 	}
 
 	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp))
-	if kcp.ObjectMeta.DeletionTimestamp.IsZero() && len(ownedMachines) != len(controlPlaneMachines) {
+	if kcp.DeletionTimestamp.IsZero() && len(ownedMachines) != len(controlPlaneMachines) {
 		err := errors.New("not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		log.Error(err, "KCP cannot reconcile")
 		return nil, false, err

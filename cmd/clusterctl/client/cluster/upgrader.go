@@ -371,9 +371,9 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 	// rules for out of tree providers.
 	minVersionSkew := semver.MustParse("1.10.0")
 	for _, upgradeItem := range upgradePlan.Providers {
-		if !(upgradeItem.Type == string(clusterctlv1.CoreProviderType) ||
-			(upgradeItem.Type == string(clusterctlv1.BootstrapProviderType) && upgradeItem.ProviderName == config.KubeadmBootstrapProviderName) ||
-			(upgradeItem.Type == string(clusterctlv1.ControlPlaneProviderType) && upgradeItem.ProviderName == config.KubeadmControlPlaneProviderName)) {
+		if upgradeItem.Type != string(clusterctlv1.CoreProviderType) &&
+			(upgradeItem.Type != string(clusterctlv1.BootstrapProviderType) || upgradeItem.ProviderName != config.KubeadmBootstrapProviderName) &&
+			(upgradeItem.Type != string(clusterctlv1.ControlPlaneProviderType) || upgradeItem.ProviderName != config.KubeadmControlPlaneProviderName) {
 			continue
 		}
 

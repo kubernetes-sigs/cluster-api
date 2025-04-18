@@ -147,7 +147,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 	var removeFinalizer = func(g *WithT, m *clusterv1.Machine) {
 		patchHelper, err := patch.NewHelper(m, env.GetClient())
 		g.Expect(err).ToNot(HaveOccurred())
-		m.ObjectMeta.Finalizers = nil
+		m.Finalizers = nil
 		g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	}
 
@@ -1355,7 +1355,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 	var removeFinalizer = func(g *WithT, m *clusterv1.Machine) {
 		patchHelper, err := patch.NewHelper(m, env.GetClient())
 		g.Expect(err).ToNot(HaveOccurred())
-		m.ObjectMeta.Finalizers = nil
+		m.Finalizers = nil
 		g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	}
 

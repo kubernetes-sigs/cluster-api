@@ -2620,7 +2620,7 @@ func createMachinesWithNodes(
 			machine.Finalizers = o.finalizers
 		}
 		if o.annotations != nil {
-			machine.ObjectMeta.Annotations = o.annotations
+			machine.Annotations = o.annotations
 		}
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		fmt.Printf("machine created: %s\n", machine.GetName())

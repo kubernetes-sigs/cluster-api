@@ -119,18 +119,18 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		}
 
 		if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
-			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
-			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
-			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.RemediationTemplate != nil &&
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace == "" {
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace = cluster.Namespace
 		}
 
 		if cluster.Spec.Topology.Workers != nil {
 			for i := range cluster.Spec.Topology.Workers.MachineDeployments {
 				md := cluster.Spec.Topology.Workers.MachineDeployments[i]
 				if md.MachineHealthCheck != nil &&
-					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
-					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
-					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+					md.MachineHealthCheck.RemediationTemplate != nil &&
+					md.MachineHealthCheck.RemediationTemplate.Namespace == "" {
+					md.MachineHealthCheck.RemediationTemplate.Namespace = cluster.Namespace
 				}
 			}
 		}
@@ -358,7 +358,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	// Get the ClusterClass referenced in the Cluster.
 	clusterClass, warnings, clusterClassPollErr := webhook.validateClusterClassExistsAndIsReconciled(ctx, newCluster)
 	// If the error is anything other than "NotFound" or "NotReconciled" return all errors.
-	if clusterClassPollErr != nil && !(apierrors.IsNotFound(clusterClassPollErr) || errors.Is(clusterClassPollErr, errClusterClassNotReconciled)) {
+	if clusterClassPollErr != nil && (!apierrors.IsNotFound(clusterClassPollErr) && !errors.Is(clusterClassPollErr, errClusterClassNotReconciled)) {
 		allErrs = append(
 			allErrs, field.InternalError(
 				fldPath.Child("class"),
@@ -536,7 +536,7 @@ func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.
 		return errors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
 	}
 	if cpVersion.NE(oldVersion) {
-		return fmt.Errorf("Cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) //nolint:stylecheck // capitalization is intentional
+		return fmt.Errorf("cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) // capitalization is intentional
 	}
 
 	provisioning, err := contract.ControlPlane().IsProvisioning(cp)
@@ -674,7 +674,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		fldPath := field.NewPath("spec", "topology", "controlPlane", "machineHealthCheck")
 
 		// Validate ControlPlane MachineHealthCheck if defined.
-		if !cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+		if !cluster.Spec.Topology.ControlPlane.MachineHealthCheck.IsZero() {
 			// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
 			if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
 				allErrs = append(allErrs, field.Forbidden(
@@ -693,7 +693,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		// Check if the machineHealthCheck is explicitly enabled in the ControlPlaneTopology.
 		if cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable != nil && *cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable {
 			// Ensure the MHC is defined in at least one of the ControlPlaneTopology of the Cluster or the ControlPlaneClass of the ClusterClass.
-			if cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() && clusterClass.Spec.ControlPlane.MachineHealthCheck == nil {
+			if cluster.Spec.Topology.ControlPlane.MachineHealthCheck.IsZero() && clusterClass.Spec.ControlPlane.MachineHealthCheck == nil {
 				allErrs = append(allErrs, field.Forbidden(
 					fldPath.Child("enable"),
 					fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable),
@@ -709,7 +709,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("machineHealthCheck")
 
 				// Validate the MachineDeployment MachineHealthCheck if defined.
-				if !md.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+				if !md.MachineHealthCheck.IsZero() {
 					allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,
 						&md.MachineHealthCheck.MachineHealthCheckClass)...)
 				}
@@ -722,7 +722,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 					// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
 					if md.MachineHealthCheck.Enable != nil && *md.MachineHealthCheck.Enable {
 						// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
-						if md.MachineHealthCheck.MachineHealthCheckClass.IsZero() && mdClass.MachineHealthCheck == nil {
+						if md.MachineHealthCheck.IsZero() && mdClass.MachineHealthCheck == nil {
 							allErrs = append(allErrs, field.Forbidden(
 								fldPath.Child("enable"),
 								fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *md.MachineHealthCheck.Enable),

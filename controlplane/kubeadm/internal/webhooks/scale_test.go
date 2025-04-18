@@ -129,7 +129,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 	}
 
 	kcpExternalEtcd := kcpManagedEtcd.DeepCopy()
-	kcpExternalEtcd.ObjectMeta.Name = "kcp-external-etcd"
+	kcpExternalEtcd.Name = "kcp-external-etcd"
 	kcpExternalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &bootstrapv1.ExternalEtcd{}
 
 	tests := []struct {

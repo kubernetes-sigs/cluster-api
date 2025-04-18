@@ -322,7 +322,7 @@ func TestGetNode(t *testing.T) {
 	}(nodesToCleanup...)
 
 	clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
-		SecretClient: env.Manager.GetClient(),
+		SecretClient: env.GetClient(),
 		Cache: clustercache.CacheOptions{
 			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 		},

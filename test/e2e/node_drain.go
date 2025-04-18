@@ -278,7 +278,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				Namespace:            "evictable-workload",
 				NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 				ModifyDeployment: func(deployment *appsv1.Deployment) {
-					deployment.Spec.Template.ObjectMeta.Finalizers = []string{"test.cluster.x-k8s.io/block"}
+					deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
 					for k, v := range deploymentLabels {
 						deployment.Spec.Template.Labels[k] = v
 					}
@@ -293,7 +293,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 					Namespace:            "evictable-workload",
 					NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 					ModifyDeployment: func(deployment *appsv1.Deployment) {
-						deployment.Spec.Template.ObjectMeta.Finalizers = []string{"test.cluster.x-k8s.io/block"}
+						deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
 						for k, v := range deploymentLabels {
 							deployment.Spec.Template.Labels[k] = v
 						}

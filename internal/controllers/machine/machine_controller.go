@@ -216,7 +216,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Spec.ClusterName, m.Name, m.Namespace)
@@ -232,7 +232,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !m.DeletionTimestamp.IsZero() {
 		// Check reconcileDeleteCache to ensure we won't run reconcileDelete too frequently.
 		// Note: The reconcileDelete func will add entries to the cache.
 		if cacheEntry, ok := r.reconcileDeleteCache.Has(cache.NewReconcileEntryKey(m)); ok {
@@ -270,7 +270,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Handle deletion reconciliation loop.
-	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !m.DeletionTimestamp.IsZero() {
 		reconcileDelete := append(
 			alwaysReconcile,
 			r.reconcileDelete,
@@ -298,7 +298,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			clusterv1.DrainingSucceededV1Beta1Condition,
 		),
-		v1beta1conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(machine.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
 		v1beta1conditions.WithStepCounterIfOnly(
 			clusterv1.BootstrapReadyV1Beta1Condition,
 			clusterv1.InfrastructureReadyV1Beta1Condition,
@@ -455,9 +455,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if isDeleteNodeAllowed {
 		// pre-drain.delete lifecycle hook
 		// Return early without error, will requeue if/when the hook owner removes the annotation.
-		if annotations.HasWithPrefix(clusterv1.PreDrainDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+		if annotations.HasWithPrefix(clusterv1.PreDrainDeleteHookAnnotationPrefix, m.Annotations) {
 			var hooks []string
-			for key := range m.ObjectMeta.Annotations {
+			for key := range m.Annotations {
 				if strings.HasPrefix(key, clusterv1.PreDrainDeleteHookAnnotationPrefix) {
 					hooks = append(hooks, key)
 				}
@@ -554,9 +554,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// pre-term.delete lifecycle hook
 	// Return early without error, will requeue if/when the hook owner removes the annotation.
-	if annotations.HasWithPrefix(clusterv1.PreTerminateDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+	if annotations.HasWithPrefix(clusterv1.PreTerminateDeleteHookAnnotationPrefix, m.Annotations) {
 		var hooks []string
-		for key := range m.ObjectMeta.Annotations {
+		for key := range m.Annotations {
 			if strings.HasPrefix(key, clusterv1.PreTerminateDeleteHookAnnotationPrefix) {
 				hooks = append(hooks, key)
 			}
@@ -644,7 +644,7 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 		}
 	}
 
-	if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
+	if _, exists := m.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
 		return false
 	}
 
@@ -664,7 +664,7 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 		}
 	}
 
-	if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation]; exists {
+	if _, exists := m.Annotations[clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation]; exists {
 		return false
 	}
 

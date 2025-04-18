@@ -47,7 +47,7 @@ type ClusterBackendReconciler struct {
 // NOTE: This is done at best effort in order to make iterative development workflow easier.
 func (r *ClusterBackendReconciler) HotRestart(ctx context.Context) error {
 	inMemoryClusterList := &infrav1.DevClusterList{}
-	if err := r.Client.List(ctx, inMemoryClusterList); err != nil {
+	if err := r.List(ctx, inMemoryClusterList); err != nil {
 		return err
 	}
 

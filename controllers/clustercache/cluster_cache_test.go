@@ -62,7 +62,7 @@ func TestReconcile(t *testing.T) {
 	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
 
 	opts := Options{
-		SecretClient: env.Manager.GetClient(),
+		SecretClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -71,10 +71,10 @@ func TestReconcile(t *testing.T) {
 			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
 		},
 	}
-	accessorConfig := buildClusterAccessorConfig(env.Manager.GetScheme(), opts, nil)
+	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), opts, nil)
 	cc := &clusterCache{
 		// Use APIReader to avoid cache issues when reading the Cluster object.
-		client:                env.Manager.GetAPIReader(),
+		client:                env.GetAPIReader(),
 		clusterAccessorConfig: accessorConfig,
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
 		cacheCtx:              context.Background(),
@@ -517,7 +517,7 @@ func TestClusterCacheConcurrency(t *testing.T) {
 
 	// Set up ClusterCache.
 	cc, err := SetupWithManager(ctx, env.Manager, Options{
-		SecretClient: env.Manager.GetClient(),
+		SecretClient: env.GetClient(),
 		Cache: CacheOptions{
 			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
 		},

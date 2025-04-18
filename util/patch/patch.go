@@ -180,7 +180,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	if err := h.patchStatus(ctx, obj); err != nil {
-		if !(apierrors.IsNotFound(err) && !obj.GetDeletionTimestamp().IsZero() && len(obj.GetFinalizers()) == 0) {
+		if !apierrors.IsNotFound(err) || obj.GetDeletionTimestamp().IsZero() || len(obj.GetFinalizers()) != 0 {
 			errs = append(errs, err)
 		}
 	}

@@ -42,9 +42,9 @@ func init() {
 
 func sortUpgradeItems(plan client.UpgradePlan) {
 	sort.Slice(plan.Providers, func(i, j int) bool {
-		return plan.Providers[i].Provider.Type < plan.Providers[j].Provider.Type ||
-			(plan.Providers[i].Provider.Type == plan.Providers[j].Provider.Type && plan.Providers[i].Provider.Name < plan.Providers[j].Provider.Name) ||
-			(plan.Providers[i].Provider.Type == plan.Providers[j].Provider.Type && plan.Providers[i].Provider.Name == plan.Providers[j].Provider.Name && plan.Providers[i].Provider.Namespace < plan.Providers[j].Provider.Namespace)
+		return plan.Providers[i].Type < plan.Providers[j].Type ||
+			(plan.Providers[i].Type == plan.Providers[j].Type && plan.Providers[i].Name < plan.Providers[j].Name) ||
+			(plan.Providers[i].Type == plan.Providers[j].Type && plan.Providers[i].Name == plan.Providers[j].Name && plan.Providers[i].Namespace < plan.Providers[j].Namespace)
 	})
 }
 

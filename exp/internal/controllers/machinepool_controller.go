@@ -172,9 +172,9 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, mp.ObjectMeta.Namespace, mp.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, mp.Namespace, mp.Spec.ClusterName)
 	if err != nil {
-		log.Error(err, "Failed to get Cluster for MachinePool.", "MachinePool", klog.KObj(mp), "Cluster", klog.KRef(mp.ObjectMeta.Namespace, mp.Spec.ClusterName))
+		log.Error(err, "Failed to get Cluster for MachinePool.", "MachinePool", klog.KObj(mp), "Cluster", klog.KRef(mp.Namespace, mp.Spec.ClusterName))
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machinepool %q in namespace %q",
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
 	}
@@ -230,7 +230,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	mp.Labels[clusterv1.ClusterNameLabel] = mp.Spec.ClusterName
 
 	// Handle deletion reconciliation loop.
-	if !mp.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !mp.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, mp)
 	}
 
@@ -315,7 +315,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 // isMachinePoolDeleteTimeoutPassed check the machinePool node delete time out.
 func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool *expv1.MachinePool) bool {
 	if !machinePool.DeletionTimestamp.IsZero() && machinePool.Spec.Template.Spec.NodeDeletionTimeout != nil {
-		if machinePool.Spec.Template.Spec.NodeDeletionTimeout.Duration.Nanoseconds() != 0 {
+		if machinePool.Spec.Template.Spec.NodeDeletionTimeout.Nanoseconds() != 0 {
 			deleteTimePlusDuration := machinePool.DeletionTimestamp.Add(machinePool.Spec.Template.Spec.NodeDeletionTimeout.Duration)
 			return deleteTimePlusDuration.Before(time.Now())
 		}

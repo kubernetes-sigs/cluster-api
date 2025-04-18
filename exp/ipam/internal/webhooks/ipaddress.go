@@ -150,9 +150,9 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	}
 
 	claim := &ipamv1.IPAddressClaim{}
-	err = webhook.Client.Get(ctx, types.NamespacedName{Name: ip.Spec.ClaimRef.Name, Namespace: ip.ObjectMeta.Namespace}, claim)
+	err = webhook.Client.Get(ctx, types.NamespacedName{Name: ip.Spec.ClaimRef.Name, Namespace: ip.Namespace}, claim)
 	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "Failed to fetch claim", "IPAddressClaim", klog.KRef(ip.ObjectMeta.Namespace, ip.Spec.ClaimRef.Name))
+		log.Error(err, "Failed to fetch claim", "IPAddressClaim", klog.KRef(ip.Namespace, ip.Spec.ClaimRef.Name))
 		allErrs = append(allErrs,
 			field.InternalError(
 				specPath.Child("claimRef"),
@@ -162,10 +162,10 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	}
 
 	if claim.Name != "" && // only report non-matching pool if the claim exists
-		!(ip.Spec.PoolRef.APIGroup != nil && claim.Spec.PoolRef.APIGroup != nil &&
-			*ip.Spec.PoolRef.APIGroup == *claim.Spec.PoolRef.APIGroup &&
-			ip.Spec.PoolRef.Kind == claim.Spec.PoolRef.Kind &&
-			ip.Spec.PoolRef.Name == claim.Spec.PoolRef.Name) {
+		(ip.Spec.PoolRef.APIGroup == nil || claim.Spec.PoolRef.APIGroup == nil ||
+			*ip.Spec.PoolRef.APIGroup != *claim.Spec.PoolRef.APIGroup ||
+			ip.Spec.PoolRef.Kind != claim.Spec.PoolRef.Kind ||
+			ip.Spec.PoolRef.Name != claim.Spec.PoolRef.Name) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				specPath.Child("poolRef"),

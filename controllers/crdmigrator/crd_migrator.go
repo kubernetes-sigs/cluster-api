@@ -563,5 +563,5 @@ type objectEntry struct {
 }
 
 func (r objectEntry) Key() string {
-	return fmt.Sprintf("%s %s %d", r.Kind, r.ObjectKey.String(), r.CRDGeneration)
+	return fmt.Sprintf("%s %s %d", r.Kind, r.String(), r.CRDGeneration)
 }

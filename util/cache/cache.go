@@ -89,7 +89,7 @@ func (r *cache[E]) Add(entry E) {
 // Note: entries expire after the ttl.
 func (r *cache[E]) Has(key string) (E, bool) {
 	// Note: We can ignore the error here because GetByKey never returns an error.
-	item, exists, _ := r.Store.GetByKey(key)
+	item, exists, _ := r.GetByKey(key)
 	if exists {
 		return item.(E), true
 	}

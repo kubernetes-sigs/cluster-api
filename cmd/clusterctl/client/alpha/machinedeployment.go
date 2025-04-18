@@ -91,7 +91,8 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 	)
 	for _, ms := range allMSs {
 		if v, err := revision(ms); err == nil {
-			if toRevision == 0 {
+			switch toRevision {
+			case 0:
 				if latestRevision < v {
 					// newest one we've seen so far
 					previousRevision = latestRevision
@@ -103,7 +104,7 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 					previousRevision = v
 					previousMachineSet = ms
 				}
-			} else if toRevision == v {
+			case v:
 				return ms, nil
 			}
 		}

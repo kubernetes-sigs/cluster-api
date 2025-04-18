@@ -332,7 +332,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 	gomodule := gomoduleParts[0]
 
-	includePrereleases := false
+	var includePrereleases bool
 	if strings.HasPrefix(gomoduleParts[1], "latest-") {
 		includePrereleases = true
 	}

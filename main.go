@@ -327,7 +327,7 @@ func main() {
 		minVer = version.MinimumKubernetesVersionClusterTopology
 	}
 
-	if !(remoteConditionsGracePeriod > remoteConnectionGracePeriod) {
+	if remoteConditionsGracePeriod <= remoteConnectionGracePeriod {
 		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be greater than --remote-connection-grace-period"), "Unable to start manager")
 		os.Exit(1)
 	}

@@ -58,7 +58,7 @@ type ControlPlaneJoinInput struct {
 // NewJoinControlPlane returns the user data string to be used on a new control plane instance.
 func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	// TODO: Consider validating that the correct certificates exist. It is different for external/stacked etcd
-	input.WriteFiles = input.Certificates.AsFiles()
+	input.WriteFiles = input.AsFiles()
 	input.ControlPlane = true
 	if err := input.prepare(); err != nil {
 		return nil, err

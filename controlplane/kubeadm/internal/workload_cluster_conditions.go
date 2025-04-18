@@ -566,7 +566,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		}
 
 		// If the machine is deleting, report all the conditions as deleting
-		if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !machine.DeletionTimestamp.IsZero() {
 			for _, condition := range allMachinePodConditions {
 				v1beta1conditions.MarkFalse(machine, condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 			}

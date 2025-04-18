@@ -877,8 +877,8 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	cluster1Secret := kubeconfig.GenerateSecret(cluster1, kubeconfig.FromEnvTestConfig(env.Config, cluster1))
 	cluster2Secret := kubeconfig.GenerateSecret(cluster2, kubeconfig.FromEnvTestConfig(env.Config, cluster2))
 	// Unset the ownerrefs otherwise they are invalid because they contain an empty uid.
-	cluster1Secret.ObjectMeta.OwnerReferences = nil
-	cluster2Secret.ObjectMeta.OwnerReferences = nil
+	cluster1Secret.OwnerReferences = nil
+	cluster2Secret.OwnerReferences = nil
 
 	// Create a set of setupTestEnvForIntegrationTests from the objects above to add to the API server when the test environment starts.
 	// The objects are created for every test, though some e.g. infrastructureMachineTemplate2 may not be used in every test.

@@ -232,7 +232,7 @@ func (d *Helper) daemonSetFilter(ctx context.Context, pod *corev1.Pod) PodDelete
 }
 
 func (d *Helper) mirrorPodFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
-	if _, found := pod.ObjectMeta.Annotations[corev1.MirrorPodAnnotationKey]; found {
+	if _, found := pod.Annotations[corev1.MirrorPodAnnotationKey]; found {
 		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
 		log.V(4).Info("Skip evicting static Pod")
 		return MakePodDeleteStatusSkip()
@@ -268,7 +268,7 @@ func (d *Helper) unreplicatedFilter(_ context.Context, pod *corev1.Pod) PodDelet
 
 func shouldSkipPod(pod *corev1.Pod, skipDeletedTimeoutSeconds int) bool {
 	return skipDeletedTimeoutSeconds > 0 &&
-		!pod.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!pod.DeletionTimestamp.IsZero() &&
 		int(time.Since(pod.ObjectMeta.GetDeletionTimestamp().Time).Seconds()) > skipDeletedTimeoutSeconds
 }
 
@@ -283,7 +283,7 @@ func (d *Helper) skipDeletedFilter(ctx context.Context, pod *corev1.Pod) PodDele
 
 func (d *Helper) drainLabelFilter(ctx context.Context, pod *corev1.Pod) PodDeleteStatus {
 	log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pod))
-	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found {
+	if labelValue, found := pod.Labels[clusterv1.PodDrainLabel]; found {
 		switch {
 		case strings.EqualFold(labelValue, string(clusterv1.MachineDrainRuleDrainBehaviorSkip)):
 			log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label with %s value", clusterv1.PodDrainLabel, labelValue))

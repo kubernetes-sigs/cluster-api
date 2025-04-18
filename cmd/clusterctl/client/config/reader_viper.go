@@ -93,8 +93,8 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 			return errors.Wrap(err, "failed to url parse the config path")
 		}
 
-		switch {
-		case url.Scheme == "https" || url.Scheme == "http":
+		switch url.Scheme {
+		case "https", "http":
 			var configDirectory string
 			if len(v.configPaths) > 0 {
 				configDirectory = v.configPaths[0]

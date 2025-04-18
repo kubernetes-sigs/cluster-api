@@ -261,7 +261,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	// Targets for when the node has not yet been seen by the Machine controller
 	testMachineCreated1200s := testMachine.DeepCopy()
 	nowMinus1200s := metav1.NewTime(time.Now().Add(-1200 * time.Second))
-	testMachineCreated1200s.ObjectMeta.CreationTimestamp = nowMinus1200s
+	testMachineCreated1200s.CreationTimestamp = nowMinus1200s
 
 	nodeNotYetStartedTarget1200s := healthCheckTarget{
 		Cluster: cluster,
@@ -274,7 +274,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	testMachineCreated400s := testMachine.DeepCopy()
 	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
-	testMachineCreated400s.ObjectMeta.CreationTimestamp = nowMinus400s
+	testMachineCreated400s.CreationTimestamp = nowMinus400s
 
 	nodeNotYetStartedTarget400s := healthCheckTarget{
 		Cluster: cluster,

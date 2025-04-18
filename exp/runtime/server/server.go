@@ -250,7 +250,7 @@ func (s *Server) Start(ctx context.Context) error {
 		handler := h
 
 		wrappedHandler := s.wrapHandler(handler)
-		s.Server.Register(handlerPath, http.HandlerFunc(wrappedHandler))
+		s.Register(handlerPath, http.HandlerFunc(wrappedHandler))
 	}
 
 	return s.Server.Start(ctx)

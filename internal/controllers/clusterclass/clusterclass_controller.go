@@ -124,7 +124,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	if !clusterClass.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !clusterClass.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
@@ -423,7 +423,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 	// If definitions already conflict, no need to check.
 	if !combinedVariable.DefinitionsConflict {
 		currentDefinition := combinedVariable.Definitions[0]
-		if !(currentDefinition.Required == newVariableDefinition.Required && reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) && reflect.DeepEqual(currentDefinition.Metadata, newVariableDefinition.Metadata)) {
+		if currentDefinition.Required != newVariableDefinition.Required || !reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) || !reflect.DeepEqual(currentDefinition.Metadata, newVariableDefinition.Metadata) {
 			combinedVariable.DefinitionsConflict = true
 		}
 	}

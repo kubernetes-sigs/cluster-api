@@ -74,7 +74,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	}
 
 	// Mark TopologyReconciled as false due to cluster deletion.
-	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !cluster.DeletionTimestamp.IsZero() {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,

@@ -462,7 +462,7 @@ func (r *Reconciler) MachineSetToDeployments(ctx context.Context, o client.Objec
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
-	for _, ref := range ms.ObjectMeta.GetOwnerReferences() {
+	for _, ref := range ms.GetOwnerReferences() {
 		if ref.Controller != nil && *ref.Controller {
 			return result
 		}

@@ -72,7 +72,7 @@ func resumeMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, nam
 // resumeKubeadmControlPlane removes paused annotation.
 func resumeKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
 	// In the paused annotation we must replace slashes to ~1, see https://datatracker.ietf.org/doc/html/rfc6901#section-3.
-	pausedAnnotation := strings.Replace(clusterv1.PausedAnnotation, "/", "~1", -1)
+	pausedAnnotation := strings.ReplaceAll(clusterv1.PausedAnnotation, "/", "~1")
 	patch := client.RawPatch(types.JSONPatchType, []byte(fmt.Sprintf("[{\"op\": \"remove\", \"path\": \"/metadata/annotations/%s\"}]", pausedAnnotation)))
 
 	return patchKubeadmControlPlane(ctx, proxy, name, namespace, patch)

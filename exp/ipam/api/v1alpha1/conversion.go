@@ -56,14 +56,14 @@ func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 	}
 
-	if src.ObjectMeta.Labels != nil {
-		dst.Spec.ClusterName = src.ObjectMeta.Labels[clusterv1.ClusterNameLabel]
-		if dst.ObjectMeta.Annotations != nil {
-			if clusterNameLabelWasSet, ok := dst.ObjectMeta.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"]; ok {
+	if src.Labels != nil {
+		dst.Spec.ClusterName = src.Labels[clusterv1.ClusterNameLabel]
+		if dst.Annotations != nil {
+			if clusterNameLabelWasSet, ok := dst.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"]; ok {
 				if clusterNameLabelWasSet == "false" {
-					delete(dst.ObjectMeta.Labels, clusterv1.ClusterNameLabel)
+					delete(dst.Labels, clusterv1.ClusterNameLabel)
 				}
-				delete(dst.ObjectMeta.Annotations, "conversion.cluster.x-k8s.io/cluster-name-label-set")
+				delete(dst.Annotations, "conversion.cluster.x-k8s.io/cluster-name-label-set")
 			}
 		}
 	}
@@ -99,16 +99,16 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	if src.Spec.ClusterName != "" {
-		if dst.ObjectMeta.Labels == nil {
-			dst.ObjectMeta.Labels = map[string]string{}
+		if dst.Labels == nil {
+			dst.Labels = map[string]string{}
 		}
-		if _, ok := dst.ObjectMeta.Labels[clusterv1.ClusterNameLabel]; !ok {
-			if dst.ObjectMeta.Annotations == nil {
-				dst.ObjectMeta.Annotations = map[string]string{}
+		if _, ok := dst.Labels[clusterv1.ClusterNameLabel]; !ok {
+			if dst.Annotations == nil {
+				dst.Annotations = map[string]string{}
 			}
-			dst.ObjectMeta.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"] = "false"
+			dst.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"] = "false"
 		}
-		dst.ObjectMeta.Labels[clusterv1.ClusterNameLabel] = src.Spec.ClusterName
+		dst.Labels[clusterv1.ClusterNameLabel] = src.Spec.ClusterName
 	}
 
 	// Preserve Hub data on down-conversion except for metadata

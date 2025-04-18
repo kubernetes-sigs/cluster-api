@@ -124,7 +124,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.NamespacedName.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.Name)
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
@@ -171,7 +171,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}()
 
 	// Handle deletion reconciliation loop.
-	if !ms.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !ms.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, ms)
 	}
 

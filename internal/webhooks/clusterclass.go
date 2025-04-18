@@ -240,7 +240,7 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 			if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
 				cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable != nil &&
 				*cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable &&
-				cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+				cluster.Spec.Topology.ControlPlane.MachineHealthCheck.IsZero() {
 				clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
 			}
 		}
@@ -271,7 +271,7 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 						if mdTopology.MachineHealthCheck != nil &&
 							mdTopology.MachineHealthCheck.Enable != nil &&
 							*mdTopology.MachineHealthCheck.Enable &&
-							mdTopology.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+							mdTopology.MachineHealthCheck.IsZero() {
 							clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
 							break
 						}

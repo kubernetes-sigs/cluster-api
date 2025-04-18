@@ -808,13 +808,13 @@ func withFailureDomain(fd string) machineOpt {
 
 func withAnnotation(annotation string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.ObjectMeta.Annotations = map[string]string{annotation: ""}
+		m.Annotations = map[string]string{annotation: ""}
 	}
 }
 
 func withLabels(labels map[string]string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.ObjectMeta.Labels = labels
+		m.Labels = labels
 	}
 }
 

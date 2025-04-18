@@ -354,10 +354,10 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	}
 
 	if input.EtcdImageTag != "" {
-		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag = input.EtcdImageTag
 	}
 	if input.DNSImageTag != "" {
-		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = input.DNSImageTag
 	}
 
 	Eventually(func() error {

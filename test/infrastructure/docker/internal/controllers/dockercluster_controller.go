@@ -63,7 +63,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Fetch the DockerCluster instance
 	dockerCluster := &infrav1.DockerCluster{}
-	if err := r.Client.Get(ctx, req.NamespacedName, dockerCluster); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, dockerCluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -157,7 +157,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 		v1beta1conditions.WithConditions(
 			infrav1.LoadBalancerAvailableCondition,
 		),
-		v1beta1conditions.WithStepCounterIf(dockerCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+		v1beta1conditions.WithStepCounterIf(dockerCluster.DeletionTimestamp.IsZero()),
 	)
 	if err := conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyV1Beta2Condition,
 		conditions.ForConditionTypes{

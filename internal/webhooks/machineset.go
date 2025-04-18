@@ -186,7 +186,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 			allErrs,
 			field.Invalid(
 				specPath.Child("template", "metadata", "labels"),
-				newMS.Spec.Template.ObjectMeta.Labels,
+				newMS.Spec.Template.Labels,
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
 		)
@@ -225,7 +225,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		allErrs = append(allErrs, validateMSMachineNamingStrategy(newMS.Spec.MachineNamingStrategy, specPath.Child("machineNamingStrategy"))...)
 	}
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, newMS.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, newMS.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

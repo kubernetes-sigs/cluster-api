@@ -64,7 +64,7 @@ func TestSkipDeletedFilter(t *testing.T) {
 
 		if tc.timeStampAgeSeconds > 0 {
 			dTime := &metav1.Time{Time: time.Now().Add(time.Duration(tc.timeStampAgeSeconds) * time.Second * -1)}
-			pod.ObjectMeta.SetDeletionTimestamp(dTime)
+			pod.SetDeletionTimestamp(dTime)
 		}
 
 		podDeleteStatus := h.skipDeletedFilter(context.Background(), &pod)

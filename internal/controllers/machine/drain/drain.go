@@ -500,7 +500,7 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 			}
 			// Note: the code computing stale warning for the machine deleting condition is making assumptions on the format/content of this message.
 			// Same applies for other conditions where deleting is involved, e.g. MachineSet's Deleting and ScalingDown condition.
-			failureMessage = strings.Replace(failureMessage, "Cannot evict pod as it would violate the pod's disruption budget.", "cannot evict pod as it would violate the pod's disruption budget.", -1)
+			failureMessage = strings.ReplaceAll(failureMessage, "Cannot evict pod as it would violate the pod's disruption budget.", "cannot evict pod as it would violate the pod's disruption budget.")
 			if !strings.HasPrefix(failureMessage, "cannot evict pod as it would violate the pod's disruption budget.") {
 				failureMessage = "failed to evict Pod, " + failureMessage
 			}

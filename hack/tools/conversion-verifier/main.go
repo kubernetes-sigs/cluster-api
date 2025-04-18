@@ -77,13 +77,13 @@ func main() {
 		Registry: &markers.Registry{},
 	}
 	// Register the markers.
-	if err := col.Registry.Register(groupNameMarker); err != nil {
+	if err := col.Register(groupNameMarker); err != nil {
 		klog.Fatal(err)
 	}
-	if err := col.Registry.Register(storageVersionMarker); err != nil {
+	if err := col.Register(storageVersionMarker); err != nil {
 		klog.Fatal(err)
 	}
-	if err := col.Registry.Register(nolintConversionMarker); err != nil {
+	if err := col.Register(nolintConversionMarker); err != nil {
 		klog.Fatal(err)
 	}
 

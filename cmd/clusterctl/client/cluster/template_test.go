@@ -279,9 +279,7 @@ func Test_templateClient_getRawUrlFileContent(t *testing.T) {
 func Test_templateClient_getLocalFileContent(t *testing.T) {
 	g := NewWithT(t)
 
-	tmpDir, err := os.MkdirTemp("", "cc")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
 	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
@@ -333,9 +331,7 @@ func Test_templateClient_getLocalFileContent(t *testing.T) {
 func Test_templateClient_GetFromURL(t *testing.T) {
 	g := NewWithT(t)
 
-	tmpDir, err := os.MkdirTemp("", "cc")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())

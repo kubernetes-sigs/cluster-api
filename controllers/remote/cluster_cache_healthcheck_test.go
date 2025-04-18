@@ -75,7 +75,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			go func() {
 				g.Expect(mgr.Start(mgrContext)).To(Succeed())
 			}()
-			<-env.Manager.Elected()
+			<-env.Elected()
 
 			k8sClient = mgr.GetClient()
 

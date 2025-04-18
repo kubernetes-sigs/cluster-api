@@ -114,7 +114,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Fetch the DevMachine instance.
 	devMachine := &infrav1.DevMachine{}
-	if err := r.Client.Get(ctx, req.NamespacedName, devMachine); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, devMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -181,7 +181,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Namespace: devMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Client.Get(ctx, devClusterName, devCluster); err != nil {
+	if err := r.Get(ctx, devClusterName, devCluster); err != nil {
 		log.Info("DevCluster is not available yet")
 		return ctrl.Result{}, nil
 	}
@@ -196,7 +196,7 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}()
 
 	// Handle deleted machines
-	if !devMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !devMachine.DeletionTimestamp.IsZero() {
 		return backendReconciler.ReconcileDelete(ctx, cluster, devCluster, machine, devMachine)
 	}
 
@@ -238,7 +238,7 @@ func (r *DevMachineReconciler) DevClusterToDevMachines(ctx context.Context, o cl
 
 	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		return nil
 	}
 	for _, m := range machineList.Items {

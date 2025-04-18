@@ -347,7 +347,7 @@ func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installO
 	// the number of objects when version of objects are equal
 	relevantObjs := []unstructured.Unstructured{}
 	for _, o := range objs {
-		if !(o.GetKind() == "Endpoints" || o.GetKind() == "EndpointSlice") {
+		if o.GetKind() != "Endpoints" && o.GetKind() != "EndpointSlice" {
 			relevantObjs = append(relevantObjs, o)
 		}
 	}

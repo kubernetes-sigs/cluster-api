@@ -18,7 +18,6 @@ package client
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -142,11 +141,7 @@ func Test_clusterctlClient_Move(t *testing.T) {
 }
 
 func Test_clusterctlClient_ToDirectory(t *testing.T) {
-	dir, err := os.MkdirTemp("/tmp", "cluster-api")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	type fields struct {
 		client *fakeClient
@@ -207,11 +202,7 @@ func Test_clusterctlClient_ToDirectory(t *testing.T) {
 }
 
 func Test_clusterctlClient_FromDirectory(t *testing.T) {
-	dir, err := os.MkdirTemp("/tmp", "cluster-api")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	type fields struct {
 		client *fakeClient

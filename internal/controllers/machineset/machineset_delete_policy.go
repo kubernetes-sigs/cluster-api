@@ -48,16 +48,16 @@ func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return shouldDelete
 	}
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
-	if machine.ObjectMeta.CreationTimestamp.Time.IsZero() {
+	if machine.CreationTimestamp.Time.IsZero() {
 		return mustNotDelete
 	}
-	d := metav1.Now().Sub(machine.ObjectMeta.CreationTimestamp.Time)
+	d := metav1.Now().Sub(machine.CreationTimestamp.Time)
 	if d.Seconds() < 0 {
 		return mustNotDelete
 	}
@@ -68,7 +68,7 @@ func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return shouldDelete
 	}
 	if !isMachineHealthy(machine) {
@@ -81,7 +81,7 @@ func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return shouldDelete
 	}
 	if !isMachineHealthy(machine) {

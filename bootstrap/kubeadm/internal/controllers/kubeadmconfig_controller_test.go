@@ -46,7 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -301,7 +300,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 }
 
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
@@ -342,7 +341,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	actualResult, actualError := k.Reconcile(ctx, request)
 	g.Expect(actualResult).To(BeComparableTo(expectedResult))
 	g.Expect(actualError).ToNot(HaveOccurred())
-	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureV1Beta1Reason)
+	assertHasFalseCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
 }
 
 // Return early If the owning machine does not have an associated cluster.
@@ -474,7 +473,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
-			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason)
+			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
 		})
 	}
 }
@@ -534,8 +533,8 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	g.Expect(cfg.Status.Initialization.DataSecretCreated).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 
 	// Expect the Secret to exist, and for it to contain some data under the "value" key.
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName}, s)).To(Succeed())
@@ -587,8 +586,8 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	g.Expect(err).ToNot(HaveOccurred())
 	actualConfig := &bootstrapv1.KubeadmConfig{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: controlPlaneJoinConfig.Namespace, Name: controlPlaneJoinConfig.Name}, actualConfig)).To(Succeed())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
 }
 
 // If there is no APIEndpoint but everything is ready then requeue in hopes of a new APIEndpoint showing up eventually.
@@ -636,9 +635,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: workerJoinConfig.Namespace, Name: workerJoinConfig.Name}, actualConfig)).To(Succeed())
 
 	// At this point the DataSecretAvailableCondition should not be set. CertificatesAvailableCondition should be true.
-	// TODO (v1beta2): test for v1beta2 conditions
-	g.Expect(v1beta1conditions.Get(actualConfig, bootstrapv1.DataSecretAvailableV1Beta1Condition)).To(BeNil())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
+	g.Expect(conditions.Get(actualConfig, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)).To(BeNil())
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
 }
 
 func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsReady(t *testing.T) {
@@ -717,7 +715,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			g.Expect(cfg.Status.Initialization.DataSecretCreated).To(BeTrue())
 			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 			g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
-			assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+			assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 
 			l := &corev1.SecretList{}
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
@@ -2728,7 +2726,7 @@ func (m *myInitLocker) Unlock(_ context.Context, _ *clusterv1.Cluster) bool {
 	return true
 }
 
-func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request, t clusterv1.ConditionType, s clusterv1.ConditionSeverity, r string) {
+func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string, reason string) {
 	config := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -2738,15 +2736,13 @@ func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request,
 
 	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(config, t)
+	c := conditions.Get(config, conditionType)
 	g.Expect(c).ToNot(BeNil())
-	g.Expect(c.Status).To(Equal(corev1.ConditionFalse))
-	g.Expect(c.Severity).To(Equal(s))
-	g.Expect(c.Reason).To(Equal(r))
+	g.Expect(c.Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(c.Reason).To(Equal(reason))
 }
 
-func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, t clusterv1.ConditionType) {
+func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string) {
 	config := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -2755,10 +2751,9 @@ func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, 
 	}
 	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(config, t)
+	c := conditions.Get(config, conditionType)
 	g.Expect(c).ToNot(BeNil())
-	g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
+	g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
 }
 
 func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {

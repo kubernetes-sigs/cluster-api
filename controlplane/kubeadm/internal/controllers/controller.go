@@ -893,10 +893,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 	// Note: The Machine controller uses the ControlPlaneInitialized condition on the Cluster instead for
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.
-	// TODO (v1beta2): Once we moved to v1beta2 conditions we should use the `Initialized` condition instead.
-	controlPlaneInitialized := v1beta1conditions.Get(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+	controlPlaneInitialized := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
 	if controlPlane.KCP.Status.Initialization == nil || !controlPlane.KCP.Status.Initialization.ControlPlaneInitialized ||
-		controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
+		controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
 		// Overwrite conditions to InspectionFailed.
 		setConditionsToUnknown(setConditionsToUnknownInput{
 			ControlPlane:                        controlPlane,

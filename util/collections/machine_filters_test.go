@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
@@ -89,22 +90,35 @@ func TestUnhealthyFilters(t *testing.T) {
 	t.Run("healthy machine (with HealthCheckSucceeded condition == True) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeFalse())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine NOT eligible for KCP remediation (with withHealthCheckSucceeded condition == False but without OwnerRemediated) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine eligible for KCP (with HealthCheckSucceeded condition == False and with OwnerRemediated) should return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		})
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeTrue())
 	})

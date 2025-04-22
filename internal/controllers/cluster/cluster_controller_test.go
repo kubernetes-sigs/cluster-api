@@ -84,7 +84,7 @@ func TestClusterReconciler(t *testing.T) {
 			return len(instance.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
-		// Validate the RemoteConnectionProbe condition is false (because kubeconfig Secret doesn't exist)
+		// Validate the RemoteConnectionProbe v1beta1Condition is false (because kubeconfig Secret doesn't exist)
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
 

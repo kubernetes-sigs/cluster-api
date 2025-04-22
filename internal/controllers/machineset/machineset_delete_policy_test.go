@@ -81,14 +81,10 @@ func TestMachineToDelete(t *testing.T) {
 	healthCheckSucceededConditionFalseMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 		},
@@ -96,14 +92,10 @@ func TestMachineToDelete(t *testing.T) {
 	healthCheckSucceededConditionUnknownMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-							Status: corev1.ConditionUnknown,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: metav1.ConditionUnknown,
 				},
 			},
 		},

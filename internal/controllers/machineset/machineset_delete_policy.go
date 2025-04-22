@@ -21,12 +21,10 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 type (
@@ -148,8 +146,8 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	if conditions.IsFalse(machine, clusterv1.MachineNodeReadyCondition) {
 		return false
 	}
-	healthCheckCondition := v1beta1conditions.Get(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
-	if healthCheckCondition != nil && healthCheckCondition.Status == corev1.ConditionFalse {
+	healthCheckCondition := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	if healthCheckCondition != nil && healthCheckCondition.Status == metav1.ConditionFalse {
 		return false
 	}
 	return true

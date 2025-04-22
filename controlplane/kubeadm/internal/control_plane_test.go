@@ -30,7 +30,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestControlPlane(t *testing.T) {
@@ -151,14 +150,32 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 	healthyMachineNotProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
 	// healthy machine (with MachineHealthCheckSucceded == true)
 	healthyMachineProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node1"}}}
-	v1beta1conditions.MarkTrue(healthyMachineProvisioned, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+	healthyMachineProvisioned.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+		},
+	})
 	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
 	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node2"}}}
-	v1beta1conditions.MarkFalse(unhealthyMachineNOTOwnerRemediated, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Something is wrong")
+	unhealthyMachineNOTOwnerRemediated.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
 	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
 	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node3"}}}
-	v1beta1conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Something is wrong")
-	v1beta1conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KCP should remediate this issue")
+	unhealthyMachineOwnerRemediated.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
 
 	t.Run("One unhealthy machine to be remediated by KCP", func(t *testing.T) {
 		c := ControlPlane{
@@ -219,14 +236,30 @@ func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 
 	// unhealthy machine (with MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
 	unhealthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineStillProvisioning1"}}
-	v1beta1conditions.MarkFalse(unhealthyMachineStillProvisioning1, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Something is wrong")
-	v1beta1conditions.MarkFalse(unhealthyMachineStillProvisioning1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KCP should remediate this issue")
+	unhealthyMachineStillProvisioning1.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
 
 	// unhealthy machine (with MachineHealthCheckSucceded condition) provisioned (with NodeRef)
 	unhealthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineProvisioned1"}}
 	unhealthyMachineProvisioned1.Status.NodeRef = &corev1.ObjectReference{}
-	v1beta1conditions.MarkFalse(unhealthyMachineProvisioned1, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Something is wrong")
-	v1beta1conditions.MarkFalse(unhealthyMachineProvisioned1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KCP should remediate this issue")
+	unhealthyMachineProvisioned1.SetConditions([]metav1.Condition{
+		{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		},
+		{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		},
+	})
 
 	t.Run("Healthy machine still provisioning", func(t *testing.T) {
 		c := ControlPlane{
@@ -302,9 +335,9 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 
 	machineMarkedForRemediation := healthyMachine.DeepCopy()
 	machineMarkedForRemediation.Name = "marked-for-remediation"
-	machineMarkedForRemediation.Status.Deprecated.V1Beta1.Conditions = append(machineMarkedForRemediation.Status.Deprecated.V1Beta1.Conditions,
-		clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta1Condition, Status: corev1.ConditionFalse},
-		clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse},
+	machineMarkedForRemediation.Status.Conditions = append(machineMarkedForRemediation.Status.Conditions,
+		metav1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionFalse},
+		metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse},
 	)
 
 	g := NewWithT(t)

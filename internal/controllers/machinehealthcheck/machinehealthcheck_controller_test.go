@@ -555,7 +555,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
 
@@ -574,10 +574,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
 					continue
 				}
 
@@ -665,7 +665,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
 
@@ -684,10 +684,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
 					continue
 				}
 
@@ -1433,7 +1433,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		})).To(Succeed())
 
 		for i := range machines.Items {
-			if v1beta1conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) != nil {
+			if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
 				unhealthyMachine = machines.Items[i].DeepCopy()
 			}
 		}

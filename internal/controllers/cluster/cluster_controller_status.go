@@ -56,7 +56,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters
 	// and Available, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
 
-	// TODO: This should be removed once the UpToDate condition has been implemented for MachinePool Machines
+	// TODO: This should be removed once the UpToDate v1beta1Condition has been implemented for MachinePool Machines
 	isMachinePoolMachine := func(machine *clusterv1.Machine) bool {
 		_, isMachinePoolMachine := machine.Labels[clusterv1.MachinePoolNameLabel]
 		return isMachinePoolMachine
@@ -295,7 +295,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 			return
 		}
 
-		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// In case v1beta1Condition has NoReasonReported and status true, we assume it is a v1beta1 v1beta1Condition
 		// and replace the reason with something less confusing.
 		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
 			ready.Reason = clusterv1.ClusterInfrastructureReadyReason
@@ -396,7 +396,7 @@ func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Clu
 			return
 		}
 
-		// In case condition has NoReasonReported and status true, we assume it is a v1beta1 condition
+		// In case v1beta1Condition has NoReasonReported and status true, we assume it is a v1beta1 v1beta1Condition
 		// and replace the reason with something less confusing.
 		if available.Reason == conditions.NoReasonReported && available.Status == metav1.ConditionTrue {
 			available.Reason = clusterv1.ClusterControlPlaneAvailableReason
@@ -653,9 +653,9 @@ func setWorkerMachinesReadyCondition(ctx context.Context, cluster *clusterv1.Clu
 }
 
 func setControlPlaneMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.Cluster, machines collections.Machines, getDescendantsSucceeded bool) {
-	// Only consider Machines that have an UpToDate condition or are older than 10s.
-	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
-	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	// Only consider Machines that have an UpToDate v1beta1Condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate v1beta1Condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate v1beta1Condition is set on a new Machine.
 	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
 		return conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
 	})
@@ -672,9 +672,9 @@ func setControlPlaneMachinesUpToDateCondition(ctx context.Context, cluster *clus
 }
 
 func setWorkerMachinesUpToDateCondition(ctx context.Context, cluster *clusterv1.Cluster, machines collections.Machines, getDescendantsSucceeded bool) {
-	// Only consider Machines that have an UpToDate condition or are older than 10s.
-	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
-	// because it can take a bit until the UpToDate condition is set on a new Machine.
+	// Only consider Machines that have an UpToDate v1beta1Condition or are older than 10s.
+	// This is done to ensure the MachinesUpToDate v1beta1Condition doesn't flicker after a new Machine is created,
+	// because it can take a bit until the UpToDate v1beta1Condition is set on a new Machine.
 	machines = machines.Filter(func(machine *clusterv1.Machine) bool {
 		return conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
 	})
@@ -777,7 +777,7 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedCondition,
 		conditions.TargetConditionType(clusterv1.ClusterRemediatingCondition),
 		// Note: in case of the remediating conditions it is not required to use a CustomMergeStrategy/ComputeReasonFunc
-		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the condition).
+		// because we are considering only machinesToBeRemediated (and we can pin the reason when we set the v1beta1Condition).
 	)
 	if err != nil {
 		conditions.Set(cluster, metav1.Condition{
@@ -816,7 +816,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 
 	ws := make([]aggregationWrapper, 0, len(machinePools.Items)+len(machineDeployments.Items)+1)
 	if controlPlane != nil {
-		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
+		// control plane is considered only if it is reporting the v1beta1Condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions RollingOut not yet reported from ...".
 		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.RollingOutCondition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
@@ -841,7 +841,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 	rollingOutCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.RollingOutCondition,
 		conditions.TargetConditionType(clusterv1.ClusterRollingOutCondition),
-		// Instruct aggregate to consider RollingOut condition with negative polarity.
+		// Instruct aggregate to consider RollingOut v1beta1Condition with negative polarity.
 		conditions.NegativePolarityConditionTypes{clusterv1.RollingOutCondition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the RollingOut has negative polarity.
@@ -887,7 +887,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 
 	ws := make([]aggregationWrapper, 0, len(machinePools.Items)+len(machineDeployments.Items)+1)
 	if controlPlane != nil {
-		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
+		// control plane is considered only if it is reporting the v1beta1Condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions ScalingUp not yet reported from ...".
 		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.ScalingUpCondition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
@@ -918,7 +918,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	scalingUpCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingUpCondition,
 		conditions.TargetConditionType(clusterv1.ClusterScalingUpCondition),
-		// Instruct aggregate to consider ScalingUp condition with negative polarity.
+		// Instruct aggregate to consider ScalingUp v1beta1Condition with negative polarity.
 		conditions.NegativePolarityConditionTypes{clusterv1.ScalingUpCondition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the ScalingUp has negative polarity.
@@ -964,7 +964,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 
 	ws := make([]aggregationWrapper, 0, len(machinePools.Items)+len(machineDeployments.Items)+1)
 	if controlPlane != nil {
-		// control plane is considered only if it is reporting the condition (the contract does not require conditions to be reported)
+		// control plane is considered only if it is reporting the v1beta1Condition (the contract does not require conditions to be reported)
 		// Note: this implies that it won't surface as "Conditions ScalingDown not yet reported from ...".
 		if c, err := conditions.UnstructuredGet(controlPlane, clusterv1.ScalingDownCondition); err == nil && c != nil {
 			ws = append(ws, aggregationWrapper{cp: controlPlane})
@@ -995,7 +995,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 	scalingDownCondition, err := conditions.NewAggregateCondition(
 		ws, clusterv1.ScalingDownCondition,
 		conditions.TargetConditionType(clusterv1.ClusterScalingDownCondition),
-		// Instruct aggregate to consider ScalingDown condition with negative polarity.
+		// Instruct aggregate to consider ScalingDown v1beta1Condition with negative polarity.
 		conditions.NegativePolarityConditionTypes{clusterv1.ScalingDownCondition},
 		// Using a custom merge strategy to override reasons applied during merge and to ensure merge
 		// takes into account the fact the ScalingDown has negative polarity.
@@ -1061,7 +1061,7 @@ func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 				}
 			}
 
-			// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled condition as info.
+			// Treat all reasons except TopologyReconcileFailed and ClusterClassNotReconciled of TopologyReconciled v1beta1Condition as info.
 			if condition.Type == clusterv1.ClusterTopologyReconciledCondition && condition.Status == metav1.ConditionFalse &&
 				condition.Reason != clusterv1.ClusterTopologyReconciledFailedReason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason {
 				return conditions.InfoMergePriority
@@ -1101,14 +1101,14 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 
 	summaryOpts := []conditions.SummaryOption{
 		forConditionTypes,
-		// Instruct summary to consider Deleting condition with negative polarity.
+		// Instruct summary to consider Deleting v1beta1Condition with negative polarity.
 		conditions.NegativePolarityConditionTypes{clusterv1.ClusterDeletingCondition},
 		// Using a custom merge strategy to override reasons applied during merge and to ignore some
-		// info message so the available condition is less noisy.
+		// info message so the available v1beta1Condition is less noisy.
 		conditions.CustomMergeStrategy{
 			MergeStrategy: clusterConditionCustomMergeStrategy{
 				cluster: cluster,
-				// Instruct merge to consider Deleting condition with negative polarity,
+				// Instruct merge to consider Deleting v1beta1Condition with negative polarity,
 				negativePolarityConditionTypes: negativePolarityConditionTypes,
 			},
 		},
@@ -1122,7 +1122,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
 		// that we are passing a non empty list of ForConditionTypes.
-		log.Error(err, "Failed to set Available condition")
+		log.Error(err, "Failed to set Available v1beta1Condition")
 		availableCondition = &metav1.Condition{
 			Type:    clusterv1.ClusterAvailableCondition,
 			Status:  metav1.ConditionUnknown,

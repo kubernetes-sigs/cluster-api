@@ -154,7 +154,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 		return ctrl.Result{}, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Add finalizer first if not set to avoid the race v1beta1Condition between init and delete.
 	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, cluster, clusterv1.ClusterFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
@@ -243,7 +243,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	// Handle normal reconciliation loop.
 	if cluster.Spec.Topology != nil {
 		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {
-			// TODO: add a condition to surface this scenario
+			// TODO: add a v1beta1Condition to surface this scenario
 			log.Info("Waiting for the topology to be generated")
 			return ctrl.Result{}, nil
 		}
@@ -351,10 +351,10 @@ type scope struct {
 	// getDescendantsSucceeded documents if getDescendants succeeded.
 	getDescendantsSucceeded bool
 
-	// deletingReason is the reason that should be used when setting the Deleting condition.
+	// deletingReason is the reason that should be used when setting the Deleting v1beta1Condition.
 	deletingReason string
 
-	// deletingMessage is the message that should be used when setting the Deleting condition.
+	// deletingMessage is the message that should be used when setting the Deleting v1beta1Condition.
 	deletingMessage string
 }
 

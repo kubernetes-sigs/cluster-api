@@ -3570,7 +3570,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 
 // adds a condition list to an external object.
 func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
-	unstructured.SetNestedSlice(u.Object, []interface{}{
+	err := unstructured.SetNestedSlice(u.Object, []interface{}{
 		map[string]interface{}{
 			"type":    c.Type,
 			"status":  string(c.Status),
@@ -3578,6 +3578,9 @@ func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 			"message": c.Message,
 		},
 	}, "status", "conditions")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // asserts the conditions set on the Getter object.

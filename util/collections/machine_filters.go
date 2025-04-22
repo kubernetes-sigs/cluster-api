@@ -156,8 +156,7 @@ func IsUnhealthyAndOwnerRemediated(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
-	// TODO (v1beta2): test for v1beta2 conditions
-	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
 }
 
 // IsUnhealthy returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
@@ -166,8 +165,7 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
-	// TODO (v1beta2): test for v1beta2 conditions
-	return v1beta1conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition)
 }
 
 // HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that

@@ -1415,10 +1415,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// reports that remediation has been completed and the Machine has been deleted.
 	for _, m := range machines {
 		if !m.DeletionTimestamp.IsZero() {
-			// TODO (v1beta2): test for v1beta2 conditions
-			// TODO: Check for Status: False and Reason: MachineSetMachineRemediationMachineDeletingV1Beta2Reason
-			// instead when starting to use v1beta2 conditions for control flow.
-			if v1beta1conditions.IsTrue(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+			if c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition); c != nil && c.Status == metav1.ConditionFalse && c.Reason == clusterv1.MachineSetMachineRemediationMachineDeletingReason {
 				// Remediation for this Machine has been triggered by this controller but it is still in flight,
 				// i.e. it still goes through the deletion workflow and exists in etcd.
 				maxInFlight--
@@ -1534,7 +1531,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	return ctrl.Result{}, nil
 }
 
-func patchMachineConditions(ctx context.Context, c client.Client, machines []*clusterv1.Machine, v1beta2Condition metav1.Condition, condition *clusterv1.Condition) error {
+func patchMachineConditions(ctx context.Context, c client.Client, machines []*clusterv1.Machine, condition metav1.Condition, v1beta1condition *clusterv1.Condition) error {
 	var errs []error
 	for _, m := range machines {
 		patchHelper, err := patch.NewHelper(m, c)
@@ -1543,10 +1540,10 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 			continue
 		}
 
-		if condition != nil {
-			v1beta1conditions.Set(m, condition)
+		if v1beta1condition != nil {
+			v1beta1conditions.Set(m, v1beta1condition)
 		}
-		conditions.Set(m, v1beta2Condition)
+		conditions.Set(m, condition)
 
 		if err := patchHelper.Patch(ctx, m,
 			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{

@@ -278,7 +278,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
 	version := "1.10"
-	stableRelease, err := GetLatestReleaseOfMinor(ctx, version) // NOTE: use GetStableReleaseOfMinor as soon as v1.10 is GA
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
@@ -313,7 +313,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
 	version := "1.10"
-	stableRelease, err := GetLatestReleaseOfMinor(ctx, version) // NOTE: use GetStableReleaseOfMinor as soon as v1.10 is GA
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))

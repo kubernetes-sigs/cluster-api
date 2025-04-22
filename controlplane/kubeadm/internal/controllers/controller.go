@@ -250,8 +250,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			// status without waiting for a full resync (by default 10 minutes).
 			// Otherwise this condition can lead to a delay in provisioning MachineDeployments when MachineSet preflight checks are enabled.
 			// The alternative solution to this requeue would be watching the relevant pods inside each workload cluster which would be very expensive.
-			// TODO (v1beta2): test for v1beta2 conditions
-			if v1beta1conditions.IsFalse(kcp, controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition) {
+			if conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 		}
@@ -1101,8 +1100,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	// Potential inconsistencies between the list of members and the list of machines/nodes are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyV1Beta1Condition) {
+	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
 		return nil
 	}
 

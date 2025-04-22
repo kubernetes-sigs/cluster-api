@@ -3828,9 +3828,8 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 }
 
 func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
-	// TODO (v1beta2):use v1beta2 conditions
-	v1beta1conditions.MarkTrue(kcp, controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(kcp, controlplanev1.EtcdClusterHealthyV1Beta1Condition)
+	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue})
 }
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {

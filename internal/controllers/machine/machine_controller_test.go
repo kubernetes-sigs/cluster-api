@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1142,20 +1143,17 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: true,
 			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
-				addConditionsToExternal(infra, clusterv1.Conditions{
-					{
-						Type:     clusterv1.ReadyV1Beta1Condition,
-						Status:   corev1.ConditionFalse,
-						Severity: clusterv1.ConditionSeverityInfo,
-						Reason:   "Custom reason",
-					},
+				addConditionToExternal(infra, metav1.Condition{
+					Type:   contract.InfrastructureMachine().ReadyConditionType(),
+					Status: metav1.ConditionFalse,
+					Reason: "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, "Custom reason", "", ""),
 			},
 		},
 		{
@@ -1176,20 +1174,17 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: false,
 			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
-				addConditionsToExternal(bootstrap, clusterv1.Conditions{
-					{
-						Type:     clusterv1.ReadyV1Beta1Condition,
-						Status:   corev1.ConditionFalse,
-						Severity: clusterv1.ConditionSeverityInfo,
-						Reason:   "Custom reason",
-					},
+				addConditionToExternal(bootstrap, metav1.Condition{
+					Type:   contract.Bootstrap().ReadyConditionType(),
+					Status: metav1.ConditionFalse,
+					Reason: "Custom reason",
 				})
 			},
 			conditionsToAssert: []metav1.Condition{
 				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: "Custom reason", Message: ""},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
-				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", clusterv1.ConditionSeverityInfo, ""),
+				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, "Custom reason", "", ""),
 			},
 		},
 		{
@@ -3574,13 +3569,15 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 }
 
 // adds a condition list to an external object.
-func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
-	existingConditions := clusterv1.Conditions{}
-	if cs := v1beta1conditions.UnstructuredGetter(u).GetV1Beta1Conditions(); len(cs) != 0 {
-		existingConditions = cs
-	}
-	existingConditions = append(existingConditions, newConditions...)
-	v1beta1conditions.UnstructuredSetter(u).SetV1Beta1Conditions(existingConditions)
+func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
+	unstructured.SetNestedSlice(u.Object, []interface{}{
+		map[string]interface{}{
+			"type":    c.Type,
+			"status":  string(c.Status),
+			"reason":  c.Reason,
+			"message": c.Message,
+		},
+	}, "status", "conditions")
 }
 
 // asserts the conditions set on the Getter object.

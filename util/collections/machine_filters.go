@@ -28,6 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
@@ -212,8 +213,7 @@ func IsReady() Func {
 		if machine == nil {
 			return false
 		}
-		// TODO (v1beta2): test for v1beta2 conditions
-		return v1beta1conditions.IsTrue(machine, clusterv1.ReadyV1Beta1Condition)
+		return conditions.IsTrue(machine, clusterv1.MachineReadyCondition)
 	}
 }
 

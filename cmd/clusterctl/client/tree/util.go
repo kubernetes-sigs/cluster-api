@@ -35,8 +35,8 @@ import (
 // GroupVersionVirtualObject is the group version for VirtualObject.
 var GroupVersionVirtualObject = schema.GroupVersion{Group: "virtual.cluster.x-k8s.io", Version: clusterv1.GroupVersion.Version}
 
-// GetReadyV1Beta2Condition returns the ReadyCondition for an object, if defined.
-func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
+// GetReadyCondition returns the ReadyCondition for an object, if defined.
+func GetReadyCondition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
 		return conditions.Get(getter, clusterv1.ReadyCondition)
 	}
@@ -52,8 +52,8 @@ func GetReadyV1Beta2Condition(obj client.Object) *metav1.Condition {
 	return nil
 }
 
-// GetAvailableV1Beta2Condition returns the AvailableCondition for an object, if defined.
-func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
+// GetAvailableCondition returns the AvailableCondition for an object, if defined.
+func GetAvailableCondition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
 		return conditions.Get(getter, clusterv1.AvailableCondition)
 	}
@@ -69,17 +69,17 @@ func GetAvailableV1Beta2Condition(obj client.Object) *metav1.Condition {
 	return nil
 }
 
-// GetMachineUpToDateV1Beta2Condition returns machine's UpToDate condition, if defined.
+// GetMachineUpToDateCondition returns machine's UpToDate condition, if defined.
 // Note: The UpToDate condition only exist on machines, so no need to support reading from unstructured.
-func GetMachineUpToDateV1Beta2Condition(obj client.Object) *metav1.Condition {
+func GetMachineUpToDateCondition(obj client.Object) *metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
 		return conditions.Get(getter, clusterv1.MachineUpToDateCondition)
 	}
 	return nil
 }
 
-// GetReadyCondition returns the ReadyCondition for an object, if defined.
-func GetReadyCondition(obj client.Object) *clusterv1.Condition {
+// GetV1Beta1ReadyCondition returns the ReadyCondition for an object, if defined.
+func GetV1Beta1ReadyCondition(obj client.Object) *clusterv1.Condition {
 	getter := objToGetter(obj)
 	if getter == nil {
 		return nil
@@ -87,8 +87,8 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 	return v1beta1conditions.Get(getter, clusterv1.ReadyV1Beta1Condition)
 }
 
-// GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
-func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
+// GetConditions returns conditions for an object, if defined.
+func GetConditions(obj client.Object) []metav1.Condition {
 	if getter, ok := obj.(conditions.Getter); ok {
 		return getter.GetConditions()
 	}
@@ -104,8 +104,8 @@ func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
 	return nil
 }
 
-// GetOtherConditions returns the other conditions (all the conditions except ready) for an object, if defined.
-func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
+// GetOtherV1Beta1Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
+func GetOtherV1Beta1Conditions(obj client.Object) []*clusterv1.Condition {
 	getter := objToGetter(obj)
 	if getter == nil {
 		return nil
@@ -122,19 +122,19 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 	return conditions
 }
 
-func setAvailableV1Beta2Condition(obj client.Object, available *metav1.Condition) {
+func setAvailableCondition(obj client.Object, available *metav1.Condition) {
 	if setter, ok := obj.(conditions.Setter); ok {
 		conditions.Set(setter, *available)
 	}
 }
 
-func setReadyV1Beta2Condition(obj client.Object, ready *metav1.Condition) {
+func setReadyCondition(obj client.Object, ready *metav1.Condition) {
 	if setter, ok := obj.(conditions.Setter); ok {
 		conditions.Set(setter, *ready)
 	}
 }
 
-func setUpToDateV1Beta2Condition(obj client.Object, upToDate *metav1.Condition) {
+func setUpToDateCondition(obj client.Object, upToDate *metav1.Condition) {
 	if setter, ok := obj.(conditions.Setter); ok {
 		conditions.Set(setter, *upToDate)
 	}

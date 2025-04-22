@@ -293,16 +293,12 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "healthy"},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{Name: "healthy-node"},
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: []clusterv1.Condition{
-						{Type: controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, Status: corev1.ConditionTrue},
-						{Type: controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, Status: corev1.ConditionTrue},
-						{Type: controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, Status: corev1.ConditionTrue},
-						{Type: controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, Status: corev1.ConditionTrue},
-						{Type: controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, Status: corev1.ConditionTrue},
-					},
-				},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
 			},
 		},
 	}
@@ -311,16 +307,12 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
 		Status: clusterv1.MachineStatus{
 			NodeRef: nil,
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: []clusterv1.Condition{
-						{Type: controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, Status: corev1.ConditionUnknown},
-						{Type: controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, Status: corev1.ConditionUnknown},
-						{Type: controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, Status: corev1.ConditionUnknown},
-						{Type: controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, Status: corev1.ConditionUnknown},
-						{Type: controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, Status: corev1.ConditionFalse}, // not a real use case, but used to test a code branch.
-					},
-				},
+			Conditions: []metav1.Condition{
+				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionUnknown},
+				{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse}, // not a real use case, but used to test a code branch.
 			},
 		},
 	}

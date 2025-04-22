@@ -3918,12 +3918,11 @@ func setMachineHealthy(m *clusterv1.Machine) {
 		Kind: "Node",
 		Name: "node-1",
 	}
-	// TODO (v1beta2):use v1beta2 conditions
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition)
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue})
 }
 
 // newCluster return a CAPI cluster object.

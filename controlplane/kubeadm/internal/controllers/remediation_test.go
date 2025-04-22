@@ -2107,25 +2107,25 @@ func withStuckRemediation() machineOption {
 
 func withHealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
-		v1beta1conditions.MarkTrue(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition)
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyReason})
 	}
 }
 
 func withUnhealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
-		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, controlplanev1.EtcdMemberUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "")
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineEtcdMemberNotHealthyReason})
 	}
 }
 
 func withHealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		v1beta1conditions.MarkTrue(machine, controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition)
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
 	}
 }
 
 func withUnhealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		v1beta1conditions.MarkFalse(machine, controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "")
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
 	}
 }
 

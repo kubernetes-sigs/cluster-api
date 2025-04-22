@@ -29,7 +29,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 // Func is the functon definition for a filter.
@@ -173,15 +172,15 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 // APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy & EtcdMemberHealthy (if using managed etcd).
 // It is different from the HasUnhealthyCondition func which checks MachineHealthCheck conditions.
 func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
-	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
+	controlPlaneMachineHealthConditions := []string{
+		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 	}
 	if isEtcdManaged {
 		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
-			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 		)
 	}
 	return func(machine *clusterv1.Machine) bool {
@@ -196,8 +195,7 @@ func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 			// Do not return true when the condition is not set or is set to Unknown because
 			// it means a transient state and can not be considered as unhealthy.
 			// preflightCheckCondition() can cover these two cases and skip the scaling up/down.
-			// TODO (v1beta2): test for v1beta2 conditions
-			if v1beta1conditions.IsFalse(machine, condition) {
+			if conditions.IsFalse(machine, condition) {
 				return true
 			}
 		}

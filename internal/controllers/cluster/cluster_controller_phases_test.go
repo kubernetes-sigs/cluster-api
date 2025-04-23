@@ -36,7 +36,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -671,8 +670,6 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		Status: clusterv1.ClusterStatus{},
 		Spec:   clusterv1.ClusterSpec{},
 	}
-	createClusterError := capierrors.CreateClusterError
-	failureMsg := "Create failed"
 
 	tests := []struct {
 		name      string
@@ -753,48 +750,6 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 			},
 
 			wantPhase: clusterv1.ClusterPhaseProvisioned,
-		},
-		{
-			name: "cluster status has FailureReason",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
-				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							FailureReason: &createClusterError,
-						},
-					},
-				},
-				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
-				},
-			},
-
-			wantPhase: clusterv1.ClusterPhaseFailed,
-		},
-		{
-			name: "cluster status has FailureMessage",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
-				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							FailureMessage: &failureMsg,
-						},
-					},
-				},
-				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
-				},
-			},
-
-			wantPhase: clusterv1.ClusterPhaseFailed,
 		},
 		{
 			name: "cluster has deletion timestamp",

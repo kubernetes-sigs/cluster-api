@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/errors"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -385,38 +384,6 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: false,
 	}
 
-	// Target for when the machine has a failure reason
-	failureReason := errors.UpdateMachineError
-	testMachineFailureReason := testMachine.DeepCopy()
-	testMachineFailureReason.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-		V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-			FailureReason: &failureReason,
-		},
-	}
-	machineFailureReason := healthCheckTarget{
-		Cluster: cluster,
-		MHC:     testMHC,
-		Machine: testMachineFailureReason,
-		Node:    nil,
-	}
-	machineFailureReasonCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureV1Beta1Reason, "FailureReason: %s", failureReason)
-
-	// Target for when the machine has a failure message
-	failureMsg := "some failure message"
-	testMachineFailureMsg := testMachine.DeepCopy()
-	testMachineFailureMsg.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-		V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-			FailureMessage: &failureMsg,
-		},
-	}
-	machineFailureMsg := healthCheckTarget{
-		Cluster: cluster,
-		MHC:     testMHC,
-		Machine: testMachineFailureMsg,
-		Node:    nil,
-	}
-	machineFailureMsgCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureV1Beta1Reason, "FailureMessage: %s", failureMsg)
-
 	// Target for when the machine has the remediate machine annotation
 	const annotationRemediationMsg = "Marked for remediation via remediate-machine annotation"
 	const annotationRemediationV1Beta2Msg = "Health check failed: marked for remediation via cluster.x-k8s.io/remediate-machine annotation"
@@ -512,22 +479,6 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedHealthy:             []healthCheckTarget{}, // The node is not healthy as it does not have a machine
 			expectedNeedsRemediation:    []healthCheckTarget{},
 			expectedNextCheckTimes:      []time.Duration{}, // We don't have a timeout so no way to know when to re-check
-		},
-		{
-			desc:                              "when the machine has a failure reason",
-			targets:                           []healthCheckTarget{machineFailureReason},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{machineFailureReason},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureReasonCondition},
-			expectedNextCheckTimes:            []time.Duration{},
-		},
-		{
-			desc:                              "when the machine has a failure message",
-			targets:                           []healthCheckTarget{machineFailureMsg},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{machineFailureMsg},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureMsgCondition},
-			expectedNextCheckTimes:            []time.Duration{},
 		},
 		{
 			desc:                                     "when the machine is manually marked for remediation",

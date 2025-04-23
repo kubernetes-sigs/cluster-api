@@ -20,10 +20,6 @@ if (Deleted?) then (yes)
     :Delete provider-specific finalizer;
 else (no)
     if (Has machine owner?) then (yes)
-        if (Has status.failureReason/failureMessage?) then (yes)
-            stop
-        else (no)
-        endif
 
         if (Cluster exists?) then (no)
             stop
@@ -32,7 +28,7 @@ else (no)
 
         :Add provider-specific finalizer if needed;
 
-        if (Cluster's status.infrastructureReady = true?) then (no)
+        if (Cluster's status.initialization.provisioned = true?) then (no)
             stop
         else (yes)
         endif
@@ -42,21 +38,14 @@ else (no)
         else (no)
         endif
 
-        :Reconcile provider machine infrastructure;
-        if (Error?) then (yes)
-            :Set status.failureReason/failureMessage;
-            :Patch resource to persist changes;
-            stop
+        if (Control plane machine?) then (yes)
+            :Register instance with control plane load balancer;
         else (no)
-            if (Control plane machine?) then (yes)
-                :Register instance with control plane load balancer;
-            else (no)
-            endif
         endif
 
         :Set spec.providerID;
-        :Set status.ready to true;
         :Set status.addresses;
+        :Set status.initialization.provisioned to true;
     else (no)
     endif
 endif

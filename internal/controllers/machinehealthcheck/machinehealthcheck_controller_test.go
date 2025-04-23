@@ -44,7 +44,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/api/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -500,7 +499,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			createNodeRefForMachine(true),
 			nodeStatus(corev1.ConditionTrue),
 			machineLabels(mhc.Spec.Selector.MatchLabels),
-			machineFailureReason("some failure"),
+			machineAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""}),
 		)
 		defer cleanup2()
 		machines = append(machines, unhealthyMachines...)
@@ -610,7 +609,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			createNodeRefForMachine(true),
 			nodeStatus(corev1.ConditionTrue),
 			machineLabels(mhc.Spec.Selector.MatchLabels),
-			machineFailureMessage("some failure"),
+			machineAnnotations(map[string]string{clusterv1.RemediateMachineAnnotation: ""}),
 		)
 		defer cleanup2()
 		machines = append(machines, unhealthyMachines...)
@@ -2516,8 +2515,6 @@ type machinesWithNodes struct {
 	firstMachineAsControlPlane bool
 	annotations                map[string]string
 	labels                     map[string]string
-	failureReason              string
-	failureMessage             string
 	finalizers                 []string
 }
 
@@ -2550,18 +2547,6 @@ func createNodeRefForMachine(b bool) machineWithNodesOption {
 func machineLabels(l map[string]string) machineWithNodesOption {
 	return func(m *machinesWithNodes) {
 		m.labels = l
-	}
-}
-
-func machineFailureReason(s string) machineWithNodesOption {
-	return func(m *machinesWithNodes) {
-		m.failureReason = s
-	}
-}
-
-func machineFailureMessage(s string) machineWithNodesOption {
-	return func(m *machinesWithNodes) {
-		m.failureMessage = s
 	}
 }
 
@@ -2675,26 +2660,6 @@ func createMachinesWithNodes(
 			machine.Status.NodeRef = &corev1.ObjectReference{
 				Name: node.Name,
 			}
-		}
-
-		if o.failureReason != "" {
-			failureReason := capierrors.MachineStatusError(o.failureReason)
-			if machine.Status.Deprecated == nil {
-				machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
-			}
-			if machine.Status.Deprecated.V1Beta1 == nil {
-				machine.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
-			}
-			machine.Status.Deprecated.V1Beta1.FailureReason = &failureReason
-		}
-		if o.failureMessage != "" {
-			if machine.Status.Deprecated == nil {
-				machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{}
-			}
-			if machine.Status.Deprecated.V1Beta1 == nil {
-				machine.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
-			}
-			machine.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(o.failureMessage)
 		}
 
 		// Adding one second to ensure there is a difference from the

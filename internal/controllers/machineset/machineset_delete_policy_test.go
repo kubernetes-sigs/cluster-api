@@ -26,11 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 func TestMachineToDelete(t *testing.T) {
-	msg := "something wrong with the machine"
 	now := metav1.Now()
 	nodeRef := &corev1.ObjectReference{Name: "some-node"}
 	healthyMachine := &clusterv1.Machine{Status: clusterv1.MachineStatus{NodeRef: nodeRef}}
@@ -42,7 +40,12 @@ func TestMachineToDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					FailureMessage: &msg,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 			NodeRef: nodeRef,
@@ -305,7 +308,6 @@ func TestMachineToDelete(t *testing.T) {
 
 func TestMachineNewestDelete(t *testing.T) {
 	currentTime := metav1.Now()
-	statusError := capierrors.MachineStatusError("I'm unhealthy!")
 	nodeRef := &corev1.ObjectReference{Name: "some-node"}
 	mustDeleteMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &currentTime},
@@ -336,7 +338,12 @@ func TestMachineNewestDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					FailureReason: &statusError,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 			NodeRef: nodeRef,
@@ -463,7 +470,6 @@ func TestMachineNewestDelete(t *testing.T) {
 
 func TestMachineOldestDelete(t *testing.T) {
 	currentTime := metav1.Now()
-	statusError := capierrors.MachineStatusError("I'm unhealthy!")
 	nodeRef := &corev1.ObjectReference{Name: "some-node"}
 	empty := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
@@ -493,7 +499,12 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					FailureReason: &statusError,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 			NodeRef: nodeRef,
@@ -508,7 +519,12 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					FailureReason: &statusError,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 			NodeRef: nodeRef,
@@ -519,7 +535,12 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					FailureReason: &statusError,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			},
 			NodeRef: nodeRef,
@@ -763,8 +784,6 @@ func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 
 func TestIsMachineHealthy(t *testing.T) {
 	nodeRef := &corev1.ObjectReference{Name: "some-node"}
-	statusError := capierrors.MachineStatusError("I'm unhealthy!")
-	msg := "something wrong with the machine"
 
 	tests := []struct {
 		desc    string
@@ -775,34 +794,6 @@ func TestIsMachineHealthy(t *testing.T) {
 			desc:    "when it has no NodeRef",
 			machine: &clusterv1.Machine{},
 			expect:  false,
-		},
-		{
-			desc: "when it has a FailureReason",
-			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{
-						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							FailureReason: &statusError,
-						},
-					},
-					NodeRef: nodeRef,
-				},
-			},
-			expect: false,
-		},
-		{
-			desc: "when it has a FailureMessage",
-			machine: &clusterv1.Machine{
-				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{
-						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							FailureMessage: &msg,
-						},
-					},
-					NodeRef: nodeRef,
-				},
-			},
-			expect: false,
 		},
 		{
 			desc: "when nodeHealthyCondition is false",

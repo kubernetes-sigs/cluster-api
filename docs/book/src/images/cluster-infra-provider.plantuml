@@ -28,7 +28,7 @@ else (no)
             :Set spec.controlPlaneEndpoint;
         else (no)
         endif
-        :Set status.ready to true;
+        :Set status.initialization.provisioned to true;
     else (no)
     endif
 endif

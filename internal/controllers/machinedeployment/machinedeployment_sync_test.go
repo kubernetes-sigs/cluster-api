@@ -35,14 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestCalculateV1Beta1Status(t *testing.T) {
-	msStatusError := capierrors.MachineSetStatusError("some failure")
-
 	var tests = map[string]struct {
 		machineSets    []*clusterv1.MachineSet
 		newMachineSet  *clusterv1.MachineSet
@@ -212,62 +209,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 					},
 				},
 				Phase: "ScalingDown",
-			},
-		},
-		"MachineSet failed": {
-			machineSets: []*clusterv1.MachineSet{{
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
-				},
-				Status: clusterv1.MachineSetStatus{
-					Selector: "",
-					Replicas: 2,
-					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
-						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
-							AvailableReplicas: 0,
-							ReadyReplicas:     0,
-							FailureReason:     &msStatusError,
-						},
-					},
-					ObservedGeneration: 1,
-				},
-			}},
-			newMachineSet: &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
-				},
-				Status: clusterv1.MachineSetStatus{
-					Selector: "",
-					Replicas: 2,
-					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
-						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
-							AvailableReplicas: 0,
-							ReadyReplicas:     0,
-						},
-					},
-					ObservedGeneration: 1,
-				},
-			},
-			deployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 2,
-				},
-				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           2,
-				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-						UpdatedReplicas:     2,
-						ReadyReplicas:       0,
-						AvailableReplicas:   0,
-						UnavailableReplicas: 2,
-					},
-				},
-				Phase: "Failed",
 			},
 		},
 	}

@@ -386,7 +386,10 @@ In case an infrastructure provider reports that a InfraMachine resource is in a 
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
 the "core" Machine controller will surface those info in the corresponding fields in the Machine's `status.deprecated.v1beta1` struct.
 
-However, those info won't have any impact on the Machine lifecycle as before.
+However, those info won't have any impact on the Machine lifecycle as before (the Machine controller won't consider the
+presence of `status.failureReason` and `status.failureMessage` info as "terminal failures"; similarly, the
+MachineHealthCheck controller won't consider the presence of `status.failureReason` and `status.failureMessage` to
+determine when a Machine needs remediation).
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
 fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
@@ -504,7 +507,6 @@ is implemented in InfraMachine controllers:
 1. If the resource does not have a `Machine` owner, exit the reconciliation
     1. The Cluster API `Machine` reconciler populates this based on the value in the `Machines`'s
        `spec.infrastructureRef` field
-1. If the resource has `status.failureReason` or `status.failureMessage` set, exit the reconciliation
 1. If the `Cluster` to which this resource belongs cannot be found, exit the reconciliation
 1. Add the provider-specific finalizer, if needed
 1. If the associated `Cluster`'s `status.infrastructureReady` is `false`, exit the reconciliation

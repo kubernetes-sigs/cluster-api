@@ -143,9 +143,6 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	if machine.Status.NodeRef == nil {
 		return false
 	}
-	if machine.Status.Deprecated != nil && machine.Status.Deprecated.V1Beta1 != nil && (machine.Status.Deprecated.V1Beta1.FailureReason != nil || machine.Status.Deprecated.V1Beta1.FailureMessage != nil) {
-		return false
-	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.
 	// TODO (v1beta2): test for v1beta2 conditions
 	nodeHealthyCondition := v1beta1conditions.Get(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)

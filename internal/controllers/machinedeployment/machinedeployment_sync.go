@@ -551,6 +551,7 @@ func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.Mac
 		UpToDateReplicas:  deployment.Status.UpToDateReplicas,
 	}
 
+	status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
 	if *deployment.Spec.Replicas == status.Deprecated.V1Beta1.ReadyReplicas {
 		status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
 	}
@@ -561,14 +562,6 @@ func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.Mac
 	// would have been reset to zero above if it was negative
 	if totalReplicas-availableReplicas < 0 {
 		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
-	}
-	for _, ms := range allMSs {
-		if ms != nil {
-			if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil && (ms.Status.Deprecated.V1Beta1.FailureReason != nil || ms.Status.Deprecated.V1Beta1.FailureMessage != nil) {
-				status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
-				break
-			}
-		}
 	}
 	return status
 }

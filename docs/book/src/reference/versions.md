@@ -175,9 +175,14 @@ and it will be considered in a very limited set of operations e.g.
   the v1beta1 contract (v1beta1 is deprecated).
 - A version of clusterctl implementing the v1beta2 contract cannot perform upgrades when the target version core provider 
   will be implementing the v1beta1 contract (v1beta1 is deprecated).
+- A core provider implementing the v1beta2 contract can work with an infrastructure provider still implementing the
+  v1beta1 contract and reporting `status.ready` on InfraCluster or InfraMachines (v1beta1 is temporarily compatible with v1beta2).
 
 Also, might be that in future compatibility will be subject to limitations (e.g. compatibility only for infrastructure 
-providers of an older contract version)
+providers of an older contract version) e.g.
+- A core provider implementing the v1beta2 contract will still read `status.failureReason` and `status.failureMessae` 
+  from an infrastructure provider still implementing the v1beta1 contract, but those info won't be considered
+  anymore by controllers as terminal failures nor trigger machine remediation (v1beta1 compatibility has some limitations).
 
 </aside>
 

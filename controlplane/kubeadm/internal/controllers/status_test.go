@@ -1927,7 +1927,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -1999,7 +1999,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
@@ -2077,7 +2077,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -2159,7 +2159,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(5))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(1))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(4))
@@ -2240,7 +2240,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))

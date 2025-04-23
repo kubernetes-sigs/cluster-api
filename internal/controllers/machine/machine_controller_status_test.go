@@ -624,7 +624,7 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 					Conditions: test.conditions,
 				},
 			}
-			status, reason, message := summarizeNodeV1Beta2Conditions(ctx, node)
+			status, reason, message := summarizeNodeConditions(ctx, node)
 			g.Expect(status).To(Equal(test.expectedStatus))
 			g.Expect(reason).To(Equal(test.expectedReason))
 			g.Expect(message).To(Equal(test.expectedMessage))

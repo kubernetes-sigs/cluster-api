@@ -3769,7 +3769,7 @@
               "refId": "A"
             }
           ],
-          "title": "Proccess Open File Descriptors",
+          "title": "Process Open File Descriptors",
           "type": "timeseries"
         },
         {
@@ -3861,7 +3861,7 @@
               "refId": "A"
             }
           ],
-          "title": "Proccess Open File Descriptors Derivative",
+          "title": "Process Open File Descriptors Derivative",
           "type": "timeseries"
         }
       ],

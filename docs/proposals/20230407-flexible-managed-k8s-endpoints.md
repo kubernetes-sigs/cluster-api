@@ -124,7 +124,7 @@ As a Cluster API provider implementor, I want to be able to return the control p
 
 #### Story 4
 
-As a Cluster API provider developer, I want guidance on how to incorporate a managed Kubernetes service into my provider, so that its usage is compatible with Cluster API architecture/features and its usage is consistant with other providers.
+As a Cluster API provider developer, I want guidance on how to incorporate a managed Kubernetes service into my provider, so that its usage is compatible with Cluster API architecture/features and its usage is consistent with other providers.
 
 #### Story 5
 

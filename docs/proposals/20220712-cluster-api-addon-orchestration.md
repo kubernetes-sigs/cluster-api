@@ -32,7 +32,7 @@ superseded-by:
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Glosssary](#glosssary)
+- [Glossary](#glossary)
 - [Summary](#summary)
 - [Motivation](#motivation)
   - [Goals](#goals)
@@ -72,7 +72,7 @@ superseded-by:
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Glosssary 
+## Glossary
 
 **Package management tool:** a tool ultimately responsible[^1] for installing Kubernetes applications, e.g. [Helm](https://helm.sh/) or [carvel-kapp](https://carvel.dev/kapp/).
 
@@ -96,7 +96,7 @@ This solution will likely require at least three iterations:
 
 2. Advanced orchestration will build on the foundation from the first iteration and will explore and add scenarios like configuring add-ons to be upgraded before the Cluster upgrade starts. This work will leverage the lifecycle hooks introduced in Cluster API v1.2.
 
-3. Add-on dependencies can be explored after the orchestration becomes more mature. This iteration can consider use cases where there are dependencies between add-ons and eventually introduce capabilities to account for that in add-on orchestration. For example, add-ons might need to be installed or ugpraded in a certain order and certain versions of add-ons might be incompatible with each other. The scope of this work is TBD.
+3. Add-on dependencies can be explored after the orchestration becomes more mature. This iteration can consider use cases where there are dependencies between add-ons and eventually introduce capabilities to account for that in add-on orchestration. For example, add-ons might need to be installed or upgraded in a certain order and certain versions of add-ons might be incompatible with each other. The scope of this work is TBD.
 
 ## Motivation
 
@@ -323,13 +323,13 @@ A Helm chart is uniquely identified using the URL of its repository, the name of
 
 By definition, the Cluster add-on lifecycle is strictly linked to the Cluster lifecycle. As a result, there is a strict correlation between the Cluster’s Kubernetes version and the add-on version to be installed in a Cluster.
 
-Some add-ons have an explicit version correlation such as Cloud Provider Interface following the “Versioning Policy for External Cloud Providers.” Other add-ons like Calico define a case by case compatability matrix in their [docs](https://projectcalico.docs.tigera.io/getting-started/kubernetes/requirements#supported-versions).
+Some add-ons have an explicit version correlation such as Cloud Provider Interface following the “Versioning Policy for External Cloud Providers.” Other add-ons like Calico define a case by case compatibility matrix in their [docs](https://projectcalico.docs.tigera.io/getting-started/kubernetes/requirements#supported-versions).
 
 On top of that, in many Cluster API installations, the add-on version an operator would like to use is limited to a list of certified versions defined in each organization/product vendor.
 
 We can rely upon existing functionality and capabilities in Helm to enforce Kubernetes version-specific requirements in a chart, including whether or not to install anything at all. It's worth noting that other add-on tools might not provide this functionality out of the box.
 
-#### Generating package configurations 
+#### Generating package configurations
 
 Each package manager has its own specific configuration format. Helm charts, for example, can be configured using the `values.yaml` file where each chart can define its own configurable fields in YAML format.
 

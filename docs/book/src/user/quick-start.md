@@ -1107,7 +1107,7 @@ export CLOUD_CONFIG_KUBECONFIG_B64=""
 export CLUSTER_NAME="<CLUSTER_NAME>"
 # Number of Control Plane machines
 export CONTROL_PLANE_MACHINE_COUNT=3
-# URL to access the Harvester Cluster, this will be overriden by the controller
+# URL to access the Harvester Cluster, this will be overridden by the controller
 export HARVESTER_ENDPOINT=""
 # Base64-Encoded Kubeconfig to access Harvester, which can be downloaded from Harvester's UI or from a Harvester Manager Node.
 export HARVESTER_KUBECONFIG_B64="<HARVESTER_KUBECONFIG_ENCODED_IN_BASE64>"

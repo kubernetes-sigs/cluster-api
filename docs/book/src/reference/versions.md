@@ -65,19 +65,20 @@ All considered, each Cluster API minor release is supported for a period of roug
 
 The table below documents support matrix for Cluster API versions (versions older than v1.0 omitted).
 
-| Minor Release | Status                  | Supported Until (including maintenance mode)       |
-|---------------|-------------------------|----------------------------------------------------|
-| v1.10.x       | Under development       | when v1.12.0 will be released                      |
-| v1.9.x        | Standard support period | when v1.11.0 will be released                      |
-| v1.8.x        | Standard support period | when v1.10.0 will be released                      |
-| v1.7.x        | Maintenance mode        | Maintenance since 2024-12-10 - v1.9.0 release date |
-| v1.6.x        | EOL                     | EOL since 2024-08-12 - v1.8.0 release date         |
-| v1.5.x        | EOL                     | EOL since 2024-04-16 - v1.7.0 release date         |
-| v1.4.x        | EOL                     | EOL since 2023-12-05 - v1.6.0 release date         |
-| v1.3.x        | EOL                     | EOL since 2023-07-25 - v1.5.0 release date         |
-| v1.2.x        | EOL                     | EOL since 2023-03-28 - v1.4.0 release date         |
-| v1.1.x        | EOL                     | EOL since 2022-07-18 - v1.2.0 release date         |
-| v1.0.x        | EOL                     | EOL since 2022-02-02 - v1.1.0 release date         |
+| Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
+|---------------|-------------------------|---------------------------------------------------------------------------------------------|
+| v1.11.x       | Under development       |                                                                                             |
+| v1.10.x       | Standard support period | in maintenance mode when v1.12.0 will be released, EOL when v1.13.0 will be released        |
+| v1.9.x        | Standard support period | in maintenance mode when v1.11.0 will be released, EOL when v1.12.0 will be released        |
+| v1.8.x        | Maintenance mode        | Maintenance mode since 2025-04-22 - v1.10.0 release date, EOL when v1.11.0 will be released |
+| v1.7.x        | EOL                     | EOL since 2025-04-22 - v1.10.0 release date                                                 |
+| v1.6.x        | EOL                     | EOL since 2024-12-10 - v1.9.0 release date                                                  |
+| v1.5.x        | EOL                     | EOL since 2024-08-12 - v1.8.0 release date                                                  |
+| v1.4.x        | EOL                     | EOL since 2024-04-16 - v1.7.0 release date                                                  |
+| v1.3.x        | EOL                     | EOL since 2023-12-05 - v1.6.0 release date                                                  |
+| v1.2.x        | EOL                     | EOL since 2023-07-25 - v1.5.0 release date                                                  |
+| v1.1.x        | EOL                     | EOL since 2023-03-28 - v1.4.0 release date                                                  |
+| v1.0.x        | EOL                     | EOL since 2022-12-01 - v1.3.0 release date                                                  |
 
 #### Skip upgrades
 

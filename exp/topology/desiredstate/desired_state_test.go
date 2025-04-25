@@ -1859,13 +1859,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 						WithStatus(clusterv1.MachineDeploymentStatus{
 							ObservedGeneration: 2,
 							Replicas:           2,
-							Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-								V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-									ReadyReplicas:     2,
-									UpdatedReplicas:   2,
-									AvailableReplicas: 2,
-								},
-							},
+							ReadyReplicas:      ptr.To[int32](2),
+							UpToDateReplicas:   ptr.To[int32](2),
+							AvailableReplicas:  ptr.To[int32](2),
 						}).
 						Build()
 					mdsState = duplicateMachineDeploymentsState(mdsState)

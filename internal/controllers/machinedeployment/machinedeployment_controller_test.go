@@ -65,6 +65,14 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
 		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
+			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					{Type: clusterv1.ControlPlaneInitializedV1Beta1Condition, Status: corev1.ConditionTrue, LastTransitionTime: metav1.Now()},
+				},
+			},
+		}
+		cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedReason, LastTransitionTime: metav1.Now()}}
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		return ns, cluster
@@ -432,8 +440,11 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, newestMachineSet) {
 					continue
 				}
-				providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
-				fakeMachineNodeRef(&m, providerID, g)
+
+				if m.Status.NodeRef == nil {
+					providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
+					fakeMachineNodeRef(&m, providerID, g)
+				}
 			}
 
 			if err := env.List(ctx, machineSets, msListOpts...); err != nil {

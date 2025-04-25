@@ -73,6 +73,14 @@ func TestMachineSetReconciler(t *testing.T) {
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
 		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
+			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					{Type: clusterv1.ControlPlaneInitializedV1Beta1Condition, Status: corev1.ConditionTrue, LastTransitionTime: metav1.Now()},
+				},
+			},
+		}
+		cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedReason, LastTransitionTime: metav1.Now()}}
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		return ns, cluster
@@ -417,11 +425,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return -1
 			}
-			availableReplicas := int32(0)
-			if instance.Status.Deprecated != nil && instance.Status.Deprecated.V1Beta1 != nil {
-				availableReplicas = instance.Status.Deprecated.V1Beta1.AvailableReplicas
-			}
-			return availableReplicas
+			return ptr.Deref(instance.Status.AvailableReplicas, 0)
 		}, timeout).Should(BeEquivalentTo(replicas))
 
 		t.Log("Verifying MachineSet has MachinesCreatedCondition")
@@ -1058,7 +1062,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				getAndAdoptMachinesForMachineSetSucceeded: true,
 			}
 			setReplicas(ctx, s.machineSet, s.machines, tc.machines != nil)
-			g.Expect(msr.reconcileStatus(ctx, s)).To(Succeed())
+			g.Expect(msr.reconcileV1Beta1Status(ctx, s)).To(Succeed())
 			gotCond := v1beta1conditions.Get(tc.machineSet, clusterv1.ResizedV1Beta1Condition)
 			g.Expect(gotCond).ToNot(BeNil())
 			g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))

@@ -40,7 +40,7 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
-func TestCalculateStatus(t *testing.T) {
+func TestCalculateV1Beta1Status(t *testing.T) {
 	msStatusError := capierrors.MachineSetStatusError("some failure")
 
 	var tests = map[string]struct {
@@ -276,7 +276,7 @@ func TestCalculateStatus(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			actualStatus := calculateStatus(test.machineSets, test.newMachineSet, test.deployment)
+			actualStatus := calculateV1Beta1Status(test.machineSets, test.newMachineSet, test.deployment)
 			g.Expect(actualStatus).To(BeComparableTo(test.expectedStatus))
 		})
 	}
@@ -450,7 +450,7 @@ func TestScaleMachineSet(t *testing.T) {
 	}
 }
 
-func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedReplicas, availableReplicas int32, conditions clusterv1.Conditions) *clusterv1.MachineDeployment {
+func newTestMachineDeployment(pds *int32, replicas, statusReplicas, upToDateReplicas, availableReplicas int32) *clusterv1.MachineDeployment {
 	d := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "progress-test",
@@ -468,21 +468,16 @@ func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedRepli
 			},
 		},
 		Status: clusterv1.MachineDeploymentStatus{
-			Replicas: statusReplicas,
-			Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-					UpdatedReplicas:   updatedReplicas,
-					AvailableReplicas: availableReplicas,
-					Conditions:        conditions,
-				},
-			},
+			Replicas:          statusReplicas,
+			UpToDateReplicas:  ptr.To[int32](upToDateReplicas),
+			AvailableReplicas: ptr.To[int32](availableReplicas),
 		},
 	}
 	return d
 }
 
 // helper to create MS with given availableReplicas.
-func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32, conditions clusterv1.Conditions) *clusterv1.MachineSet {
+func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32, v1Beta1Conditions clusterv1.Conditions) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
@@ -493,11 +488,11 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 			Replicas: ptr.To[int32](specReplicas),
 		},
 		Status: clusterv1.MachineSetStatus{
-			Replicas: statusReplicas,
+			Replicas:          statusReplicas,
+			AvailableReplicas: ptr.To[int32](availableReplicas),
 			Deprecated: &clusterv1.MachineSetDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
-					AvailableReplicas: availableReplicas,
-					Conditions:        conditions,
+					Conditions: v1Beta1Conditions,
 				},
 			},
 		},
@@ -515,9 +510,9 @@ func TestSyncDeploymentStatus(t *testing.T) {
 	}{
 		{
 			name:           "Deployment not available: MachineDeploymentAvailableCondition should exist and be false",
-			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2, clusterv1.Conditions{}),
+			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2),
 			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2, clusterv1.Conditions{}),
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2, nil),
 			expectedConditions: []*clusterv1.Condition{
 				{
 					Type:     clusterv1.MachineDeploymentAvailableV1Beta1Condition,
@@ -529,9 +524,9 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "Deployment Available: MachineDeploymentAvailableCondition should exist and be true",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{}),
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3, nil),
 			expectedConditions: []*clusterv1.Condition{
 				{
 					Type:   clusterv1.MachineDeploymentAvailableV1Beta1Condition,
@@ -541,7 +536,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "MachineSet exist: MachineSetReadyCondition should exist and mirror MachineSet Ready condition",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet: newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{
 				{
@@ -562,7 +557,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "MachineSet doesn't exist: MachineSetReadyCondition should exist and be false",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet:  nil,
 			expectedConditions: []*clusterv1.Condition{

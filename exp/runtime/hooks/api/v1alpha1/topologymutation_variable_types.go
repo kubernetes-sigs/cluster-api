@@ -125,7 +125,7 @@ type ControlPlaneBuiltins struct {
 
 	// replicas is the value of the replicas field of the ControlPlane object.
 	// +optional
-	Replicas *int64 `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// machineTemplate is the value of the .spec.machineTemplate field of the ControlPlane object.
 	// +optional

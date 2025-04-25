@@ -67,7 +67,7 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 		{
 			name:                    "set counters for cluster with control plane, reporting counters",
 			cluster:                 fakeCluster("c", controlPlaneRef{}),
-			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), v1beta2ReadyReplicas(1), v1beta2AvailableReplicas(2), v1beta2UpToDateReplicas(0)),
+			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), readyReplicas(1), availableReplicas(2), upToDateReplicas(0)),
 			expectDesiredReplicas:   ptr.To(int32(3)),
 			expectReplicas:          ptr.To(int32(2)),
 			expectReadyReplicas:     ptr.To(int32(1)),
@@ -166,14 +166,14 @@ func TestSetWorkersReplicas(t *testing.T) {
 			name:    "should count workers from different objects",
 			cluster: fakeCluster("c", controlPlaneRef{}),
 			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
-				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), v1beta2ReadyReplicas(3), v1beta2AvailableReplicas(4), v1beta2UpToDateReplicas(5)),
+				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), readyReplicas(3), availableReplicas(4), upToDateReplicas(5)),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
-				*fakeMachineDeployment("md1", desiredReplicas(11), currentReplicas(12), v1beta2ReadyReplicas(13), v1beta2AvailableReplicas(14), v1beta2UpToDateReplicas(15)),
+				*fakeMachineDeployment("md1", desiredReplicas(11), currentReplicas(12), readyReplicas(13), availableReplicas(14), upToDateReplicas(15)),
 			}},
 			machineSets: clusterv1.MachineSetList{Items: []clusterv1.MachineSet{
-				*fakeMachineSet("ms1", OwnedByCluster("c"), desiredReplicas(21), currentReplicas(22), v1beta2ReadyReplicas(23), v1beta2AvailableReplicas(24), v1beta2UpToDateReplicas(25)),
-				*fakeMachineSet("ms2", desiredReplicas(31), currentReplicas(32), v1beta2ReadyReplicas(33), v1beta2AvailableReplicas(34), v1beta2UpToDateReplicas(35)), // not owned by the cluster
+				*fakeMachineSet("ms1", OwnedByCluster("c"), desiredReplicas(21), currentReplicas(22), readyReplicas(23), availableReplicas(24), upToDateReplicas(25)),
+				*fakeMachineSet("ms2", desiredReplicas(31), currentReplicas(32), readyReplicas(33), availableReplicas(34), upToDateReplicas(35)), // not owned by the cluster
 			}},
 			workerMachines: collections.FromMachines( // 4 replicas, 2 Ready, 3 Available, 1 UpToDate
 				fakeMachine("m1", OwnedByCluster("c"), v1beta2Condition{Type: clusterv1.MachineAvailableCondition, Status: metav1.ConditionTrue}, v1beta2Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}, v1beta2Condition{Type: clusterv1.MachineUpToDateCondition, Status: metav1.ConditionTrue}),
@@ -270,7 +270,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.ClusterInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterInfrastructureNotReadyReason,
-				Message: "FakeInfraCluster status.ready is false",
+				Message: "FakeInfraCluster status.initialization.provisioned is false",
 			},
 		},
 		{
@@ -435,7 +435,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 				Type:    clusterv1.ClusterControlPlaneAvailableCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterControlPlaneNotAvailableReason,
-				Message: "FakeControlPlane status.ready is false",
+				Message: "FakeControlPlane status.initialization.controlPlaneInitialized is false",
 			},
 		},
 		{
@@ -2938,7 +2938,7 @@ func (r controlPlaneInitialized) ApplyToCluster(c *clusterv1.Cluster) {
 type desiredReplicas int32
 
 func (r desiredReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().Replicas().Set(cp, int64(r))
+	_ = contract.ControlPlane().Replicas().Set(cp, int32(r))
 }
 
 func (r desiredReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
@@ -2956,7 +2956,7 @@ func (r desiredReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 type currentReplicas int32
 
 func (r currentReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().StatusReplicas().Set(cp, int64(r))
+	_ = contract.ControlPlane().StatusReplicas().Set(cp, int32(r))
 }
 
 func (r currentReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
@@ -2971,57 +2971,57 @@ func (r currentReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 	ms.Status.Replicas = int32(r)
 }
 
-type v1beta2ReadyReplicas int32
+type readyReplicas int32
 
-func (r v1beta2ReadyReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2ReadyReplicas(contract.Version).Set(cp, int64(r))
+func (r readyReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
+	_ = contract.ControlPlane().ReadyReplicas().Set(cp, int32(r))
 }
 
-func (r v1beta2ReadyReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r readyReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
 	mp.Status.ReadyReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2ReadyReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
+func (r readyReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
 	md.Status.ReadyReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2ReadyReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
+func (r readyReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 	ms.Status.ReadyReplicas = ptr.To(int32(r))
 }
 
-type v1beta2AvailableReplicas int32
+type availableReplicas int32
 
-func (r v1beta2AvailableReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2AvailableReplicas(contract.Version).Set(cp, int64(r))
+func (r availableReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
+	_ = contract.ControlPlane().AvailableReplicas().Set(cp, int32(r))
 }
 
-func (r v1beta2AvailableReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r availableReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
 	mp.Status.AvailableReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2AvailableReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
+func (r availableReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
 	md.Status.AvailableReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2AvailableReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
+func (r availableReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 	ms.Status.AvailableReplicas = ptr.To(int32(r))
 }
 
-type v1beta2UpToDateReplicas int32
+type upToDateReplicas int32
 
-func (r v1beta2UpToDateReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
-	_ = contract.ControlPlane().V1Beta2UpToDateReplicas(contract.Version).Set(cp, int64(r))
+func (r upToDateReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
+	_ = contract.ControlPlane().UpToDateReplicas(contract.Version).Set(cp, int32(r))
 }
 
-func (r v1beta2UpToDateReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r upToDateReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
 	mp.Status.UpToDateReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2UpToDateReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
+func (r upToDateReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
 	md.Status.UpToDateReplicas = ptr.To(int32(r))
 }
 
-func (r v1beta2UpToDateReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
+func (r upToDateReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
 	ms.Status.UpToDateReplicas = ptr.To(int32(r))
 }
 

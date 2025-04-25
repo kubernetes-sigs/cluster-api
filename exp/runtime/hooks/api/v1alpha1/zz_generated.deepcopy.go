@@ -504,7 +504,7 @@ func (in *ControlPlaneBuiltins) DeepCopyInto(out *ControlPlaneBuiltins) {
 	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(int64)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.MachineTemplate != nil {

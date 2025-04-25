@@ -161,7 +161,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineBootstrapConfigReadyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineBootstrapConfigNotReadyReason,
-				Message: "GenericBootstrapConfig status.ready is false",
+				Message: "GenericBootstrapConfig status.initialization.dataSecretCreated is false",
 			},
 		},
 		{
@@ -385,7 +385,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineInfrastructureReadyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineInfrastructureNotReadyReason,
-				Message: "GenericInfrastructureMachine status.ready is false",
+				Message: "GenericInfrastructureMachine status.initialization.provisioned is false",
 			},
 		},
 		{

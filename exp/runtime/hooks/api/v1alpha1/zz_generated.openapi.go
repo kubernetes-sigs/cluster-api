@@ -1031,7 +1031,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 						SchemaProps: spec.SchemaProps{
 							Description: "replicas is the value of the replicas field of the ControlPlane object.",
 							Type:        []string{"integer"},
-							Format:      "int64",
+							Format:      "int32",
 						},
 					},
 					"machineTemplate": {

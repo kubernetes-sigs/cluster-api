@@ -75,16 +75,16 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 	return retErr
 }
 
-// setReplicas sets replicas in the v1beta2 status.
+// setReplicas sets replicas in status.
 // Note: this controller computes replicas several time during a reconcile, because those counters are
 // used by low level operations to take decisions, but also those decisions might impact the very same the counters
 // e.g. scale up MachinesSet is based on counters and it can change the value on MachineSet's replica number;
 // as a consequence it is required to compute the counters again before calling scale down machine sets,
 // and again to before computing the overall availability of the Machine deployment.
 func setReplicas(machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet) {
-	machineDeployment.Status.ReadyReplicas = mdutil.GetV1Beta2ReadyReplicaCountForMachineSets(machineSets)
-	machineDeployment.Status.AvailableReplicas = mdutil.GetV1Beta2AvailableReplicaCountForMachineSets(machineSets)
-	machineDeployment.Status.UpToDateReplicas = mdutil.GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.ReadyReplicas = mdutil.GetReadyReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.AvailableReplicas = mdutil.GetAvailableReplicaCountForMachineSets(machineSets)
+	machineDeployment.Status.UpToDateReplicas = mdutil.GetUptoDateReplicaCountForMachineSets(machineSets)
 }
 
 func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
@@ -110,13 +110,13 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		return
 	}
 
-	// Surface if .status.v1beta2.availableReplicas is not yet set.
+	// Surface if .status.availableReplicas is not yet set.
 	if machineDeployment.Status.AvailableReplicas == nil {
 		conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentAvailableCondition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetReason,
-			Message: "Waiting for status.v1beta2.availableReplicas set",
+			Message: "Waiting for status.availableReplicas set",
 		})
 		return
 	}

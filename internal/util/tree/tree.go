@@ -285,7 +285,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 		childrenPipe = pipe
 	}
 
-	negativePolarityConditions := sets.New(
+	negativePolarityConditions := sets.New[string](
 		clusterv1.PausedCondition,
 		clusterv1.DeletingCondition,
 		clusterv1.RollingOutCondition,
@@ -649,13 +649,13 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 				}
 			}
 
-			if c, err := contract.ControlPlane().V1Beta2AvailableReplicas(contractVersion).Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().AvailableReplicas().Get(obj); err == nil && c != nil {
 				v.availableCounters = fmt.Sprintf("%d", *c)
 			}
-			if c, err := contract.ControlPlane().V1Beta2ReadyReplicas(contractVersion).Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().ReadyReplicas().Get(obj); err == nil && c != nil {
 				v.readyCounters = fmt.Sprintf("%d", *c)
 			}
-			if c, err := contract.ControlPlane().V1Beta2UpToDateReplicas(contractVersion).Get(obj); err == nil && c != nil {
+			if c, err := contract.ControlPlane().UpToDateReplicas(contractVersion).Get(obj); err == nil && c != nil {
 				v.upToDateCounters = fmt.Sprintf("%d", *c)
 			}
 		}

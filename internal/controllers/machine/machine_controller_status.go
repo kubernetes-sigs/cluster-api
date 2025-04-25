@@ -159,7 +159,7 @@ func bootstrapConfigReadyFallBackMessage(kind string, ready bool) string {
 	if ready {
 		return ""
 	}
-	return fmt.Sprintf("%s status.ready is %t", kind, ready)
+	return fmt.Sprintf("%s status.initialization.dataSecretCreated is %t", kind, ready)
 }
 
 func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured, infraMachineIsNotFound bool) {
@@ -254,7 +254,7 @@ func infrastructureReadyFallBackMessage(kind string, ready bool) string {
 	if ready {
 		return ""
 	}
-	return fmt.Sprintf("%s status.ready is %t", kind, ready)
+	return fmt.Sprintf("%s status.initialization.provisioned is %t", kind, ready)
 }
 
 func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {

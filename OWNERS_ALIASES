@@ -28,7 +28,6 @@ aliases:
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-  - jackfrancis
   - JoelSpeed
   - richardcase
 

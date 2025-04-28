@@ -584,10 +584,10 @@ type Discovery struct {
 type BootstrapTokenDiscovery struct {
 	// token is a token used to validate cluster information
 	// fetched from the control-plane.
-	// +required
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Token string `json:"token"`
+	Token string `json:"token,omitempty"`
 
 	// apiServerEndpoint is an IP or domain name to the API server from which info will be fetched.
 	// +optional

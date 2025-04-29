@@ -361,7 +361,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, s *scope) (ctrl.Re
 	switch {
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
-			if err == kubeconfig.ErrDependentCertificateNotFound {
+			if errors.Is(err, kubeconfig.ErrDependentCertificateNotFound) {
 				log.Info("Could not find secret for cluster, requeuing", "Secret", secret.ClusterCA)
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 			}

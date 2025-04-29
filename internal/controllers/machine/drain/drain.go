@@ -375,7 +375,7 @@ evictionLoop:
 			// Ensure the causes are also included in the error message.
 			// Before: "Cannot evict pod as it would violate the pod's disruption budget."
 			// After: "Cannot evict pod as it would violate the pod's disruption budget. The disruption budget nginx needs 20 healthy pods and has 20 currently"
-			if ok := errors.As(err, &statusError); ok {
+			if errors.As(err, &statusError) {
 				errorMessage := statusError.Status().Message
 				if statusError.Status().Details != nil {
 					var causes []string

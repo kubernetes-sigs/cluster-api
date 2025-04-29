@@ -3422,8 +3422,6 @@ spec:
                                       without CA verification via CACertHashes. This can weaken
                                       the security of kubeadm since other nodes can impersonate the control-plane.
                                     type: boolean
-                                required:
-                                - token
                                 type: object
                               file:
                                 description: |-

@@ -234,7 +234,7 @@ each Cluster, the host and port of the generated control plane endpoint MUST sur
 in the ControlPlane resource.
 
 ```go
-type FooControlPlane struct {
+type FooControlPlaneSpec struct {
     // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
     // +optional
     ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
@@ -724,6 +724,7 @@ The kubeconfig secret MUST:
 - Have type `cluster.x-k8s.io/secret`
 - Be labelled with the key-pair `cluster.x-k8s.io/cluster-name=${CLUSTER_NAME}`.
   Note: this label is required for the secret to be retrievable in the cache used by CAPI managers.
+- Have the base64 encoded kubeconfig in the field called `value`
 
 Important! If a control plane provider uses client certificates for authentication in these Kubeconfigs, the client certificate 
 MUST be kept with a reasonably short expiration period and periodically regenerated to keep a valid set of credentials available.

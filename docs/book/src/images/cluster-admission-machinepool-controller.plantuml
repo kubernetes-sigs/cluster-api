@@ -25,7 +25,7 @@ endif
 #LightBlue:Patch MachinePool back to API server;
 repeat while (Reconcile returned RequeueError?) is (yes)
 if (Reconcile returned error) then (yes)
-#Pink:Error reconciling control plane;
+#Pink:Error reconciling MachinePool;
 else (no)
 endif
 stop

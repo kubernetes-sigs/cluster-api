@@ -2669,6 +2669,59 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			expectedError: errClusterIsBeingDeleted,
 		},
 		{
+			name: "has nodeRef and cluster is being deleted, nodeDeletionStrategy set to force",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "test-cluster",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &deletionts,
+					Finalizers:        []string{clusterv1.ClusterFinalizer},
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						NodeDeletionStrategy: ptr.To(clusterv1.NodeDrainStrategyForce),
+					},
+				},
+			},
+			machine:       &clusterv1.Machine{},
+			expectedError: errClusterIsBeingDeleted,
+		},
+		{
+			name: "has nodeRef and control plane is healthy, with nodeDeletionStrategy set to graceful",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						NodeDeletionStrategy: ptr.To(clusterv1.NodeDrainStrategyForce),
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
+			expectedError: nil,
+		},
+		{
 			name: "has nodeRef and control plane is healthy and externally managed",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{

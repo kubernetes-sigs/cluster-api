@@ -585,6 +585,14 @@ type Topology struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
+
+	// nodeDeletionStrategy specifies the strategy to delete nodes in the cluster.
+	// Avilable options:
+	// - graceful
+	// - force
+	// By default it's "force"
+	// +optional
+	NodeDeletionStrategy *NodeDrainStrategyType `json:"nodeDrainStrategy,omitempty"`
 }
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
@@ -900,6 +908,13 @@ type MachinePoolVariables struct {
 	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
+
+type NodeDrainStrategyType string
+
+const (
+	NodeDrainStrategyForce               NodeDrainStrategyType = "force"
+	NodeDrainStrategyGracefulWithTimeout NodeDrainStrategyType = "gracefulWithTimeout"
+)
 
 // ANCHOR_END: ClusterSpec
 

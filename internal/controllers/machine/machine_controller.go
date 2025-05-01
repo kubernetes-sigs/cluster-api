@@ -714,8 +714,8 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 // and if the Machine is not the last control plane node in the cluster.
 func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
-	// Return early if the cluster is being deleted.
-	if !cluster.DeletionTimestamp.IsZero() {
+	// Return early if the cluster is being deleted and cluster's nodeDeletionStrategy is not set or set to `force`.
+	if !cluster.DeletionTimestamp.IsZero() && (cluster.Spec.Topology.NodeDeletionStrategy == nil || *cluster.Spec.Topology.NodeDeletionStrategy == clusterv1.NodeDrainStrategyForce) {
 		return errClusterIsBeingDeleted
 	}
 

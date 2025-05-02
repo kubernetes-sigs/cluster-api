@@ -2682,13 +2682,16 @@ spec:
                             x-kubernetes-list-type: map
                         type: object
                     type: object
-                  nodeDrainStrategy:
+                  nodeDeletionStrategy:
                     description: |-
                       nodeDeletionStrategy specifies the strategy to delete nodes in the cluster.
-                      Avilable options:
+                      Available options:
                       - graceful
                       - force
-                      By default it's "force"
+                      By default it's "force".
+                    enum:
+                    - force
+                    - graceful
                     type: string
                   rolloutAfter:
                     description: |-

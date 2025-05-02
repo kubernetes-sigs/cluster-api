@@ -2865,7 +2865,7 @@ func (in *Topology) DeepCopyInto(out *Topology) {
 	}
 	if in.NodeDeletionStrategy != nil {
 		in, out := &in.NodeDeletionStrategy, &out.NodeDeletionStrategy
-		*out = new(NodeDrainStrategyType)
+		*out = new(NodeDeletionStrategyType)
 		**out = **in
 	}
 }

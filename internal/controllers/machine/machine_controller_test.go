@@ -2679,7 +2679,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						NodeDeletionStrategy: ptr.To(clusterv1.NodeDrainStrategyForce),
+						NodeDeletionStrategy: ptr.To(clusterv1.NodeDeletionStrategyForce),
 					},
 				},
 			},
@@ -2695,7 +2695,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						NodeDeletionStrategy: ptr.To(clusterv1.NodeDrainStrategyForce),
+						NodeDeletionStrategy: ptr.To(clusterv1.NodeDeletionStrategyForce),
 					},
 				},
 			},

@@ -179,6 +179,10 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 
 	log.V(4).Info("Cleaned up unhealthy replicas from old MachineSets", "count", cleanupCount)
 
+	if err := r.propagateDeletionTimeoutsToOldMachineSet(ctx, oldMSs, deployment); err != nil {
+		return err
+	}
+
 	// Scale down old MachineSets, need check maxUnavailable to ensure we can scale down
 	allMSs = oldMSs
 	allMSs = append(allMSs, newMS)

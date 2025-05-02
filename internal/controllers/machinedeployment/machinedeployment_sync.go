@@ -669,3 +669,23 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 
 	return nil
 }
+
+func (r *Reconciler) propagateDeletionTimeoutsToOldMachineSet(ctx context.Context, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	for _, oldMS := range oldMSs {
+		patchHelper, err := patch.NewHelper(oldMS, r.Client)
+		if err != nil {
+			return errors.Wrapf(err, "failed to generate patch for MachineSet %q", klog.KObj(oldMS))
+		}
+
+		// Set all other in-place mutable fields that impact the ability to tear down existing machines.
+		oldMS.Spec.Template.Spec.NodeDrainTimeout = deployment.Spec.Template.Spec.NodeDrainTimeout
+		oldMS.Spec.Template.Spec.NodeDeletionTimeout = deployment.Spec.Template.Spec.NodeDeletionTimeout
+		oldMS.Spec.Template.Spec.NodeVolumeDetachTimeout = deployment.Spec.Template.Spec.NodeVolumeDetachTimeout
+
+		err = patchHelper.Patch(ctx, oldMS)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update MachineSet %q", klog.KObj(oldMS))
+		}
+	}
+	return nil
+}

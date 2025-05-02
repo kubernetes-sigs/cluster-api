@@ -309,18 +309,17 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return errors.Errorf("missing MachineDeployment strategy")
 	}
 
-	if md.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
+	switch md.Spec.Strategy.Type {
+	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		if md.Spec.Strategy.RollingUpdate == nil {
 			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
 		}
 		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
-	}
-
-	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+	case clusterv1.OnDeleteMachineDeploymentStrategyType:
 		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
+	default:
+		return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
 	}
-
-	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

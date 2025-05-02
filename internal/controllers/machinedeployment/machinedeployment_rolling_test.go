@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -302,6 +303,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 }
 
 func TestReconcileOldMachineSets(t *testing.T) {
+	duration10m := &metav1.Duration{Duration: 10 * time.Minute}
 	testCases := []struct {
 		name                           string
 		machineDeployment              *clusterv1.MachineDeployment
@@ -468,6 +470,83 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			},
 			expectedOldMachineSetsReplicas: 8,
 		},
+		{
+			name: "RollingUpdate strategy: Scale down old MachineSets and propagate the node deletion related timeouts to old MachineSets",
+			machineDeployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(1),
+							MaxSurge:       intOrStrPtr(3),
+						},
+					},
+					Replicas: ptr.To[int32](2),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							NodeDrainTimeout:        duration10m,
+							NodeDeletionTimeout:     duration10m,
+							NodeVolumeDetachTimeout: duration10m,
+						},
+					},
+				},
+			},
+			newMachineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: ptr.To[int32](0),
+				},
+				Status: clusterv1.MachineSetStatus{
+					Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+							AvailableReplicas: 2,
+						},
+					},
+				},
+			},
+			oldMachineSets: []*clusterv1.MachineSet{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "2replicas",
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Replicas: ptr.To[int32](2),
+					},
+					Status: clusterv1.MachineSetStatus{
+						Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+							V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+								AvailableReplicas: 2,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "1replicas",
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Replicas: ptr.To[int32](1),
+					},
+					Status: clusterv1.MachineSetStatus{
+						Deprecated: &clusterv1.MachineSetDeprecatedStatus{
+							V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
+								AvailableReplicas: 1,
+							},
+						},
+					},
+				},
+			},
+			expectedOldMachineSetsReplicas: 0,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -500,6 +579,9 @@ func TestReconcileOldMachineSets(t *testing.T) {
 				err = r.Client.Get(ctx, client.ObjectKeyFromObject(tc.oldMachineSets[key]), freshOldMachineSet)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(*freshOldMachineSet.Spec.Replicas).To(BeEquivalentTo(tc.expectedOldMachineSetsReplicas))
+				g.Expect(freshOldMachineSet.Spec.Template.Spec.NodeDrainTimeout).To(BeEquivalentTo(tc.machineDeployment.Spec.Template.Spec.NodeDrainTimeout))
+				g.Expect(freshOldMachineSet.Spec.Template.Spec.NodeDeletionTimeout).To(BeEquivalentTo(tc.machineDeployment.Spec.Template.Spec.NodeDeletionTimeout))
+				g.Expect(freshOldMachineSet.Spec.Template.Spec.NodeVolumeDetachTimeout).To(BeEquivalentTo(tc.machineDeployment.Spec.Template.Spec.NodeVolumeDetachTimeout))
 			}
 		})
 	}

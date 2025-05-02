@@ -195,7 +195,6 @@ We should inform at least the following providers via a new issue on their respe
 * OCI: https://github.com/oracle/cluster-api-provider-oci/issues/new
 * Openstack: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/issues/new
 * Operator: https://github.com/kubernetes-sigs/cluster-api-operator/issues/new
-* Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
 * vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 
 To create GitHub issues at the Cluster API providers repositories and inform about a new minor beta release, use ["provider_issues.go"](../../../../hack/tools/release/internal/update_providers/provider_issues.go) go utility.

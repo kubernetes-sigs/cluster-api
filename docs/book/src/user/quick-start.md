@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -545,20 +545,6 @@ export CLUSTER_TOPOLOGY=true
 
 # Initialize the management cluster
 clusterctl init --infrastructure docker
-```
-
-{{#/tab }}
-{{#tab Equinix Metal}}
-
-In order to initialize the Equinix Metal Provider (formerly Packet) you have to expose the environment
-variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
-provider manager against the Equinix Metal API. You can retrieve your token directly
-from the Equinix Metal Console.
-
-```bash
-export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"
-
-clusterctl init --infrastructure packet
 ```
 
 {{#/tab }}
@@ -916,7 +902,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1044,35 +1030,6 @@ export SERVICE_DOMAIN="k8s.test"
 It is also possible but **not recommended** to disable the per-default enabled [Pod Security Standard](../security/pod-security-standards.md):
 ```bash
 export POD_SECURITY_STANDARD_ENABLED="false"
-```
-
-{{#/tab }}
-{{#tab Equinix Metal}}
-
-There are several required variables you need to set to create a cluster. There
-are also a few optional tunables if you'd like to change the OS or CIDRs used.
-
-```bash
-# Required (made up examples shown)
-# The project where your cluster will be placed to.
-# You have to get one from the Equinix Metal Console if you don't have one already.
-export PROJECT_ID="2b59569f-10d1-49a6-a000-c2fb95a959a1"
-# This can help to take advantage of automated, interconnected bare metal across our global metros.
-export METRO="da"
-# What plan to use for your control plane nodes
-export CONTROLPLANE_NODE_TYPE="m3.small.x86"
-# What plan to use for your worker nodes
-export WORKER_NODE_TYPE="m3.small.x86"
-# The ssh key you would like to have access to the nodes
-export SSH_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDvMgVEubPLztrvVKgNPnRe9sZSjAqaYj9nmCkgr4PdK username@computer"
-export CLUSTER_NAME="my-cluster"
-
-# Optional (defaults shown)
-export NODE_OS="ubuntu_18_04"
-export POD_CIDR="192.168.0.0/16"
-export SERVICE_CIDR="172.26.0.0/16"
-# Only relevant if using the kube-vip flavor
-export KUBE_VIP_VERSION="v0.5.0"
 ```
 
 {{#/tab }}
@@ -2002,7 +1959,6 @@ kind delete cluster
 [KubeVirt]: https://kubevirt.io/
 [oci-provider]: https://oracle.github.io/cluster-api-provider-oci/#getting-started
 [openstack-resource-controller]: https://k-orc.cloud/
-[Equinix Metal getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider]:../reference/providers.md
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md

@@ -354,7 +354,7 @@ See [corefile-migration](https://github.com/coredns/corefile-migration)
 Cluster API has a vibrant ecosystem of awesome providers maintained by independent teams and hosted outside of
 the Cluster API [GitHub repository](https://github.com/kubernetes-sigs/cluster-api/).
 
-To understand the list of the supported version for a specific provider, its own Kubernetes support matrix, supported API versions, 
+To understand the list of supported versions for a specific provider, its own Kubernetes support matrix, supported API versions,
 supported contract version and specific skip upgrade rules, please see its documentation. Please refer to [providers list](providers.md)
 
 In general, if a provider version M says it is compatible with Cluster API version N, then it MUST be compatible 
@@ -370,10 +370,10 @@ In case of upgrades, clusterctl should be upgraded first and then used to upgrad
 
 ### Kubernetes version Support and Cluster API deployment model
 
-The most common deployment model for Cluster API assumes all providers running on the Management Cluster and managing the lifecycle
+The most common deployment model for Cluster API assumes all providers are running on the Management Cluster and managing the lifecycle
 of a set of _separate_ Workload clusters.
 
-All providers include: the core provider, a Bootstrap provider, a Control Plane provider (optional),
+"All providers" includes: the core provider, a Bootstrap provider, a Control Plane provider (optional),
 and at least one infrastructure provider.
 
 ![Management/Workload Separate Clusters](../images/management-workload-separate-clusters.png)

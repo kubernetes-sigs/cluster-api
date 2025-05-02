@@ -2664,6 +2664,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					DeletionTimestamp: &deletionts,
 					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{},
+				},
 			},
 			machine:       &clusterv1.Machine{},
 			expectedError: errClusterIsBeingDeleted,

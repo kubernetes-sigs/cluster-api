@@ -2682,6 +2682,14 @@ spec:
                             x-kubernetes-list-type: map
                         type: object
                     type: object
+                  nodeDrainStrategy:
+                    description: |-
+                      nodeDeletionStrategy specifies the strategy to delete nodes in the cluster.
+                      Avilable options:
+                      - graceful
+                      - force
+                      By default it's "force"
+                    type: string
                   rolloutAfter:
                     description: |-
                       rolloutAfter performs a rollout of the entire cluster one component at a time,

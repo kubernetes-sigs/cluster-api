@@ -4904,6 +4904,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref common.ReferenceCallb
 							},
 						},
 					},
+					"nodeDrainStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionStrategy specifies the strategy to delete nodes in the cluster. Avilable options: - graceful - force By default it's \"force\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"class", "version"},
 			},

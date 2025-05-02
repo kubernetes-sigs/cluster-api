@@ -916,7 +916,7 @@ type NodeDeletionStrategyType string
 const (
 	// NodeDeletionStrategyForce defines a force type strategy that node will be deleted immediately without drain.
 	NodeDeletionStrategyForce NodeDeletionStrategyType = "force"
-	// NodeDeletionStrategyTypeGracefulWithTimeout defines a force type strategy that node will be deleted with drain.
+	// NodeDeletionStrategyGracefulWithTimeout defines a force type strategy that node will be deleted with drain.
 	NodeDeletionStrategyGracefulWithTimeout NodeDeletionStrategyType = "gracefulWithTimeout"
 )
 

@@ -1,0 +1,14 @@
+dirs:
+  - CHANGELOG
+  - docs
+ignorePatterns:
+  - pattern: "^http://localhost"
+  - pattern: "https://azure.microsoft.com/en-us/products/kubernetes-service"
+httpHeaders:
+  - url:
+      - "https://docs.github.com/"
+    headers:
+      Accept-Encoding: "zstd, br, gzip, deflate"
+aliveStatusCodes:
+  - 200
+  - 206

@@ -20,4 +20,3 @@ jobs:
         fail_on_error: true
         reporter: github-pr-review
         config_file: .linkspector.yml
-        filter_mode: 'diff_context'

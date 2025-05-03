@@ -578,6 +578,5 @@ In Cluster API Unit and integration test MUST use [go test].
 [controller-runtime]: https://github.com/kubernetes-sigs/controller-runtime
 [envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/envtest
 [fakeclient]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/client/fake
-[test/helpers]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/helpers
 
 [vscode-go]: https://marketplace.visualstudio.com/items?itemName=golang.Go

@@ -87,8 +87,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.9/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/core-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -158,8 +158,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.9/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/bootstrap-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -229,8 +229,8 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.9/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/control-plane-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -314,8 +314,8 @@ providers:
       - sourcePath: "../data/infrastructure-docker/v1.9/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.9/cluster-template-topology.yaml"
       - sourcePath: "../data/infrastructure-docker/v1.9/clusterclass-quick-start.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/infrastructure-components-development.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/infrastructure-components-development.yaml"
     type: "url"
     contract: v1beta1
     replacements:

@@ -814,9 +814,8 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ClusterName:     s.Current.Cluster.Name,
-			MinReadySeconds: minReadySeconds,
-			Strategy:        strategy,
+			ClusterName: s.Current.Cluster.Name,
+			Strategy:    strategy,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,
@@ -828,6 +827,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 					NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
 					NodeDeletionTimeout:     nodeDeletionTimeout,
 					ReadinessGates:          readinessGates,
+					MinReadySeconds:         minReadySeconds,
 				},
 			},
 		},
@@ -1135,9 +1135,8 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: expv1.MachinePoolSpec{
-			ClusterName:     s.Current.Cluster.Name,
-			MinReadySeconds: minReadySeconds,
-			FailureDomains:  failureDomains,
+			ClusterName:    s.Current.Cluster.Name,
+			FailureDomains: failureDomains,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,
@@ -1147,6 +1146,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 					NodeDrainTimeout:        nodeDrainTimeout,
 					NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
 					NodeDeletionTimeout:     nodeDeletionTimeout,
+					MinReadySeconds:         minReadySeconds,
 				},
 			},
 		},

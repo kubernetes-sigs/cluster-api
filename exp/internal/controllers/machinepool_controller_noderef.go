@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -94,8 +95,9 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, errors.New("failed to get Node references")
 	}
 
-	// Get the Node references.
-	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, mp.Spec.MinReadySeconds, s.nodeRefMap)
+	minReadySeconds := ptr.Deref(mp.Spec.Template.Spec.MinReadySeconds, 0)
+
+	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, minReadySeconds, s.nodeRefMap)
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
@@ -172,7 +174,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerIDList []string, minReadySeconds *int32, nodeRefsMap map[string]*corev1.Node) (getNodeReferencesResult, error) {
+func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerIDList []string, minReadySeconds int32, nodeRefsMap map[string]*corev1.Node) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
@@ -186,7 +188,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerI
 		if node, ok := nodeRefsMap[providerID]; ok {
 			if noderefutil.IsNodeReady(node) {
 				ready++
-				if noderefutil.IsNodeAvailable(node, *minReadySeconds, metav1.Now()) {
+				if noderefutil.IsNodeAvailable(node, minReadySeconds, metav1.Now()) {
 					available++
 				}
 			}

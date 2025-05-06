@@ -1568,8 +1568,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
-		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
 		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
+		g.Expect(*actualMd.Spec.Template.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
@@ -1626,8 +1626,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// checking only values from CC defaults
 		actualMd := actual.Object
-		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
 		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
+		g.Expect(*actualMd.Spec.Template.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
@@ -2031,8 +2031,8 @@ func TestComputeMachinePool(t *testing.T) {
 
 		actualMp := actual.Object
 		g.Expect(*actualMp.Spec.Replicas).To(Equal(replicas))
-		g.Expect(*actualMp.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
 		g.Expect(actualMp.Spec.FailureDomains).To(Equal(topologyFailureDomains))
+		g.Expect(*actualMp.Spec.Template.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(topologyDuration))
@@ -2082,8 +2082,8 @@ func TestComputeMachinePool(t *testing.T) {
 
 		// checking only values from CC defaults
 		actualMp := actual.Object
-		g.Expect(*actualMp.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
 		g.Expect(actualMp.Spec.FailureDomains).To(Equal(clusterClassFailureDomains))
+		g.Expect(*actualMp.Spec.Template.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(clusterClassDuration))

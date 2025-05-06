@@ -48,13 +48,6 @@ type MachinePoolSpec struct {
 	// +required
 	Template clusterv1.MachineTemplateSpec `json:"template"`
 
-	// minReadySeconds is the minimum number of seconds for which a newly created machine instances should
-	// be ready.
-	// Defaults to 0 (machine instance will be considered available as soon as it
-	// is ready)
-	// +optional
-	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
-
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional

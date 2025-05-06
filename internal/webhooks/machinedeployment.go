@@ -100,8 +100,8 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	}
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = ptr.To[int32](0)
+	if m.Spec.Template.Spec.MinReadySeconds == nil {
+		m.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 	}
 
 	if m.Spec.RevisionHistoryLimit == nil {

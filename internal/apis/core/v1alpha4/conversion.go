@@ -720,5 +720,9 @@ func Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in 
 }
 
 func Convert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
-	return autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
+	if err := autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Template.Spec.MinReadySeconds = &in.MinReadySeconds
+	return nil
 }

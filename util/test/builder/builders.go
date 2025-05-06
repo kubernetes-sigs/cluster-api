@@ -1674,13 +1674,13 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			Annotations: m.annotations,
 		},
 		Spec: expv1.MachinePoolSpec{
-			ClusterName:     m.clusterName,
-			Replicas:        m.replicas,
-			MinReadySeconds: m.minReadySeconds,
+			ClusterName: m.clusterName,
+			Replicas:    m.replicas,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version:     m.version,
-					ClusterName: m.clusterName,
+					Version:         m.version,
+					ClusterName:     m.clusterName,
+					MinReadySeconds: m.minReadySeconds,
 				},
 			},
 		},
@@ -1832,7 +1832,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 	}
-	obj.Spec.MinReadySeconds = m.minReadySeconds
+	obj.Spec.Template.Spec.MinReadySeconds = m.minReadySeconds
 
 	return obj
 }

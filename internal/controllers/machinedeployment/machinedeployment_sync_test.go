@@ -539,9 +539,8 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ClusterName:     "test-cluster",
-			Replicas:        ptr.To[int32](3),
-			MinReadySeconds: ptr.To[int32](10),
+			ClusterName: "test-cluster",
+			Replicas:    ptr.To[int32](3),
 			Strategy: &clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
@@ -583,12 +582,11 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
 		},
 		Spec: clusterv1.MachineSetSpec{
-			ClusterName:     "test-cluster",
-			Replicas:        ptr.To[int32](3),
-			MinReadySeconds: 10,
-			DeletePolicy:    string(clusterv1.RandomMachineSetDeletePolicy),
-			Selector:        metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
-			Template:        *deployment.Spec.Template.DeepCopy(),
+			ClusterName:  "test-cluster",
+			Replicas:     ptr.To[int32](3),
+			DeletePolicy: string(clusterv1.RandomMachineSetDeletePolicy),
+			Selector:     metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+			Template:     *deployment.Spec.Template.DeepCopy(),
 			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
 				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
@@ -643,7 +641,6 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
-		existingMS.Spec.MinReadySeconds = 0
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
 		expectedMS.UID = existingMSUID
@@ -683,7 +680,6 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
-		existingMS.Spec.MinReadySeconds = 0
 
 		oldMS := skeletonMSBasedOnMD.DeepCopy()
 		oldMS.Spec.Replicas = ptr.To[int32](2)
@@ -737,7 +733,6 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
-		existingMS.Spec.MinReadySeconds = 0
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
 		expectedMS.UID = existingMSUID
@@ -795,9 +790,6 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 	for k, v := range expectedMS.Spec.Template.Annotations {
 		g.Expect(actualMS.Spec.Template.Annotations).Should(HaveKeyWithValue(k, v))
 	}
-
-	// Check MinReadySeconds
-	g.Expect(actualMS.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.MinReadySeconds))
 
 	// Check DeletePolicy
 	g.Expect(actualMS.Spec.DeletePolicy).Should(Equal(expectedMS.Spec.DeletePolicy))

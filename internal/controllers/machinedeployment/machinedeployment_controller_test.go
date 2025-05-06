@@ -107,7 +107,6 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName:          testCluster.Name,
-				MinReadySeconds:      ptr.To[int32](0),
 				Replicas:             ptr.To[int32](2),
 				RevisionHistoryLimit: ptr.To[int32](0),
 				Selector: metav1.LabelSelector{
@@ -536,7 +535,6 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 		Spec: clusterv1.MachineDeploymentSpec{
 			Paused:               true, // Set this to true as we do not want to test the other parts of the reconciler in this test.
 			ClusterName:          testCluster.Name,
-			MinReadySeconds:      ptr.To[int32](0),
 			Replicas:             ptr.To[int32](2),
 			RevisionHistoryLimit: ptr.To[int32](0),
 			Selector: metav1.LabelSelector{
@@ -617,9 +615,8 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 			Labels:    labels,
 		},
 		Spec: clusterv1.MachineSetSpec{
-			ClusterName:     testCluster.Name,
-			Replicas:        ptr.To[int32](0),
-			MinReadySeconds: 0,
+			ClusterName: testCluster.Name,
+			Replicas:    ptr.To[int32](0),
 			Selector: metav1.LabelSelector{
 				MatchLabels: labels,
 			},

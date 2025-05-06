@@ -320,7 +320,6 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 	desiredMS.Spec.Template.Annotations = cloneStringMap(deployment.Spec.Template.Annotations)
 
 	// Set all other in-place mutable fields.
-	desiredMS.Spec.MinReadySeconds = ptr.Deref(deployment.Spec.MinReadySeconds, 0)
 	if deployment.Spec.Strategy != nil && deployment.Spec.Strategy.RollingUpdate != nil {
 		desiredMS.Spec.DeletePolicy = ptr.Deref(deployment.Spec.Strategy.RollingUpdate.DeletePolicy, "")
 	} else {

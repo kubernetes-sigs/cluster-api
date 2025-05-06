@@ -785,6 +785,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.Topology)(nil), (*Topology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Topology_To_v1beta1_Topology(a.(*v1beta2.Topology), b.(*Topology), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*UnhealthyCondition)(nil), (*v1beta2.UnhealthyCondition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_UnhealthyCondition_To_v1beta2_UnhealthyCondition(a.(*UnhealthyCondition), b.(*v1beta2.UnhealthyCondition), scope)
 	}); err != nil {
@@ -922,11 +927,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineStatus)(nil), (*MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(a.(*v1beta2.MachineStatus), b.(*MachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.Topology)(nil), (*Topology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Topology_To_v1beta1_Topology(a.(*v1beta2.Topology), b.(*Topology), scope)
 	}); err != nil {
 		return err
 	}

@@ -131,11 +131,6 @@ func (in *MachinePoolSpec) DeepCopyInto(out *MachinePoolSpec) {
 		**out = **in
 	}
 	in.Template.DeepCopyInto(&out.Template)
-	if in.MinReadySeconds != nil {
-		in, out := &in.MinReadySeconds, &out.MinReadySeconds
-		*out = new(int32)
-		**out = **in
-	}
 	if in.ProviderIDList != nil {
 		in, out := &in.ProviderIDList, &out.ProviderIDList
 		*out = make([]string, len(*in))

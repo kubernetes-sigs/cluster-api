@@ -4155,6 +4155,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
+					"minReadySeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The minimum number of seconds for which a Machine should be ready before considering it available. Defaults to 0 (Machine will be considered available as soon as the Machine is ready)",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 					"readinessGates": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{

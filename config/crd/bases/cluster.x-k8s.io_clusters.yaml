@@ -2685,10 +2685,10 @@ spec:
                   nodeDeletionStrategy:
                     description: |-
                       nodeDeletionStrategy specifies the strategy to delete nodes in the cluster.
-                      Available options:
-                      - graceful
-                      - force
-                      By default it's "force".
+                      Valid values are Force, Graceful and omitted.
+                      When omitted, the default behaviour will be Force.
+                      Graceful means that nodes will be deleted with drain.
+                      Force means that nodes will be deleted immediately without drain.
                     enum:
                     - force
                     - graceful

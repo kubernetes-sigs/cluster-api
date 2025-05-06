@@ -587,13 +587,13 @@ type Topology struct {
 	Variables []ClusterVariable `json:"variables,omitempty"`
 
 	// nodeDeletionStrategy specifies the strategy to delete nodes in the cluster.
-	// Available options:
-	// - graceful
-	// - force
-	// By default it's "force".
+	// Valid values are Force, Graceful and omitted.
+	// When omitted, the default behaviour will be Force.
+	// Graceful means that nodes will be deleted with drain.
+	// Force means that nodes will be deleted immediately without drain.
 	// +optional
 	// +kubebuilder:validation:Enum=force;graceful
-	NodeDeletionStrategy *NodeDeletionStrategyType `json:"nodeDeletionStrategy,omitempty"`
+	NodeDeletionStrategy NodeDeletionStrategyType `json:"nodeDeletionStrategy,omitempty"`
 }
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
@@ -915,9 +915,9 @@ type NodeDeletionStrategyType string
 
 const (
 	// NodeDeletionStrategyForce defines a force type strategy that node will be deleted immediately without drain.
-	NodeDeletionStrategyForce NodeDeletionStrategyType = "force"
-	// NodeDeletionStrategyGracefulWithTimeout defines a force type strategy that node will be deleted with drain.
-	NodeDeletionStrategyGracefulWithTimeout NodeDeletionStrategyType = "gracefulWithTimeout"
+	NodeDeletionStrategyForce NodeDeletionStrategyType = "Force"
+	// NodeDeletionStrategyGraceful defines a graceful type strategy that node will be deleted with drain.
+	NodeDeletionStrategyGraceful NodeDeletionStrategyType = "Graceful"
 )
 
 // ANCHOR_END: ClusterSpec

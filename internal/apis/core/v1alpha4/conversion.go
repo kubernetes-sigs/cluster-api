@@ -249,6 +249,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
 	dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
 	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
 	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
@@ -324,6 +325,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -401,6 +403,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -710,4 +713,12 @@ func Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(in *Co
 	for i := range *in {
 		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i]))
 	}
+}
+
+func Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
+}
+
+func Convert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
 }

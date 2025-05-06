@@ -64,6 +64,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -140,4 +141,8 @@ func Convert_v1_Condition_To_v1alpha4_Condition(in *metav1.Condition, out *clust
 
 func Convert_v1alpha4_Condition_To_v1_Condition(in *clusterv1alpha4.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1alpha4_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *expv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }

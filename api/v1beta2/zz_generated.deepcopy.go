@@ -1479,11 +1479,6 @@ func (in *MachineDeploymentSpec) DeepCopyInto(out *MachineDeploymentSpec) {
 		*out = new(MachineNamingStrategy)
 		**out = **in
 	}
-	if in.MinReadySeconds != nil {
-		in, out := &in.MinReadySeconds, &out.MinReadySeconds
-		*out = new(int32)
-		**out = **in
-	}
 	if in.RevisionHistoryLimit != nil {
 		in, out := &in.RevisionHistoryLimit, &out.RevisionHistoryLimit
 		*out = new(int32)
@@ -2553,6 +2548,11 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 	if in.FailureDomain != nil {
 		in, out := &in.FailureDomain, &out.FailureDomain
 		*out = new(string)
+		**out = **in
+	}
+	if in.MinReadySeconds != nil {
+		in, out := &in.MinReadySeconds, &out.MinReadySeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.ReadinessGates != nil {

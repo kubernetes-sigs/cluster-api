@@ -1761,7 +1761,6 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 					},
 				},
 			},
-			MinReadySeconds: ptr.To[int32](0),
 		},
 		Status: expv1.MachinePoolStatus{},
 	}

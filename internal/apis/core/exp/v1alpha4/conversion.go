@@ -144,5 +144,9 @@ func Convert_v1alpha4_Condition_To_v1_Condition(in *clusterv1alpha4.Condition, o
 }
 
 func Convert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *expv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
-	return autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
+	if err := autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Template.Spec.MinReadySeconds = in.MinReadySeconds
+	return nil
 }

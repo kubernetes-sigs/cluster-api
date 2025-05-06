@@ -67,7 +67,6 @@ The table below documents support matrix for Cluster API versions (versions olde
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
 |---------------|-------------------------|---------------------------------------------------------------------------------------------|
-| v1.12.x       | Under development       |                                                                                             |
 | v1.11.x       | Standard support period | in maintenance mode when v1.13.0 will be released, EOL when v1.14.0 will be released        |
 | v1.10.x       | Standard support period | in maintenance mode when v1.12.0 will be released, EOL when v1.13.0 will be released        |
 | v1.9.x        | Maintenance mode        | Maintenance mode since 2025-08-12 - v1.11.0 release date, EOL when v1.12.0 will be released |

@@ -295,11 +295,6 @@ type MachineDeploymentSpec struct {
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 
-	// minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
-	// Defaults to 0 (machine will be considered available as soon as the Node is ready)
-	// +optional
-	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
-
 	// revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// Defaults to 1.

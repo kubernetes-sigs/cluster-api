@@ -51,7 +51,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
 	g.Expect(m.Spec.NodeDeletionTimeout.Duration).To(Equal(defaultNodeDeletionTimeout))
-	g.Expect(m.Spec.MinReadySeconds).To(Equal(int32(0)))
+	g.Expect(m.Spec.MinReadySeconds).To(HaveValue(Equal(int32(0))))
 }
 
 func TestMachineBootstrapValidation(t *testing.T) {

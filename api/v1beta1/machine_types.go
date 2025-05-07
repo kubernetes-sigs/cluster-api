@@ -424,12 +424,6 @@ type MachineSpec struct {
 	// +kubebuilder:validation:MaxLength=256
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
-	// The minimum number of seconds for which a Machine should be ready before considering it available.
-	// Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
-	// +optional
-	// +default=0
-	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
-
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
 	//
 	// This field can be used e.g. by Cluster API control plane providers to extend the semantic of the

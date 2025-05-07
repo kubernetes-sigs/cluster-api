@@ -1,6 +1,6 @@
 run:
   timeout: 10m
-  go: "1.22"
+  go: "1.23"
   build-tags:
     - tools
     - e2e
@@ -56,7 +56,7 @@ linters:
 linters-settings:
   gosec:
     excludes:
-    # integer overflow conversion int -> int32
+      # integer overflow conversion int -> int32
       - G115
   gci:
     sections:
@@ -73,7 +73,7 @@ linters-settings:
     scope: toplevel
     exclude:
       - '^ \+.*'
-      - '^ ANCHOR.*'
+      - "^ ANCHOR.*"
   gocritic:
     enabled-tags:
       - diagnostic
@@ -236,138 +236,138 @@ issues:
   # changes in PRs and avoid nitpicking.
   exclude-use-default: false
   exclude-rules:
-  # Specific exclude rules for deprecated fields that are still part of the codebase. These
-  # should be removed as the referenced deprecated item is removed from the project.
-  - linters:
-      - staticcheck
-    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
-  # Deprecations for MD revision management
-  - linters:
-      - staticcheck
-    text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
+    # Specific exclude rules for deprecated fields that are still part of the codebase. These
+    # should be removed as the referenced deprecated item is removed from the project.
+    - linters:
+        - staticcheck
+      text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
     # Deprecations for MD revision management
-  - linters:
-      - staticcheck
-    text: "SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details."
-    # Deprecations for MHC MaxUnhealthy, UnhealthyRange
-  - linters:
-      - staticcheck
-    text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
-  # Deprecations for FailureMessage, FailureReason, UnavailableReplicas and FullyLabeledReplicas
-  - linters:
-      - staticcheck
-    text: "SA1019: .*\\.Status\\.(FailureMessage|FailureReason|UnavailableReplicas|FullyLabeledReplicas) is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
-  - linters:
-      - staticcheck
-    text: "SA1019: newStatus.FullyLabeledReplicas is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
-  # Specific exclude rules for deprecated packages that are still part of the codebase. These
-  # should be removed as the referenced deprecated packages are removed from the project.
-  - linters:
-    - staticcheck
-    text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
-  # Specific exclude rules for deprecated types that are still part of the codebase. These
-  # should be removed as the referenced deprecated types are removed from the project.
-  - linters:
-    - staticcheck
-    text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
-  - linters:
-    - revive
-    text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
-  - linters:
-    - errcheck
-    text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-  # Exclude some packages or code to require comments, for example test code, or fake clients.
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    source: (func|type).*Fake.*
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: fake_\.go
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: cmd/clusterctl/internal/test/providers.*.go
-  - linters:
-    - revive
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: "(framework|e2e)/.*.go"
-  # Disable unparam "always receives" which might not be really
-  # useful when building libraries.
-  - linters:
-    - unparam
-    text: always receives
-  # Dot imports for gomega and ginkgo are allowed
-  # within test files and test utils.
-  - linters:
-    - revive
-    - stylecheck
-    path: _test\.go
-    text: should not use dot imports
-  - linters:
-    - revive
-    - stylecheck
-    path: (framework|e2e)/.*.go
-    text: should not use dot imports
-  - linters:
-    - revive
-    - stylecheck
-    path: util/defaulting/defaulting.go
-    text: should not use dot imports
-  # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
-  # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
-  - linters:
-      - gocritic
-    text: "emptyStringTest"
-    path: internal/topology/variables/clusterclass_variable_validation.go
-  # Append should be able to assign to a different var/slice.
-  - linters:
-    - gocritic
-    text: "appendAssign: append result not assigned to the same slice"
- # Disable linters for conversion
-  - linters:
-    - staticcheck
-    text: "SA1019: in.(.+) is deprecated"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-      - revive
-    # Checking if an error is nil to just after return the error or nil is redundant
-    text: "if-return: redundant if ...; err != nil check, just return error instead"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
-    text: exported (method|function|type|const) (.+) should have comment or be unexported
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # This rule warns when initialism, variable or package naming conventions are not followed.
-    text: "var-naming: don't use underscores in Go names;"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - revive
-    # By convention, receiver names in a method should reflect their identity.
-    text: "receiver-naming: receiver name"
-    # Ignoring stylistic checks for generated code
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1003: should not use underscores in Go names;"
-    path: .*(api|types|test)\/.*\/conversion.*\.go$
-  - linters:
-    - stylecheck
-    text: "ST1016: methods on the same type should have the same receiver name"
-    path: .*(api|types)\/.*\/conversion.*\.go$
-  # We don't care about defer in for loops in test files.
-  - linters:
-    - gocritic
-    text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
-    path: _test\.go
-    # Ignore non-constant format string in call to condition utils
-  - linters:
-      - govet
-    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."
+    - linters:
+        - staticcheck
+      text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
+      # Deprecations for MD revision management
+    - linters:
+        - staticcheck
+      text: "SA1019: (m|md).Spec.ProgressDeadlineSeconds is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details."
+      # Deprecations for MHC MaxUnhealthy, UnhealthyRange
+    - linters:
+        - staticcheck
+      text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
+    # Deprecations for FailureMessage, FailureReason, UnavailableReplicas and FullyLabeledReplicas
+    - linters:
+        - staticcheck
+      text: "SA1019: .*\\.Status\\.(FailureMessage|FailureReason|UnavailableReplicas|FullyLabeledReplicas) is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
+    - linters:
+        - staticcheck
+      text: "SA1019: newStatus.FullyLabeledReplicas is deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details."
+    # Specific exclude rules for deprecated packages that are still part of the codebase. These
+    # should be removed as the referenced deprecated packages are removed from the project.
+    - linters:
+        - staticcheck
+      text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
+    # Specific exclude rules for deprecated types that are still part of the codebase. These
+    # should be removed as the referenced deprecated types are removed from the project.
+    - linters:
+        - staticcheck
+      text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
+    - linters:
+        - revive
+      text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
+    - linters:
+        - errcheck
+      text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+    # Exclude some packages or code to require comments, for example test code, or fake clients.
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      source: (func|type).*Fake.*
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: fake_\.go
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: cmd/clusterctl/internal/test/providers.*.go
+    - linters:
+        - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: "(framework|e2e)/.*.go"
+    # Disable unparam "always receives" which might not be really
+    # useful when building libraries.
+    - linters:
+        - unparam
+      text: always receives
+    # Dot imports for gomega and ginkgo are allowed
+    # within test files and test utils.
+    - linters:
+        - revive
+        - stylecheck
+      path: _test\.go
+      text: should not use dot imports
+    - linters:
+        - revive
+        - stylecheck
+      path: (framework|e2e)/.*.go
+      text: should not use dot imports
+    - linters:
+        - revive
+        - stylecheck
+      path: util/defaulting/defaulting.go
+      text: should not use dot imports
+    # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
+    # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
+    - linters:
+        - gocritic
+      text: "emptyStringTest"
+      path: internal/topology/variables/clusterclass_variable_validation.go
+    # Append should be able to assign to a different var/slice.
+    - linters:
+        - gocritic
+      text: "appendAssign: append result not assigned to the same slice"
+    # Disable linters for conversion
+    - linters:
+        - staticcheck
+      text: "SA1019: in.(.+) is deprecated"
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+        - revive
+      # Checking if an error is nil to just after return the error or nil is redundant
+      text: "if-return: redundant if ...; err != nil check, just return error instead"
+      # Ignoring stylistic checks for generated code
+      path: .*(api|types|test)\/.*\/conversion.*\.go$
+    - linters:
+        - revive
+      # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      # Ignoring stylistic checks for generated code
+      path: .*(api|types|test)\/.*\/conversion.*\.go$
+    - linters:
+        - revive
+      # This rule warns when initialism, variable or package naming conventions are not followed.
+      text: "var-naming: don't use underscores in Go names;"
+      # Ignoring stylistic checks for generated code
+      path: .*(api|types|test)\/.*\/conversion.*\.go$
+    - linters:
+        - revive
+      # By convention, receiver names in a method should reflect their identity.
+      text: "receiver-naming: receiver name"
+      # Ignoring stylistic checks for generated code
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+        - stylecheck
+      text: "ST1003: should not use underscores in Go names;"
+      path: .*(api|types|test)\/.*\/conversion.*\.go$
+    - linters:
+        - stylecheck
+      text: "ST1016: methods on the same type should have the same receiver name"
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    # We don't care about defer in for loops in test files.
+    - linters:
+        - gocritic
+      text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
+      path: _test\.go
+      # Ignore non-constant format string in call to condition utils
+    - linters:
+        - govet
+      text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."

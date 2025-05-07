@@ -86,7 +86,11 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+	if src.Spec.MinReadySeconds == 0 {
+		dst.Spec.Template.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.Template.Spec.MinReadySeconds = &src.Spec.MinReadySeconds
+	}
 
 	return nil
 }
@@ -98,7 +102,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
 
 	return nil
 }
@@ -110,7 +114,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	return nil
 }
@@ -122,11 +126,7 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if src.Spec.Template.Spec.MinReadySeconds == 0 {
-		dst.Spec.MinReadySeconds = nil
-	} else {
-		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
-	}
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
 	return nil
 }

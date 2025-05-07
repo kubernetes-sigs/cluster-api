@@ -2550,11 +2550,6 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.MinReadySeconds != nil {
-		in, out := &in.MinReadySeconds, &out.MinReadySeconds
-		*out = new(int32)
-		**out = **in
-	}
 	if in.ReadinessGates != nil {
 		in, out := &in.ReadinessGates, &out.ReadinessGates
 		*out = make([]MachineReadinessGate, len(*in))

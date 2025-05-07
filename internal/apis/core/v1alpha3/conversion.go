@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
@@ -229,12 +230,13 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.AvailableReplicas = src.Status.AvailableReplicas
 	dst.Status.Deprecated.V1Beta1.FullyLabeledReplicas = src.Status.FullyLabeledReplicas
 
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+
 	// Manually restore data.
 	restored := &clusterv1.MachineSet{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -275,6 +277,8 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
@@ -301,6 +305,8 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.UpdatedReplicas = src.Status.UpdatedReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
+	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
+
 	// Manually restore data.
 	restored := &clusterv1.MachineDeployment{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -324,7 +330,6 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
 	}
 
-	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -360,6 +365,12 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 			dst.Status.UpdatedReplicas = src.Status.Deprecated.V1Beta1.UpdatedReplicas
 			dst.Status.UnavailableReplicas = src.Status.Deprecated.V1Beta1.UnavailableReplicas
 		}
+	}
+
+	if src.Spec.Template.Spec.MinReadySeconds == 0 {
+		dst.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
@@ -432,18 +443,18 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, _ apimachineryconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha3.
 	return autoConvert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, nil)
 }
 
 func Convert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apimachineryconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.Topology does not exist in v1alpha3
-	// AvailabilityGates was added in v1beta1.
+	// AvailabilityGates was added in v1alpha3.
 	return autoConvert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s)
 }
 
 func Convert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha3.
 	return autoConvert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s)
 }
 
@@ -488,7 +499,7 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 }
 
 func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha3.
 	return autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in, out, s)
 }
 
@@ -501,13 +512,13 @@ func Convert_v1alpha3_ObjectMeta_To_v1beta2_ObjectMeta(in *ObjectMeta, out *clus
 }
 
 func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha3.
 	return autoConvert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
-	// spec.nodeDeletionTimeout was added in v1beta1.
-	// ReadinessGates was added in v1beta1.
+	// spec.nodeDeletionTimeout was added in v1alpha3.
+	// ReadinessGates was added in v1alpha3.
 	return autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
 }
 
@@ -517,7 +528,7 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in 
 
 func Convert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apimachineryconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha3.
 	return autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
 }
 
@@ -576,9 +587,5 @@ func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in 
 }
 
 func Convert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s); err != nil {
-		return err
-	}
-	out.Template.Spec.MinReadySeconds = &in.MinReadySeconds
-	return nil
+	return autoConvert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
 }

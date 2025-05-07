@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
@@ -319,13 +320,14 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.AvailableReplicas = src.Status.AvailableReplicas
 	dst.Status.Deprecated.V1Beta1.FullyLabeledReplicas = src.Status.FullyLabeledReplicas
 
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+
 	// Manually restore data.
 	restored := &clusterv1.MachineSet{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 
-	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -371,6 +373,8 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -397,13 +401,14 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.UpdatedReplicas = src.Status.UpdatedReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
+	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
+
 	// Manually restore data.
 	restored := &clusterv1.MachineDeployment{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 
-	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -454,6 +459,12 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 			dst.Status.UpdatedReplicas = src.Status.Deprecated.V1Beta1.UpdatedReplicas
 			dst.Status.UnavailableReplicas = src.Status.Deprecated.V1Beta1.UnavailableReplicas
 		}
+	}
+
+	if src.Spec.Template.Spec.MinReadySeconds == 0 {
+		dst.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
@@ -720,9 +731,5 @@ func Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in 
 }
 
 func Convert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s); err != nil {
-		return err
-	}
-	out.Template.Spec.MinReadySeconds = &in.MinReadySeconds
-	return nil
+	return autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
 }

@@ -12,6 +12,7 @@
   - [Setup jobs and dashboards for a new release branch](#setup-jobs-and-dashboards-for-a-new-release-branch)
   - [[Continuously] Monitor CI signal](#continuously-monitor-ci-signal)
   - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
+  - [Post-release cleanup](#post-release-cleanup)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -37,7 +38,7 @@ While we add test coverage for the new release branch we will also drop the test
     2. Modify the following at the `release-1.8` branch entry:
             * Change intervals (let's use the same as for `release-1.7`).
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
-3. Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../../../CONTRIBUTING.md#support-and-guarantees). As we just added `release-1.8`, then we can now drop test coverage for the `release-1.5` branch.
+3. Do not remove old release branches during this setup phase.
 4. Review the templates and modify/remove any outdated logic in the templates.  For example, when `release-1.7` is dropped from support, it can be removed from [this if statement](https://github.com/kubernetes/test-infra/blob/fa895d9f204e912e2bf0bd42221017a6dedf6065/config/jobs/kubernetes-sigs/cluster-api/templates/cluster-api-periodics-upgrades.yaml.tpl#L42).
 5. Regenerate the prowjob configuration running `make generate-test-infra-prowjobs` command from cluster-api repository. Before running this command, ensure to export the `TEST_INFRA_DIR` variable, specifying the location of the [test-infra](https://github.com/kubernetes/test-infra/) repository in your environment. For further information, refer to this [link](https://github.com/kubernetes-sigs/cluster-api/pull/9937).
 
@@ -84,3 +85,11 @@ To reduce the amount of flakes please periodically:
 2. Open issues using an appropriate template (flaking-test) for occurring flakes and ideally fix them or find someone who can.
 
    **Note**: Given resource limitations in the Prow cluster it might not be possible to fix all flakes. Let's just try to pragmatically keep the amount of flakes pretty low.
+
+### Post-release cleanup
+Once the new minor release (e.g., `v1.8.0`) has been officially cut, perform the following cleanup:
+
+- Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-support)
+
+We can now drop test coverage for branches out of support (e.g. `release-1.5`).
+

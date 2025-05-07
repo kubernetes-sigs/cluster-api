@@ -136,6 +136,10 @@ func (webhook *MachineSet) Default(ctx context.Context, obj runtime.Object) erro
 		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 
+	if m.Spec.Template.Spec.MinReadySeconds == nil {
+		m.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
+	}
+
 	return nil
 }
 

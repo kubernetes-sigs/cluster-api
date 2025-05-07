@@ -1199,9 +1199,8 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 		}
 
 		if noderefutil.IsNodeReady(node) {
-			minReadySeconds := ptr.Deref(machine.Spec.MinReadySeconds, 0)
 			readyReplicasCount++
-			if noderefutil.IsNodeAvailable(node, minReadySeconds, metav1.Now()) {
+			if noderefutil.IsNodeAvailable(node, machine.Spec.MinReadySeconds, metav1.Now()) {
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {
@@ -1250,7 +1249,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 }
 
 func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
-	minReadySeconds := ptr.Deref(s.machineSet.Spec.Template.Spec.MinReadySeconds, 0)
+	minReadySeconds := s.machineSet.Spec.Template.Spec.MinReadySeconds
 	replicas := ptr.Deref(s.machineSet.Spec.Replicas, 0)
 
 	// Resync the MachineSet after minReadySeconds as a last line of defense to guard against clock-skew.

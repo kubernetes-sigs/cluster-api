@@ -764,8 +764,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 		return
 	}
 
-	minReadySeconds := ptr.Deref(machine.Spec.MinReadySeconds, 0)
-	if time.Since(readyCondition.LastTransitionTime.Time) >= time.Duration(minReadySeconds)*time.Second {
+	if time.Since(readyCondition.LastTransitionTime.Time) >= time.Duration(machine.Spec.MinReadySeconds)*time.Second {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineAvailableCondition,
 			Status: metav1.ConditionTrue,

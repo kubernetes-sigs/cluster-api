@@ -923,6 +923,10 @@ test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
 
+.PHONY: test-conversions
+test-conversions: $(SETUP_ENVTEST) ## Run conversions test
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
+
 .PHONY: test-verbose
 test-verbose: ## Run unit and integration tests with race detector and with verbose flag
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"

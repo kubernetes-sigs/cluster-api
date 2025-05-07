@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -95,9 +94,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, errors.New("failed to get Node references")
 	}
 
-	minReadySeconds := ptr.Deref(mp.Spec.Template.Spec.MinReadySeconds, 0)
-
-	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, minReadySeconds, s.nodeRefMap)
+	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, mp.Spec.Template.Spec.MinReadySeconds, s.nodeRefMap)
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")

@@ -172,7 +172,9 @@ to a newer Go minor version according to our [backport policy](./../../../../CON
 ### [Repeatedly] Cut a release
 
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
-   Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
+   * Ensure there are no [open PRs or issues that are blocking the release](https://github.com/kubernetes-sigs/cluster-api/issues?q=label%3Akind%2Frelease-blocking%20state%3Aopen).
+   * Ensure that the release branch is stable and all tests are passing on [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api).
+   * Verify the [Weekly security scan](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/weekly-security-scan.yaml) results are clean.
 2. Ask the [Communications/Docs/Release Notes Manager](../communications/README.md) to [create a PR with the release notes](../communications/README.md#create-pr-for-release-notes) for the new desired tag and review the PR. Once the PR merges, it will trigger a [GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) to create a release branch, push release tags, and create a draft release. This will also trigger a [ProwJob](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images) to publish images to the staging repository.
 3. Promote images from the staging repository to the production registry (`registry.k8s.io/cluster-api`):
     1. Wait until images for the tag have been built and pushed to the [staging repository](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api) by the [post push images job](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&job=post-cluster-api-push-images).

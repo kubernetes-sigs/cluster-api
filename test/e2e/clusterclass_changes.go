@@ -684,7 +684,7 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 	}
 
 	if mdTopology.MinReadySeconds != nil {
-		g.Expect(md.Spec.MinReadySeconds).To(Equal(mdTopology.MinReadySeconds))
+		g.Expect(md.Spec.Template.Spec.MinReadySeconds).To(Equal(mdTopology.MinReadySeconds))
 	}
 
 	if mdTopology.Strategy != nil {
@@ -722,7 +722,7 @@ func assertMachinePoolTopologyFields(g Gomega, mp expv1.MachinePool, mpTopology 
 	}
 
 	if mpTopology.MinReadySeconds != nil {
-		g.Expect(mp.Spec.MinReadySeconds).To(Equal(mpTopology.MinReadySeconds))
+		g.Expect(mp.Spec.Template.Spec.MinReadySeconds).To(Equal(mpTopology.MinReadySeconds))
 	}
 
 	if mpTopology.FailureDomains != nil {

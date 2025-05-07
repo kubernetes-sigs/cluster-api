@@ -941,7 +941,7 @@ spec:
                       dataSecretName is the name of the secret that stores the bootstrap data script.
                       If nil, the Machine should remain in the Pending state.
                     maxLength: 253
-                    minLength: 1
+                    minLength: 0
                     type: string
                 type: object
               clusterName:
@@ -1563,7 +1563,7 @@ spec:
                       dataSecretName is the name of the secret that stores the bootstrap data script.
                       If nil, the Machine should remain in the Pending state.
                     maxLength: 253
-                    minLength: 1
+                    minLength: 0
                     type: string
                 type: object
               clusterName:

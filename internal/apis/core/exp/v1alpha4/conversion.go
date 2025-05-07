@@ -19,6 +19,7 @@ package v1alpha4
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
@@ -58,13 +59,13 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
 		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
 	}
+	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
 
 	// Manually restore data.
 	restored := &expv1.MachinePool{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-	dst.Spec.Template.Spec.MinReadySeconds = restored.Spec.Template.Spec.MinReadySeconds
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -112,6 +113,12 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
 
+	if src.Spec.Template.Spec.MinReadySeconds == 0 {
+		dst.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
+	}
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -144,9 +151,5 @@ func Convert_v1alpha4_Condition_To_v1_Condition(in *clusterv1alpha4.Condition, o
 }
 
 func Convert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *expv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s); err != nil {
-		return err
-	}
-	out.Template.Spec.MinReadySeconds = in.MinReadySeconds
-	return nil
+	return autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }

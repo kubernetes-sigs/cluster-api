@@ -230,7 +230,11 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.AvailableReplicas = src.Status.AvailableReplicas
 	dst.Status.Deprecated.V1Beta1.FullyLabeledReplicas = src.Status.FullyLabeledReplicas
 
-	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+	if src.Spec.MinReadySeconds == 0 {
+		dst.Spec.Template.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.Template.Spec.MinReadySeconds = &src.Spec.MinReadySeconds
+	}
 
 	// Manually restore data.
 	restored := &clusterv1.MachineSet{}
@@ -277,7 +281,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
-	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
 
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
@@ -305,7 +309,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.UpdatedReplicas = src.Status.UpdatedReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
-	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	// Manually restore data.
 	restored := &clusterv1.MachineDeployment{}
@@ -367,11 +371,7 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
-	if src.Spec.Template.Spec.MinReadySeconds == 0 {
-		dst.Spec.MinReadySeconds = nil
-	} else {
-		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
-	}
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {

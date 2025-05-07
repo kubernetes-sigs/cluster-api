@@ -630,11 +630,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineSpec)(nil), (*MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(a.(*v1beta2.MachineSpec), b.(*MachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineTemplateSpec)(nil), (*v1beta2.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(a.(*MachineTemplateSpec), b.(*v1beta2.MachineTemplateSpec), scope)
 	}); err != nil {
@@ -907,6 +902,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineSetStatus)(nil), (*MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineSetStatus_To_v1beta1_MachineSetStatus(a.(*v1beta2.MachineSetStatus), b.(*MachineSetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineSpec)(nil), (*MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(a.(*v1beta2.MachineSpec), b.(*MachineSpec), scope)
 	}); err != nil {
 		return err
 	}

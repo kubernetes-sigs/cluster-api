@@ -4365,6 +4365,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSpec(ref common.ReferenceCa
 					"minReadySeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available. Defaults to 0 (Machine will be considered available as soon as the Machine is ready)",
+							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

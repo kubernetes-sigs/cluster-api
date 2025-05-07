@@ -2245,6 +2245,7 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       minReadySeconds:
+                        default: 0
                         description: |-
                           minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
                           Defaults to 0 (Machine will be considered available as soon as the Machine is ready)

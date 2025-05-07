@@ -19,7 +19,6 @@ package v1alpha4
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
@@ -59,7 +58,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
 		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
 	}
-	dst.Spec.Template.Spec.MinReadySeconds = ptr.Deref(src.Spec.MinReadySeconds, 0)
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	// Manually restore data.
 	restored := &expv1.MachinePool{}
@@ -113,11 +112,7 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
 
-	if src.Spec.Template.Spec.MinReadySeconds == 0 {
-		dst.Spec.MinReadySeconds = nil
-	} else {
-		dst.Spec.MinReadySeconds = &src.Spec.Template.Spec.MinReadySeconds
-	}
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)

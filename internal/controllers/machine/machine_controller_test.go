@@ -2117,7 +2117,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 
 	attachedVolumes := []corev1.AttachedVolume{
 		{
-			Name:       corev1.UniqueVolumeName(fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.PersistentVolumeSource.CSI.Driver, persistentVolume.Spec.PersistentVolumeSource.CSI.VolumeHandle)),
+			Name:       corev1.UniqueVolumeName(fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.CSI.Driver, persistentVolume.Spec.CSI.VolumeHandle)),
 			DevicePath: "test-path",
 		},
 	}

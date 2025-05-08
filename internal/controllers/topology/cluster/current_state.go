@@ -192,7 +192,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
-		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
+		mdTopologyName, ok := m.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 		if !ok || mdTopologyName == "" {
 			return nil, fmt.Errorf("failed to find label %s in MachineDeployment %s", clusterv1.ClusterTopologyMachineDeploymentNameLabel, klog.KObj(m))
 		}
@@ -317,7 +317,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
-		mpTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
+		mpTopologyName, ok := m.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 		if !ok || mpTopologyName == "" {
 			return nil, fmt.Errorf("failed to find label %s in MachinePool %s", clusterv1.ClusterTopologyMachinePoolNameLabel, klog.KObj(m))
 		}

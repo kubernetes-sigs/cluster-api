@@ -524,10 +524,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
-	// Template on a file
-	tmpDir, err := os.MkdirTemp("", "cc")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
 	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
@@ -744,10 +741,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
-	// Template on a file
-	tmpDir, err := os.MkdirTemp("", "cc")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
 	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
@@ -1014,9 +1008,7 @@ func Test_clusterctlClient_ProcessYAML(t *testing.T) {
 	template := `v1: ${VAR1:=default1}
 v2: ${VAR2=default2}
 v3: ${VAR3:-default3}`
-	dir, err := os.MkdirTemp("", "clusterctl")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	templateFile := filepath.Join(dir, "template.yaml")
 	g.Expect(os.WriteFile(templateFile, []byte(template), 0600)).To(Succeed())

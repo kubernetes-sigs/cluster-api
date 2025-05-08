@@ -1,114 +1,114 @@
+version: "2"
 run:
-  timeout: 10m
   go: "1.23"
   allow-parallel-runners: true
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - kubeapilinter # linter for Kube API conventions
-   
-linters-settings:
-  custom:
-    kubeapilinter:
-      type: "module"
-      description: kube-api-linter and lints Kube like APIs based on API conventions and best practices.
-      settings:
-        linters:
-          enable:
-          - "commentstart" # Ensure comments start with the serialized version of the field name.
-          - "conditions" # Ensure conditions have the correct json tags and markers.
-          - "integers" # Ensure only int32 and int64 are used for integers.
-          - "jsontags" # Ensure every field has a json tag.
-          - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
-          - "nobools" # Bools do not evolve over time, should use enums instead.
-          - "nofloats" # Ensure floats are not used.
-          - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
-          - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
-          - "statussubresource" # All root objects that have a `status` field should have a status subresource.
+  settings:
+    custom:
+      kubeapilinter:
+        type: module
+        description: KAL is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+        settings:
+          linters:
+            enable:
+              - "commentstart" # Ensure comments start with the serialized version of the field name.
+              - "conditions" # Ensure conditions have the correct json tags and markers.
+              - "integers" # Ensure only int32 and int64 are used for integers.
+              - "jsontags" # Ensure every field has a json tag.
+              - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
+              - "nobools" # Bools do not evolve over time, should use enums instead.
+              - "nofloats" # Ensure floats are not used.
+              - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
+              - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+              - "statussubresource" # All root objects that have a `status` field should have a status subresource.
 
-          # Per discussion in July 2024, we are keeping phase fields for now.
-          # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
-          # and https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685919394.
-          # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
-          
-          # Linters below this line are disabled, pending conversation on how and when to enable them.
-          disable:
-          - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
-        lintersConfig:
-          conditions:
-            isFirstField: Warn # Require conditions to be the first field in the status struct.
-            usePatchStrategy: Forbid # Conditions should not use the patch strategy on CRDs.
-            useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
-        # jsonTags:
-        #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
-        # optionalOrRequired:
-        #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
-        #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
-        # requiredFields:
-        #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
+            # Per discussion in July 2024, we are keeping phase fields for now.
+            # See https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685929508
+            # and https://github.com/kubernetes-sigs/cluster-api/pull/10897#discussion_r1685919394.
+            # - "nophase" # Phase fields are discouraged by the Kube API conventions, use conditions instead.
 
+            # Linters below this line are disabled, pending conversation on how and when to enable them.
+            disable:
+            - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
+          lintersConfig:
+            conditions:
+              isFirstField: Warn # Require conditions to be the first field in the status struct.
+              usePatchStrategy: Forbid # Require conditions to be the first field in the status struct.
+              useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
+          # jsonTags:
+          #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
+          # optionalOrRequired:
+          #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
+          #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
+          # requiredFields:
+          #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
+
+  exclusions:
+    generated: strict
+    paths:
+      - zz_generated.*\.go$
+      - vendored_openapi\.go$
+      # We don't want to invest time to fix new linter findings in old API types.
+      - internal/apis/.*
+      - ".*_test.go"  # Exclude test files.
+    rules:
+    # KAL should only run on API folders.
+    - path-except: "api//*"
+      linters:
+        - kubeapilinter
+    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+      text: "Conditions field must be a slice of metav1.Condition"
+      linters:
+        - kubeapilinter
+    - path: "api/v1beta2/*|api/v1beta1/*"
+      text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
+      linters:
+        - kubeapilinter
+    - path: "exp/ipam/api/v1beta2/*|exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
+      text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
+      linters:
+        - kubeapilinter
+    # clusterctl and Runtime Hooks can be fixed once we bump their apiVersion.
+    - path: "cmd/clusterctl/api/v1alpha3|exp/runtime/hooks/api/v1alpha1"
+      text: "maxlength"
+      linters:
+        - kubeapilinter
+    # controller-gen does not allow to add MaxItems to Schemaless fields
+    - path: "api/v1beta2/*|api/v1beta1/*"
+      text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
+      linters:
+        - kubeapilinter
+    # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
+    # This exclude will  be removed once https://github.com/JoelSpeed/kubeapilinter/issues/38 is resolved.
+    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+      text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
+      linters:
+        - kubeapilinter
+    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
+      text: "nobools"
+      linters:
+        - kubeapilinter
+    # We follow the current CustomResourceDefinition field's json tag pattern.
+    - path: "api/v1beta2/*|api/v1beta1/*"
+      text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
+      linters:
+        - kubeapilinter
+    # The following rules are disabled until we migrate to the new API.
+    - path: "bootstrap/kubeadm/api/v1beta2/kubeadm_types.go|bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
+      text: "field Token is marked as required, should not be a pointer"
+      linters:
+        - kubeapilinter
+    - path: "api/v1beta2/clusterclass_types.go|api/v1beta1/clusterclass_types.go"
+      text: "field Ref is marked as required, should not be a pointer"
+      linters:
+        - kubeapilinter
+    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
+      text: "field Items must be marked as optional or required"
+      linters:
+        - kubeapilinter
 issues:
-  exclude-files:
-    - "zz_generated.*\\.go$"
-    - "vendored_openapi\\.go$"
-    # We don't want to invest time to fix new linter findings in old API types.
-    - "internal/apis/.*"
-    - ".*_test.go"  # Exclude test files.
   max-same-issues: 0
   max-issues-per-linter: 0
-  exclude-rules:
-  # KAL should only run on API folders.
-  - path-except: "api//*"
-    linters:
-      - kubeapilinter
-  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
-    text: "Conditions field must be a slice of metav1.Condition"
-    linters:
-      - kubeapilinter
-  - path: "api/v1beta2/*|api/v1beta1/*"
-    text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
-    linters:
-      - kubeapilinter
-  - path: "exp/ipam/api/v1beta2/*|exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
-    text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
-    linters:
-      - kubeapilinter
-  # clusterctl and Runtime Hooks can be fixed once we bump their apiVersion.
-  - path: "cmd/clusterctl/api/v1alpha3|exp/runtime/hooks/api/v1alpha1"
-    text: "maxlength"
-    linters:
-      - kubeapilinter
-  # controller-gen does not allow to add MaxItems to Schemaless fields
-  - path: "api/v1beta2/*|api/v1beta1/*"
-    text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
-    linters:
-      - kubeapilinter
-  # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
-  # This exclude will  be removed once https://github.com/JoelSpeed/kubeapilinter/issues/38 is resolved.
-  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
-    text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
-    linters:
-      - kubeapilinter
-  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
-    text: "nobools"
-    linters:
-      - kubeapilinter
-  # We follow the current CustomResourceDefinition field's json tag pattern.
-  - path: "api/v1beta2/*|api/v1beta1/*"
-    text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
-    linters:
-      - kubeapilinter
-  # The following rules are disabled until we migrate to the new API.
-  - path: "bootstrap/kubeadm/api/v1beta2/kubeadm_types.go|bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
-    text: "field Token is marked as required, should not be a pointer"
-    linters:
-      - kubeapilinter
-  - path: "api/v1beta2/clusterclass_types.go|api/v1beta1/clusterclass_types.go"
-    text: "field Ref is marked as required, should not be a pointer"
-    linters:
-      - kubeapilinter
-  - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
-    text: "field Items must be marked as optional or required"
-    linters:
-      - kubeapilinter

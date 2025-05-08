@@ -92,7 +92,7 @@ func (r *ssaCache) Add(key string) {
 // Note: keys expire after the ttl.
 func (r *ssaCache) Has(key, kind string) bool {
 	// Note: We can ignore the error here because GetByKey never returns an error.
-	_, exists, _ := r.Store.GetByKey(key)
+	_, exists, _ := r.GetByKey(key)
 	if exists {
 		cacheHits.WithLabelValues(kind, r.controllerName).Inc()
 	} else {

@@ -412,8 +412,8 @@ func TestReconcilePaused(t *testing.T) {
 
 	// Test: kcp is paused and cluster is not
 	cluster.Spec.Paused = false
-	kcp.ObjectMeta.Annotations = map[string]string{}
-	kcp.ObjectMeta.Annotations[clusterv1.PausedAnnotation] = "paused"
+	kcp.Annotations = map[string]string{}
+	kcp.Annotations[clusterv1.PausedAnnotation] = "paused"
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
 }

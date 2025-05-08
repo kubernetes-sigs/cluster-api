@@ -522,7 +522,7 @@ func Test_providerComponents_ValidateNoObjectsExist(t *testing.T) {
 			},
 		},
 	}
-	crd.ObjectMeta.Labels[clusterctlv1.ClusterctlLabel] = ""
+	crd.Labels[clusterctlv1.ClusterctlLabel] = ""
 
 	cr := &unstructured.Unstructured{}
 	cr.SetAPIVersion("some.group/v1")

@@ -59,7 +59,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
 		shouldCleanup := conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition)
 
-		if !(shouldCleanupV1Beta1 || shouldCleanup) {
+		if !shouldCleanupV1Beta1 && !shouldCleanup {
 			continue
 		}
 
@@ -110,11 +110,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	}
 
 	// Returns if the machine is in the process of being deleted.
-	if !machineToBeRemediated.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !machineToBeRemediated.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	initialized := false
+	var initialized bool
 	if controlPlane.KCP.Status.Initialization != nil && controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
 		initialized = true
 	}

@@ -30,9 +30,7 @@ func Test_runGetRepositories(t *testing.T) {
 	t.Run("prints output", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir, err := os.MkdirTemp("", "cc")
-		g.Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
 		g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
@@ -47,9 +45,10 @@ func Test_runGetRepositories(t *testing.T) {
 
 			// Use gomega's BeComparableTo as opposed to Equals to compare output which uses gocmp under
 			// the hood and correctly prints any differences between the two strings.
-			if val == RepositoriesOutputText {
+			switch val {
+			case RepositoriesOutputText:
 				g.Expect(string(out)).To(BeComparableTo(expectedOutputText))
-			} else if val == RepositoriesOutputYaml {
+			case RepositoriesOutputYaml:
 				g.Expect(string(out)).To(BeComparableTo(expectedOutputYaml))
 			}
 		}
@@ -69,9 +68,7 @@ func Test_runGetRepositories(t *testing.T) {
 	t.Run("returns error for bad template", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir, err := os.MkdirTemp("", "cc")
-		g.Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
 		g.Expect(os.WriteFile(path, []byte("providers: foobar"), 0600)).To(Succeed())

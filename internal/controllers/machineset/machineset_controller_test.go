@@ -952,7 +952,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
-			ClusterName: cluster.ObjectMeta.Name,
+			ClusterName: cluster.Name,
 			Replicas:    &replicas,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{

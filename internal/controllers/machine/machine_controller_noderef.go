@@ -386,7 +386,7 @@ func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *cluste
 	}
 	md := &clusterv1.MachineDeployment{}
 	objKey = &client.ObjectKey{
-		Namespace: m.ObjectMeta.Namespace,
+		Namespace: m.Namespace,
 		Name:      m.Labels[clusterv1.MachineDeploymentNameLabel],
 	}
 	if err := c.Get(ctx, *objKey, md); err != nil {

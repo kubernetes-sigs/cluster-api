@@ -170,8 +170,8 @@ func clusterChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logger) predica
 	dropNotRelevant := func(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 		c := cluster.DeepCopy()
 		// Drop metadata fields which are impacted by not relevant changes.
-		c.ObjectMeta.ManagedFields = nil
-		c.ObjectMeta.ResourceVersion = ""
+		c.ManagedFields = nil
+		c.ResourceVersion = ""
 		return c
 	}
 
@@ -218,8 +218,8 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 	dropNotRelevant := func(machineDeployment *clusterv1.MachineDeployment) *clusterv1.MachineDeployment {
 		md := machineDeployment.DeepCopy()
 		// Drop metadata fields which are impacted by not relevant changes.
-		md.ObjectMeta.ManagedFields = nil
-		md.ObjectMeta.ResourceVersion = ""
+		md.ManagedFields = nil
+		md.ResourceVersion = ""
 		return md
 	}
 
@@ -326,7 +326,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
-	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !cluster.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster)
 	}
 

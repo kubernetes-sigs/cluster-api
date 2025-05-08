@@ -816,7 +816,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 // It also calculates and returns the corresponding MutatingWebhookConfiguration.
 // Note: To activate the webhook, the MutatingWebhookConfiguration has to be deployed.
 func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDefaulter, *admissionv1.MutatingWebhookConfiguration, error) {
-	webhookServer := env.Manager.GetWebhookServer().(*webhook.DefaultServer)
+	webhookServer := env.GetWebhookServer().(*webhook.DefaultServer)
 
 	// Calculate webhook host and path.
 	// Note: This is done the same way as in our envtest package.
@@ -830,7 +830,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 	// Note: This should only ever be called once with the same path, otherwise we get a panic.
 	defaulter := &KubeadmConfigTemplateTestDefaulter{}
 	webhookServer.Register(webhookPath,
-		admission.WithCustomDefaulter(env.Manager.GetScheme(), &bootstrapv1.KubeadmConfigTemplate{}, defaulter))
+		admission.WithCustomDefaulter(env.GetScheme(), &bootstrapv1.KubeadmConfigTemplate{}, defaulter))
 
 	// Calculate the MutatingWebhookConfiguration
 	caBundle, err := os.ReadFile(filepath.Join(webhookServer.Options.CertDir, webhookServer.Options.CertName))

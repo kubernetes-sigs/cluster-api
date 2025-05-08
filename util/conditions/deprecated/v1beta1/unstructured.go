@@ -77,7 +77,7 @@ func (c *unstructuredWrapper) SetV1Beta1Conditions(conditions clusterv1.Conditio
 	}
 	// unstructured.SetNestedField returns an error only if value cannot be set because one of
 	// the nesting levels is not a map[string]interface{}; this is not the case so the error should never happen here.
-	err := unstructured.SetNestedField(c.Unstructured.Object, v, "status", "conditions")
+	err := unstructured.SetNestedField(c.Object, v, "status", "conditions")
 	if err != nil {
 		log.Log.Error(err, "Failed to set Conditions on unstructured object. This error shouldn't have occurred, please file an issue.", "groupVersionKind", c.GroupVersionKind(), "name", c.GetName(), "namespace", c.GetNamespace())
 	}

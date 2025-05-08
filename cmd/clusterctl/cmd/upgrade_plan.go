@@ -116,7 +116,7 @@ func runUpgradePlan() error {
 		w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
 		fmt.Fprintln(w, "NAME\tNAMESPACE\tTYPE\tCURRENT VERSION\tNEXT VERSION")
 		for _, upgradeItem := range plan.Providers {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", upgradeItem.Provider.Name, upgradeItem.Provider.Namespace, upgradeItem.Provider.Type, upgradeItem.Provider.Version, prettifyTargetVersion(upgradeItem.NextVersion))
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", upgradeItem.Name, upgradeItem.Namespace, upgradeItem.Type, upgradeItem.Version, prettifyTargetVersion(upgradeItem.NextVersion))
 			if upgradeItem.NextVersion != "" {
 				upgradeAvailable = true
 			}

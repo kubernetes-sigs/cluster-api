@@ -150,13 +150,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			"controlPlaneInitializedTime", controlPlaneInitialized,
 			"machineInfraReadyTime", machineInfraReady,
 		)
-		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) && controlPlaneInitialized != nil && controlPlaneInitialized.Time.After(comparisonTime) {
+		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) && controlPlaneInitialized != nil && controlPlaneInitialized.After(comparisonTime) {
 			comparisonTime = controlPlaneInitialized.Time
 		}
-		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyV1Beta1Condition) && clusterInfraReady != nil && clusterInfraReady.Time.After(comparisonTime) {
+		if v1beta1conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyV1Beta1Condition) && clusterInfraReady != nil && clusterInfraReady.After(comparisonTime) {
 			comparisonTime = clusterInfraReady.Time
 		}
-		if v1beta1conditions.IsTrue(t.Machine, clusterv1.InfrastructureReadyV1Beta1Condition) && machineInfraReady != nil && machineInfraReady.Time.After(comparisonTime) {
+		if v1beta1conditions.IsTrue(t.Machine, clusterv1.InfrastructureReadyV1Beta1Condition) && machineInfraReady != nil && machineInfraReady.After(comparisonTime) {
 			comparisonTime = machineInfraReady.Time
 		}
 		logger.V(5).Info("Using comparison time", "time", comparisonTime)

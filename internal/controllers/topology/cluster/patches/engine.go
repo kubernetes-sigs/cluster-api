@@ -192,7 +192,8 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 		}
 		// If the item holder reference is a MachineDeployment calculate the variables for each MachineDeploymentTopology
 		// and add them to the variables for the MachineDeployment.
-		if item.HolderReference.Kind == "MachineDeployment" {
+		switch item.HolderReference.Kind {
+		case "MachineDeployment":
 			md, ok := mdStateIndex[item.HolderReference.Name]
 			if !ok {
 				return errors.Errorf("could not find desired state for MachineDeployment %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
@@ -208,7 +209,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(md.Object))
 			}
 			item.Variables = mdVariables
-		} else if item.HolderReference.Kind == "MachinePool" {
+		case "MachinePool":
 			mp, ok := mpStateIndex[item.HolderReference.Name]
 			if !ok {
 				return errors.Errorf("could not find desired state for MachinePool %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))

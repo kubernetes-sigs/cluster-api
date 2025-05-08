@@ -623,7 +623,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 
 	// Avoid deleting machine set with deletion timestamp set
 	aliveFilter := func(ms *clusterv1.MachineSet) bool {
-		return ms != nil && ms.ObjectMeta.DeletionTimestamp.IsZero()
+		return ms != nil && ms.DeletionTimestamp.IsZero()
 	}
 
 	cleanableMSes := mdutil.FilterMachineSets(oldMSs, aliveFilter)

@@ -28,10 +28,9 @@ jobs:
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # tag=v6.5.2
+        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # tag=v7.0.0
         with:
-          version: v1.63.4
-          args: --out-format=colored-line-number
+          version: v2.0.2
           working-directory: ${{matrix.working-directory}}
       - name: Lint API
-        run: GOLANGCI_LINT_EXTRA_ARGS=--out-format=colored-line-number make lint-api
+        run: make lint-api

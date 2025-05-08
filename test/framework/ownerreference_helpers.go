@@ -356,7 +356,7 @@ func HasExactOwners(gotOwners []metav1.OwnerReference, wantOwners ...metav1.Owne
 }
 
 func ownerReferenceString(ref metav1.OwnerReference) string {
-	controller := false
+	var controller bool
 	if ref.Controller != nil && *ref.Controller {
 		controller = true
 	}

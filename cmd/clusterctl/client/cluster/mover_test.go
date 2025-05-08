@@ -726,8 +726,8 @@ var backupRestoreTests = []struct {
 }
 
 func fixFilesGVS(file string) string {
-	s := strings.Replace(file, "$CAPI", clusterv1.GroupVersion.String(), -1)
-	return strings.Replace(s, "$INFRA", clusterv1.GroupVersionInfrastructure.String(), -1)
+	s := strings.ReplaceAll(file, "$CAPI", clusterv1.GroupVersion.String())
+	return strings.ReplaceAll(s, "$INFRA", clusterv1.GroupVersionInfrastructure.String())
 }
 
 func Test_objectMover_backupTargetObject(t *testing.T) {
@@ -752,14 +752,10 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			dir, err := os.MkdirTemp("/tmp", "cluster-api")
-			if err != nil {
-				t.Error(err)
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
 			for _, node := range graph.uidToNode {
-				err = mover.backupTargetObject(ctx, node, dir)
+				err := mover.backupTargetObject(ctx, node, dir)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -823,12 +819,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 
 			ctx := context.Background()
 
-			// temporary directory
-			dir, err := os.MkdirTemp("/tmp", "cluster-api")
-			if err != nil {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraph()
@@ -952,13 +943,9 @@ func Test_objectMover_toDirectory(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			dir, err := os.MkdirTemp("/tmp", "cluster-api")
-			if err != nil {
-				t.Error(err)
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
-			err = mover.toDirectory(ctx, graph, dir)
+			err := mover.toDirectory(ctx, graph, dir)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1013,11 +1000,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			dir, err := os.MkdirTemp("/tmp", "cluster-api")
-			if err != nil {
-				t.Error(err)
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
 			for _, fileName := range tt.files {
 				path := filepath.Join(dir, fileName)
@@ -1074,12 +1057,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 
 			ctx := context.Background()
 
-			// temporary directory
-			dir, err := os.MkdirTemp("/tmp", "cluster-api")
-			if err != nil {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
-			defer os.RemoveAll(dir)
+			dir := t.TempDir()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraph()

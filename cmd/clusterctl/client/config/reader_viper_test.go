@@ -34,13 +34,9 @@ func Test_viperReader_Init(t *testing.T) {
 
 	// Change HOME dir and do not specify config file
 	// (.cluster-api/clusterctl) in it.
-	clusterctlHomeDir, err := os.MkdirTemp("", "clusterctl-default")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(clusterctlHomeDir)
+	clusterctlHomeDir := t.TempDir()
 
-	dir, err := os.MkdirTemp("", "clusterctl")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
 	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
@@ -256,10 +252,7 @@ func Test_viperReader_Set(t *testing.T) {
 
 func Test_viperReader_checkDefaultConfig(t *testing.T) {
 	g := NewWithT(t)
-	dir, err := os.MkdirTemp("", "clusterctl")
-	g.Expect(err).ToNot(HaveOccurred())
-	defer os.RemoveAll(dir)
-	dir = strings.TrimSuffix(dir, "/")
+	dir := strings.TrimSuffix(t.TempDir(), "/")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
 	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())

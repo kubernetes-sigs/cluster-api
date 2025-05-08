@@ -567,7 +567,7 @@ func testControlPlaneMachine(name string) *clusterv1.Machine {
 		},
 	}
 	controlPlaneMachine := testMachine(name)
-	controlPlaneMachine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabel] = ""
+	controlPlaneMachine.Labels[clusterv1.MachineControlPlaneLabel] = ""
 	controlPlaneMachine.OwnerReferences = ownedRef
 
 	return controlPlaneMachine

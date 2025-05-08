@@ -58,9 +58,9 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{}
-	kcpKey := types.NamespacedName{Namespace: scale.ObjectMeta.Namespace, Name: scale.ObjectMeta.Name}
+	kcpKey := types.NamespacedName{Namespace: scale.Namespace, Name: scale.Name}
 	if err = v.Client.Get(ctx, kcpKey, kcp); err != nil {
-		return admission.Errored(http.StatusInternalServerError, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.ObjectMeta.Namespace, scale.ObjectMeta.Name))
+		return admission.Errored(http.StatusInternalServerError, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.Namespace, scale.Name))
 	}
 
 	if scale.Spec.Replicas == 0 {

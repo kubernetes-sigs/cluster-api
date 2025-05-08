@@ -109,28 +109,18 @@ aliases:
   - elmiko
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for v1.9 release-team
+  # OWNER_ALIASES for release-team
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - mboersma
+  - cprivitere
 
   cluster-api-release-team:
-  # members added in commented lines have a pending membership
-  # and will be added back once it is acquired.
-  # - AttyXY
-  # - blind3dd
-  - cahillsf
+  - adilGhaffarDev
   - chandankumar4
+  - chiukapoor
   - cprivitere
   - hackeramitkumar
   - mboersma
-  # - mbrow137
-  # - pratik-mahalle
-  # - ramessesii2
-  # - RansherSingh
-  - serngawy
   - shecodesmagic
-  - sreeram-venkitesh
-  - Sunnatillo
-  - wendy-ha18
+  - tsuzu

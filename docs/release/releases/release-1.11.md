@@ -30,13 +30,12 @@ The following table shows the preliminary dates for the `v1.11` release cycle.
 | Organize release retrospective                        | Release Lead  | TBC                         | week 16  |
 | *v1.11.1 released (tentative)*                        | Release Lead  | Tuesday 19th August 2025    | week 17  |
 
-
 ## Release team
 
 | **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                      | **Team member(s) (GitHub / Slack ID)** |
 |-------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------|
-| Release Lead                              | Chris Privitere ([@cprivitere](https://github.com/cprivitere) / `@Chris Privitere`) | |
-| Communications/Docs/Release Notes Manager | Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@Chandan Kumar`) | |
-| CI Signal/Bug Triage/Automation Manager   | Matt Boersma ([@mboersma](https://github.com/mboersma) / `@mboersma`) | |
+| Release Lead                              | Chris Privitere ([@cprivitere](https://github.com/cprivitere) / `@Chris Privitere`) | Chirayu Kapoor([@chiukapoor](https://github.com/chiukapoor) / `@Chirayu Kapoor`) |
+| Communications/Docs/Release Notes Manager | Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@Chandan Kumar`) | Angelos Kolaitis ([@neoaggelos](https://github.com/neoaggelos) / `@Angelos Kolaitis`) <br> Morgan Brown ([@mbrow137](https://github.com/mbrow137) / `@Morgan B.`) <br> Nat Tomattis ([@natitomattis](https://github.com/natitomattis) / `@Nat Tomattis`) <br> Ransher Singh ([@RansherSingh](https://github.com/RansherSingh) / `@Ransher Singh`) <br> Tsuzuki Tsuchiya ([@tsuzu](https://github.com/tsuzu) / `@Tsuzu`) |
+| CI Signal/Bug Triage/Automation Manager   | Matt Boersma ([@mboersma](https://github.com/mboersma) / `@mboersma`) | <br> Muhammad Adil Ghaffar ([@adilGhaffarDev](https://github.com/adilGhaffarDev) / `@adil`) <br> Alima Azamat ([@alimaazamat](https://github.com/alimaazamat) / `@Alima Azamat`) <br> Amit Kumar ([@hackeramitkumar](https://github.com/hackeramitkumar) / `@Amit Kumar`)  <br> Sepideh Alavi ([@shecodesmagic](https://github.com/shecodesmagic) / `@Sepideh`) <br> Swastik gour ([@swastik959](<https://github.com/swastik959>) / `@Swastik gour`) |
 | Emeritus Advisor                          | TBD | TBD |
 | Maintainer                                | TBD | TBD |

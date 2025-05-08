@@ -3,6 +3,9 @@ name: PR golangci-lint
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+    paths:
+      - '**.go'
+      - '**/go.mod'
 
 # Remove all permissions from GITHUB_TOKEN except metadata.
 permissions: {}

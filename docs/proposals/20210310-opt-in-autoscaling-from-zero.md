@@ -79,7 +79,7 @@ requested for Cluster API on multiple occasions. This feature empowers users to 
 operational resource needs, and likewise reduce their operating costs.
 
 Given that Cluster API is an abstraction point that provides access to multiple concrete cloud
-implementations, this feature might not make sense in all scenarios. To accomodate the wide
+implementations, this feature might not make sense in all scenarios. To accommodate the wide
 range of deployment options in Cluster API, the scale to zero feature will be optional for
 users and infrastructure providers.
 

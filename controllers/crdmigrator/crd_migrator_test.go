@@ -288,7 +288,12 @@ func TestReconcile(t *testing.T) {
 			if skipCRDMigrationPhases.Has(StorageVersionMigrationPhase) {
 				// If storage version migration was skipped before, we now cannot deploy CRDs that remove v1beta1.
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).To(ContainSubstring("status.storedVersions[0]: Invalid value: \"v1beta1\": must appear in spec.versions"))
+				g.Expect(err.Error()).To(Or(
+					// Kubernetes < v1.33.0
+					ContainSubstring("status.storedVersions[0]: Invalid value: \"v1beta1\": must appear in spec.versions"),
+					// Kubernetes >= v1.33.0
+					ContainSubstring("status.storedVersions[0]: Invalid value: \"v1beta1\": missing from spec.versions"),
+				))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())

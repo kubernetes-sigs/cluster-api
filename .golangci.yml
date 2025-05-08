@@ -230,6 +230,13 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
       - internal/apis/.*
+    # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
+    # changes in PRs and avoid nitpicking.
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
@@ -372,9 +379,6 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
-  # changes in PRs and avoid nitpicking.
-  exclude-use-default: false
 formatters:
   enable:
     - gci # ensures imports are organized

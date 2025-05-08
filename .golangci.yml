@@ -372,6 +372,9 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
+  # changes in PRs and avoid nitpicking.
+  exclude-use-default: false
 formatters:
   enable:
     - gci # ensures imports are organized

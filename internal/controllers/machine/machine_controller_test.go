@@ -1161,8 +1161,8 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: true,
 			conditionsToAssert: []metav1.Condition{
-				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineInfrastructureNotReadyReason, Message: "GenericInfrastructureMachine status.ready is false"},
-				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* InfrastructureReady: GenericInfrastructureMachine status.ready is false"},
+				{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineInfrastructureNotReadyReason, Message: "GenericInfrastructureMachine status.initialization.provisioned is false"},
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* InfrastructureReady: GenericInfrastructureMachine status.initialization.provisioned is false"},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
@@ -1192,8 +1192,8 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			infraProvisioned:           true,
 			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []metav1.Condition{
-				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineBootstrapConfigNotReadyReason, Message: "GenericBootstrapConfig status.ready is false"},
-				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.ready is false"},
+				{Type: clusterv1.MachineBootstrapConfigReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineBootstrapConfigNotReadyReason, Message: "GenericBootstrapConfig status.initialization.dataSecretCreated is false"},
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.initialization.dataSecretCreated is false"},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				v1beta1conditions.FalseCondition(clusterv1.BootstrapReadyV1Beta1Condition, clusterv1.WaitingForDataSecretFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
@@ -1207,7 +1207,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []metav1.Condition{
-				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.ready is false\n* InfrastructureReady: GenericInfrastructureMachine status.ready is false"},
+				{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineNotReadyReason, Message: "* BootstrapConfigReady: GenericBootstrapConfig status.initialization.dataSecretCreated is false\n* InfrastructureReady: GenericInfrastructureMachine status.initialization.provisioned is false"},
 			},
 			v1beta1ConditionsToAssert: []*clusterv1.Condition{
 				// in V1beta1 ready condition summary consumes reason from the infra condition

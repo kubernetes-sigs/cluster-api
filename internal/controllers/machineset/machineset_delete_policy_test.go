@@ -38,14 +38,10 @@ func TestMachineToDelete(t *testing.T) {
 	}
 	betterDeleteMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			NodeRef: nodeRef,
@@ -61,7 +57,7 @@ func TestMachineToDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionFalse,
 				},
 			},
@@ -72,7 +68,7 @@ func TestMachineToDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionUnknown,
 				},
 			},
@@ -320,14 +316,10 @@ func TestMachineNewestDelete(t *testing.T) {
 	unhealthyMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			NodeRef: nodeRef,
@@ -342,7 +334,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionFalse,
 				},
 			},
@@ -354,7 +346,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionUnknown,
 				},
 			},
@@ -473,14 +465,10 @@ func TestMachineOldestDelete(t *testing.T) {
 	unhealthyMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			NodeRef: nodeRef,
@@ -491,16 +479,12 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachineA := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "a", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineA", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			NodeRef: nodeRef,
@@ -509,14 +493,10 @@ func TestMachineOldestDelete(t *testing.T) {
 	unhealthyMachineZ := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "z", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
-			Deprecated: &clusterv1.MachineDeprecatedStatus{
-				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:   clusterv1.MachineNodeHealthyV1Beta1Condition,
-							Status: corev1.ConditionFalse,
-						},
-					},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			NodeRef: nodeRef,
@@ -531,7 +511,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionFalse,
 				},
 			},
@@ -543,7 +523,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
 				{
-					Type:   clusterv1.MachineNodeReadyCondition,
+					Type:   clusterv1.MachineNodeHealthyCondition,
 					Status: metav1.ConditionUnknown,
 				},
 			},
@@ -770,7 +750,7 @@ func TestIsMachineHealthy(t *testing.T) {
 					NodeRef: nodeRef,
 					Conditions: []metav1.Condition{
 						{
-							Type:   clusterv1.MachineNodeReadyCondition,
+							Type:   clusterv1.MachineNodeHealthyCondition,
 							Status: metav1.ConditionFalse,
 						},
 					},
@@ -785,7 +765,7 @@ func TestIsMachineHealthy(t *testing.T) {
 					NodeRef: nodeRef,
 					Conditions: []metav1.Condition{
 						{
-							Type:   clusterv1.MachineNodeReadyCondition,
+							Type:   clusterv1.MachineNodeHealthyCondition,
 							Status: metav1.ConditionUnknown,
 						},
 					},

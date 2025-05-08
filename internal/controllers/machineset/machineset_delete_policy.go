@@ -143,7 +143,7 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 		return false
 	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.
-	if conditions.IsFalse(machine, clusterv1.MachineNodeReadyCondition) {
+	if conditions.IsFalse(machine, clusterv1.MachineNodeHealthyCondition) {
 		return false
 	}
 	healthCheckCondition := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)

@@ -68,8 +68,10 @@ The goal of this task is to keep our tests running in CI stable.
     1. Create an issue using an appropriate template (failing-test) in the Cluster API repository to surface the CI failure.
     2. Identify if the issue is a known issue, new issue or a regression.
     3. Mark the issue as `release-blocking` if applicable.
-6. Triage periodic GitHub actions failures, with special attention to image scan results;
-   Eventually open issues as described above.
+6. Triage periodic GitHub actions failures and image scan results.
+    * Ensure that the release branch is stable and all tests are passing on [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api).
+    * Verify the [Weekly security scan](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/weekly-security-scan.yaml) results are clean.
+    * Eventually open issues as described above.
 7. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
   **Note**: Maintaining the health of the project is a community effort.  CI team should use all of the tools available to them to attempt to keep the CI signal clean, however the [#cluster-api](https://kubernetes.slack.com/archives/C8TSNPY4T) Slack channel should be used to increase visibility of release blocking interruptions to the CI signal and seek help from community.  This should be *additive* to the steps described above. When in doubt, err on the side of overcommunication to promote awareness and drive disruptions to resolution.  

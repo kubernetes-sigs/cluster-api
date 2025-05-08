@@ -47,7 +47,13 @@ linters:
           #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
 
   exclusions:
-    generated: lax
+    generated: strict
+    paths:
+      - zz_generated.*\.go$
+      - vendored_openapi\.go$
+      # We don't want to invest time to fix new linter findings in old API types.
+      - internal/apis/.*
+      - ".*_test.go"  # Exclude test files.
     rules:
     # KAL should only run on API folders.
     - path-except: "api//*"
@@ -103,11 +109,9 @@ linters:
       text: "field Items must be marked as optional or required"
       linters:
         - kubeapilinter
-      paths:
-        - zz_generated.*\.go$
-        - vendored_openapi\.go$
-        # We don't want to invest time to fix new linter findings in old API types.
-        - internal/apis/.*
-        - ".*_test.go"  # Exclude test files.
 issues:
+  max-same-issues: 0
   max-issues-per-linter: 0
+  # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
+  # changes in PRs and avoid nitpicking.
+  exclude-use-default: false

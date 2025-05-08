@@ -302,8 +302,8 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 			Message: "Waiting for Cluster status.infrastructureReady to be true",
 		})
 		return ctrl.Result{}, nil
-		// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
-		// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
+	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
+	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
 	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !config.Status.Initialization.DataSecretCreated || config.Status.DataSecretName == nil):
 		if config.Status.Initialization == nil {
 			config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}

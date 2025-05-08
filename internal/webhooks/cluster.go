@@ -536,7 +536,7 @@ func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.
 		return errors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
 	}
 	if cpVersion.NE(oldVersion) {
-		return fmt.Errorf("cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) // capitalization is intentional
+		return fmt.Errorf("Cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) //nolint:staticcheck // capitalization is intentional
 	}
 
 	provisioning, err := contract.ControlPlane().IsProvisioning(cp)

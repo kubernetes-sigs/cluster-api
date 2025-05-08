@@ -291,7 +291,7 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 		}
 
 		// the * rune can appear only at the beginning, or ending of the selector.
-		if strings.Contains((name), "*") && !strings.HasPrefix(name, "*") && !strings.HasSuffix(name, "*") {
+		if strings.Contains(name, "*") && !strings.HasPrefix(name, "*") && !strings.HasSuffix(name, "*") {
 			// templateMDClass or templateMPClass can only have "*" rune at the start or end of the string
 			return field.Invalid(
 				path.Child("matchResources", resourceName, "names").Index(index),

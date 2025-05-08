@@ -1,5 +1,6 @@
 version: "2"
 run:
+  timeout: 10m
   go: "1.23"
   build-tags:
     - tools
@@ -224,7 +225,11 @@ linters:
         - name: bool-literal-in-expr
         - name: constant-logical-expr
   exclusions:
-    generated: lax
+    generated: strict
+    paths:
+      - zz_generated.*\.go$
+      - vendored_openapi\.go$
+      - internal/apis/.*
     rules:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
@@ -364,13 +369,6 @@ linters:
       - linters:
           - goconst
         path: (.+)_test\.go
-    paths:
-      - zz_generated.*\.go$
-      - vendored_openapi\.go$
-      - internal/apis/.*
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -387,7 +385,7 @@ formatters:
         - prefix(sigs.k8s.io/cluster-api) # Custom section: groups all imports with the specified Prefix.
       custom-order: true
   exclusions:
-    generated: lax
+    generated: strict
     paths:
       - zz_generated.*\.go$
       - vendored_openapi\.go$

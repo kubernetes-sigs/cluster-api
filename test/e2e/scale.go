@@ -359,7 +359,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 				for i := range additionalClusterClassCount {
 					additionalName := fmt.Sprintf("%s-%d", input.ClusterClassName, i+1)
 					log.Logf("Apply additional ClusterClass %s/%s", namespace.Name, additionalName)
-					additionalClassYAML := bytes.ReplaceAll(clusterClassYAML, []byte(scaleClusterNamePlaceholder), []byte(additionalName))
+					additionalClassYAML := bytes.ReplaceAll(clusterClassYAML, []byte(input.ClusterClassName), []byte(additionalName))
 					Eventually(func() error {
 						return input.BootstrapClusterProxy.CreateOrUpdate(ctx, additionalClassYAML)
 					}, 1*time.Minute).Should(Succeed())

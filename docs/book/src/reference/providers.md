@@ -1,9 +1,17 @@
 # Provider Implementations
 
-The code in this repository is independent of any specific deployment environment.
-Provider specific code is being developed in separate repositories, some of which
-are also sponsored by SIG Cluster Lifecycle. Check provider's documentation for
-updated info about which API version they are supporting.
+The Cluster API project supports ecosystem growth and extensibility.
+
+As part of this effort, everyone is welcome to add to the list below both providers sponsored
+by SIG Cluster Lifecycle as well as providers from other open-source repositories.
+
+Each provider is the responsibility of the respective maintainers and we highly recommend
+everyone interested in a specific provider to engage with the corresponding team or at least
+to read corresponding documentation carefully.
+
+We are deeply thankful to all the the providers in the list, because they are a concrete proof
+of the liveness of the ecosystem,  a relevant part of the history of this community, and a valuable
+source of inspiration and ideas for others.
 
 ## Bootstrap
 - [Amazon Elastic Kubernetes Service (EKS)](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)

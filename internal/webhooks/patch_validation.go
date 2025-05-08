@@ -165,6 +165,7 @@ func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
 func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
+	// Return an error if none of the possible selectors are enabled.
 	if !selector.MatchResources.InfrastructureCluster && !selector.MatchResources.ControlPlane &&
 		(selector.MatchResources.MachineDeploymentClass == nil || len(selector.MatchResources.MachineDeploymentClass.Names) == 0) &&
 		(selector.MatchResources.MachinePoolClass == nil || len(selector.MatchResources.MachinePoolClass.Names) == 0) {

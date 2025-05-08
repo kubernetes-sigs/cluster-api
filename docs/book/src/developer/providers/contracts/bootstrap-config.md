@@ -322,7 +322,10 @@ In case a Bootstrap provider reports that a BootstrapConfig resource is in a sta
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, 
 the "core" Machine controller will surface those info in the corresponding fields within in Machine's `status.deprecated.v1beta1` struct.
 
-However, those info won't have any impact on the Machine lifecycle as before. 
+However, those info won't have any impact on the Machine lifecycle as before (the Machine controller won't consider the
+presence of `status.failureReason` and `status.failureMessage` info as "terminal failures"; similarly, the
+MachineHealthCheck controller won't consider the presence of `status.failureReason` and `status.failureMessage` to
+determine when a Machine needs remediation).
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
 fields in the BootstrapConfig resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.

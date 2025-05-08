@@ -99,18 +99,6 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return true, time.Duration(0)
 	}
 
-	if t.Machine.Status.Deprecated != nil && t.Machine.Status.Deprecated.V1Beta1 != nil && t.Machine.Status.Deprecated.V1Beta1.FailureReason != nil {
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureReason)
-		logger.V(3).Info("Target is unhealthy", "failureReason", t.Machine.Status.Deprecated.V1Beta1.FailureReason)
-		return true, time.Duration(0)
-	}
-
-	if t.Machine.Status.Deprecated != nil && t.Machine.Status.Deprecated.V1Beta1 != nil && t.Machine.Status.Deprecated.V1Beta1.FailureMessage != nil {
-		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "FailureMessage: %v", *t.Machine.Status.Deprecated.V1Beta1.FailureMessage)
-		logger.V(3).Info("Target is unhealthy", "failureMessage", t.Machine.Status.Deprecated.V1Beta1.FailureMessage)
-		return true, time.Duration(0)
-	}
-
 	// Machine has Status.NodeRef set, although we couldn't find the node in the workload cluster.
 	if t.nodeMissing {
 		logger.V(3).Info("Target is unhealthy: node is missing")

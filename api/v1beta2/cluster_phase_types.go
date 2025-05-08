@@ -49,6 +49,11 @@ const (
 
 	// ClusterPhaseFailed is the Cluster state when the system
 	// might require user intervention.
+	//
+	// Deprecated: This enum value is deprecated; the Failed phase won't be set anymore by controllers, and it is preserved only
+	// for conversion from v1beta1 objects; the Failed phase is going to be removed when support for v1beta1 will be dropped.
+	// Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	ClusterPhaseFailed = ClusterPhase("Failed")
 
 	// ClusterPhaseUnknown is returned if the Cluster state cannot be determined.

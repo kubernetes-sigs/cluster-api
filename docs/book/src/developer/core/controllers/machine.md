@@ -44,14 +44,13 @@ Considering all the info above, the Machine controller's main responsibilities a
 ![](../../../images/cluster-admission-machine-controller.png)
 
 After the machine controller sets the OwnerReferences on the associated objects, it waits for the bootstrap
-and infrastructure objects referenced by the machine to have the `Status.Ready` field set to `true`. When
-the infrastructure object is ready, the machine controller will attempt to read its `Spec.ProviderID` and
+and infrastructure objects referenced by the machine to have the `Status.initialization.dataSecretCreated` field set to `true`. When
+the infrastructure object reports `Status.initialization.provisioned`, the machine controller will attempt to read its `Spec.ProviderID` and
 copy it into `Machine.Spec.ProviderID`.
 
 The machine controller uses the kubeconfig for the new workload cluster to watch new nodes coming up.
 When a node appears with `Node.Spec.ProviderID` matching `Machine.Spec.ProviderID`, the machine controller
-transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also
-`Ready`, the machine controller marks the machine as `Running`.
+transitions the associated machine into the `Running` state.
 
 The following schema goes through machine phases and interactions with InfraMachine and BootstrapConfig
 happening at each step.

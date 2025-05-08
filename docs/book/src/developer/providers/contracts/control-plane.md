@@ -654,7 +654,8 @@ In case a Control Plane provider reports that a ControlPlane resource is in a st
 setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract,
 the "core" Cluster controller will surface those info in the corresponding fields in the Cluster's `status.deprecated.v1beta1` struct.
 
-However, those info won't have any impact on the Cluster lifecycle as before.
+However, those info won't have any impact on the Cluster lifecycle as before (the Cluster controller won't consider the
+presence of `status.failureReason` and `status.failureMessage` info as "terminal failures").
 
 After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage`
 fields in the ControlPlane resource will be ignored and Cluster's `status.deprecated.v1beta1` struct will be dropped.

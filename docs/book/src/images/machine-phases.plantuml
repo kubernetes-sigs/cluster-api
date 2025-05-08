@@ -5,10 +5,10 @@ title Figure 1: State diagram with a generic provider
 
 note right
 - Bootstrap provider watches Machines in "pending" state,
-  generates //BootstrapConfig.Status.DataSecretName// and sets
-  //BootstrapConfig.Status.Ready// = true.
-- Machine controller sets //Machine.Spec.Bootstrap.DataSecretName//
-  from //BootstrapConfig.Status.DataSecretName//.
+  generates //BootstrapConfig.status.dataSecretName// and sets
+  //BootstrapConfig.status.initialization.dataSecretCreated// = true.
+- Machine controller sets //Machine.spec.bootstrap.dataSecretName//
+  from //BootstrapConfig.status.dataSecretName//.
 - Machine controller can now transition to the next state.
 end note
 
@@ -17,17 +17,17 @@ end note
 note right
 - Infrastructure provider watches Machines in "provisioning"
   state and starts creating infrastructure for those Machines.
-- When MachineInfrastructure is ready sets
-  //MachineInfrastructure.Status.Ready// = true.
-- Machine controller sets //Machine.Status.Addresses//
-  from //MachineInfrastructure.Status.Addresses// and other fields.
+- When MachineInfrastructure is provisioned sets
+  //MachineInfrastructure.status.initialization.provisioned// = true.
+- Machine controller sets //Machine.status.addresses//
+  from //MachineInfrastructure.status.addresses// and other fields.
 end note
 
 "Provisioning" --> "Provisioned"
 
 note right
 - Machine controller watches Machines in "provisioning" state and
-  //MachineInfrastructure.Status.Ready// = true.
+  //MachineInfrastructure.status.initialization.provisioned// = true.
 - Machine controller sets //Machine.Status.Phase// = "provisioned".
 end note
 
@@ -46,16 +46,6 @@ end note
 "Running" --> "Deleting"
 
 "Deleting" --> "Deleted"
-
-"Pending" --> "Failed"
-"Provisioning" --> "Failed"
-"Provisioned" --> "Failed"
-"Running" --> "Failed"
-"Deleting" --> "Failed"
-"Deleted" --> "Failed"
-
-"Failed" --> (*)
-"Deleted" --> (*)
 
 hide footbox
 @enduml

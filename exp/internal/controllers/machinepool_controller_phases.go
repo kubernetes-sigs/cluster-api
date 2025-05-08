@@ -101,11 +101,6 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 		}
 	}
 
-	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
-	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil && (mp.Status.Deprecated.V1Beta1.FailureReason != nil || mp.Status.Deprecated.V1Beta1.FailureMessage != nil) {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseFailed)
-	}
-
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !mp.DeletionTimestamp.IsZero() {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseDeleting)

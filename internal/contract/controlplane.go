@@ -239,9 +239,10 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // A control plane is considered scaling if:
 // - status.replicas is not yet set.
 // - spec.replicas != status.replicas.
-// - spec.replicas != status.updatedReplicas.
+// - spec.replicas != status.upToDateReplicas.
 // - spec.replicas != status.readyReplicas.
 // - status.unavailableReplicas > 0.
+// NOTE: this function is used only in E2E tests.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contractVersion string) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
@@ -259,7 +260,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 		return false, errors.Wrapf(err, "failed to get control plane %s", c.StatusReplicas().Path().String())
 	}
 
-	upToDatedReplicas, err := c.UpToDateReplicas(contractVersion).Get(obj)
+	upToDateReplicas, err := c.UpToDateReplicas(contractVersion).Get(obj)
 	if err != nil {
 		if errors.Is(err, ErrFieldNotFound) {
 			// If updatedReplicas is not set on the control plane
@@ -302,7 +303,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 		availableReplicas, err = c.AvailableReplicas().Get(obj)
 		if err != nil {
 			if errors.Is(err, ErrFieldNotFound) {
-				// If readyReplicas is not set on the control plane
+				// If availableReplicas is not set on the control plane
 				// we should consider the control plane to be scaling so that
 				// we block any operation that expect the control plane to be stable.
 				return true, nil
@@ -315,7 +316,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 	// * .spec.replicas, .status.replicas, .status.upToDateReplicas,
 	//   .status.readyReplicas, .status.availableReplicas are not equal.
 	if *statusReplicas != *desiredReplicas ||
-		*upToDatedReplicas != *desiredReplicas ||
+		*upToDateReplicas != *desiredReplicas ||
 		*readyReplicas != *desiredReplicas ||
 		*availableReplicas != *desiredReplicas {
 		return true, nil

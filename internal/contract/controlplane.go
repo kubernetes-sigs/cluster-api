@@ -241,7 +241,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // - spec.replicas != status.replicas.
 // - spec.replicas != status.upToDateReplicas.
 // - spec.replicas != status.readyReplicas.
-// - status.unavailableReplicas > 0.
+// - spec.replicas != status.availableReplicas.
 // NOTE: this function is used only in E2E tests.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contractVersion string) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)

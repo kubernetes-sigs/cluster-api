@@ -830,9 +830,9 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
 									Replicas:          int32(1),
-									ReadyReplicas:     ptr.To[int32](2),
-									UpToDateReplicas:  ptr.To[int32](2),
-									AvailableReplicas: ptr.To[int32](2),
+									ReadyReplicas:     ptr.To[int32](1),
+									UpToDateReplicas:  ptr.To[int32](1),
+									AvailableReplicas: ptr.To[int32](1),
 								}).
 								Build(),
 						},

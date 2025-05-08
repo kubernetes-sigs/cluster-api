@@ -341,10 +341,8 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 			// MachineSet should be rolled out.
 			g.Expect(newMachineSet.Spec.Replicas).To(Equal(deployment.Spec.Replicas))
 			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.Replicas))
-			g.Expect(*newMachineSet.Status.Deprecated).ToNot(BeNil())
-			g.Expect(*newMachineSet.Status.Deprecated.V1Beta1).ToNot(BeNil())
-			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.Deprecated.V1Beta1.ReadyReplicas))
-			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.Deprecated.V1Beta1.AvailableReplicas))
+			g.Expect(newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.ReadyReplicas))
+			g.Expect(newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.AvailableReplicas))
 
 			// MachineSet should have the same infrastructureRef as the MachineDeployment.
 			g.Expect(newMachineSet.Spec.Template.Spec.InfrastructureRef).To(BeComparableTo(deployment.Spec.Template.Spec.InfrastructureRef))

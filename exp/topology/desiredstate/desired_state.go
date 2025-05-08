@@ -354,7 +354,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	// NOTE: If the Topology.ControlPlane.replicas value is nil, it is assumed that the control plane controller
 	// does not implement support for this field and the ControlPlane object is generated without the number of Replicas.
 	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		if err := contract.ControlPlane().Replicas().Set(controlPlane, int64(*s.Blueprint.Topology.ControlPlane.Replicas)); err != nil {
+		if err := contract.ControlPlane().Replicas().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.Replicas); err != nil {
 			return nil, errors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().Replicas().Path())
 		}
 	}

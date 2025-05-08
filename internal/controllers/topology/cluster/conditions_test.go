@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -276,15 +277,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(1),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(1),
-											ReadyReplicas:       int32(1),
-											AvailableReplicas:   int32(1),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(1),
+									ReadyReplicas:     ptr.To[int32](1),
+									UpToDateReplicas:  ptr.To[int32](1),
+									AvailableReplicas: ptr.To[int32](1),
 								}).
 								Build(),
 						},
@@ -379,15 +375,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(2),
-											ReadyReplicas:       int32(2),
-											AvailableReplicas:   int32(2),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](2),
+									UpToDateReplicas:  ptr.To[int32](2),
+									AvailableReplicas: ptr.To[int32](2),
 								}).
 								Build(),
 						},
@@ -554,15 +545,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								}).
 								WithStatus(clusterv1.MachineDeploymentStatus{
 									// MD is not ready because we don't have 2 updated, ready and available replicas.
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(1),
-											ReadyReplicas:       int32(1),
-											AvailableReplicas:   int32(1),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](1),
+									UpToDateReplicas:  ptr.To[int32](1),
+									AvailableReplicas: ptr.To[int32](1),
 								}).
 								Build(),
 						},
@@ -576,15 +562,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 									},
 								}).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(2),
-											ReadyReplicas:       int32(2),
-											AvailableReplicas:   int32(2),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](2),
+									UpToDateReplicas:  ptr.To[int32](2),
+									AvailableReplicas: ptr.To[int32](2),
 								}).
 								Build(),
 						},
@@ -720,15 +701,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(2),
-											ReadyReplicas:       int32(2),
-											AvailableReplicas:   int32(2),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](2),
+									UpToDateReplicas:  ptr.To[int32](2),
+									AvailableReplicas: ptr.To[int32](2),
 								}).
 								Build(),
 						},
@@ -737,15 +713,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.21.2").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(2),
-											ReadyReplicas:       int32(2),
-											AvailableReplicas:   int32(2),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](2),
+									UpToDateReplicas:  ptr.To[int32](2),
+									AvailableReplicas: ptr.To[int32](2),
 								}).
 								Build(),
 						},
@@ -858,15 +829,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(1),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(1),
-											ReadyReplicas:       int32(1),
-											AvailableReplicas:   int32(1),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(1),
+									ReadyReplicas:     ptr.To[int32](1),
+									UpToDateReplicas:  ptr.To[int32](1),
+									AvailableReplicas: ptr.To[int32](1),
 								}).
 								Build(),
 						},
@@ -875,15 +841,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas: int32(2),
-									Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-										V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-											UpdatedReplicas:     int32(2),
-											ReadyReplicas:       int32(2),
-											AvailableReplicas:   int32(2),
-											UnavailableReplicas: int32(0),
-										},
-									},
+									Replicas:          int32(2),
+									ReadyReplicas:     ptr.To[int32](2),
+									UpToDateReplicas:  ptr.To[int32](2),
+									AvailableReplicas: ptr.To[int32](2),
 								}).
 								Build(),
 						},

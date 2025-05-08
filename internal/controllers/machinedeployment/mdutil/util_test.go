@@ -770,7 +770,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 }
 
 func TestDeploymentComplete(t *testing.T) {
-	deployment := func(desired, current, updated, available, maxUnavailable, maxSurge int32) *clusterv1.MachineDeployment {
+	deployment := func(desired, current, upToDate, available, maxUnavailable, maxSurge int32) *clusterv1.MachineDeployment {
 		return &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
 				Replicas: &desired,
@@ -783,13 +783,9 @@ func TestDeploymentComplete(t *testing.T) {
 				},
 			},
 			Status: clusterv1.MachineDeploymentStatus{
-				Replicas: current,
-				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-						UpdatedReplicas:   updated,
-						AvailableReplicas: available,
-					},
-				},
+				Replicas:          current,
+				UpToDateReplicas:  ptr.To[int32](upToDate),
+				AvailableReplicas: ptr.To[int32](available),
 			},
 		}
 	}
@@ -935,11 +931,7 @@ func TestAnnotationUtils(t *testing.T) {
 
 	// Test Case 2:  Check if annotations reflect deployments state
 	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
-	tMS.Status.Deprecated = &clusterv1.MachineSetDeprecatedStatus{
-		V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
-			AvailableReplicas: 1,
-		},
-	}
+	tMS.Status.AvailableReplicas = ptr.To[int32](1)
 	tMS.Spec.Replicas = new(int32)
 	*tMS.Spec.Replicas = 1
 

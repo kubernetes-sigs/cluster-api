@@ -37,12 +37,8 @@ import (
 // updateStatus updates MachineSet's status.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
-// Note: v1beta1 conditions are not managed by this func.
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
-	// Update the following fields in status from the machines list.
-	// - v1beta2.readyReplicas
-	// - v1beta2.availableReplicas
-	// - v1beta2.upToDateReplicas
+	// Update replica counter fields in status from the machines list.
 	setReplicas(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// Conditions

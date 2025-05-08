@@ -93,95 +93,49 @@ func (c *ControlPlaneContract) ControlPlaneEndpoint() *ControlPlaneEndpoint {
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
-func (c *ControlPlaneContract) Replicas() *Int64 {
-	return &Int64{
+func (c *ControlPlaneContract) Replicas() *Int32 {
+	return &Int32{
 		path: []string{"spec", "replicas"},
 	}
 }
 
 // StatusReplicas provide access to the status.replicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-func (c *ControlPlaneContract) StatusReplicas() *Int64 {
-	return &Int64{
+func (c *ControlPlaneContract) StatusReplicas() *Int32 {
+	return &Int32{
 		path: []string{"status", "replicas"},
 	}
 }
 
-// UpdatedReplicas provide access to the status.updatedReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Rename to V1Beta1DeprecatedUpdatedReplicas and make sure we are only using this method for compatibility with old contracts.
-func (c *ControlPlaneContract) UpdatedReplicas(contractVersion string) *Int64 {
-	if contractVersion == "v1beta1" {
-		return &Int64{
-			path: []string{"status", "updatedReplicas"},
-		}
-	}
-
-	return &Int64{
-		path: []string{"status", "deprecated", "v1beta1", "updatedReplicas"},
-	}
-}
-
 // ReadyReplicas provide access to the status.readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Rename to V1Beta1DeprecatedReadyReplicas and make sure we are only using this method for compatibility with old contracts.
-func (c *ControlPlaneContract) ReadyReplicas(contractVersion string) *Int64 {
-	if contractVersion == "v1beta1" {
-		return &Int64{
-			path: []string{"status", "readyReplicas"},
-		}
-	}
-
-	return &Int64{
-		path: []string{"status", "deprecated", "v1beta1", "readyReplicas"},
-	}
-}
-
-// UnavailableReplicas provide access to the status.unavailableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Rename to V1Beta1DeprecatedUnavailableReplicas and make sure we are only using this method for compatibility with old contracts.
-func (c *ControlPlaneContract) UnavailableReplicas(contractVersion string) *Int64 {
-	if contractVersion == "v1beta1" {
-		return &Int64{
-			path: []string{"status", "unavailableReplicas"},
-		}
-	}
-
-	return &Int64{
-		path: []string{"status", "deprecated", "v1beta1", "unavailableReplicas"},
-	}
-}
-
-// V1Beta2ReadyReplicas provide access to the status.readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Drop V1Beta2 prefix..
-func (c *ControlPlaneContract) V1Beta2ReadyReplicas(contractVersion string) *Int32 {
-	if contractVersion == "v1beta1" {
-		return &Int32{
-			path: []string{"status", "v1beta2", "readyReplicas"},
-		}
-	}
-
+// NOTE: readyReplicas changed semantic in v1beta2 contract.
+func (c *ControlPlaneContract) ReadyReplicas() *Int32 {
 	return &Int32{
 		path: []string{"status", "readyReplicas"},
 	}
 }
 
-// V1Beta2AvailableReplicas provide access to the status.availableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Drop V1Beta2 prefix.x.
-func (c *ControlPlaneContract) V1Beta2AvailableReplicas(contractVersion string) *Int32 {
-	if contractVersion == "v1beta1" {
-		return &Int32{
-			path: []string{"status", "v1beta2", "availableReplicas"},
-		}
-	}
-
+// AvailableReplicas provide access to the status.availableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+// NOTE: availableReplicas was introduced by the v1beta2 contract; use unavailableReplicas for the v1beta1 contract.
+func (c *ControlPlaneContract) AvailableReplicas() *Int32 {
 	return &Int32{
 		path: []string{"status", "availableReplicas"},
 	}
 }
 
-// V1Beta2UpToDateReplicas provide access to the status.upToDateReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
-// TODO (v1beta2): Drop V1Beta2 prefix.ix.
-func (c *ControlPlaneContract) V1Beta2UpToDateReplicas(contractVersion string) *Int32 {
+// V1Beta1UnavailableReplicas provide access to the status.unavailableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+// NOTE: use availableReplicas when working with the v1beta2 contract.
+func (c *ControlPlaneContract) V1Beta1UnavailableReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "unavailableReplicas"},
+	}
+}
+
+// UpToDateReplicas provide access to the status.upToDateReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+// NOTE: upToDateReplicas was introduced by the v1beta2 contract; code will fall back to updatedReplicas for the v1beta1 contract.
+func (c *ControlPlaneContract) UpToDateReplicas(contractVersion string) *Int32 {
 	if contractVersion == "v1beta1" {
 		return &Int32{
-			path: []string{"status", "v1beta2", "upToDateReplicas"},
+			path: []string{"status", "updatedReplicas"},
 		}
 	}
 
@@ -285,18 +239,15 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // A control plane is considered scaling if:
 // - status.replicas is not yet set.
 // - spec.replicas != status.replicas.
-// - spec.replicas != status.updatedReplicas.
+// - spec.replicas != status.upToDateReplicas.
 // - spec.replicas != status.readyReplicas.
-// - status.unavailableReplicas > 0.
+// - spec.replicas != status.availableReplicas.
+// NOTE: this function is used only in E2E tests.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contractVersion string) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to get control plane spec replicas")
+		return false, errors.Wrapf(err, "failed to get control plane %s", c.Replicas().Path().String())
 	}
-
-	// TODO (v1beta2): Add a new code path using v1beta2 replica counters
-	//  note: currently we are still always using v1beta1 counters no matter if they are moved under deprecated
-	//  but we should stop doing this ASAP
 
 	statusReplicas, err := c.StatusReplicas().Get(obj)
 	if err != nil {
@@ -306,10 +257,10 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 			// so that we can block any operations that expect control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrap(err, "failed to get control plane status replicas")
+		return false, errors.Wrapf(err, "failed to get control plane %s", c.StatusReplicas().Path().String())
 	}
 
-	updatedReplicas, err := c.UpdatedReplicas(contractVersion).Get(obj)
+	upToDateReplicas, err := c.UpToDateReplicas(contractVersion).Get(obj)
 	if err != nil {
 		if errors.Is(err, ErrFieldNotFound) {
 			// If updatedReplicas is not set on the control plane
@@ -317,10 +268,10 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 			// we block any operation that expect the control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrap(err, "failed to get control plane status updatedReplicas")
+		return false, errors.Wrapf(err, "failed to get control plane %s", c.UpToDateReplicas(contractVersion).Path().String())
 	}
 
-	readyReplicas, err := c.ReadyReplicas(contractVersion).Get(obj)
+	readyReplicas, err := c.ReadyReplicas().Get(obj)
 	if err != nil {
 		if errors.Is(err, ErrFieldNotFound) {
 			// If readyReplicas is not set on the control plane
@@ -328,32 +279,46 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 			// we block any operation that expect the control plane to be stable.
 			return true, nil
 		}
-		return false, errors.Wrap(err, "failed to get control plane status readyReplicas")
+		return false, errors.Wrapf(err, "failed to get control plane %s", c.ReadyReplicas().Path().String())
 	}
 
-	unavailableReplicas, err := c.UnavailableReplicas(contractVersion).Get(obj)
-	if err != nil {
-		if !errors.Is(err, ErrFieldNotFound) {
-			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
+	var availableReplicas *int32
+	if contractVersion == "v1beta1" {
+		unavailableReplicas, err := c.V1Beta1UnavailableReplicas().Get(obj)
+		if err != nil {
+			if !errors.Is(err, ErrFieldNotFound) {
+				return false, errors.Wrapf(err, "failed to get control plane %s", c.V1Beta1UnavailableReplicas().Path().String())
+			}
+			// If unavailableReplicas is not set on the control plane we assume it is 0.
+			// We have to do this as the following happens after clusterctl move with KCP:
+			// * clusterctl move creates the KCP object without status
+			// * the KCP controller won't patch the field to 0 if it doesn't exist
+			//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
+			//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
+			//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
+			unavailableReplicas = ptr.To[int64](0)
 		}
-		// If unavailableReplicas is not set on the control plane we assume it is 0.
-		// We have to do this as the following happens after clusterctl move with KCP:
-		// * clusterctl move creates the KCP object without status
-		// * the KCP controller won't patch the field to 0 if it doesn't exist
-		//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
-		//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
-		//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
-		unavailableReplicas = ptr.To[int64](0)
+		availableReplicas = ptr.To(*desiredReplicas - int32(*unavailableReplicas))
+	} else {
+		availableReplicas, err = c.AvailableReplicas().Get(obj)
+		if err != nil {
+			if errors.Is(err, ErrFieldNotFound) {
+				// If availableReplicas is not set on the control plane
+				// we should consider the control plane to be scaling so that
+				// we block any operation that expect the control plane to be stable.
+				return true, nil
+			}
+			return false, errors.Wrapf(err, "failed to get control plane %s", c.AvailableReplicas().Path().String())
+		}
 	}
 
 	// Control plane is still scaling if:
-	// * .spec.replicas, .status.replicas, .status.updatedReplicas,
-	//   .status.readyReplicas are not equal and
-	// * unavailableReplicas > 0
+	// * .spec.replicas, .status.replicas, .status.upToDateReplicas,
+	//   .status.readyReplicas, .status.availableReplicas are not equal.
 	if *statusReplicas != *desiredReplicas ||
-		*updatedReplicas != *desiredReplicas ||
+		*upToDateReplicas != *desiredReplicas ||
 		*readyReplicas != *desiredReplicas ||
-		*unavailableReplicas > 0 {
+		*availableReplicas != *desiredReplicas {
 		return true, nil
 	}
 	return false, nil

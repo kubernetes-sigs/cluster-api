@@ -120,7 +120,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentAvailableCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.MachineDeploymentAvailableWaitingForAvailableReplicasSetReason,
-				Message: "Waiting for status.v1beta2.availableReplicas set",
+				Message: "Waiting for status.availableReplicas set",
 			},
 		},
 		{

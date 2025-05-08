@@ -103,200 +103,85 @@ func TestControlPlane(t *testing.T) {
 
 		g.Expect(ControlPlane().Replicas().Path()).To(Equal(Path{"spec", "replicas"}))
 
-		err := ControlPlane().Replicas().Set(obj, int64(3))
+		err := ControlPlane().Replicas().Set(obj, int32(3))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().Replicas().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(3)))
+		g.Expect(*got).To(Equal(int32(3)))
 	})
 	t.Run("Manages status.replicas", func(t *testing.T) {
 		g := NewWithT(t)
 
 		g.Expect(ControlPlane().StatusReplicas().Path()).To(Equal(Path{"status", "replicas"}))
 
-		err := ControlPlane().StatusReplicas().Set(obj, int64(3))
+		err := ControlPlane().StatusReplicas().Set(obj, int32(3))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().StatusReplicas().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(3)))
+		g.Expect(*got).To(Equal(int32(3)))
 	})
-	t.Run("Manages status.updatedreplicas", func(t *testing.T) {
+	t.Run("Manages status.upToDateReplicas", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().UpdatedReplicas("v1beta1").Path()).To(Equal(Path{"status", "updatedReplicas"}))
+		g.Expect(ControlPlane().UpToDateReplicas("v1beta1").Path()).To(Equal(Path{"status", "updatedReplicas"}))
 
-		err := ControlPlane().UpdatedReplicas("v1beta1").Set(obj, int64(3))
+		err := ControlPlane().UpToDateReplicas("v1beta1").Set(obj, int32(3))
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().UpdatedReplicas("v1beta1").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(3)))
-
-		g.Expect(ControlPlane().UpdatedReplicas("v1beta2").Path()).To(Equal(Path{"status", "deprecated", "v1beta1", "updatedReplicas"}))
-
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"deprecated": map[string]interface{}{
-					"v1beta1": map[string]interface{}{
-						"updatedReplicas": int64(5),
-					},
-				},
-			},
-		}}
-
-		got, err = ControlPlane().UpdatedReplicas("v1beta2").Get(obj)
+		got, err := ControlPlane().UpToDateReplicas("v1beta1").Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(5)))
+		g.Expect(*got).To(Equal(int32(3)))
+
+		g.Expect(ControlPlane().UpToDateReplicas("v1beta2").Path()).To(Equal(Path{"status", "upToDateReplicas"}))
+
+		err = ControlPlane().UpToDateReplicas("v1beta2").Set(obj, int32(5))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err = ControlPlane().UpToDateReplicas("v1beta2").Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(int32(5)))
 	})
 	t.Run("Manages status.readyReplicas", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().ReadyReplicas("v1beta1").Path()).To(Equal(Path{"status", "readyReplicas"}))
+		g.Expect(ControlPlane().ReadyReplicas().Path()).To(Equal(Path{"status", "readyReplicas"}))
 
-		err := ControlPlane().ReadyReplicas("v1beta1").Set(obj, int64(3))
+		err := ControlPlane().ReadyReplicas().Set(obj, int32(3))
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().ReadyReplicas("v1beta1").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(3)))
-
-		g.Expect(ControlPlane().ReadyReplicas("v1beta2").Path()).To(Equal(Path{"status", "deprecated", "v1beta1", "readyReplicas"}))
-
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"deprecated": map[string]interface{}{
-					"v1beta1": map[string]interface{}{
-						"readyReplicas": int64(5),
-					},
-				},
-			},
-		}}
-
-		got, err = ControlPlane().ReadyReplicas("v1beta2").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(5)))
-	})
-	t.Run("Manages status.unavailableReplicas", func(t *testing.T) {
-		g := NewWithT(t)
-
-		g.Expect(ControlPlane().UnavailableReplicas("v1beta1").Path()).To(Equal(Path{"status", "unavailableReplicas"}))
-
-		err := ControlPlane().UnavailableReplicas("v1beta1").Set(obj, int64(3))
-		g.Expect(err).ToNot(HaveOccurred())
-
-		got, err := ControlPlane().UnavailableReplicas("v1beta1").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(3)))
-
-		g.Expect(ControlPlane().UnavailableReplicas("v1beta2").Path()).To(Equal(Path{"status", "deprecated", "v1beta1", "unavailableReplicas"}))
-
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"deprecated": map[string]interface{}{
-					"v1beta1": map[string]interface{}{
-						"unavailableReplicas": int64(5),
-					},
-				},
-			},
-		}}
-
-		got, err = ControlPlane().UnavailableReplicas("v1beta2").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int64(5)))
-	})
-	t.Run("Manages status.readyReplicas for v1beta2 status", func(t *testing.T) {
-		g := NewWithT(t)
-
-		g.Expect(ControlPlane().V1Beta2ReadyReplicas("v1beta1").Path()).To(Equal(Path{"status", "v1beta2", "readyReplicas"}))
-
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"readyReplicas": int64(3),
-				"v1beta2": map[string]interface{}{
-					"readyReplicas": int64(5),
-				},
-			},
-		}}
-
-		got, err := ControlPlane().V1Beta2ReadyReplicas("v1beta1").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int32(5)))
-
-		g.Expect(ControlPlane().V1Beta2ReadyReplicas("v1beta2").Path()).To(Equal(Path{"status", "readyReplicas"}))
-
-		err = ControlPlane().V1Beta2ReadyReplicas("v1beta2").Set(obj, 3)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		got, err = ControlPlane().V1Beta2ReadyReplicas("v1beta2").Get(obj)
+		got, err := ControlPlane().ReadyReplicas().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal(int32(3)))
 	})
-	t.Run("Manages status.availableReplicas for v1beta2 status", func(t *testing.T) {
+	t.Run("Manages status.V1Beta1UnavailableReplicas", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().V1Beta2AvailableReplicas("v1beta1").Path()).To(Equal(Path{"status", "v1beta2", "availableReplicas"}))
+		g.Expect(ControlPlane().V1Beta1UnavailableReplicas().Path()).To(Equal(Path{"status", "unavailableReplicas"}))
 
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"availableReplicas": int64(3),
-				"v1beta2": map[string]interface{}{
-					"availableReplicas": int64(5),
-				},
-			},
-		}}
+		err := ControlPlane().V1Beta1UnavailableReplicas().Set(obj, int64(3))
+		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err := ControlPlane().V1Beta2AvailableReplicas("v1beta1").Get(obj)
+		got, err := ControlPlane().V1Beta1UnavailableReplicas().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int32(5)))
-
-		g.Expect(ControlPlane().V1Beta2AvailableReplicas("v1beta2").Path()).To(Equal(Path{"status", "availableReplicas"}))
-
-		err = ControlPlane().V1Beta2AvailableReplicas("v1beta2").Set(obj, 3)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		got, err = ControlPlane().V1Beta2AvailableReplicas("v1beta2").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int32(3)))
+		g.Expect(*got).To(Equal(int64(3)))
 	})
-	t.Run("Manages status.upToDateReplicas for v1beta2 status", func(t *testing.T) {
+	t.Run("Manages status.availableReplicas", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(ControlPlane().V1Beta2UpToDateReplicas("v1beta1").Path()).To(Equal(Path{"status", "v1beta2", "upToDateReplicas"}))
+		g.Expect(ControlPlane().AvailableReplicas().Path()).To(Equal(Path{"status", "availableReplicas"}))
 
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"upToDateReplicas": int64(3),
-				"v1beta2": map[string]interface{}{
-					"upToDateReplicas": int64(5),
-				},
-			},
-		}}
-
-		got, err := ControlPlane().V1Beta2UpToDateReplicas("v1beta1").Get(obj)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(int32(5)))
-
-		g.Expect(ControlPlane().V1Beta2UpToDateReplicas("v1beta2").Path()).To(Equal(Path{"status", "upToDateReplicas"}))
-
-		err = ControlPlane().V1Beta2UpToDateReplicas("v1beta2").Set(obj, 3)
+		err := ControlPlane().AvailableReplicas().Set(obj, int32(3))
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got, err = ControlPlane().V1Beta2UpToDateReplicas("v1beta2").Get(obj)
+		got, err := ControlPlane().AvailableReplicas().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal(int32(3)))

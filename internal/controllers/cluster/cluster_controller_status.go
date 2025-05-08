@@ -109,18 +109,31 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		}
 
 		if replicas, err := contract.ControlPlane().Replicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.ControlPlane.DesiredReplicas = ptr.To(int32(*replicas))
+			cluster.Status.ControlPlane.DesiredReplicas = ptr.To(*replicas)
 		}
 		if replicas, err := contract.ControlPlane().StatusReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.ControlPlane.Replicas = ptr.To(int32(*replicas))
+			cluster.Status.ControlPlane.Replicas = ptr.To(*replicas)
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2ReadyReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
+		if replicas, err := contract.ControlPlane().ReadyReplicas().Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.ReadyReplicas = replicas
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2AvailableReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.ControlPlane.AvailableReplicas = replicas
+		if controlPlaneContractVersion == "v1beta1" {
+			if unavailableReplicas, err := contract.ControlPlane().V1Beta1UnavailableReplicas().Get(controlPlane); err == nil && unavailableReplicas != nil {
+				if cluster.Status.ControlPlane.DesiredReplicas != nil {
+					if *cluster.Status.ControlPlane.DesiredReplicas >= int32(*unavailableReplicas) {
+						cluster.Status.ControlPlane.AvailableReplicas = ptr.To(*cluster.Status.ControlPlane.DesiredReplicas - int32(*unavailableReplicas))
+					} else {
+						cluster.Status.ControlPlane.AvailableReplicas = ptr.To[int32](0)
+					}
+				}
+			}
+		} else {
+			if replicas, err := contract.ControlPlane().AvailableReplicas().Get(controlPlane); err == nil && replicas != nil {
+				cluster.Status.ControlPlane.AvailableReplicas = replicas
+			}
 		}
-		if replicas, err := contract.ControlPlane().V1Beta2UpToDateReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
+
+		if replicas, err := contract.ControlPlane().UpToDateReplicas(controlPlaneContractVersion).Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.UpToDateReplicas = replicas
 		}
 		return
@@ -1132,14 +1145,14 @@ func infrastructureReadyFallBackMessage(kind string, ready bool) string {
 	if ready {
 		return ""
 	}
-	return fmt.Sprintf("%s status.ready is %t", kind, ready)
+	return fmt.Sprintf("%s status.initialization.provisioned is %t", kind, ready)
 }
 
 func controlPlaneAvailableFallBackMessage(kind string, ready bool) string {
 	if ready {
 		return ""
 	}
-	return fmt.Sprintf("%s status.ready is %t", kind, ready)
+	return fmt.Sprintf("%s status.initialization.controlPlaneInitialized is %t", kind, ready)
 }
 
 func aggregateUnhealthyMachines(machines collections.Machines) string {

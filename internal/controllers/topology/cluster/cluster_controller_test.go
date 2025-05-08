@@ -995,8 +995,8 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 		}
 
 		// Check for Control Plane replicase if it's set in the Cluster.Spec.Topology
-		if int32(*replicas) != *cluster.Spec.Topology.ControlPlane.Replicas {
-			return fmt.Errorf("replicas %v do not match expected %v", int32(*replicas), *cluster.Spec.Topology.ControlPlane.Replicas)
+		if *replicas != *cluster.Spec.Topology.ControlPlane.Replicas {
+			return fmt.Errorf("replicas %v do not match expected %v", *replicas, *cluster.Spec.Topology.ControlPlane.Replicas)
 		}
 	}
 	clusterClass := &clusterv1.ClusterClass{}

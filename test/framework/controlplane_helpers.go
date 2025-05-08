@@ -174,24 +174,17 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 
 		desiredReplicas := controlplane.Spec.Replicas
 		statusReplicas := controlplane.Status.Replicas
-		// TODO (v1beta2) Use new replica counters
-		updatedReplicas := int32(0)
-		readyReplicas := int32(0)
-		unavailableReplicas := int32(0)
-		if controlplane.Status.Deprecated != nil && controlplane.Status.Deprecated.V1Beta1 != nil {
-			updatedReplicas = controlplane.Status.Deprecated.V1Beta1.UpdatedReplicas
-			readyReplicas = controlplane.Status.Deprecated.V1Beta1.ReadyReplicas
-			unavailableReplicas = controlplane.Status.Deprecated.V1Beta1.UnavailableReplicas
-		}
+		upToDatedReplicas := ptr.Deref(controlplane.Status.UpToDateReplicas, 0)
+		readyReplicas := ptr.Deref(controlplane.Status.ReadyReplicas, 0)
+		availableReplicas := ptr.Deref(controlplane.Status.AvailableReplicas, 0)
 
 		// Control plane is still rolling out (and thus not ready) if:
-		// * .spec.replicas, .status.replicas, .status.updatedReplicas,
-		//   .status.readyReplicas are not equal and
-		// * unavailableReplicas > 0
+		// * .spec.replicas, .status.replicas, .status.upToDateReplicas,
+		//   .status.readyReplicas, .status.availableReplicas are not equal.
 		if statusReplicas != *desiredReplicas ||
-			updatedReplicas != *desiredReplicas ||
+			upToDatedReplicas != *desiredReplicas ||
 			readyReplicas != *desiredReplicas ||
-			unavailableReplicas > 0 {
+			availableReplicas != *desiredReplicas {
 			return false, nil
 		}
 

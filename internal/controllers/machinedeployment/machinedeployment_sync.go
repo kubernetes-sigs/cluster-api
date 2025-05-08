@@ -477,18 +477,17 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
 func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
-	md.Status = calculateStatus(allMSs, newMS, md)
+	md.Status = calculateV1Beta1Status(allMSs, newMS, md)
 
 	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
 	minReplicasNeeded := *(md.Spec.Replicas) - mdutil.MaxUnavailable(*md)
 
-	// TODO: v1beta2
 	availableReplicas := int32(0)
 	if md.Status.Deprecated != nil && md.Status.Deprecated.V1Beta1 != nil {
 		availableReplicas = md.Status.Deprecated.V1Beta1.AvailableReplicas
 	}
 	if availableReplicas >= minReplicasNeeded {
-		// NOTE: The structure of calculateStatus() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateStatus() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
+		// NOTE: The structure of calculateV1Beta1Status() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateV1Beta1Status() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
 		v1beta1conditions.MarkTrue(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition)
 	} else {
 		v1beta1conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition, clusterv1.WaitingForAvailableMachinesV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, md.Status.AvailableReplicas)
@@ -504,15 +503,15 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 		v1beta1conditions.MarkFalse(md, clusterv1.MachineSetReadyV1Beta1Condition, clusterv1.WaitingForMachineSetFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, "MachineSet not found")
 	}
 
-	// Set v1beta replica counters on MD status.
+	// Set replica counters on MD status.
 	setReplicas(md, allMSs)
 
 	return nil
 }
 
-// calculateStatus calculates the latest status for the provided deployment by looking into the provided MachineSets.
-func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) clusterv1.MachineDeploymentStatus {
-	availableReplicas := mdutil.GetAvailableReplicaCountForMachineSets(allMSs)
+// calculateV1Beta1Status calculates the latest status for the provided deployment by looking into the provided MachineSets.
+func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) clusterv1.MachineDeploymentStatus {
+	availableReplicas := mdutil.GetV1Beta1AvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	unavailableReplicas := totalReplicas - availableReplicas
 
@@ -525,7 +524,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	// Calculate the label selector. We check the error in the MD reconcile function, ignore here.
 	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector)
 
-	// TODO (v1beta2) Use new replica counters
+	// Carry over deprecated v1beta1 conditions if defined.
 	var conditions clusterv1.Conditions
 	if deployment.Status.Deprecated != nil && deployment.Status.Deprecated.V1Beta1 != nil {
 		conditions = deployment.Status.Deprecated.V1Beta1.Conditions
@@ -540,7 +539,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 			V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
 				Conditions:          conditions,
 				UpdatedReplicas:     mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS}),
-				ReadyReplicas:       mdutil.GetReadyReplicaCountForMachineSets(allMSs),
+				ReadyReplicas:       mdutil.GetV1Beta1ReadyReplicaCountForMachineSets(allMSs),
 				AvailableReplicas:   availableReplicas,
 				UnavailableReplicas: unavailableReplicas,
 			},

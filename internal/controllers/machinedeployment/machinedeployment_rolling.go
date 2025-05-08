@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -157,11 +158,7 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 	// * The new MachineSet created must start with 0 replicas because allMachinesCount is already at 13.
 	// * However, newMSMachinesUnavailable would also be 0, so the 2 old MachineSets could be scaled down by 5 (13 - 8 - 0), which would then
 	// allow the new MachineSet to be scaled up by 5.
-	// TODO (v1beta2) Use new replica counters
-	availableReplicas := int32(0)
-	if newMS.Status.Deprecated != nil && newMS.Status.Deprecated.V1Beta1 != nil {
-		availableReplicas = newMS.Status.Deprecated.V1Beta1.AvailableReplicas
-	}
+	availableReplicas := ptr.Deref(newMS.Status.AvailableReplicas, 0)
 
 	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
 	newMSUnavailableMachineCount := *(newMS.Spec.Replicas) - availableReplicas
@@ -218,11 +215,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 			continue
 		}
 
-		// TODO (v1beta2) Use new replica counters
-		oldMSAvailableReplicas := int32(0)
-		if targetMS.Status.Deprecated != nil && targetMS.Status.Deprecated.V1Beta1 != nil {
-			oldMSAvailableReplicas = targetMS.Status.Deprecated.V1Beta1.AvailableReplicas
-		}
+		oldMSAvailableReplicas := ptr.Deref(targetMS.Status.AvailableReplicas, 0)
 		log.V(4).Info("Found available Machines in old MachineSet",
 			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(targetMS).String())
 		if oldMSReplicas == oldMSAvailableReplicas {
@@ -263,7 +256,7 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
 
 	// Find the number of available machines.
-	availableMachineCount := mdutil.GetAvailableReplicaCountForMachineSets(allMSs)
+	availableMachineCount := ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(allMSs), 0)
 
 	// Check if we can scale down.
 	if availableMachineCount <= minAvailable {

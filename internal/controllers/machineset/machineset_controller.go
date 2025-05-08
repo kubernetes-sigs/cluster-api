@@ -206,7 +206,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	defer func() {
-		if err := r.reconcileStatus(ctx, s); err != nil {
+		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update status")})
 		}
 
@@ -1143,9 +1143,9 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !isDeploymentChild(ms)
 }
 
-// reconcileStatus updates the Status field for the MachineSet
+// reconcileV1Beta1Status updates the Status field for the MachineSet
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
-func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
+func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error {
 	if !s.getAndAdoptMachinesForMachineSetSucceeded {
 		return nil
 	}
@@ -1212,7 +1212,6 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	}
 
 	newStatus.Replicas = int32(len(filteredMachines))
-	// TODO (v1beta2) Use new replica counters
 	if newStatus.Deprecated == nil {
 		newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
 	}
@@ -1291,16 +1290,15 @@ func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
 	// exceeds MinReadySeconds could be incorrect.
 	// To avoid an available replica stuck in the ready state, we force a reconcile after MinReadySeconds,
 	// at which point it should confirm any available replica to be available.
-	// TODO (v1beta2) Use new replica counters
 	if s.machineSet.Spec.MinReadySeconds > 0 &&
-		s.machineSet.Status.Deprecated.V1Beta1.ReadyReplicas == replicas &&
-		s.machineSet.Status.Deprecated.V1Beta1.AvailableReplicas != replicas {
+		ptr.Deref(s.machineSet.Status.ReadyReplicas, 0) == replicas &&
+		ptr.Deref(s.machineSet.Status.AvailableReplicas, 0) != replicas {
 		minReadyResult := ctrl.Result{RequeueAfter: time.Duration(s.machineSet.Spec.MinReadySeconds) * time.Second}
 		return minReadyResult
 	}
 
 	// Quickly reconcile until the nodes become Ready.
-	if s.machineSet.Status.Deprecated.V1Beta1.ReadyReplicas != replicas {
+	if ptr.Deref(s.machineSet.Status.ReadyReplicas, 0) != replicas {
 		return ctrl.Result{RequeueAfter: 15 * time.Second}
 	}
 

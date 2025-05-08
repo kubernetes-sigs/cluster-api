@@ -127,8 +127,8 @@ func (i *Int32) Get(obj *unstructured.Unstructured) (*int32, error) {
 
 // Set sets the int32 value in the path.
 // Note: Cluster API should never Set values on external objects owner by providers; however this method is useful for writing tests.
-func (i *Int32) Set(obj *unstructured.Unstructured, value int64) error {
-	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value, i.path...); err != nil {
+func (i *Int32) Set(obj *unstructured.Unstructured, value int32) error {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), int64(value), i.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
 	}
 	return nil

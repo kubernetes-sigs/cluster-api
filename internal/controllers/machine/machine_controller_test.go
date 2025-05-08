@@ -1171,6 +1171,7 @@ func TestMachineConditions(t *testing.T) {
 			infraProvisioned:           false,
 			bootstrapDataSecretCreated: false,
 			conditionsToAssert: []*clusterv1.Condition{
+				// in V1beta1 ready condition summary consumes reason from the infra condition
 				v1beta1conditions.FalseCondition(clusterv1.ReadyV1Beta1Condition, clusterv1.WaitingForInfrastructureFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, ""),
 			},
 		},

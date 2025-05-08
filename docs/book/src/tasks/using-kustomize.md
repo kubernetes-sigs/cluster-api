@@ -190,6 +190,6 @@ namePrefix: "blue-"
 nameSuffix: "-dev"
 ```
 
-Running `kustomize build. ` with this configuration would modify the name of all the Cluster API
+Running `kustomize build .` with this configuration would modify the name of all the Cluster API
 objects _and_ the associated referenced objects, adding "blue-" at the beginning and appending "-dev"
 at the end.

@@ -669,7 +669,7 @@ type Bootstrap struct {
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
-	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 }

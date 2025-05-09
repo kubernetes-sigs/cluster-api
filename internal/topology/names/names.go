@@ -96,6 +96,16 @@ func KCPMachineNameGenerator(templateString, clusterName, kubeadmControlPlaneNam
 		})
 }
 
+// MachineSetMachineNameGenerator returns a generator for creating a machineSet machine name.
+func MachineSetMachineNameGenerator(templateString, clusterName, machineSetName string) NameGenerator {
+	return newTemplateGenerator(templateString, clusterName,
+		map[string]interface{}{
+			"machineSet": map[string]interface{}{
+				"name": machineSetName,
+			},
+		})
+}
+
 // templateGenerator parses the template string as text/template and executes it using
 // the passed data to generate a name.
 type templateGenerator struct {

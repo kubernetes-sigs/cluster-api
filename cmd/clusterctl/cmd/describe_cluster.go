@@ -338,7 +338,7 @@ func getRowName(obj ctrlclient.Object) string {
 
 	name := objName
 	if objectPrefix := tree.GetMetaName(obj); objectPrefix != "" {
-		name = fmt.Sprintf("%s - %s", objectPrefix, gray.Sprintf(name))
+		name = fmt.Sprintf("%s - %s", objectPrefix, gray.Sprintf("%s", name))
 	}
 
 	if !obj.GetDeletionTimestamp().IsZero() {

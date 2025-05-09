@@ -238,7 +238,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "mirror Ready v1beta1Condition from infra cluster",
+			name:                   "mirror Ready condition from infra cluster",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
 			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready", Status: "False", Message: "some message", Reason: "SomeReason"}),
 			infraClusterIsNotFound: false,
@@ -250,7 +250,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "mirror Ready v1beta1Condition from infra cluster (true)",
+			name:                   "mirror Ready condition from infra cluster (true)",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
 			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready", Status: "True", Message: "some message"}), // reason not set for v1beta1 conditions
 			infraClusterIsNotFound: false,
@@ -262,7 +262,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "Use status.InfrastructureReady flag as a fallback Ready v1beta1Condition from infra cluster is missing",
+			name:                   "Use status.InfrastructureReady flag as a fallback Ready condition from infra cluster is missing",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
 			infraCluster:           fakeInfraCluster("i1", provisioned(false)),
 			infraClusterIsNotFound: false,
@@ -274,7 +274,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "Use status.InfrastructureReady flag as a fallback Ready v1beta1Condition from infra cluster is missing (ready true)",
+			name:                   "Use status.InfrastructureReady flag as a fallback Ready condition from infra cluster is missing (ready true)",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}, infrastructureProvisioned(true)),
 			infraCluster:           fakeInfraCluster("i1", provisioned(true)),
 			infraClusterIsNotFound: false,
@@ -285,7 +285,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "invalid Ready v1beta1Condition from infra cluster",
+			name:                   "invalid Ready condition from infra cluster",
 			cluster:                fakeCluster("c", infrastructureRef{Kind: "FakeInfraCluster"}),
 			infraCluster:           fakeInfraCluster("i1", condition{Type: "Ready"}),
 			infraClusterIsNotFound: false,
@@ -403,7 +403,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "mirror Available v1beta1Condition from control plane",
+			name:                   "mirror Available condition from control plane",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
 			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available", Status: "False", Message: "some message", Reason: "SomeReason"}),
 			controlPlaneIsNotFound: false,
@@ -415,7 +415,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "mirror Available v1beta1Condition from control plane (true)",
+			name:                   "mirror Available condition from control plane (true)",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
 			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available", Status: "True", Message: "some message"}), // reason not set for v1beta1 conditions
 			controlPlaneIsNotFound: false,
@@ -427,7 +427,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "Use status.controlPlaneReady flag as a fallback Available v1beta1Condition from control plane is missing",
+			name:                   "Use status.controlPlaneReady flag as a fallback Available condition from control plane is missing",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
 			controlPlane:           fakeControlPlane("cp1", initialized(false)),
 			controlPlaneIsNotFound: false,
@@ -439,7 +439,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "Use status.controlPlaneReady flag as a fallback Available v1beta1Condition from control plane is missing (ready true)",
+			name:                   "Use status.controlPlaneReady flag as a fallback Available condition from control plane is missing (ready true)",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}, controlPlaneInitialized(true)),
 			controlPlane:           fakeControlPlane("cp1", initialized(true)),
 			controlPlaneIsNotFound: false,
@@ -450,7 +450,7 @@ func TestSetControlPlaneAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name:                   "invalid Available v1beta1Condition from control plane",
+			name:                   "invalid Available condition from control plane",
 			cluster:                fakeCluster("c", controlPlaneRef{Kind: "FakeControlPlane"}),
 			controlPlane:           fakeControlPlane("cp1", condition{Type: "Available"}),
 			controlPlaneIsNotFound: false,
@@ -1088,18 +1088,18 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "One machine without up-to-date v1beta1Condition, one new Machines without up-to-date v1beta1Condition",
+			name:    "One machine without up-to-date condition, one new Machines without up-to-date condition",
 			cluster: fakeCluster("c"),
 			machines: []*clusterv1.Machine{
-				fakeMachine("no-v1beta1Condition-machine-1", controlPlane(true)),
-				fakeMachine("no-v1beta1Condition-machine-2-new", controlPlane(true), creationTimestamp{Time: time.Now().Add(-5 * time.Second)}), // ignored because it's new
+				fakeMachine("no-condition-machine-1", controlPlane(true)),
+				fakeMachine("no-condition-machine-2-new", controlPlane(true), creationTimestamp{Time: time.Now().Add(-5 * time.Second)}), // ignored because it's new
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterControlPlaneMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterControlPlaneMachinesUpToDateUnknownReason,
-				Message: "* Machine no-v1beta1Condition-machine-1: Condition UpToDate not yet reported",
+				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
 		{
@@ -1128,8 +1128,8 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 					Reason:  "TestNotUpToDate",
 					Message: "This is not up-to-date message",
 				})),
-				fakeMachine("no-v1beta1Condition-machine-1", controlPlane(true)),
-				fakeMachine("no-v1beta1Condition-machine-2", controlPlane(true)),
+				fakeMachine("no-condition-machine-1", controlPlane(true)),
+				fakeMachine("no-condition-machine-2", controlPlane(true)),
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -1137,7 +1137,7 @@ func TestSetControlPlaneMachinesUpToDateCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterControlPlaneMachinesNotUpToDateReason,
 				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
-					"* Machines no-v1beta1Condition-machine-1, no-v1beta1Condition-machine-2: Condition UpToDate not yet reported",
+					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
 		},
 	}
@@ -1246,18 +1246,18 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "One machine without up-to-date v1beta1Condition, one new Machines without up-to-date v1beta1Condition",
+			name:    "One machine without up-to-date condition, one new Machines without up-to-date condition",
 			cluster: fakeCluster("c"),
 			machines: []*clusterv1.Machine{
-				fakeMachine("no-v1beta1Condition-machine-1"),
-				fakeMachine("no-v1beta1Condition-machine-2-new", creationTimestamp{Time: time.Now().Add(-5 * time.Second)}), // ignored because it's new
+				fakeMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-2-new", creationTimestamp{Time: time.Now().Add(-5 * time.Second)}), // ignored because it's new
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
 				Reason:  clusterv1.ClusterWorkerMachinesUpToDateUnknownReason,
-				Message: "* Machine no-v1beta1Condition-machine-1: Condition UpToDate not yet reported",
+				Message: "* Machine no-condition-machine-1: Condition UpToDate not yet reported",
 			},
 		},
 		{
@@ -1286,8 +1286,8 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 					Reason:  "TestNotUpToDate",
 					Message: "This is not up-to-date message",
 				})),
-				fakeMachine("no-v1beta1Condition-machine-1"),
-				fakeMachine("no-v1beta1Condition-machine-2"),
+				fakeMachine("no-condition-machine-1"),
+				fakeMachine("no-condition-machine-2"),
 			},
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -1295,7 +1295,7 @@ func TestSetWorkerMachinesUpToDateCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterWorkerMachinesNotUpToDateReason,
 				Message: "* Machines not-up-to-date-machine-1, not-up-to-date-machine-2: This is not up-to-date message\n" +
-					"* Machines no-v1beta1Condition-machine-1, no-v1beta1Condition-machine-2: Condition UpToDate not yet reported",
+					"* Machines no-condition-machine-1, no-condition-machine-2: Condition UpToDate not yet reported",
 			},
 		},
 	}
@@ -2190,7 +2190,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
-						// No v1beta1Condition reported yet, the required ones should be reported as missing.
+						// No condition reported yet, the required ones should be reported as missing.
 					},
 				},
 			},
@@ -2697,7 +2697,7 @@ func TestSetAvailableCondition(t *testing.T) {
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
-							Message: "ClusterClass not reconciled. If this v1beta1Condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+							Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
 					},
@@ -2707,7 +2707,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Type:   clusterv1.ClusterAvailableCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterNotAvailableReason,
-				Message: "* TopologyReconciled: ClusterClass not reconciled. If this v1beta1Condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+				Message: "* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
 		},
@@ -2753,7 +2753,7 @@ func TestSetAvailableCondition(t *testing.T) {
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
-							Message: "ClusterClass not reconciled. If this v1beta1Condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+							Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
 								".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 						},
 					},
@@ -2764,7 +2764,7 @@ func TestSetAvailableCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterNotAvailableReason,
 				Message: "* WorkersAvailable: 3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5) from MachineDeployment md1; 2 available replicas, at least 3 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 4) from MachinePool mp1\n" +
-					"* TopologyReconciled: ClusterClass not reconciled. If this v1beta1Condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+					"* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
 		},
 	}

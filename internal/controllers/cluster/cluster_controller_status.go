@@ -56,7 +56,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// TODO: "expv1.MachinePoolList{}" below should be replaced through "s.descendants.machinePools" once replica counters
 	// and Available, ScalingUp and ScalingDown conditions have been implemented for MachinePools.
 
-	// TODO: This should be removed once the UpToDate Condition has been implemented for MachinePool Machines
+	// TODO: This should be removed once the UpToDate condition has been implemented for MachinePool Machines
 	isMachinePoolMachine := func(machine *clusterv1.Machine) bool {
 		_, isMachinePoolMachine := machine.Labels[clusterv1.MachinePoolNameLabel]
 		return isMachinePoolMachine

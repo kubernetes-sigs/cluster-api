@@ -484,9 +484,9 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{
-			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse},
 			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
-			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionFalse},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
 	})

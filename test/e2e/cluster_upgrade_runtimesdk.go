@@ -249,8 +249,8 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 					for i := range machineList.Items {
 						machine := &machineList.Items[i]
-						if !conditions.IsTrue(machine, clusterv1.MachineNodeReadyCondition) {
-							return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeReadyCondition)
+						if !conditions.IsTrue(machine, clusterv1.MachineNodeHealthyCondition) {
+							return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
 						}
 					}
 

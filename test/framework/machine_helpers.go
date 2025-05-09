@@ -170,7 +170,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 		upgraded := 0
 		for _, machine := range machines {
 			m := machine
-			if *m.Spec.Version == input.KubernetesUpgradeVersion && conditions.IsTrue(&m, clusterv1.MachineNodeReadyCondition) {
+			if *m.Spec.Version == input.KubernetesUpgradeVersion && conditions.IsTrue(&m, clusterv1.MachineNodeHealthyCondition) {
 				upgraded++
 			}
 		}

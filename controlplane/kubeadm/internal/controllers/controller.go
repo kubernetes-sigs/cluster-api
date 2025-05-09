@@ -886,9 +886,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 
 	// If the cluster is not yet initialized, there is no way to connect to the workload cluster and fetch information
 	// for updating conditions. Return early.
-	// We additionally check for the Available condition. The Available condition is set at the same time
-	// as .status.initialized and is never changed to false again. Below we'll need the transition time of the
-	// Available condition to check if the remote conditions grace period is already reached.
+	// We additionally check for the ControlPlaneInitialized condition. The ControlPlaneInitialized condition is set at the same time
+	// as .status.initialization.controlPlaneInitialized and is never changed to false again. Below we'll need the transition time of the
+	// ControlPlaneInitialized condition to check if the remote conditions grace period is already reached.
 	// Note: The Machine controller uses the ControlPlaneInitialized condition on the Cluster instead for
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.

@@ -20,17 +20,14 @@ package conversion
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	fuzz "github.com/google/gofuzz"
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +38,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	"sigs.k8s.io/randfill"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -161,21 +159,23 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 	return true, nil
 }
 
+type FuzzerFuncs = func(codecs runtimeserializer.CodecFactory) []interface{}
+
 // GetFuzzer returns a new fuzzer to be used for testing.
-func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
-	funcs = append([]fuzzer.FuzzerFuncs{
-		metafuzzer.Funcs,
+func GetFuzzer(scheme *runtime.Scheme, funcs ...FuzzerFuncs) *randfill.Filler {
+	funcs = append([]FuzzerFuncs{
+		FuzzerFuncs(metafuzzer.Funcs),
 		func(_ runtimeserializer.CodecFactory) []interface{} {
 			return []interface{}{
 				// Custom fuzzer for metav1.Time pointers which weren't
 				// fuzzed and always resulted in `nil` values.
 				// This implementation is somewhat similar to the one provided
 				// in the metafuzzer.Funcs.
-				func(input *metav1.Time, c fuzz.Continue) {
+				func(input *metav1.Time, c randfill.Continue) {
 					if input != nil {
 						var sec, nsec uint32
-						c.Fuzz(&sec)
-						c.Fuzz(&nsec)
+						c.Fill(&sec)
+						c.Fill(&nsec)
 						fuzzed := metav1.Unix(int64(sec), int64(nsec)).Rfc3339Copy()
 						input.Time = fuzzed.Time
 					}
@@ -183,11 +183,12 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 			}
 		},
 	}, funcs...)
-	return fuzzer.FuzzerFor(
-		fuzzer.MergeFuzzerFuncs(funcs...),
-		rand.NewSource(rand.Int63()), //nolint:gosec
-		runtimeserializer.NewCodecFactory(scheme),
-	)
+	codec := runtimeserializer.NewCodecFactory(scheme)
+	f := randfill.New()
+	for _, fuzzer := range funcs {
+		f.Funcs(fuzzer(codec)...)
+	}
+	return f
 }
 
 // FuzzTestFuncInput contains input parameters
@@ -202,7 +203,7 @@ type FuzzTestFuncInput struct {
 	SpokeAfterMutation         func(convertible conversion.Convertible)
 	SkipSpokeAnnotationCleanup bool
 
-	FuzzerFuncs []fuzzer.FuzzerFuncs
+	FuzzerFuncs []FuzzerFuncs
 }
 
 // FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
@@ -221,7 +222,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 			for range 10000 {
 				// Create the spoke and fuzz it
 				spokeBefore := input.Spoke.DeepCopyObject().(conversion.Convertible)
-				fuzzer.Fuzz(spokeBefore)
+				fuzzer.Fill(spokeBefore)
 
 				// First convert spoke to hub
 				hubCopy := input.Hub.DeepCopyObject().(conversion.Hub)
@@ -252,7 +253,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 			for range 10000 {
 				// Create the hub and fuzz it
 				hubBefore := input.Hub.DeepCopyObject().(conversion.Hub)
-				fuzzer.Fuzz(hubBefore)
+				fuzzer.Fill(hubBefore)
 
 				// First convert hub to spoke
 				dstCopy := input.Spoke.DeepCopyObject().(conversion.Convertible)

@@ -40,7 +40,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
@@ -246,8 +246,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 		}
 
 		// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
-		// TODO (v1beta2): test for v1beta2 conditions
-		if !v1beta1conditions.IsTrue(clusterObj, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		if !conditions.IsTrue(clusterObj, clusterv1.ClusterControlPlaneInitializedCondition) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}

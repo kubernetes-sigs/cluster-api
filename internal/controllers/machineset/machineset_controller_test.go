@@ -1521,20 +1521,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Finalizers: []string{"block-deletion"},
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,
@@ -1557,21 +1543,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								// This condition should be cleaned up because HealthCheckSucceeded is true.
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionTrue,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
@@ -1655,20 +1626,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,
@@ -1691,21 +1648,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								// This condition should be cleaned up because HealthCheckSucceeded is true.
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionTrue,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
@@ -1827,20 +1769,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Finalizers: []string{"block-deletion"},
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,
@@ -1863,21 +1791,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								// This condition should be cleaned up because HealthCheckSucceeded is true.
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionTrue,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
@@ -1925,11 +1838,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// Verify that no action was taken on the Machine: MachineOwnerRemediated should be false
 		// and the Machine wasn't deleted.
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
-		g.Expect(v1beta1conditions.Has(m, condition)).
-			To(BeTrue(), "Machine should have the %s condition set", condition)
-		machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
-		g.Expect(machineOwnerRemediatedCondition.Status).
-			To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 		g.Expect(unhealthyMachine.DeletionTimestamp).Should(BeZero())
 		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
@@ -2044,20 +1952,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 					CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
 				},
 				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{
-						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							Conditions: []clusterv1.Condition{
-								{
-									Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-									Status: corev1.ConditionFalse,
-								},
-								{
-									Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-									Status: corev1.ConditionFalse,
-								},
-							},
-						},
-					},
 					Conditions: []metav1.Condition{
 						{
 							Type:    clusterv1.MachineOwnerRemediatedCondition,
@@ -2082,21 +1976,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								// This condition should be cleaned up because HealthCheckSucceeded is true.
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionTrue,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						// This condition should be cleaned up because HealthCheckSucceeded is true.
@@ -2147,11 +2026,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			if i < total-maxInFlight {
 				// Machines before the maxInFlight should not be deleted.
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(v1beta1conditions.Has(m, condition)).
-					To(BeTrue(), "Machine should have the %s condition set", condition)
-				machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
-				g.Expect(machineOwnerRemediatedCondition.Status).
-					To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 				c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 				g.Expect(c).ToNot(BeNil())
 				g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
@@ -2214,11 +2088,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				if i < total-(maxInFlight*2) {
 					// Machines before the maxInFlight*2 should not be deleted, and should have the remediated condition to false.
 					g.Expect(err).ToNot(HaveOccurred())
-					g.Expect(v1beta1conditions.Has(m, condition)).
-						To(BeTrue(), "Machine should have the %s condition set", condition)
-					machineOwnerRemediatedCondition := v1beta1conditions.Get(m, condition)
-					g.Expect(machineOwnerRemediatedCondition.Status).
-						To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
 					c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 					g.Expect(c).ToNot(BeNil())
 					g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
@@ -3178,20 +3047,6 @@ func TestSortMachinesToRemediate(t *testing.T) {
 				},
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,
@@ -3219,20 +3074,6 @@ func TestSortMachinesToRemediate(t *testing.T) {
 				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
 			},
 			Status: clusterv1.MachineStatus{
-				Deprecated: &clusterv1.MachineDeprecatedStatus{
-					V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: []clusterv1.Condition{
-							{
-								Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-							{
-								Type:   clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
-								Status: corev1.ConditionFalse,
-							},
-						},
-					},
-				},
 				Conditions: []metav1.Condition{
 					{
 						Type:    clusterv1.MachineOwnerRemediatedCondition,

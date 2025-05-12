@@ -39,7 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestClusterCacheHealthCheck(t *testing.T) {
@@ -98,7 +98,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 				},
 			}
 			g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
-			v1beta1conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+			conditions.Set(testCluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: clusterv1.ClusterControlPlaneInitializedReason})
 			testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 			g.Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())
 

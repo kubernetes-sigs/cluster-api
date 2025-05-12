@@ -261,7 +261,11 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		patchHelper, err := patch.NewHelper(cluster, env.Client)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		v1beta1conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyV1Beta1Condition, "SomeReason", clusterv1.ConditionSeverityError, "")
+		conditions.Set(cluster, metav1.Condition{
+			Type:   clusterv1.ClusterInfrastructureReadyCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.ClusterControlPlaneNotInitializedReason,
+		})
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -551,7 +555,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
 
@@ -570,10 +574,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
 					continue
 				}
 
@@ -661,7 +665,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
 
@@ -680,10 +684,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 
 			for i := range machines.Items {
-				if !v1beta1conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededV1Beta1Condition) {
+				if !conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
 					continue
 				}
-				if !v1beta1conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+				if !conditions.Has(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) {
 					continue
 				}
 
@@ -1429,7 +1433,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		})).To(Succeed())
 
 		for i := range machines.Items {
-			if v1beta1conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedV1Beta1Condition) != nil {
+			if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
 				unhealthyMachine = machines.Items[i].DeepCopy()
 			}
 		}
@@ -2450,13 +2454,27 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	// This is required for MHC to perform checks
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+
+	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{
+		InfrastructureProvisioned: true,
+	}
+	conditions.Set(cluster, metav1.Condition{
+		Type:   clusterv1.ClusterInfrastructureReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterInfrastructureReadyReason,
+	})
+
+	conditions.Set(cluster, metav1.Condition{
+		Type:   clusterv1.ClusterControlPlaneInitializedCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterControlPlaneInitializedReason,
+	})
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	// Wait for cluster in the cached client to be updated post-patch
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.Get(ctx, util.ObjectKey(cluster), cluster)).To(Succeed())
-		g.Expect(v1beta1conditions.IsTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
+		g.Expect(conditions.IsTrue(cluster, clusterv1.ClusterInfrastructureReadyCondition)).To(BeTrue())
 	}, timeout, 100*time.Millisecond).Should(Succeed())
 
 	return cluster

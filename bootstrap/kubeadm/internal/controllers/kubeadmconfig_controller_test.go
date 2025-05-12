@@ -46,7 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -301,7 +300,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 }
 
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
@@ -342,7 +341,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	actualResult, actualError := k.Reconcile(ctx, request)
 	g.Expect(actualResult).To(BeComparableTo(expectedResult))
 	g.Expect(actualError).ToNot(HaveOccurred())
-	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureV1Beta1Reason)
+	assertHasFalseCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
 }
 
 // Return early If the owning machine does not have an associated cluster.
@@ -474,7 +473,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
-			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.ConditionSeverityInfo, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason)
+			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
 		})
 	}
 }
@@ -487,7 +486,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "validhost", Port: 6443}
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, configName)
@@ -534,8 +533,8 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	g.Expect(cfg.Status.Initialization.DataSecretCreated).To(BeTrue())
 	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 
 	// Expect the Secret to exist, and for it to contain some data under the "value" key.
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName}, s)).To(Succeed())
@@ -551,7 +550,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-cfg")
@@ -587,8 +586,8 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	g.Expect(err).ToNot(HaveOccurred())
 	actualConfig := &bootstrapv1.KubeadmConfig{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: controlPlaneJoinConfig.Namespace, Name: controlPlaneJoinConfig.Name}, actualConfig)).To(Succeed())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
 }
 
 // If there is no APIEndpoint but everything is ready then requeue in hopes of a new APIEndpoint showing up eventually.
@@ -597,7 +596,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-cfg")
 	addKubeadmConfigToMachine(controlPlaneInitConfig, controlPlaneInitMachine)
@@ -636,15 +635,14 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: workerJoinConfig.Namespace, Name: workerJoinConfig.Name}, actualConfig)).To(Succeed())
 
 	// At this point the DataSecretAvailableCondition should not be set. CertificatesAvailableCondition should be true.
-	// TODO (v1beta2): test for v1beta2 conditions
-	g.Expect(v1beta1conditions.Get(actualConfig, bootstrapv1.DataSecretAvailableV1Beta1Condition)).To(BeNil())
-	assertHasTrueCondition(g, myclient, request, bootstrapv1.CertificatesAvailableV1Beta1Condition)
+	g.Expect(conditions.Get(actualConfig, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)).To(BeNil())
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)
 }
 
 func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	useCases := []struct {
@@ -717,7 +715,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			g.Expect(cfg.Status.Initialization.DataSecretCreated).To(BeTrue())
 			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 			g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
-			assertHasTrueCondition(g, myclient, request, bootstrapv1.DataSecretAvailableV1Beta1Condition)
+			assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 
 			l := &corev1.SecretList{}
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
@@ -732,7 +730,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	useCases := []struct {
@@ -845,7 +843,7 @@ func TestBootstrapDataFormat(t *testing.T) {
 			cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 			if tc.clusterInitialized {
-				v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+				cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 			}
 
 			var machine *clusterv1.Machine
@@ -937,7 +935,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1010,7 +1008,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1267,7 +1265,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1460,7 +1458,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-		v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+		cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 		cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 		controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1534,7 +1532,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
-		v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+		cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 		cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 		controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -1928,7 +1926,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: "example.com",
@@ -2728,7 +2726,7 @@ func (m *myInitLocker) Unlock(_ context.Context, _ *clusterv1.Cluster) bool {
 	return true
 }
 
-func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request, t clusterv1.ConditionType, s clusterv1.ConditionSeverity, r string) {
+func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string, reason string) {
 	config := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -2738,15 +2736,13 @@ func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request,
 
 	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(config, t)
+	c := conditions.Get(config, conditionType)
 	g.Expect(c).ToNot(BeNil())
-	g.Expect(c.Status).To(Equal(corev1.ConditionFalse))
-	g.Expect(c.Severity).To(Equal(s))
-	g.Expect(c.Reason).To(Equal(r))
+	g.Expect(c.Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(c.Reason).To(Equal(reason))
 }
 
-func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, t clusterv1.ConditionType) {
+func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string) {
 	config := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -2755,17 +2751,16 @@ func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, 
 	}
 	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(config, t)
+	c := conditions.Get(config, conditionType)
 	g.Expect(c).ToNot(BeNil())
-	g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
+	g.Expect(c.Status).To(Equal(metav1.ConditionTrue))
 }
 
 func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: "example.com",

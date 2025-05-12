@@ -939,17 +939,17 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 
-				actualCondition := v1beta1conditions.Get(tt.cluster, clusterv1.TopologyReconciledV1Beta1Condition)
-				g.Expect(actualCondition).ToNot(BeNil())
-				g.Expect(actualCondition.Status).To(BeEquivalentTo(tt.wantConditionStatus))
-				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantConditionReason))
-				g.Expect(actualCondition.Message).To(BeEquivalentTo(tt.wantConditionMessage))
+				actualV1Beta1Condition := v1beta1conditions.Get(tt.cluster, clusterv1.TopologyReconciledV1Beta1Condition)
+				g.Expect(actualV1Beta1Condition).ToNot(BeNil())
+				g.Expect(actualV1Beta1Condition.Status).To(BeEquivalentTo(tt.wantConditionStatus))
+				g.Expect(actualV1Beta1Condition.Reason).To(BeEquivalentTo(tt.wantConditionReason))
+				g.Expect(actualV1Beta1Condition.Message).To(BeEquivalentTo(tt.wantConditionMessage))
 
-				actualV1Beta2Condition := conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledCondition)
-				g.Expect(actualV1Beta2Condition).ToNot(BeNil())
-				g.Expect(actualV1Beta2Condition.Status).To(BeEquivalentTo(tt.wantV1Beta2ConditionStatus))
-				g.Expect(actualV1Beta2Condition.Reason).To(BeEquivalentTo(tt.wantV1Beta2ConditionReason))
-				g.Expect(actualV1Beta2Condition.Message).To(BeEquivalentTo(tt.wantV1Beta2ConditionMessage))
+				actualCondition := conditions.Get(tt.cluster, clusterv1.ClusterTopologyReconciledCondition)
+				g.Expect(actualCondition).ToNot(BeNil())
+				g.Expect(actualCondition.Status).To(BeEquivalentTo(tt.wantV1Beta2ConditionStatus))
+				g.Expect(actualCondition.Reason).To(BeEquivalentTo(tt.wantV1Beta2ConditionReason))
+				g.Expect(actualCondition.Message).To(BeEquivalentTo(tt.wantV1Beta2ConditionMessage))
 			}
 		})
 	}

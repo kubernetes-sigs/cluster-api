@@ -97,17 +97,17 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 
 	// Get a small set of conditions that will be used to determine e.g. when grouping or when an object is just an echo of
 	// its parent.
-	var objReady, parentReady *clusterv1.Condition
-	var objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2, parentReadyV1Beta2 *metav1.Condition
+	var objReadyV1Beta1, parentReadyV1Beta1 *clusterv1.Condition
+	var objAvailable, objReady, objUpToDate, parentReady *metav1.Condition
 	switch od.options.V1Beta2 {
 	case true:
-		objAvailableV1Beta2 = GetAvailableV1Beta2Condition(obj)
-		objReadyV1Beta2 = GetReadyV1Beta2Condition(obj)
-		objUpToDateV1Beta2 = GetMachineUpToDateV1Beta2Condition(obj)
-		parentReadyV1Beta2 = GetReadyV1Beta2Condition(parent)
-	default:
+		objAvailable = GetAvailableCondition(obj)
 		objReady = GetReadyCondition(obj)
+		objUpToDate = GetMachineUpToDateCondition(obj)
 		parentReady = GetReadyCondition(parent)
+	default:
+		objReadyV1Beta1 = GetV1Beta1ReadyCondition(obj)
+		parentReadyV1Beta1 = GetV1Beta1ReadyCondition(parent)
 	}
 
 	// If it is requested to show all the conditions for the object, add
@@ -121,11 +121,11 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	if addOpts.NoEcho && !od.options.Echo {
 		switch od.options.V1Beta2 {
 		case true:
-			if (objReadyV1Beta2 != nil && objReadyV1Beta2.Status == metav1.ConditionTrue) || hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, parentReadyV1Beta2, objReadyV1Beta2, nil, nil) {
+			if (objReady != nil && objReady.Status == metav1.ConditionTrue) || hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, parentReady, objReady, nil, nil) {
 				return false, false
 			}
 		default:
-			if (objReady != nil && objReady.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReady, objReady) {
+			if (objReadyV1Beta1 != nil && objReadyV1Beta1.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReadyV1Beta1, objReadyV1Beta1) {
 				return false, false
 			}
 		}
@@ -154,24 +154,24 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 		for i := range siblings {
 			s := siblings[i]
 
-			var sReady *clusterv1.Condition
-			var sAvailableV1Beta2, sReadyV1Beta2, sUpToDateV1Beta2 *metav1.Condition
+			var sReadyV1Beta1 *clusterv1.Condition
+			var sAvailable, sReady, sUpToDate *metav1.Condition
 			switch od.options.V1Beta2 {
 			case true:
 				// If the object's ready condition has a different Available/ReadyUpToDate condition than the sibling object,
 				// move on (they should not be grouped).
-				sAvailableV1Beta2 = GetAvailableV1Beta2Condition(s)
-				sReadyV1Beta2 = GetReadyV1Beta2Condition(s)
-				sUpToDateV1Beta2 = GetMachineUpToDateV1Beta2Condition(s)
-				if !hasSameAvailableReadyUptoDateStatusAndReason(objAvailableV1Beta2, sAvailableV1Beta2, objReadyV1Beta2, sReadyV1Beta2, objUpToDateV1Beta2, sUpToDateV1Beta2) {
+				sAvailable = GetAvailableCondition(s)
+				sReady = GetReadyCondition(s)
+				sUpToDate = GetMachineUpToDateCondition(s)
+				if !hasSameAvailableReadyUptoDateStatusAndReason(objAvailable, sAvailable, objReady, sReady, objUpToDate, sUpToDate) {
 					continue
 				}
 			default:
-				sReady = GetReadyCondition(s)
+				sReadyV1Beta1 = GetV1Beta1ReadyCondition(s)
 
 				// If the object's ready condition has a different Status, Severity and Reason than the sibling object,
 				// move on (they should not be grouped).
-				if !hasSameReadyStatusSeverityAndReason(objReady, sReady) {
+				if !hasSameReadyStatusSeverityAndReason(objReadyV1Beta1, sReadyV1Beta1) {
 					continue
 				}
 			}
@@ -183,9 +183,9 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
 					switch od.options.V1Beta2 {
 					case true:
-						updateGroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
+						updateGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
 					default:
-						updateV1Beta1GroupNode(s, sReady, obj, objReady)
+						updateV1Beta1GroupNode(s, sReadyV1Beta1, obj, objReadyV1Beta1)
 					}
 
 					return true, false
@@ -201,9 +201,9 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 			var groupNode *NodeObject
 			switch od.options.V1Beta2 {
 			case true:
-				groupNode = createGroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpToDateV1Beta2)
+				groupNode = createGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
 			default:
-				groupNode = createV1Beta1GroupNode(s, sReady, obj, objReady)
+				groupNode = createV1Beta1GroupNode(s, sReadyV1Beta1, obj, objReadyV1Beta1)
 			}
 
 			// By default, grouping objects should be sorted last.
@@ -332,7 +332,7 @@ func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj 
 	if objAvailable != nil {
 		objAvailable.LastTransitionTime = metav1.Time{}
 		objAvailable.Message = ""
-		setAvailableV1Beta2Condition(groupNode, objAvailable)
+		setAvailableCondition(groupNode, objAvailable)
 		if objAvailable.Status == metav1.ConditionTrue {
 			// When creating a group, it is already the sum of obj and its own sibling,
 			// and they all have same conditions.
@@ -345,7 +345,7 @@ func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj 
 	if objReady != nil {
 		objReady.LastTransitionTime = minLastTransitionTime(objReady, siblingReady)
 		objReady.Message = ""
-		setReadyV1Beta2Condition(groupNode, objReady)
+		setReadyCondition(groupNode, objReady)
 		if objReady.Status == metav1.ConditionTrue {
 			// When creating a group, it is already the sum of obj and its own sibling,
 			// and they all have same conditions.
@@ -358,7 +358,7 @@ func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj 
 	if objUpToDate != nil {
 		objUpToDate.LastTransitionTime = metav1.Time{}
 		objUpToDate.Message = ""
-		setUpToDateV1Beta2Condition(groupNode, objUpToDate)
+		setUpToDateCondition(groupNode, objUpToDate)
 		if objUpToDate.Status == metav1.ConditionTrue {
 			// When creating a group, it is already the sum of obj and its own sibling,
 			// and they all have same conditions.
@@ -370,7 +370,7 @@ func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj 
 }
 
 func readyStatusReasonUID(obj client.Object) string {
-	ready := GetReadyV1Beta2Condition(obj)
+	ready := GetReadyCondition(obj)
 	if ready == nil {
 		return fmt.Sprintf("zzz_%s", util.RandomString(6))
 	}
@@ -417,7 +417,7 @@ func createV1Beta1GroupNode(sibling client.Object, siblingReady *clusterv1.Condi
 }
 
 func readyStatusSeverityAndReasonUID(obj client.Object) string {
-	ready := GetReadyCondition(obj)
+	ready := GetV1Beta1ReadyCondition(obj)
 	if ready == nil {
 		return fmt.Sprintf("zzz_%s", util.RandomString(6))
 	}
@@ -459,7 +459,7 @@ func updateGroupNode(groupObj client.Object, groupReady *metav1.Condition, obj c
 	if groupReady != nil {
 		groupReady.LastTransitionTime = minLastTransitionTime(objReady, groupReady)
 		groupReady.Message = ""
-		setReadyV1Beta2Condition(groupObj, groupReady)
+		setReadyCondition(groupObj, groupReady)
 	}
 
 	if objReady != nil && objReady.Status == metav1.ConditionTrue {

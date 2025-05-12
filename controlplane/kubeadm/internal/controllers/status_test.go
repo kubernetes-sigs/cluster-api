@@ -660,10 +660,9 @@ func Test_setMachinesReadyAndMachinesUpToDateConditions(t *testing.T) {
 }
 
 func Test_setRemediatingCondition(t *testing.T) {
-	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionTrue}
-	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: corev1.ConditionFalse}
-	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta1Condition, Status: corev1.ConditionFalse}
-	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingReason, Message: "Machine is deleting"}
+	healthCheckSucceeded := metav1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionTrue}
+	healthCheckNotSucceeded := metav1.Condition{Type: clusterv1.MachineHealthCheckSucceededCondition, Status: metav1.ConditionFalse}
+	ownerRemediated := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingReason, Message: "Machine is deleting"}
 
 	tests := []struct {
 		name            string
@@ -690,9 +689,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded, ownerRemediated}}}, Conditions: []metav1.Condition{ownerRemediatedV1Beta2}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckNotSucceeded, ownerRemediated}}},
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -707,9 +706,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckSucceeded}}},    // Healthy machine
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -724,9 +723,9 @@ func Test_setRemediatingCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}}}, // Unhealthy machine, not yet marked for remediation
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{healthCheckSucceeded}}},    // Healthy machine
 				),
 			},
 			expectCondition: metav1.Condition{
@@ -1928,7 +1927,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -2000,7 +1999,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
@@ -2078,7 +2077,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
@@ -2160,7 +2159,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(5))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(1))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(4))
@@ -2241,7 +2240,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
+	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))

@@ -565,7 +565,7 @@ func Test_createGroupNode(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	got := createGroupNode(sibling, GetReadyV1Beta2Condition(sibling), obj, GetAvailableV1Beta2Condition(obj), GetReadyV1Beta2Condition(obj), GetMachineUpToDateV1Beta2Condition(obj))
+	got := createGroupNode(sibling, GetReadyCondition(sibling), obj, GetAvailableCondition(obj), GetReadyCondition(obj), GetMachineUpToDateCondition(obj))
 
 	// Some values are generated randomly, so pick up them.
 	want.SetName(got.GetName())
@@ -653,7 +653,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	got := createV1Beta1GroupNode(sibling, GetReadyCondition(sibling), obj, GetReadyCondition(obj))
+	got := createV1Beta1GroupNode(sibling, GetV1Beta1ReadyCondition(sibling), obj, GetV1Beta1ReadyCondition(obj))
 
 	// Some values are generated randomly, so pick up them.
 	want.SetName(got.GetName())
@@ -738,7 +738,7 @@ func Test_updateGroupNode(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	updateGroupNode(group, GetReadyV1Beta2Condition(group), obj, GetAvailableV1Beta2Condition(obj), GetReadyV1Beta2Condition(obj), GetMachineUpToDateV1Beta2Condition(obj))
+	updateGroupNode(group, GetReadyCondition(group), obj, GetAvailableCondition(obj), GetReadyCondition(obj), GetMachineUpToDateCondition(obj))
 
 	g.Expect(group).To(BeComparableTo(want))
 }
@@ -827,7 +827,7 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	updateV1Beta1GroupNode(group, GetReadyCondition(group), obj, GetReadyCondition(obj))
+	updateV1Beta1GroupNode(group, GetV1Beta1ReadyCondition(group), obj, GetV1Beta1ReadyCondition(obj))
 
 	g.Expect(group).To(BeComparableTo(want))
 }

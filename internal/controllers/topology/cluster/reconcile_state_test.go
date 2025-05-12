@@ -348,15 +348,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					InfrastructureRef: &corev1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
-									Status: corev1.ConditionTrue,
-								},
-							},
-						},
+					Conditions: []metav1.Condition{
+						{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 					},
 				},
 			},
@@ -380,15 +373,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					InfrastructureRef: &corev1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
-									Status: corev1.ConditionTrue,
-								},
-							},
-						},
+					Conditions: []metav1.Condition{
+						{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 					},
 				},
 			},
@@ -412,15 +398,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					InfrastructureRef: &corev1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
-									Status: corev1.ConditionFalse,
-								},
-							},
-						},
+					Conditions: []metav1.Condition{
+						{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse},
 					},
 				},
 			},
@@ -441,15 +420,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					InfrastructureRef: &corev1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					Deprecated: &clusterv1.ClusterDeprecatedStatus{
-						V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								clusterv1.Condition{
-									Type:   clusterv1.ControlPlaneInitializedV1Beta1Condition,
-									Status: corev1.ConditionTrue,
-								},
-							},
-						},
+					Conditions: []metav1.Condition{
+						{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 					},
 				},
 			},

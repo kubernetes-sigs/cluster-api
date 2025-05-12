@@ -203,7 +203,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 
 	// If the cluster is already initialized, get the remote cluster cache to use as a client.Reader.
 	var remoteClient client.Client
-	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		var err error
 		remoteClient, err = r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
@@ -418,8 +418,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 	errList := []error{}
 	for _, t := range unhealthy {
 		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
-		// TODO (v1beta2): test for v1beta2 conditions
-		condition := v1beta1conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
 
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "reason", condition.Reason, "message", condition.Message)
@@ -497,7 +496,6 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				logger.Info("Machine has failed health check, marking for remediation", "reason", condition.Reason, "message", condition.Message)
 				// NOTE: MHC is responsible for creating MachineOwnerRemediatedCondition if missing or to trigger another remediation if the previous one is completed;
 				// instead, if a remediation is in already progress, the remediation owner is responsible for completing the process and MHC should not overwrite the condition.
-				// TODO (v1beta2): test for v1beta2 conditions
 				if !v1beta1conditions.Has(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) || v1beta1conditions.IsTrue(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
 					v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 				}

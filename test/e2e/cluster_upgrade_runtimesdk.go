@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -248,9 +249,8 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 					for i := range machineList.Items {
 						machine := &machineList.Items[i]
-						// TODO (v1beta2): test for v1beta2 conditions
-						if !v1beta1conditions.IsTrue(machine, clusterv1.MachineNodeHealthyV1Beta1Condition) {
-							return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyV1Beta1Condition)
+						if !conditions.IsTrue(machine, clusterv1.MachineNodeHealthyCondition) {
+							return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
 						}
 					}
 
@@ -456,11 +456,21 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 			MDName:    md.Name,
 			Namespace: md.Namespace,
 		})
+		// Check required replicas are like expected
+		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
+
+		// Check conditions to surface the MS cannot scale up due to preflight checks.
+		g.Expect(conditions.IsTrue(machineSets[0], clusterv1.MachineSetScalingUpCondition)).To(BeTrue())
+		scalingUpCondition := conditions.Get(machineSets[0], clusterv1.MachineSetScalingUpCondition)
+		g.Expect(scalingUpCondition).NotTo(BeNil())
+		g.Expect(scalingUpCondition.Reason).To(Equal(clusterv1.MachineSetScalingUpReason))
+		g.Expect(scalingUpCondition.Message).To(ContainSubstring("\"KubeadmVersionSkew\" preflight check failed"))
+
+		// Check v1beta1 conditions to surface the MS cannot scale up due to preflight checks.
 		g.Expect(v1beta1conditions.IsFalse(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 		machinesCreatedCondition := v1beta1conditions.Get(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)
 		g.Expect(machinesCreatedCondition).NotTo(BeNil())
 		g.Expect(machinesCreatedCondition.Reason).To(Equal(clusterv1.PreflightCheckFailedV1Beta1Reason))
-		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
 	}).Should(Succeed(), "New Machine creation not blocked by MachineSet preflight checks")
 
 	// Verify that the MachineSet is not creating the new Machine.
@@ -596,10 +606,10 @@ func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Clie
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
 
-		if v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) != clusterv1.TopologyReconciledHookBlockingV1Beta1Reason {
+		if conditions.GetReason(cluster, clusterv1.ClusterTopologyReconciledCondition) != clusterv1.TopologyReconciledHookBlockingV1Beta1Reason {
 			return fmt.Errorf("hook %s (via annotation) should lead to LifecycleHookBlocking reason", hookName)
 		}
-		if !strings.Contains(v1beta1conditions.GetMessage(cluster, clusterv1.TopologyReconciledV1Beta1Condition), expectedBlockingMessage) {
+		if !strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), expectedBlockingMessage) {
 			return fmt.Errorf("hook %[1]s (via annotation) should show hook %[1]s is blocking as message with: %[2]s", hookName, expectedBlockingMessage)
 		}
 
@@ -634,7 +644,7 @@ func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Clie
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
 
-		if strings.Contains(v1beta1conditions.GetMessage(cluster, clusterv1.TopologyReconciledV1Beta1Condition), expectedBlockingMessage) {
+		if strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), expectedBlockingMessage) {
 			return fmt.Errorf("hook %s (via annotation %s) should not be blocking anymore with message: %s", hookName, annotation, expectedBlockingMessage)
 		}
 
@@ -752,8 +762,8 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.
 
 // clusterConditionShowsHookBlocking checks if the TopologyReconciled condition message contains both the hook name and hookFailedMessage.
 func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName string) bool {
-	return v1beta1conditions.GetReason(cluster, clusterv1.TopologyReconciledV1Beta1Condition) == clusterv1.TopologyReconciledHookBlockingV1Beta1Reason &&
-		strings.Contains(v1beta1conditions.GetMessage(cluster, clusterv1.TopologyReconciledV1Beta1Condition), hookName)
+	return conditions.GetReason(cluster, clusterv1.ClusterTopologyReconciledCondition) == clusterv1.ClusterTopologyReconciledHookBlockingReason &&
+		strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), hookName)
 }
 
 func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, clusterctlConfigPath, namespace, clusterName, artifactFolder string) {

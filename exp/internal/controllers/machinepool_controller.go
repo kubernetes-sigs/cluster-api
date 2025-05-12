@@ -47,6 +47,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -363,8 +364,7 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, mac
 func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
 		return nil
 	}

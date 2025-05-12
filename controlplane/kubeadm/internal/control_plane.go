@@ -35,7 +35,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -399,16 +399,15 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 //
 // - etcdMembers list as reported by etcd.
 func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clusterv1.Machine) []any {
-	// TODO (v1beta2) switch to v1beta2 conditions
-	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
+	controlPlaneMachineHealthConditions := []string{
+		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 	}
 	if c.IsEtcdManaged() {
 		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
-			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 		)
 	}
 
@@ -424,13 +423,12 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 			notes = append(notes, "marked for remediation")
 		}
 
-		// TODO (v1beta2): test for v1beta2 conditions
 		for _, condition := range controlPlaneMachineHealthConditions {
-			if v1beta1conditions.IsUnknown(m, condition) {
-				notes = append(notes, strings.ReplaceAll(string(condition), "Healthy", " health unknown"))
+			if conditions.IsUnknown(m, condition) {
+				notes = append(notes, strings.ReplaceAll(condition, "Healthy", " health unknown"))
 			}
-			if v1beta1conditions.IsFalse(m, condition) {
-				notes = append(notes, strings.ReplaceAll(string(condition), "Healthy", " not healthy"))
+			if conditions.IsFalse(m, condition) {
+				notes = append(notes, strings.ReplaceAll(condition, "Healthy", " not healthy"))
 			}
 		}
 

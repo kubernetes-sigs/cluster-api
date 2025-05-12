@@ -29,7 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func falseFilter(_ *clusterv1.Machine) bool {
@@ -89,22 +89,35 @@ func TestUnhealthyFilters(t *testing.T) {
 	t.Run("healthy machine (with HealthCheckSucceeded condition == True) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionTrue,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeFalse())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine NOT eligible for KCP remediation (with withHealthCheckSucceeded condition == False but without OwnerRemediated) should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeFalse())
 	})
 	t.Run("unhealthy machine eligible for KCP (with HealthCheckSucceeded condition == False and with OwnerRemediated) should return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-		v1beta1conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineHealthCheckSucceededCondition,
+			Status: metav1.ConditionFalse,
+		})
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+		})
 		g.Expect(collections.IsUnhealthy(m)).To(BeTrue())
 		g.Expect(collections.IsUnhealthyAndOwnerRemediated(m)).To(BeTrue())
 	})
@@ -456,15 +469,10 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2) Use new conditions
-		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-				Conditions: clusterv1.Conditions{
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-				},
-			},
+		machine.Status.Conditions = []metav1.Condition{
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
@@ -475,16 +483,10 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2) Use new conditions
-		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-				Conditions: clusterv1.Conditions{
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, "",
-						clusterv1.ConditionSeverityWarning, ""),
-				},
-			},
+		machine.Status.Conditions = []metav1.Condition{
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse},
+			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
 	})
@@ -495,19 +497,12 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2) Use new conditions
-		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-				Conditions: clusterv1.Conditions{
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, "",
-						clusterv1.ConditionSeverityWarning, ""),
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, "",
-						clusterv1.ConditionSeverityWarning, ""),
-				},
-			},
+		machine.Status.Conditions = []metav1.Condition{
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionFalse},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
@@ -518,19 +513,12 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2) Use new conditions
-		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-				Conditions: clusterv1.Conditions{
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, "",
-						clusterv1.ConditionSeverityWarning, ""),
-					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, "",
-						clusterv1.ConditionSeverityWarning, ""),
-				},
-			},
+		machine.Status.Conditions = []metav1.Condition{
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionFalse},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
 	})
@@ -541,17 +529,12 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			Name: "node1",
 		}
-		// TODO (v1beta2) Use new conditions
-		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-				Conditions: clusterv1.Conditions{
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition),
-					*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition),
-				},
-			},
+		machine.Status.Conditions = []metav1.Condition{
+			{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+			{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
 		}
 		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
 	})

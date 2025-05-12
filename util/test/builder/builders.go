@@ -353,7 +353,7 @@ type ClusterClassBuilder struct {
 	variables                                 []clusterv1.ClusterClassVariable
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
-	conditions                                clusterv1.Conditions
+	conditions                                []metav1.Condition
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -446,7 +446,7 @@ func (c *ClusterClassBuilder) WithStatusVariables(vars ...clusterv1.ClusterClass
 }
 
 // WithConditions adds the conditions to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithConditions(conditions ...clusterv1.Condition) *ClusterClassBuilder {
+func (c *ClusterClassBuilder) WithConditions(conditions ...metav1.Condition) *ClusterClassBuilder {
 	c.conditions = conditions
 	return c
 }
@@ -494,11 +494,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Variables: c.statusVariables,
 		},
 	}
-	// TODO (v1beta2) Use new conditions
 	if c.conditions != nil {
-		obj.Status.Deprecated = &clusterv1.ClusterClassDeprecatedStatus{
-			V1Beta1: &clusterv1.ClusterClassV1Beta1DeprecatedStatus{Conditions: c.conditions},
-		}
+		obj.Status.Conditions = c.conditions
 	}
 	if c.infrastructureClusterTemplate != nil {
 		obj.Spec.Infrastructure = clusterv1.LocalObjectTemplate{

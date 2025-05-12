@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -488,7 +489,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 
 			// The DrainingSucceededCondition never exists before the node is drained for the first time.
-			// TODO (v1beta2): test for v1beta2 conditions
 			if v1beta1conditions.Get(m, clusterv1.DrainingSucceededV1Beta1Condition) == nil {
 				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
 			}
@@ -530,7 +530,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
-			// TODO (v1beta2): test for v1beta2 conditions
 			if v1beta1conditions.Get(m, clusterv1.VolumeDetachSucceededV1Beta1Condition) == nil {
 				v1beta1conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededV1Beta1Condition, clusterv1.WaitingForVolumeDetachV1Beta1Reason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}
@@ -1054,7 +1053,7 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
 		return nil
 	}

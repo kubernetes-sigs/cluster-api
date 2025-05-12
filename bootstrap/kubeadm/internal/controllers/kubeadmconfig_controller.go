@@ -358,8 +358,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 
 	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
 	}
 
@@ -483,8 +482,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// initialize the DataSecretAvailableCondition if missing.
 	// this is required in order to avoid the condition's LastTransitionTime to flicker in case of errors surfacing
 	// using the DataSecretGeneratedFailedReason
-	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.GetReason(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition) != bootstrapv1.DataSecretGenerationFailedV1Beta1Reason {
+	if !conditions.Has(scope.Config, bootstrapv1.KubeadmConfigDataSecretAvailableCondition) {
 		v1beta1conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition, clusterv1.WaitingForControlPlaneAvailableV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,

@@ -252,7 +252,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	reconcileNormal := append(
 		alwaysReconcile,
 		r.reconcileKubeconfig,
-		r.reconcileControlPlaneInitialized,
+		r.reconcileV1Beta1ControlPlaneInitialized,
 	)
 	return doReconcile(ctx, reconcileNormal, s)
 }
@@ -704,19 +704,19 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 	return ownedDescendants, nil
 }
 
-func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileV1Beta1ControlPlaneInitialized(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
 	// reconcileControlPlane instead).
 	if cluster.Spec.ControlPlaneRef != nil {
-		log.V(4).Info("Skipping reconcileControlPlaneInitialized because cluster has a controlPlaneRef")
+		log.V(4).Info("Skipping reconcileV1Beta1ControlPlaneInitialized because cluster has a controlPlaneRef")
 		return ctrl.Result{}, nil
 	}
 
 	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
-		log.V(4).Info("Skipping reconcileControlPlaneInitialized because control plane already initialized")
+		log.V(4).Info("Skipping reconcileV1Beta1ControlPlaneInitialized because control plane already initialized")
 		return ctrl.Result{}, nil
 	}
 
@@ -759,8 +759,7 @@ func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.
 		return nil
 	}
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+	if conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return nil
 	}
 

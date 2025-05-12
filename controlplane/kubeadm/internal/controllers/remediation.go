@@ -420,10 +420,10 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 
 	// if one machine has unhealthy etcd member or pod, remediate first.
 	if isEtcdManaged {
-		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition); p != nil {
+		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition); p != nil {
 			return *p
 		}
-		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineEtcdPodHealthyV1Beta1Condition); p != nil {
+		if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition); p != nil {
 			return *p
 		}
 
@@ -432,13 +432,13 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 	}
 
 	// if one machine has unhealthy control plane component, remediate first.
-	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition); p != nil {
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition); p != nil {
 		return *p
 	}
-	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition); p != nil {
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition); p != nil {
 		return *p
 	}
-	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition); p != nil {
+	if p := pickMachineToBeRemediatedByConditionState(i, j, controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition); p != nil {
 		return *p
 	}
 
@@ -451,10 +451,9 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 
 // pickMachineToBeRemediatedByConditionState returns true if condition t report issue on machine i and not on machine j,
 // false if the vice-versa apply, or nil if condition t doesn't provide a discriminating criteria for picking one machine or another for remediation.
-func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, t clusterv1.ConditionType) *bool {
-	// TODO (v1beta2): test for v1beta2 conditions
-	iCondition := v1beta1conditions.IsTrue(i, t)
-	jCondition := v1beta1conditions.IsTrue(j, t)
+func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, conditionType string) *bool {
+	iCondition := conditions.IsTrue(i, conditionType)
+	jCondition := conditions.IsTrue(j, conditionType)
 
 	if !iCondition && jCondition {
 		return ptr.To(true)
@@ -641,8 +640,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		}
 
 		// Check member health as reported by machine's health conditions
-		// TODO (v1beta2): test for v1beta2 conditions
-		if !v1beta1conditions.IsTrue(machine, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition) {
+		if !conditions.IsTrue(machine, controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition) {
 			targetUnhealthyMembers++
 			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))
 			continue

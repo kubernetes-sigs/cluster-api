@@ -214,7 +214,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	defer func() {
 		// Always attempt to update status.
-		if err := r.updateStatus(ctx, controlPlane); err != nil {
+		if err := r.updateV1Beta1Status(ctx, controlPlane); err != nil {
 			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
 				log.Error(err, "Could not connect to workload cluster to fetch status")
@@ -224,7 +224,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			}
 		}
 
-		r.updateV1Beta2Status(ctx, controlPlane)
+		r.updateStatus(ctx, controlPlane)
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
 		patchOpts := []patch.Option{}
@@ -250,8 +250,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			// status without waiting for a full resync (by default 10 minutes).
 			// Otherwise this condition can lead to a delay in provisioning MachineDeployments when MachineSet preflight checks are enabled.
 			// The alternative solution to this requeue would be watching the relevant pods inside each workload cluster which would be very expensive.
-			// TODO (v1beta2): test for v1beta2 conditions
-			if v1beta1conditions.IsFalse(kcp, controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition) {
+			if conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 		}
@@ -887,16 +886,15 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 
 	// If the cluster is not yet initialized, there is no way to connect to the workload cluster and fetch information
 	// for updating conditions. Return early.
-	// We additionally check for the Available condition. The Available condition is set at the same time
-	// as .status.initialized and is never changed to false again. Below we'll need the transition time of the
-	// Available condition to check if the remote conditions grace period is already reached.
+	// We additionally check for the ControlPlaneInitialized condition. The ControlPlaneInitialized condition is set at the same time
+	// as .status.initialization.controlPlaneInitialized and is never changed to false again. Below we'll need the transition time of the
+	// ControlPlaneInitialized condition to check if the remote conditions grace period is already reached.
 	// Note: The Machine controller uses the ControlPlaneInitialized condition on the Cluster instead for
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.
-	// TODO (v1beta2): Once we moved to v1beta2 conditions we should use the `Initialized` condition instead.
-	controlPlaneInitialized := v1beta1conditions.Get(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+	controlPlaneInitialized := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
 	if controlPlane.KCP.Status.Initialization == nil || !controlPlane.KCP.Status.Initialization.ControlPlaneInitialized ||
-		controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
+		controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
 		// Overwrite conditions to InspectionFailed.
 		setConditionsToUnknown(setConditionsToUnknownInput{
 			ControlPlane:                        controlPlane,
@@ -1102,8 +1100,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	// Potential inconsistencies between the list of members and the list of machines/nodes are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.IsTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyV1Beta1Condition) {
+	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
 		return nil
 	}
 
@@ -1174,9 +1171,8 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 	}
 
 	// Return early because the Machine controller is not yet waiting for the pre-terminate hook.
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(deletingMachine, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition)
-	if c == nil || c.Status != corev1.ConditionFalse || c.Reason != clusterv1.WaitingExternalHookV1Beta1Reason {
+	c := conditions.Get(deletingMachine, clusterv1.MachineDeletingCondition)
+	if c == nil || c.Status != metav1.ConditionTrue || c.Reason != clusterv1.MachineDeletingWaitingForPreTerminateHookReason {
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 

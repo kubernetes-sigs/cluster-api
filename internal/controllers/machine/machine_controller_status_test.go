@@ -624,7 +624,7 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 					Conditions: test.conditions,
 				},
 			}
-			status, reason, message := summarizeNodeV1Beta2Conditions(ctx, node)
+			status, reason, message := summarizeNodeConditions(ctx, node)
 			g.Expect(status).To(Equal(test.expectedStatus))
 			g.Expect(reason).To(Equal(test.expectedReason))
 			g.Expect(message).To(Equal(test.expectedMessage))
@@ -657,13 +657,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 		Status: clusterv1.ClusterStatus{
 			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
-			Deprecated: &clusterv1.ClusterDeprecatedStatus{
-				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{Type: clusterv1.ControlPlaneInitializedV1Beta1Condition, Status: corev1.ConditionTrue,
-							LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
-					},
-				},
+			Conditions: []metav1.Condition{
+				{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
 			},
 		},
 	}
@@ -704,7 +699,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "Cluster control plane is not initialized",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				v1beta1conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedV1Beta1Condition, "", clusterv1.ConditionSeverityError, "")
+				conditions.Set(c, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse})
 				return c
 			}(),
 			machine: defaultMachine.DeepCopy(),
@@ -940,11 +935,9 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, preserve conditions as they have been set before (remote conditions grace period not passed yet)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
-					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
-							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
-						}
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 					}
 				}
 				return c
@@ -988,11 +981,9 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, set conditions as they haven't been set before (remote conditions grace period not passed yet)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
-					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
-							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
-						}
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 					}
 				}
 				return c
@@ -1023,11 +1014,9 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "connection down, set conditions to unknown (remote conditions grace period passed)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				if c.Status.Deprecated != nil && c.Status.Deprecated.V1Beta1 != nil {
-					for i, condition := range c.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
-							c.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
-						}
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 					}
 				}
 				return c

@@ -39,9 +39,9 @@ import (
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
-// updateStatus is called after every reconciliation loop in a defer statement to always make sure we have the
+// updateV1Beta1Status is called after every reconciliation loop in a defer statement to always make sure we have the
 // KubeadmControlPlane status up-to-date.
-func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
 	// Copy label selector to its status counterpart in string format.
 	// This is necessary for CRDs including scale subresources.
@@ -149,9 +149,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	return nil
 }
 
-// updateV1Beta2Status reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
-// Note: v1beta1 conditions and fields are not managed by this func.
-func (r *KubeadmControlPlaneReconciler) updateV1Beta2Status(ctx context.Context, controlPlane *internal.ControlPlane) {
+// updateStatus reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
+func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) {
 	// If the code failed initializing the control plane, do not update the status.
 	if controlPlane == nil {
 		return

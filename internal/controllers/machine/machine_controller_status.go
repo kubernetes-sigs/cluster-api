@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 // updateStatus update Machine's status.
@@ -43,7 +42,6 @@ import (
 // machine being partially deleted but also for running machines being disrupted e.g. by deleting the node.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
-// Note: v1beta1 conditions are not managed by this func.
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
@@ -265,9 +263,8 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		return
 	}
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	controlPlaneInitialized := v1beta1conditions.Get(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
-	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
+	controlPlaneInitialized := conditions.Get(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
+	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedReason,
 			"Waiting for Cluster control plane to be initialized")
@@ -345,7 +342,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		}
 		conditions.Set(machine, *nodeReady)
 
-		status, reason, message := summarizeNodeV1Beta2Conditions(ctx, node)
+		status, reason, message := summarizeNodeConditions(ctx, node)
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineNodeHealthyCondition,
 			Status:  status,
@@ -375,8 +372,8 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 
 	// Report an issue if node missing after being initialized.
 	if machine.Status.NodeRef != nil {
-		// Setting MachineNodeHealthyV1Beta2Condition to False to give it more relevance in the Ready condition summary.
-		// Setting MachineNodeReadyV1Beta2Condition to False to keep it consistent with MachineNodeHealthyV1Beta2Condition.
+		// Setting MachineNodeHealthyCondition to False to give it more relevance in the Ready condition summary.
+		// Setting MachineNodeReadyCondition to False to keep it consistent with MachineNodeHealthyCondition.
 		setNodeConditions(machine, metav1.ConditionFalse,
 			clusterv1.MachineNodeDeletedReason,
 			fmt.Sprintf("Node %s has been deleted while the Machine still exists", machine.Status.NodeRef.Name))
@@ -423,10 +420,10 @@ func maxTime(t1, t2 time.Time) time.Time {
 	return t2
 }
 
-// summarizeNodeV1Beta2Conditions summarizes a Node's conditions (NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure).
+// summarizeNodeConditions summarizes a Node's conditions (NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure).
 // the summary is computed in way that is similar to how conditions.NewSummaryCondition works, but in this case the
 // implementation is simpler/less flexible and it surfaces only issues & unknown conditions.
-func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav1.ConditionStatus, string, string) {
+func summarizeNodeConditions(_ context.Context, node *corev1.Node) (metav1.ConditionStatus, string, string) {
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 
@@ -513,7 +510,7 @@ func (c machineConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 				if condition.Type == clusterv1.MachineNodeHealthyCondition && (condition.Reason == clusterv1.MachineNodeDeletedReason || condition.Reason == clusterv1.MachineNodeDoesNotExistReason) {
 					return conditions.InfoMergePriority
 				}
-				// Note: MachineNodeReadyV1Beta2Condition is not relevant for the summary.
+				// Note: MachineNodeReadyCondition is not relevant for the summary.
 			}
 			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),

@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
@@ -611,15 +610,13 @@ func TestPreflightChecks(t *testing.T) {
 							Kind: "Node",
 							Name: "node-1",
 						},
-						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								*v1beta1conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, "fooReason", clusterv1.ConditionSeverityError, ""),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition),
-							},
-						}},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse},
+							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+						},
 					},
 				},
 			},
@@ -641,15 +638,13 @@ func TestPreflightChecks(t *testing.T) {
 							Kind: "Node",
 							Name: "node-1",
 						},
-						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition),
-								*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition, "fooReason", clusterv1.ConditionSeverityError, ""),
-							},
-						}},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionFalse},
+						},
 					},
 				},
 			},
@@ -665,12 +660,10 @@ func TestPreflightChecks(t *testing.T) {
 			name: "control plane with an healthy machine and an healthy kcp condition should pass",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Deprecated: &controlplanev1.KubeadmControlPlaneDeprecatedStatus{V1Beta1: &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{
-						Conditions: clusterv1.Conditions{
-							*v1beta1conditions.TrueCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition),
-							*v1beta1conditions.TrueCondition(controlplanev1.EtcdClusterHealthyV1Beta1Condition),
-						},
-					}},
+					Conditions: []metav1.Condition{
+						{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue},
+						{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue},
+					},
 				},
 			},
 			machines: []*clusterv1.Machine{
@@ -680,15 +673,13 @@ func TestPreflightChecks(t *testing.T) {
 							Kind: "Node",
 							Name: "node-1",
 						},
-						Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-							Conditions: clusterv1.Conditions{
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition),
-								*v1beta1conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition),
-							},
-						}},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+						},
 					},
 				},
 			},
@@ -727,7 +718,7 @@ func TestPreflightChecks(t *testing.T) {
 }
 
 func TestPreflightCheckCondition(t *testing.T) {
-	condition := clusterv1.ConditionType("fooCondition")
+	condition := "fooCondition"
 	testCases := []struct {
 		name      string
 		machine   *clusterv1.Machine
@@ -742,11 +733,9 @@ func TestPreflightCheckCondition(t *testing.T) {
 			name: "false condition should return error",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: clusterv1.Conditions{
-							*v1beta1conditions.FalseCondition(condition, "fooReason", clusterv1.ConditionSeverityError, ""),
-						},
-					}},
+					Conditions: []metav1.Condition{
+						{Type: condition, Status: metav1.ConditionFalse},
+					},
 				},
 			},
 			expectErr: true,
@@ -755,11 +744,9 @@ func TestPreflightCheckCondition(t *testing.T) {
 			name: "unknown condition should return error",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: clusterv1.Conditions{
-							*v1beta1conditions.UnknownCondition(condition, "fooReason", ""),
-						},
-					}},
+					Conditions: []metav1.Condition{
+						{Type: condition, Status: metav1.ConditionUnknown},
+					},
 				},
 			},
 			expectErr: true,
@@ -768,11 +755,9 @@ func TestPreflightCheckCondition(t *testing.T) {
 			name: "true condition should not return error",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					Deprecated: &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
-						Conditions: clusterv1.Conditions{
-							*v1beta1conditions.TrueCondition(condition),
-						},
-					}},
+					Conditions: []metav1.Condition{
+						{Type: condition, Status: metav1.ConditionTrue},
+					},
 				},
 			},
 			expectErr: false,

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -194,17 +195,17 @@ func TestHealthCheckTargets(t *testing.T) {
 			Name:      clusterName,
 		},
 	}
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterInfrastructureReadyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
 	// NodeStartupTimeout testing.
-	conds := clusterv1.Conditions{}
-	for _, condition := range cluster.GetV1Beta1Conditions() {
+	conds := []metav1.Condition{}
+	for _, condition := range cluster.GetConditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
 		conds = append(conds, condition)
 	}
-	cluster.SetV1Beta1Conditions(conds)
+	cluster.SetConditions(conds)
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
@@ -241,14 +242,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
 	testMachineWithInfraReady := testMachine.DeepCopy()
 	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
-	testMachineWithInfraReady.SetV1Beta1Conditions(clusterv1.Conditions{
-		{
-			Type:               clusterv1.InfrastructureReadyV1Beta1Condition,
-			Status:             corev1.ConditionTrue,
-			Severity:           clusterv1.ConditionSeverityInfo,
-			LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second)),
-		},
-	})
+	conditions.Set(testMachineWithInfraReady, metav1.Condition{Type: clusterv1.MachineInfrastructureReadyCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second))})
 
 	nodeNotYetStartedTargetAndInfraReady := healthCheckTarget{
 		Cluster: cluster,
@@ -268,8 +262,8 @@ func TestHealthCheckTargets(t *testing.T) {
 		Machine: testMachineCreated1200s,
 		Node:    nil,
 	}
-	nodeNotYetStartedTarget1200sCondition := newFailedHealthCheckCondition(clusterv1.NodeStartupTimeoutV1Beta1Reason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
-	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeStartupTimeoutReason, "Health check failed: Node failed to report startup in %s", timeoutForMachineToHaveNode)
+	nodeNotYetStartedTarget1200sCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.NodeStartupTimeoutV1Beta1Reason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
+	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckNodeStartupTimeoutReason, "Health check failed: Node failed to report startup in %s", timeoutForMachineToHaveNode)
 
 	testMachineCreated400s := testMachine.DeepCopy()
 	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
@@ -290,8 +284,8 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:        &corev1.Node{},
 		nodeMissing: true,
 	}
-	nodeGoneAwayCondition := newFailedHealthCheckCondition(clusterv1.NodeNotFoundV1Beta1Reason, "")
-	nodeGoneAwayV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeDeletedReason, "Health check failed: Node %s has been deleted", testMachine.Status.NodeRef.Name)
+	nodeGoneAwayCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.NodeNotFoundV1Beta1Reason, "")
+	nodeGoneAwayV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckNodeDeletedReason, "Health check failed: Node %s has been deleted", testMachine.Status.NodeRef.Name)
 
 	// Create a test MHC without conditions
 	testMHCEmptyConditions := &clusterv1.MachineHealthCheck{
@@ -370,8 +364,8 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:        testNodeUnknown400,
 		nodeMissing: false,
 	}
-	nodeUnknown400Condition := newFailedHealthCheckCondition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
-	nodeUnknown400V1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
+	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
+	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
@@ -395,8 +389,8 @@ func TestHealthCheckTargets(t *testing.T) {
 		Machine: testMachineAnnotationRemediation,
 		Node:    nil,
 	}
-	machineAnnotationRemediationCondition := newFailedHealthCheckCondition(clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, annotationRemediationMsg)
-	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckHasRemediateAnnotationReason, annotationRemediationV1Beta2Msg)
+	machineAnnotationRemediationCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, annotationRemediationMsg)
+	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckHasRemediateAnnotationReason, annotationRemediationV1Beta2Msg)
 
 	testCases := []struct {
 		desc                                     string
@@ -641,11 +635,11 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 	}
 }
 
-func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
+func newFailedHealthCheckV1Beta1Condition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
 	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededV1Beta1Condition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }
 
-func newFailedHealthCheckV1Beta2Condition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
+func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
 	return metav1.Condition{
 		Type:    clusterv1.MachineHealthCheckSucceededCondition,
 		Status:  metav1.ConditionFalse,

@@ -220,7 +220,7 @@ func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Gets the descriptor for the object's ready condition, if any.
 	readyDescriptor := v1beta1ConditionDescriptor{readyColor: gray}
-	if ready := tree.GetReadyCondition(obj); ready != nil {
+	if ready := tree.GetV1Beta1ReadyCondition(obj); ready != nil {
 		readyDescriptor = newV1Beta1ConditionDescriptor(ready)
 	}
 
@@ -294,7 +294,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 		clusterv1.RemediatingCondition,
 	)
 
-	conditions := tree.GetAllV1Beta2Conditions(obj)
+	conditions := tree.GetConditions(obj)
 	for i := range conditions {
 		condition := conditions[i]
 		positivePolarity := true
@@ -350,7 +350,7 @@ func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree
 		childrenPipe = pipe
 	}
 
-	otherConditions := tree.GetOtherConditions(obj)
+	otherConditions := tree.GetOtherV1Beta1Conditions(obj)
 	for i := range otherConditions {
 		otherCondition := otherConditions[i]
 		otherDescriptor := newV1Beta1ConditionDescriptor(otherCondition)
@@ -549,7 +549,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 			v.upToDateCounters = fmt.Sprintf("%d", ptr.Deref(cp.UpToDateReplicas, 0)+ptr.Deref(w.UpToDateReplicas, 0))
 		}
 
-		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
+		if available := tree.GetAvailableCondition(obj); available != nil {
 			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
 			v.status = availableColor.Sprintf("Available: %s", availableStatus)
 			v.reason = availableReason
@@ -572,7 +572,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 			v.upToDateCounters = fmt.Sprintf("%d", *obj.Status.UpToDateReplicas)
 		}
 
-		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
+		if available := tree.GetAvailableCondition(obj); available != nil {
 			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
 			v.status = availableColor.Sprintf("Available: %s", availableStatus)
 			v.reason = availableReason
@@ -602,14 +602,14 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		v.replicas = "1"
 
 		v.availableCounters = "0"
-		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
+		if available := tree.GetAvailableCondition(obj); available != nil {
 			if available.Status == metav1.ConditionTrue {
 				v.availableCounters = "1"
 			}
 		}
 
 		v.readyCounters = "0"
-		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
+		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
@@ -621,7 +621,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		}
 
 		v.upToDateCounters = "0"
-		if upToDate := tree.GetMachineUpToDateV1Beta2Condition(obj); upToDate != nil {
+		if upToDate := tree.GetMachineUpToDateCondition(obj); upToDate != nil {
 			if upToDate.Status == metav1.ConditionTrue {
 				v.upToDateCounters = "1"
 			}
@@ -632,7 +632,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		// in case not all the conditions are visualized.
 		// Also, if the Unstructured object implements the Cluster API control plane contract, surface
 		// corresponding replica counters.
-		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
+		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
@@ -669,7 +669,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 			v.upToDateCounters = fmt.Sprintf("%d", tree.GetGroupItemsUpToDateCounter(obj))
 		}
 
-		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
+		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
 			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason

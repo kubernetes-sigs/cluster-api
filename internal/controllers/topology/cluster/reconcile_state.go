@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -220,10 +221,9 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 }
 
 func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
-	// TODO (v1beta2) switch to v1beta2 conditions
-	for _, condition := range cluster.GetV1Beta1Conditions() {
-		if condition.Type == clusterv1.ControlPlaneInitializedV1Beta1Condition {
-			if condition.Status == corev1.ConditionTrue {
+	for _, condition := range cluster.GetConditions() {
+		if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+			if condition.Status == metav1.ConditionTrue {
 				return true
 			}
 		}

@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -203,15 +204,15 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	}
 
 	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
-	allMachineHealthConditions := []clusterv1.ConditionType{
-		controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
-		controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,
+	allMachineHealthConditions := []string{
+		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
 	}
 	if controlPlane.IsEtcdManaged() {
 		allMachineHealthConditions = append(allMachineHealthConditions,
-			controlplanev1.MachineEtcdPodHealthyV1Beta1Condition,
-			controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+			controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
 		)
 	}
 	machineErrors := []error{}
@@ -240,7 +241,7 @@ loopmachines:
 		} else {
 			for _, condition := range allMachineHealthConditions {
 				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
-					if condition == controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition {
+					if condition == controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition {
 						controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
 					} else {
 						controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
@@ -262,17 +263,16 @@ loopmachines:
 	return ctrl.Result{}, nil
 }
 
-func preflightCheckCondition(kind string, obj v1beta1conditions.Getter, condition clusterv1.ConditionType) error {
-	// TODO (v1beta2): test for v1beta2 conditions
-	c := v1beta1conditions.Get(obj, condition)
+func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType string) error {
+	c := conditions.Get(obj, conditionType)
 	if c == nil {
-		return errors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), condition)
+		return errors.Errorf("%s %s does not have %s condition", kind, obj.GetName(), conditionType)
 	}
-	if c.Status == corev1.ConditionFalse {
-		return errors.Errorf("%s %s reports %s condition is false (%s, %s)", kind, obj.GetName(), condition, c.Severity, c.Message)
+	if c.Status == metav1.ConditionFalse {
+		return errors.Errorf("%s %s reports %s condition is false (%s)", kind, obj.GetName(), conditionType, c.Message)
 	}
-	if c.Status == corev1.ConditionUnknown {
-		return errors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), condition, c.Message)
+	if c.Status == metav1.ConditionUnknown {
+		return errors.Errorf("%s %s reports %s condition is unknown (%s)", kind, obj.GetName(), conditionType, c.Message)
 	}
 	return nil
 }

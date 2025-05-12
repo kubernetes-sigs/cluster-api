@@ -2132,14 +2132,6 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
 				ControlPlaneInitialized: true,
 			},
-			Deprecated: &controlplanev1.KubeadmControlPlaneDeprecatedStatus{
-				V1Beta1: &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{
-					Conditions: clusterv1.Conditions{
-						{Type: controlplanev1.AvailableV1Beta1Condition, Status: corev1.ConditionTrue,
-							LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
-					},
-				},
-			},
 			Conditions: []metav1.Condition{
 				{
 					Type:               controlplanev1.KubeadmControlPlaneInitializedCondition,
@@ -2166,7 +2158,6 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
 					kcp.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{ControlPlaneInitialized: false}
-					v1beta1conditions.MarkFalse(kcp, controlplanev1.AvailableV1Beta1Condition, "", clusterv1.ConditionSeverityError, "")
 					conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 						Status: metav1.ConditionFalse,
@@ -2396,11 +2387,6 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == controlplanev1.AvailableV1Beta1Condition {
-							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
-						}
-					}
 					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
@@ -2484,11 +2470,6 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == controlplanev1.AvailableV1Beta1Condition {
-							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
-						}
-					}
 					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
@@ -2573,11 +2554,6 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 				Cluster: defaultCluster,
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					for i, condition := range kcp.Status.Deprecated.V1Beta1.Conditions {
-						if condition.Type == controlplanev1.AvailableV1Beta1Condition {
-							kcp.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
-						}
-					}
 					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
@@ -2943,7 +2919,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			},
 		},
 		{
-			name: "Requeue, if the deleting Machine has no PreTerminateDeleteHookSucceeded condition",
+			name: "Requeue, if the deleting Machine has no Deleting condition",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -2961,7 +2937,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			},
 		},
 		{
-			name: "Requeue, if the deleting Machine has PreTerminateDeleteHookSucceeded condition true",
+			name: "Requeue, if the deleting Machine has Deleting condition false",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -2971,7 +2947,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						v1beta1conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition)
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionFalse})
 						return m
 					}(),
 				},
@@ -2983,7 +2959,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 			},
 		},
 		{
-			name: "Requeue, if the deleting Machine has PreTerminateDeleteHookSucceeded condition false but not waiting for hook",
+			name: "Requeue, if the deleting Machine has Deleting condition true but not waiting for hook",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -2993,7 +2969,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, "some-other-reason", clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: "Some other reason"})
 						return m
 					}(),
 				},
@@ -3017,7 +2993,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					machine.Name: machine, // Leadership will be forwarded to this Machine.
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
 						return m
 					}(),
 				},
@@ -3043,13 +3019,13 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
 						m.DeletionTimestamp.Time = m.DeletionTimestamp.Add(-1 * time.Duration(1) * time.Second) // Make sure this (the oldest) Machine is selected to run the pre-terminate hook.
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
 						return m
 					}(),
 					deletingMachineWithKCPPreTerminateHook.Name + "-2": func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
 						m.Name += "-2"
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
 						return m
 					}(),
 				},
@@ -3074,7 +3050,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 				Machines: collections.Machines{
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
 						return m
 					}(),
 				},
@@ -3108,7 +3084,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					machine.Name: machine,
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
-						v1beta1conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededV1Beta1Condition, clusterv1.WaitingExternalHookV1Beta1Reason, clusterv1.ConditionSeverityInfo, "some message")
+						conditions.Set(m, metav1.Condition{Type: clusterv1.MachineDeletingCondition, Status: metav1.ConditionTrue, Reason: clusterv1.MachineDeletingWaitingForPreTerminateHookReason})
 						return m
 					}(),
 				},
@@ -3852,9 +3828,8 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 }
 
 func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
-	// TODO (v1beta2):use v1beta2 conditions
-	v1beta1conditions.MarkTrue(kcp, controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(kcp, controlplanev1.EtcdClusterHealthyV1Beta1Condition)
+	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue})
 }
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
@@ -3918,12 +3893,11 @@ func setMachineHealthy(m *clusterv1.Machine) {
 		Kind: "Node",
 		Name: "node-1",
 	}
-	// TODO (v1beta2):use v1beta2 conditions
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdPodHealthyV1Beta1Condition)
-	v1beta1conditions.MarkTrue(m, controlplanev1.MachineEtcdMemberHealthyV1Beta1Condition)
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue})
 }
 
 // newCluster return a CAPI cluster object.

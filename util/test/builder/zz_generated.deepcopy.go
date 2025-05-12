@@ -205,7 +205,7 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 	}
 	if in.conditions != nil {
 		in, out := &in.conditions, &out.conditions
-		*out = make(v1beta2.Conditions, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

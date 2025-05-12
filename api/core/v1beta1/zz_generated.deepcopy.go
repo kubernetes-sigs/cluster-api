@@ -2591,7 +2591,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 	if in.NodeInfo != nil {
 		in, out := &in.NodeInfo, &out.NodeInfo
 		*out = new(v1.NodeSystemInfo)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.LastUpdated != nil {
 		in, out := &in.LastUpdated, &out.LastUpdated

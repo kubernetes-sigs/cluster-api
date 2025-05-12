@@ -34,6 +34,7 @@ import (
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/version"
 	celconfig "k8s.io/apiserver/pkg/apis/cel"
 	apiservercel "k8s.io/apiserver/pkg/cel"
 	"k8s.io/apiserver/pkg/cel/environment"
@@ -183,6 +184,22 @@ func validateClusterClassXVariableMetadata(schema *clusterv1.JSONSchemaProps, fl
 
 var validVariableTypes = sets.Set[string]{}.Insert("object", "array", "string", "number", "integer", "boolean")
 
+// envSetVersion can be overwritten in unit tests to use a different version for the CEL EnvSet, so we don't have to
+// continuously refactor the unit tests that verify that compatibility is handled correctly.
+var envSetVersion = environment.DefaultCompatibilityVersion()
+
+// SetEnvSetVersion sets the CEL EnvSet version. Should be only used for unit tests, so we don't have to
+// continuously refactor the unit tests that verify that compatibility is handled correctly.
+func SetEnvSetVersion(v *version.Version) {
+	envSetVersion = v
+}
+
+// GetEnvSetVersion gets the CEL EnvSet version. Should be only used for unit tests, so we don't have to
+// continuously refactor the unit tests that verify that compatibility is handled correctly.
+func GetEnvSetVersion() *version.Version {
+	return envSetVersion
+}
+
 // validateRootSchema validates the schema.
 func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
@@ -274,7 +291,7 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 	//   * The Kubernetes CEL library assumes this behavior and it's baked into cel.NewValidator (they use n to validate)
 	// * If the DefaultCompatibilityVersion is an earlier version than "n-1", it means we could roll back even more than 1 version.
 	opts := &validationOptions{
-		celEnvironmentSet: environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true),
+		celEnvironmentSet: environment.MustBaseEnvSet(envSetVersion, true),
 	}
 	if oldAPIExtensionsSchema != nil {
 		opts.preexistingExpressions = findPreexistingExpressions(oldAPIExtensionsSchema)

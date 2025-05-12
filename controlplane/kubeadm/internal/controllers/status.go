@@ -42,11 +42,6 @@ import (
 // updateV1Beta1Status is called after every reconciliation loop in a defer statement to always make sure we have the
 // KubeadmControlPlane status up-to-date.
 func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context, controlPlane *internal.ControlPlane) error {
-	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	controlPlane.KCP.Status.Selector = selector.String()
-
 	upToDateMachines := controlPlane.UpToDateMachines()
 	if controlPlane.KCP.Status.Deprecated == nil {
 		controlPlane.KCP.Status.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
@@ -60,7 +55,6 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 	desiredReplicas := *controlPlane.KCP.Spec.Replicas
 
 	// set basic data that does not require interacting with the workload cluster
-	controlPlane.KCP.Status.Replicas = replicas
 	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = 0
 	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas
 
@@ -68,11 +62,6 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 	// and we don't want to report resize condition (because it is set to deleting into reconcile delete).
 	if !controlPlane.KCP.DeletionTimestamp.IsZero() {
 		return nil
-	}
-
-	lowestVersion := controlPlane.Machines.LowestVersion()
-	if lowestVersion != nil {
-		controlPlane.KCP.Status.Version = lowestVersion
 	}
 
 	switch {
@@ -109,51 +98,17 @@ func (r *KubeadmControlPlaneReconciler) updateV1Beta1Status(ctx context.Context,
 	controlPlane.KCP.Status.Deprecated.V1Beta1.ReadyReplicas = status.ReadyNodes
 	controlPlane.KCP.Status.Deprecated.V1Beta1.UnavailableReplicas = replicas - status.ReadyNodes
 
-	// This only gets initialized once and does not change if the kubeadm config map goes away.
 	if status.HasKubeadmConfig {
-		if controlPlane.KCP.Status.Initialization == nil {
-			controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
-		}
-		controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
 		v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
-	}
-
-	// Surface lastRemediation data in status.
-	// LastRemediation is the remediation currently in progress, in any, or the
-	// most recent of the remediation we are keeping track on machines.
-	var lastRemediation *RemediationData
-
-	if v, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		remediationData, err := RemediationDataFromAnnotation(v)
-		if err != nil {
-			return err
-		}
-		lastRemediation = remediationData
-	} else {
-		for _, m := range controlPlane.Machines.UnsortedList() {
-			if v, ok := m.Annotations[controlplanev1.RemediationForAnnotation]; ok {
-				remediationData, err := RemediationDataFromAnnotation(v)
-				if err != nil {
-					return err
-				}
-				if lastRemediation == nil || lastRemediation.Timestamp.Time.Before(remediationData.Timestamp.Time) {
-					lastRemediation = remediationData
-				}
-			}
-		}
-	}
-
-	if lastRemediation != nil {
-		controlPlane.KCP.Status.LastRemediation = lastRemediation.ToStatus()
 	}
 	return nil
 }
 
 // updateStatus reconciles KubeadmControlPlane's status during the entire lifecycle of the object.
-func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) {
+func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	// If the code failed initializing the control plane, do not update the status.
 	if controlPlane == nil {
-		return
+		return nil
 	}
 
 	// Note: some of the status is set on reconcileControlPlaneAndMachinesConditions (EtcdClusterHealthy, ControlPlaneComponentsHealthy conditions),
@@ -163,6 +118,20 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	// Note: KCP also sets status on machines in reconcileUnhealthyMachines and reconcileControlPlaneAndMachinesConditions; if for
 	// any reason those functions are not called before, e.g. an error, this func relies on existing Machine's condition.
 
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
+	controlPlane.KCP.Status.Selector = selector.String()
+
+	// Set status.version with the lowest K8s version from CP machines.
+	lowestVersion := controlPlane.Machines.LowestVersion()
+	if lowestVersion != nil {
+		controlPlane.KCP.Status.Version = lowestVersion
+	}
+
+	if err := setControlPlaneInitialized(ctx, controlPlane); err != nil {
+		return err
+	}
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
 	setRollingOutCondition(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -173,6 +142,32 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
 	setDeletingCondition(ctx, controlPlane.KCP, controlPlane.DeletingReason, controlPlane.DeletingMessage)
 	setAvailableCondition(ctx, controlPlane.KCP, controlPlane.IsEtcdManaged(), controlPlane.EtcdMembers, controlPlane.EtcdMembersAndMachinesAreMatching, controlPlane.Machines)
+	return setLastRemediation(ctx, controlPlane)
+}
+
+// setControlPlaneInitialized surface control plane initialized when it is possible to check that the Kubeadm config exists in the workload cluster;
+// this is considered a proxy information about the API Server being up and running and kubeadm init successfully completed.
+// Note: This only gets initialized once and does not change if the kubeadm config map goes away.
+func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.ControlPlane) error {
+	if controlPlane.KCP.Status.Initialization == nil || !controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to create remote cluster client")
+		}
+		status, err := workloadCluster.ClusterStatus(ctx)
+		if err != nil {
+			return err
+		}
+
+		if status.HasKubeadmConfig {
+			if controlPlane.KCP.Status.Initialization == nil {
+				controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
+			}
+			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
+			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
+		}
+	}
+	return nil
 }
 
 func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
@@ -189,6 +184,7 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 		}
 	}
 
+	kcp.Status.Replicas = int32(len(machines))
 	kcp.Status.ReadyReplicas = ptr.To(readyReplicas)
 	kcp.Status.AvailableReplicas = ptr.To(availableReplicas)
 	kcp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
@@ -766,6 +762,38 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		Reason:  controlplanev1.KubeadmControlPlaneNotAvailableReason,
 		Message: strings.Join(messages, "\n"),
 	})
+}
+
+// setLastRemediation surface lastRemediation data in status.
+// LastRemediation is the remediation currently in progress, in any, or the
+// most recent of the remediation we are keeping track on machines.
+func setLastRemediation(_ context.Context, controlPlane *internal.ControlPlane) error {
+	var lastRemediation *RemediationData
+
+	if v, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		remediationData, err := RemediationDataFromAnnotation(v)
+		if err != nil {
+			return err
+		}
+		lastRemediation = remediationData
+	} else {
+		for _, m := range controlPlane.Machines.UnsortedList() {
+			if v, ok := m.Annotations[controlplanev1.RemediationForAnnotation]; ok {
+				remediationData, err := RemediationDataFromAnnotation(v)
+				if err != nil {
+					return err
+				}
+				if lastRemediation == nil || lastRemediation.Timestamp.Time.Before(remediationData.Timestamp.Time) {
+					lastRemediation = remediationData
+				}
+			}
+		}
+	}
+
+	if lastRemediation != nil {
+		controlPlane.KCP.Status.LastRemediation = lastRemediation.ToStatus()
+	}
+	return nil
 }
 
 // shouldSurfaceWhenAvailableTrue defines when a control plane components/etcd issue should surface when

@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -51,8 +51,8 @@ func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 	}
 }
 
-func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &addonsv1.ClusterResourceSetV1Beta1DeprecatedStatus{}) {
@@ -61,8 +61,8 @@ func hubClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, c fuzz.C
 	}
 }
 
-func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &ClusterResourceSetV1Beta2Status{}) {

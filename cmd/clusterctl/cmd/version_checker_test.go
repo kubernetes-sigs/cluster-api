@@ -401,6 +401,34 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	g.Expect(release.URL).To(Equal("https://github.com/foo/bar/releases/v0.3.10"))
 }
 
+func TestVersionChecker_ReadFromCorruptedStateFile(t *testing.T) {
+	g := NewWithT(t)
+
+	ctx := context.Background()
+
+	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
+	defer cleanDir()
+
+	// Create a corrupted YAML state file
+	corruptedVersionState := []byte(`LastCheck: "2025-02-11T09:56:59.8701-07:00"
+LatestRelease:
+  URL: sigs.k8s.io/cluster-api
+  Version: 1.9.4
+4
+`)
+	g.Expect(os.MkdirAll(filepath.Dir(tmpVersionFile), 0750)).To(Succeed())
+	g.Expect(os.WriteFile(tmpVersionFile, corruptedVersionState, 0600)).To(Succeed())
+
+	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
+	g.Expect(err).ToNot(HaveOccurred())
+	versionChecker.versionFilePath = tmpVersionFile
+
+	// Expect the checker to raise an error containing the state file path
+	_, err = versionChecker.Check(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring(versionChecker.versionFilePath))
+}
+
 func generateTempVersionFilePath(g *WithT) (string, func()) {
 	dir, err := os.MkdirTemp("", "clusterctl")
 	g.Expect(err).ToNot(HaveOccurred())

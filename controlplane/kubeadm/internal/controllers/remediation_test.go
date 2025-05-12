@@ -2125,7 +2125,7 @@ func withHealthyAPIServerPod() machineOption {
 
 func withUnhealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodRunningReason})
+		conditions.Set(machine, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionFalse, Reason: controlplanev1.KubeadmControlPlaneMachinePodFailedReason})
 	}
 }
 

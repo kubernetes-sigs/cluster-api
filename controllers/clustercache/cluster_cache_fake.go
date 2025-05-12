@@ -17,6 +17,8 @@ limitations under the License.
 package clustercache
 
 import (
+	"time"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -32,6 +34,11 @@ func NewFakeClusterCache(workloadClient client.Client, clusterKey client.ObjectK
 			connection: &clusterAccessorLockedConnectionState{
 				cachedClient: workloadClient,
 				watches:      sets.Set[string]{}.Insert(watchObjects...),
+			},
+			healthChecking: clusterAccessorLockedHealthCheckingState{
+				lastProbeTimestamp:        time.Now(),
+				lastProbeSuccessTimestamp: time.Now(),
+				consecutiveFailures:       0,
 			},
 		},
 	}

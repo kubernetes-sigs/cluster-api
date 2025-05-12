@@ -1312,7 +1312,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 				},
 				controller:                  &fakeController{},
 				predicateLog:                ptr.To(logr.New(log.NullLogSink{})),
-				RemoteConditionsGracePeriod: time.Since(time.Time{}),
+				RemoteConditionsGracePeriod: 50 * time.Second,
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})

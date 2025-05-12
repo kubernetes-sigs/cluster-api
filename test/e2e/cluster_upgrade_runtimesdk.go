@@ -456,11 +456,21 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 			MDName:    md.Name,
 			Namespace: md.Namespace,
 		})
+		// Check required replicas are like expected
+		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
+
+		// Check conditions to surface the MS cannot scale up due to preflight checks.
+		g.Expect(conditions.IsTrue(machineSets[0], clusterv1.MachineSetScalingUpCondition)).To(BeTrue())
+		scalingUpCondition := conditions.Get(machineSets[0], clusterv1.MachineSetScalingUpCondition)
+		g.Expect(scalingUpCondition).NotTo(BeNil())
+		g.Expect(scalingUpCondition.Reason).To(Equal(clusterv1.MachineSetScalingUpReason))
+		g.Expect(scalingUpCondition.Message).To(ContainSubstring("\"KubeadmVersionSkew\" preflight check failed"))
+
+		// Check v1beta1 conditions to surface the MS cannot scale up due to preflight checks.
 		g.Expect(v1beta1conditions.IsFalse(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 		machinesCreatedCondition := v1beta1conditions.Get(machineSets[0], clusterv1.MachinesCreatedV1Beta1Condition)
 		g.Expect(machinesCreatedCondition).NotTo(BeNil())
 		g.Expect(machinesCreatedCondition.Reason).To(Equal(clusterv1.PreflightCheckFailedV1Beta1Reason))
-		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
 	}).Should(Succeed(), "New Machine creation not blocked by MachineSet preflight checks")
 
 	// Verify that the MachineSet is not creating the new Machine.

@@ -81,6 +81,11 @@ var preBuiltMappings = []Mapping{
 	// TODO: Add pre-built images for newer Kind versions on top
 	// Pre-built images for Kind v0.27.
 	{
+		KubernetesVersion: semver.MustParse("1.33.0"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.33.0@sha256:02f73d6ae3f11ad5d543f16736a2cb2a63a300ad60e81dac22099b0b04784a4e",
+	},
+	{
 		KubernetesVersion: semver.MustParse("1.32.2"),
 		Mode:              Mode0_20,
 		Image:             "kindest/node:v1.32.2@sha256:f226345927d7e348497136874b6d207e0b32cc52154ad8323129352923a3142f",

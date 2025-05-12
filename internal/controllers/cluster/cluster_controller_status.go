@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +43,9 @@ import (
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	// Always reconcile the Status.Phase field.
-	r.reconcilePhase(ctx, s.cluster)
+	if changed := setPhase(ctx, s.cluster); changed {
+		r.recorder.Eventf(s.cluster, corev1.EventTypeNormal, string(s.cluster.Status.GetTypedPhase()), "Cluster %s is %s", s.cluster.Name, string(s.cluster.Status.GetTypedPhase()))
+	}
 
 	controlPlaneContractVersion := ""
 	if s.controlPlane != nil {
@@ -87,6 +90,30 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	setAvailableCondition(ctx, s.cluster, s.clusterClass)
 
 	return nil
+}
+
+func setPhase(_ context.Context, cluster *clusterv1.Cluster) bool {
+	preReconcilePhase := cluster.Status.GetTypedPhase()
+
+	if cluster.Status.Phase == "" {
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
+	}
+
+	if cluster.Spec.InfrastructureRef != nil || cluster.Spec.ControlPlaneRef != nil {
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
+	}
+
+	if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned && cluster.Spec.ControlPlaneEndpoint.IsValid() {
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
+	}
+
+	if !cluster.DeletionTimestamp.IsZero() {
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseDeleting)
+	}
+	if preReconcilePhase != cluster.Status.GetTypedPhase() {
+		return true
+	}
+	return false
 }
 
 func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneContractVersion string, controlPlaneMachines collections.Machines, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {

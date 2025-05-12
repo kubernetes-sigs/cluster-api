@@ -206,11 +206,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	defer func() {
-		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+		if err := r.updateStatus(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update status")})
 		}
 
-		r.updateStatus(ctx, s)
+		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update deprecated v1beta1 status")})
+		}
 
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchMachineSet(ctx, patchHelper, s.machineSet); err != nil {
@@ -331,6 +333,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 			clusterv1.MachineSetRemediatingCondition,
 			clusterv1.MachineSetDeletingCondition,
 		}},
+		patch.WithStatusObservedGeneration{},
 	}
 	return patchHelper.Patch(ctx, machineSet, options...)
 }
@@ -1161,14 +1164,6 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := ms.Status.DeepCopy()
 
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	selector, err := metav1.LabelSelectorAsSelector(&ms.Spec.Selector)
-	if err != nil {
-		return errors.Wrapf(err, "failed to update status for MachineSet %s/%s", ms.Namespace, ms.Name)
-	}
-	newStatus.Selector = selector.String()
-
 	// Count the number of machines that have labels matching the labels of the machine
 	// template of the replica set, the matching machines may have more
 	// labels than are in the template. Because the label of machineTemplateSpec is
@@ -1211,7 +1206,6 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 		}
 	}
 
-	newStatus.Replicas = int32(len(filteredMachines))
 	if newStatus.Deprecated == nil {
 		newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
 	}
@@ -1232,21 +1226,18 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 	}
 
 	// Copy the newly calculated status into the machineset
-	if ms.Status.Replicas != newStatus.Replicas ||
+	if ms.Status.Replicas != int32(len(filteredMachines)) ||
 		fullyLabeledReplicas != newStatus.Deprecated.V1Beta1.FullyLabeledReplicas ||
 		readyReplicas != newStatus.Deprecated.V1Beta1.ReadyReplicas ||
 		availableReplicas != newStatus.Deprecated.V1Beta1.AvailableReplicas ||
 		ms.Generation != ms.Status.ObservedGeneration {
 		log.V(4).Info("Updating status: " +
-			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
+			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, int32(len(filteredMachines)), desiredReplicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", fullyLabeledReplicas, newStatus.Deprecated.V1Beta1.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", readyReplicas, newStatus.Deprecated.V1Beta1.ReadyReplicas) +
 			fmt.Sprintf("availableReplicas %d->%d, ", availableReplicas, newStatus.Deprecated.V1Beta1.AvailableReplicas) +
 			fmt.Sprintf("observedGeneration %v->%v", ms.Status.ObservedGeneration, ms.Generation))
 
-		// Save the generation number we acted on, otherwise we might wrongfully indicate
-		// that we've seen a spec update when we retry.
-		newStatus.ObservedGeneration = ms.Generation
 		newStatus.DeepCopyInto(&ms.Status)
 	}
 	switch {

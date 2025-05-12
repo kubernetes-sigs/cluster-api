@@ -88,8 +88,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           2,
 				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
 					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
 						UpdatedReplicas:     2,
@@ -98,7 +96,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 						UnavailableReplicas: 0,
 					},
 				},
-				Phase: "Running",
 			},
 		},
 		"scaling up": {
@@ -143,8 +140,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           2,
 				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
 					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
 						UpdatedReplicas:     2,
@@ -153,7 +148,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 						UnavailableReplicas: 1,
 					},
 				},
-				Phase: "ScalingUp",
 			},
 		},
 		"scaling down": {
@@ -198,8 +192,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           2,
 				Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
 					V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
 						UpdatedReplicas:     2,
@@ -208,7 +200,6 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 						UnavailableReplicas: 0,
 					},
 				},
-				Phase: "ScalingDown",
 			},
 		},
 	}
@@ -217,8 +208,8 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			actualStatus := calculateV1Beta1Status(test.machineSets, test.newMachineSet, test.deployment)
-			g.Expect(actualStatus).To(BeComparableTo(test.expectedStatus))
+			calculateV1Beta1Status(test.machineSets, test.newMachineSet, test.deployment)
+			g.Expect(test.deployment.Status).To(BeComparableTo(test.expectedStatus))
 		})
 	}
 }

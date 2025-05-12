@@ -39,6 +39,48 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
+func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) {
+	t.Run("ControlPlaneInitialized false if the kubeadm config does not exist yet", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlane := &internal.ControlPlane{
+			Cluster: &clusterv1.Cluster{},
+			KCP:     &controlplanev1.KubeadmControlPlane{},
+		}
+		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
+			Workload: &fakeWorkloadCluster{
+				Status: internal.ClusterStatus{
+					HasKubeadmConfig: false,
+				},
+			},
+		})
+
+		err := setControlPlaneInitialized(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Status.Initialization).To(BeNil())
+	})
+	t.Run("ControlPlaneInitialized true if the kubeadm config exists", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlane := &internal.ControlPlane{
+			Cluster: &clusterv1.Cluster{},
+			KCP:     &controlplanev1.KubeadmControlPlane{},
+		}
+		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
+			Workload: &fakeWorkloadCluster{
+				Status: internal.ClusterStatus{
+					HasKubeadmConfig: true,
+				},
+			},
+		})
+
+		err := setControlPlaneInitialized(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Status.Initialization).ToNot(BeNil())
+		g.Expect(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+	})
+}
+
 func TestSetReplicas(t *testing.T) {
 	g := NewWithT(t)
 	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyCondition, Status: metav1.ConditionTrue}
@@ -69,6 +111,7 @@ func TestSetReplicas(t *testing.T) {
 	setReplicas(ctx, c.KCP, c.Machines)
 
 	g.Expect(kcp.Status).ToNot(BeNil())
+	g.Expect(kcp.Status.Replicas).To(Equal(int32(6)))
 	g.Expect(kcp.Status.ReadyReplicas).ToNot(BeNil())
 	g.Expect(*kcp.Status.ReadyReplicas).To(Equal(int32(3)))
 	g.Expect(kcp.Status.AvailableReplicas).ToNot(BeNil())
@@ -1928,13 +1971,105 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
-	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.Initialization).To(BeNil())
-	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
+}
+
+func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
+	t.Run("No remediation yet", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{},
+		}
+
+		err := setLastRemediation(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
+	})
+	t.Run("Remediation in progress", func(t *testing.T) {
+		g := NewWithT(t)
+
+		r1 := RemediationData{
+			Machine:    "m2",
+			Timestamp:  metav1.Now().Rfc3339Copy(),
+			RetryCount: 2,
+		}
+		dr1, err := r1.Marshal()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		r2 := RemediationData{
+			Machine:    "m1",
+			Timestamp:  metav1.Now().Rfc3339Copy(),
+			RetryCount: 1,
+		}
+		dr2, err := r2.Marshal()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						// Remediation in progress in KCP should take precedence on old remediation recorded on machines.
+						controlplanev1.RemediationInProgressAnnotation: dr1,
+					},
+				},
+			},
+			Machines: map[string]*clusterv1.Machine{
+				"m1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							controlplanev1.RemediationForAnnotation: dr2,
+						},
+					},
+				},
+			},
+		}
+
+		err = setLastRemediation(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Status.LastRemediation).To(Equal(&controlplanev1.LastRemediationStatus{
+			Machine:    r1.Machine,
+			Timestamp:  r1.Timestamp,
+			RetryCount: int32(r1.RetryCount),
+		}))
+	})
+	t.Run("Remediation completed, get data from past remediation", func(t *testing.T) {
+		g := NewWithT(t)
+
+		r2 := RemediationData{
+			Machine:    "m1",
+			Timestamp:  metav1.Now().Rfc3339Copy(),
+			RetryCount: 1,
+		}
+		dr2, err := r2.Marshal()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{},
+			Machines: map[string]*clusterv1.Machine{
+				"m1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							controlplanev1.RemediationForAnnotation: dr2,
+						},
+					},
+				},
+			},
+		}
+
+		err = setLastRemediation(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controlPlane.KCP.Status.LastRemediation).To(Equal(&controlplanev1.LastRemediationStatus{
+			Machine:    r2.Machine,
+			Timestamp:  r2.Timestamp,
+			RetryCount: int32(r2.RetryCount),
+		}))
+	})
 }
 
 func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testing.T) {
@@ -2000,10 +2135,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
-	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
-	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialization).To(BeNil())
@@ -2078,14 +2211,10 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
-	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
-	g.Expect(kcp.Status.Initialization).ToNot(BeNil())
-	g.Expect(kcp.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
 	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.AvailableV1Beta1Condition)).To(BeTrue())
 	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedV1Beta1Condition)).To(BeTrue())
 }
@@ -2160,14 +2289,10 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
-	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(5))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(1))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(4))
-	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.Deprecated.V1Beta1.FailureReason).To(BeEquivalentTo(""))
-	g.Expect(kcp.Status.Initialization).ToNot(BeNil())
-	g.Expect(kcp.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
 }
 
 func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAreNotReady(t *testing.T) {
@@ -2241,7 +2366,6 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	g.Expect(r.updateV1Beta1Status(ctx, controlPlane)).To(Succeed())
-	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.ReadyReplicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.Deprecated.V1Beta1.UnavailableReplicas).To(BeEquivalentTo(3))
 	g.Expect(v1beta1conditions.IsTrue(kcp, controlplanev1.MachinesCreatedV1Beta1Condition)).To(BeTrue())

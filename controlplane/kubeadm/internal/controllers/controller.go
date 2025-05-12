@@ -214,17 +214,20 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	defer func() {
 		// Always attempt to update status.
+		if err := r.updateStatus(ctx, controlPlane); err != nil {
+			log.Error(err, "Failed to update KubeadmControlPlane status")
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
 		if err := r.updateV1Beta1Status(ctx, controlPlane); err != nil {
 			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
 				log.Error(err, "Could not connect to workload cluster to fetch status")
 			} else {
-				log.Error(err, "Failed to update KubeadmControlPlane status")
+				log.Error(err, "Failed to update KubeadmControlPlane deprecated v1beta1 status")
 				reterr = kerrors.NewAggregate([]error{reterr, err})
 			}
 		}
-
-		r.updateStatus(ctx, controlPlane)
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
 		patchOpts := []patch.Option{}

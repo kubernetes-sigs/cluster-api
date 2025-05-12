@@ -26,6 +26,8 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -54,10 +56,19 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 		retErr = errors.Wrap(err, "failed to convert label selector to a map")
 	}
 
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	selector, err := metav1.LabelSelectorAsSelector(&s.machineDeployment.Spec.Selector)
+	if err != nil {
+		return errors.Wrapf(err, "failed to update status for MachineDeployment %s", klog.KObj(s.machineDeployment))
+	}
+	s.machineDeployment.Status.Selector = selector.String()
+
 	// If the controller could read MachineSets, update replica counters.
 	if s.getAndAdoptMachineSetsForDeploymentSucceeded {
 		setReplicas(s.machineDeployment, s.machineSets)
 	}
+	setPhase(ctx, s.machineDeployment, s.machineSets, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
@@ -82,9 +93,39 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 // as a consequence it is required to compute the counters again before calling scale down machine sets,
 // and again to before computing the overall availability of the Machine deployment.
 func setReplicas(machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet) {
+	machineDeployment.Status.Replicas = mdutil.GetActualReplicaCountForMachineSets(machineSets)
 	machineDeployment.Status.ReadyReplicas = mdutil.GetReadyReplicaCountForMachineSets(machineSets)
 	machineDeployment.Status.AvailableReplicas = mdutil.GetAvailableReplicaCountForMachineSets(machineSets)
 	machineDeployment.Status.UpToDateReplicas = mdutil.GetUptoDateReplicaCountForMachineSets(machineSets)
+}
+
+func setPhase(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
+	if !getAndAdoptMachineSetsForDeploymentSucceeded || machineDeployment.Spec.Replicas == nil {
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
+		return
+	}
+
+	desiredReplicas := ptr.Deref(machineDeployment.Spec.Replicas, 0)
+	if !machineDeployment.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
+	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
+
+	if desiredReplicas < currentReplicas {
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
+		return
+	}
+	if desiredReplicas > currentReplicas {
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
+		return
+	}
+	if desiredReplicas == currentReplicas {
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
+		return
+	}
+
+	// NOTE: this should never happen.
+	machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
 }
 
 func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {

@@ -35,6 +35,7 @@ func Test_setReplicas(t *testing.T) {
 	tests := []struct {
 		name                    string
 		machineSets             []*clusterv1.MachineSet
+		expectReplicas          int32
 		expectReadyReplicas     *int32
 		expectAvailableReplicas *int32
 		expectUpToDateReplicas  *int32
@@ -42,6 +43,7 @@ func Test_setReplicas(t *testing.T) {
 		{
 			name:                    "No MachineSets",
 			machineSets:             nil,
+			expectReplicas:          0,
 			expectReadyReplicas:     nil,
 			expectAvailableReplicas: nil,
 			expectUpToDateReplicas:  nil,
@@ -51,6 +53,7 @@ func Test_setReplicas(t *testing.T) {
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1"),
 			},
+			expectReplicas:          0,
 			expectReadyReplicas:     nil,
 			expectAvailableReplicas: nil,
 			expectUpToDateReplicas:  nil,
@@ -58,10 +61,11 @@ func Test_setReplicas(t *testing.T) {
 		{
 			name: "MachineSets with replicas set",
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withStatusV1beta2ReadyReplicas(5), withStatusV1beta2AvailableReplicas(3), withStatusV1beta2UpToDateReplicas(3)),
-				fakeMachineSet("ms2", withStatusV1beta2ReadyReplicas(2), withStatusV1beta2AvailableReplicas(2), withStatusV1beta2UpToDateReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(6), withStatusV1beta2ReadyReplicas(5), withStatusV1beta2AvailableReplicas(3), withStatusV1beta2UpToDateReplicas(3)),
+				fakeMachineSet("ms2", withStatusReplicas(3), withStatusV1beta2ReadyReplicas(2), withStatusV1beta2AvailableReplicas(2), withStatusV1beta2UpToDateReplicas(1)),
 				fakeMachineSet("ms3"),
 			},
+			expectReplicas:          9,
 			expectReadyReplicas:     ptr.To(int32(7)),
 			expectAvailableReplicas: ptr.To(int32(5)),
 			expectUpToDateReplicas:  ptr.To(int32(4)),
@@ -372,6 +376,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		infrastructureTemplateNotFound               bool
 		getAndAdoptMachineSetsForDeploymentSucceeded bool
 		expectCondition                              metav1.Condition
+		expectedPhase                                clusterv1.MachineDeploymentPhase
 	}{
 		{
 			name:                           "getAndAdoptMachineSetsForDeploymentSucceeded failed",
@@ -385,6 +390,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseUnknown,
 		},
 		{
 			name: "replicas not set",
@@ -402,6 +408,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetReason,
 				Message: "Waiting for spec.replicas set",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseUnknown,
 		},
 		{
 			name:                           "not scaling up and no machines",
@@ -414,10 +421,11 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingUpReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:              "not scaling up with machines",
-			machineDeployment: deletingMachineDeploymentWith3Replicas,
+			machineDeployment: scalingUpMachineDeploymentWith3Replicas,
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 				fakeMachineSet("ms2", withStatusReplicas(2)),
@@ -430,6 +438,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingUpReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:                           "not scaling up and no machines and bootstrapConfig object not found",
@@ -443,6 +452,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentNotScalingUpReason,
 				Message: "Scaling up would be blocked because KubeadmBootstrapTemplate does not exist",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:                           "not scaling up and no machines and infrastructure object not found",
@@ -456,6 +466,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentNotScalingUpReason,
 				Message: "Scaling up would be blocked because DockerMachineTemplate does not exist",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:                           "not scaling up and no machines and bootstrapConfig and infrastructure object not found",
@@ -469,6 +480,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentNotScalingUpReason,
 				Message: "Scaling up would be blocked because KubeadmBootstrapTemplate and DockerMachineTemplate do not exist",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:                           "scaling up",
@@ -482,6 +494,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpReason,
 				Message: "Scaling up from 0 to 3 replicas",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
 		{
 			name:              "scaling up with machines",
@@ -499,6 +512,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpReason,
 				Message: "Scaling up from 2 to 3 replicas",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
 		{
 			name:                           "scaling up and blocked by bootstrap object",
@@ -512,6 +526,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpReason,
 				Message: "Scaling up from 0 to 3 replicas is blocked because KubeadmBootstrapTemplate does not exist",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
 		{
 			name:                           "scaling up and blocked by infrastructure object",
@@ -525,6 +540,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingUpReason,
 				Message: "Scaling up from 0 to 3 replicas is blocked because DockerMachineTemplate does not exist",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
 		{
 			name:                           "deleting, don't show block message when templates are not found",
@@ -538,6 +554,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingUpReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 	}
 	for _, tt := range tests {
@@ -545,10 +562,13 @@ func Test_setScalingUpCondition(t *testing.T) {
 			g := NewWithT(t)
 
 			setScalingUpCondition(ctx, tt.machineDeployment, tt.machineSets, tt.bootstrapTemplateNotFound, tt.infrastructureTemplateNotFound, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
+			setPhase(ctx, tt.machineDeployment, tt.machineSets, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingUpCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+
+			g.Expect(tt.machineDeployment.Status.Phase).To(Equal(string(tt.expectedPhase)))
 		})
 	}
 }
@@ -574,6 +594,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 		machines                                     []*clusterv1.Machine
 		getAndAdoptMachineSetsForDeploymentSucceeded bool
 		expectCondition                              metav1.Condition
+		expectedPhase                                clusterv1.MachineDeploymentPhase
 	}{
 		{
 			name:              "getAndAdoptMachineSetsForDeploymentSucceeded failed",
@@ -586,6 +607,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingDownInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseUnknown,
 		},
 		{
 			name: "replicas not set",
@@ -601,6 +623,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetReason,
 				Message: "Waiting for spec.replicas set",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseUnknown,
 		},
 		{
 			name:              "not scaling down and no machines",
@@ -612,6 +635,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingDownReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:              "not scaling down because scaling up",
@@ -623,6 +647,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingDownReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingUp,
 		},
 		{
 			name:              "scaling down to zero",
@@ -637,6 +662,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				Reason:  clusterv1.MachineDeploymentScalingDownReason,
 				Message: "Scaling down from 1 to 0 replicas",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 		{
 			name:              "scaling down with 1 stale machine",
@@ -676,6 +702,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Message: "Scaling down from 2 to 1 replicas\n" +
 					"* Machine stale-machine-1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 		{
 			name:              "scaling down with 3 stale machines",
@@ -698,6 +725,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Message: "Scaling down from 4 to 1 replicas\n" +
 					"* Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 		{
 			name:              "scaling down with 5 stale machines",
@@ -722,6 +750,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Message: "Scaling down from 6 to 1 replicas\n" +
 					"* Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 		{
 			name:              "deleting machine deployment without replicas",
@@ -733,6 +762,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingDownReason,
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
 		},
 		{
 			name:              "deleting machine deployment having 1 replica",
@@ -747,6 +777,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Reason:  clusterv1.MachineDeploymentScalingDownReason,
 				Message: "Scaling down from 1 to 0 replicas",
 			},
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 	}
 	for _, tt := range tests {
@@ -754,10 +785,13 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			g := NewWithT(t)
 
 			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded, true)
+			setPhase(ctx, tt.machineDeployment, tt.machineSets, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingDownCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(conditions.MatchCondition(tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+
+			g.Expect(tt.machineDeployment.Status.Phase).To(Equal(string(tt.expectedPhase)))
 		})
 	}
 }

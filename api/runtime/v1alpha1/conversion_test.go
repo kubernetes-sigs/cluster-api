@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -47,8 +47,8 @@ func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &runtimev1.ExtensionConfigV1Beta1DeprecatedStatus{}) {
@@ -57,8 +57,8 @@ func hubExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, c fuzz.Contin
 	}
 }
 
-func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &ExtensionConfigV1Beta2Status{}) {

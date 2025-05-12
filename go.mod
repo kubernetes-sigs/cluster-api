@@ -21,7 +21,6 @@ require (
 	github.com/google/cel-go v0.23.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v53 v53.2.0
-	github.com/google/gofuzz v1.2.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -51,7 +50,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
 	sigs.k8s.io/controller-runtime v0.21.0
-	sigs.k8s.io/randfill v1.0.0 // indirect
+	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/yaml v1.4.0
 )
 

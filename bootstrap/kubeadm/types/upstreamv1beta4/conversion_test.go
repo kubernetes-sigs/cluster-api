@@ -21,11 +21,11 @@ package upstreamv1beta4
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -81,8 +81,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // NOTES:
 // - When fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 
-func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func clusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.Proxy = Proxy{}
 	obj.EncryptionAlgorithm = ""
@@ -90,22 +90,22 @@ func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 	obj.CertificateValidityPeriod = nil
 }
 
-func dnsFuzzer(obj *DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func dnsFuzzer(obj *DNS, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.Disabled = false
 }
 
-func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func initConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.DryRun = false
 	obj.CertificateKey = ""
 	obj.Timeouts = nil
 }
 
-func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func joinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.DryRun = false
 
@@ -123,8 +123,8 @@ func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	obj.Timeouts = supportedTimeouts
 }
 
-func joinControlPlaneFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func joinControlPlaneFuzzer(obj *JoinControlPlane, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.CertificateKey = ""
 }
@@ -133,14 +133,14 @@ func joinControlPlaneFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 
-func bootstrapv1APIServerFuzzer(obj *bootstrapv1.APIServer, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1APIServerFuzzer(obj *bootstrapv1.APIServer, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.TimeoutForControlPlane = nil
 }
 
-func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	if obj.Discovery.File != nil {
 		obj.Discovery.File.KubeConfig = nil

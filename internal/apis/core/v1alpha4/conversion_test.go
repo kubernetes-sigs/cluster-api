@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/randfill"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -80,8 +80,8 @@ func MachineFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineV1Beta1DeprecatedStatus{}) {
@@ -97,8 +97,8 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c fuzz.Continue) {
 	}
 }
 
-func spokeMachineStatus(in *MachineStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
@@ -113,8 +113,8 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.ClusterV1Beta1DeprecatedStatus{}) {
@@ -130,15 +130,15 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
 	}
 }
 
-func hubClusterVariable(in *clusterv1.ClusterVariable, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
 }
 
-func spokeClusterTopology(in *Topology, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeClusterTopology(in *Topology, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// RolloutAfter was unused and has been removed in v1beta2.
 	in.RolloutAfter = nil
@@ -151,33 +151,33 @@ func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubJSONPatch(in *clusterv1.JSONPatch, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubJSONPatch(in *clusterv1.JSONPatch, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = &apiextensionsv1.JSON{Raw: []byte("5")}
 }
 
-func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
+func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	// NOTE: We have to fuzz the individual fields manually,
-	// because we cannot call `FuzzNoCustom` as it would lead
+	// because we cannot call `FillNoCustom` as it would lead
 	// to an infinite recursion.
-	in.Type = c.RandString()
+	in.Type = c.String(0)
 	for i := 0; i < c.Intn(10); i++ {
-		in.Required = append(in.Required, c.RandString())
+		in.Required = append(in.Required, c.String(0))
 	}
 	in.MaxItems = ptr.To(c.Int63())
 	in.MinItems = ptr.To(c.Int63())
-	in.UniqueItems = c.RandBool()
-	in.Format = c.RandString()
+	in.UniqueItems = c.Bool()
+	in.Format = c.String(0)
 	in.MaxLength = ptr.To(c.Int63())
 	in.MinLength = ptr.To(c.Int63())
-	in.Pattern = c.RandString()
+	in.Pattern = c.String(0)
 	in.Maximum = ptr.To(c.Int63())
 	in.Maximum = ptr.To(c.Int63())
-	in.ExclusiveMaximum = c.RandBool()
+	in.ExclusiveMaximum = c.Bool()
 	in.Minimum = ptr.To(c.Int63())
-	in.ExclusiveMinimum = c.RandBool()
+	in.ExclusiveMinimum = c.Bool()
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.
 	in.Enum = []apiextensionsv1.JSON{
@@ -185,7 +185,7 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 		{Raw: []byte("\"b\"")},
 		{Raw: []byte("\"c\"")},
 	}
-	in.Default = &apiextensionsv1.JSON{Raw: []byte(strconv.FormatBool(c.RandBool()))}
+	in.Default = &apiextensionsv1.JSON{Raw: []byte(strconv.FormatBool(c.Bool()))}
 
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
@@ -196,7 +196,7 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	// because we cannot recursively fuzz new schemas.
 	in.Properties = map[string]clusterv1.JSONSchemaProps{}
 	for i := 0; i < c.Intn(10); i++ {
-		in.Properties[c.RandString()] = *in2
+		in.Properties[c.String(0)] = *in2
 	}
 	in.Items = in2
 }
@@ -207,8 +207,8 @@ func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
@@ -230,8 +230,8 @@ func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} 
 	}
 }
 
-func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}
@@ -246,8 +246,8 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Co
 	}
 }
 
-func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Drop ProgressDeadlineSeconds as we intentionally don't preserve it.
 	in.ProgressDeadlineSeconds = nil
@@ -259,8 +259,8 @@ func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} 
 	}
 }
 
-func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
@@ -275,8 +275,8 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}

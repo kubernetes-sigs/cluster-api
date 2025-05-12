@@ -22,10 +22,10 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -66,8 +66,8 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 	}
 }
 
-func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
@@ -90,39 +90,39 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	}
 }
 
-func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
 	in.Ready = in.ReadyReplicas > 0
 }
 
-func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
+func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func spokeDNS(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func spokeDNS(obj *upstreamv1beta1.DNS, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func spokeKubeadmClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func spokeKubeadmClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.UseHyperKubeImage = false
 }
 
-func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false

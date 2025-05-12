@@ -21,9 +21,9 @@ package upstreamv1beta1
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -78,14 +78,14 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // NOTES:
 // - When fields do does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta1 --> cabpk v1beta1 --> kubeadm v1beta1 round trip errors.
 
-func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func clusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.UseHyperKubeImage = false
 }
 
-func dnsFuzzer(obj *DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func dnsFuzzer(obj *DNS, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.Type = ""
 }
@@ -94,27 +94,27 @@ func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 
-func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.Patches = nil
 	obj.SkipPhases = nil
 }
 
-func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.Patches = nil
 	obj.SkipPhases = nil
@@ -124,8 +124,8 @@ func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fu
 	}
 }
 
-func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.IgnorePreflightErrors = nil
 	obj.ImagePullPolicy = ""

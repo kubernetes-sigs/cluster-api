@@ -47,11 +47,11 @@ func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubExtensionConfigStatus(in *addonsv1.ExtensionConfigStatus, c fuzz.Continue) {
+func hubExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
-		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &addonsv1.ExtensionConfigV1Beta1DeprecatedStatus{}) {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &runtimev1.ExtensionConfigV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
 	}

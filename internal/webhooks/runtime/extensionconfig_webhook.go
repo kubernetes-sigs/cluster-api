@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 )
 

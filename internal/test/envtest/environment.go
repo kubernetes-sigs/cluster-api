@@ -65,7 +65,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"

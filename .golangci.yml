@@ -156,7 +156,7 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
           alias: ipamv1
         # CAPI exp runtime
-        - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1
+        - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2
           alias: runtimev1
         - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
           alias: runtimehooksv1

@@ -159,8 +159,8 @@ func init() {
 	_ = expv1beta1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
 
-	_ = runtimev1.AddToScheme(scheme)
 	_ = runtimev1alpha1.AddToScheme(scheme)
+	_ = runtimev1.AddToScheme(scheme)
 
 	_ = ipamv1alpha1.AddToScheme(scheme)
 	_ = ipamv1beta1.AddToScheme(scheme)

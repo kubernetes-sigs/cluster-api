@@ -1994,7 +1994,7 @@ kind delete cluster
 [KubeadmControlPlane]: ../developer/core/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
-[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
+[Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
 [K0smotron provider]: https://github.com/k0smotron/k0smotron
 [KubeKey provider]: https://github.com/kubesphere/kubekey

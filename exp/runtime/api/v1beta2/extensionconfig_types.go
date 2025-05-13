@@ -116,13 +116,6 @@ type ServiceReference struct {
 
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
 type ExtensionConfigStatus struct {
-	// handlers defines the current ExtensionHandlers supported by an Extension.
-	// +optional
-	// +listType=map
-	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=512
-	Handlers []ExtensionHandler `json:"handlers,omitempty"`
-
 	// conditions represents the observations of a ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
 	// +optional
@@ -130,6 +123,13 @@ type ExtensionConfigStatus struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// handlers defines the current ExtensionHandlers supported by an Extension.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=512
+	Handlers []ExtensionHandler `json:"handlers,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

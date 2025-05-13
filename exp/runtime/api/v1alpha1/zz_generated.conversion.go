@@ -275,7 +275,6 @@ func autoConvert_v1alpha1_ExtensionConfigStatus_To_v1beta2_ExtensionConfigStatus
 }
 
 func autoConvert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in *v1beta2.ExtensionConfigStatus, out *ExtensionConfigStatus, s conversion.Scope) error {
-	out.Handlers = *(*[]ExtensionHandler)(unsafe.Pointer(&in.Handlers))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta2.Conditions, len(*in))
@@ -287,6 +286,7 @@ func autoConvert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus
 	} else {
 		out.Conditions = nil
 	}
+	out.Handlers = *(*[]ExtensionHandler)(unsafe.Pointer(&in.Handlers))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

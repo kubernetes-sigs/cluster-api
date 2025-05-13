@@ -19,8 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -39,5 +41,28 @@ func TestFuzzyConversion(t *testing.T) {
 }
 
 func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{}
+	return []interface{}{
+		hubExtensionConfigStatus,
+		spokeExtensionConfigStatus,
+	}
+}
+
+func hubExtensionConfigStatus(in *addonsv1.ExtensionConfigStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &addonsv1.ExtensionConfigV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
+}
+
+func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Drop empty structs with only omit empty fields.
+	if in.V1Beta2 != nil {
+		if reflect.DeepEqual(in.V1Beta2, &ExtensionConfigV1Beta2Status{}) {
+			in.V1Beta2 = nil
+		}
+	}
 }

@@ -165,11 +165,11 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
 	status, message := summarizeNodeV1beta1Conditions(s.node)
 	if status == corev1.ConditionFalse {
-		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, message)
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", message)
 		return ctrl.Result{}, nil
 	}
 	if status == corev1.ConditionUnknown {
-		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedV1Beta1Reason, message)
+		v1beta1conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeConditionsFailedV1Beta1Reason, "%s", message)
 		return ctrl.Result{}, nil
 	}
 

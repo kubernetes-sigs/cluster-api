@@ -139,7 +139,7 @@ func Test_newConditionDescriptor_truncateMessages(t *testing.T) {
 		},
 		{
 			name:          "Long message are truncated",
-			condition:     v1beta1conditions.UnknownCondition("C", "", strings.Repeat("s", 150)),
+			condition:     v1beta1conditions.UnknownCondition("C", "", "%s", strings.Repeat("s", 150)),
 			expectMessage: fmt.Sprintf("%s ...", strings.Repeat("s", 100)),
 		},
 	}

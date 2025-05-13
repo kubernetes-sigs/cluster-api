@@ -59,7 +59,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 				clusterv1.ClusterClassRefVersionsUpToDateV1Beta1Condition,
 				clusterv1.ClusterClassOutdatedRefVersionsV1Beta1Reason,
 				clusterv1.ConditionSeverityWarning,
-				strings.Join(msg, "\n"),
+				"%s", strings.Join(msg, "\n"),
 			),
 		)
 		conditions.Set(clusterClass, metav1.Condition{
@@ -87,7 +87,7 @@ func setVariablesReconciledCondition(_ context.Context, clusterClass *clusterv1.
 			clusterv1.ClusterClassVariablesReconciledV1Beta1Condition,
 			clusterv1.VariableDiscoveryFailedV1Beta1Reason,
 			clusterv1.ConditionSeverityError,
-			variableDiscoveryError.Error(),
+			"%s", variableDiscoveryError.Error(),
 		)
 		conditions.Set(clusterClass, metav1.Condition{
 			Type:    clusterv1.ClusterClassVariablesReadyCondition,

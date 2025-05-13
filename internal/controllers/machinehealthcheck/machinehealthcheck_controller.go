@@ -439,7 +439,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate)
 				if err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedCondition,
@@ -475,7 +475,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				logger.Info("Machine has failed health check, creating an external remediation request", "remediation request name", to.GetName(), "reason", condition.Reason, "message", condition.Message)
 				// Create the external clone.
 				if err := r.Client.Create(ctx, to); err != nil {
-					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableV1Beta1Condition, clusterv1.ExternalRemediationRequestCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
+					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailableV1Beta1Condition, clusterv1.ExternalRemediationRequestCreationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
 					conditions.Set(t.Machine, metav1.Condition{
 						Type:    clusterv1.MachineExternallyRemediatedCondition,

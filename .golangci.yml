@@ -227,10 +227,6 @@ linters:
         #
         - name: bool-literal-in-expr
         - name: constant-logical-expr
-    govet:
-      disable:
-        # TODO: It will be dropped when the Go version migration is done.
-        - printf # printf is introduced since Go 1.24
   exclusions:
     generated: strict
     paths:

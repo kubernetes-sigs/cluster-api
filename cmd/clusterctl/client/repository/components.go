@@ -317,7 +317,8 @@ func addNamespaceIfMissing(objs []unstructured.Unstructured, targetNamespace str
 	if !namespaceObjectFound {
 		objs = append(objs, unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"kind": namespaceKind,
+				"apiVersion": "v1",
+				"kind":       namespaceKind,
 				"metadata": map[string]interface{}{
 					"name": targetNamespace,
 				},

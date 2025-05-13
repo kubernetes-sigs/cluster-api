@@ -123,18 +123,6 @@ type ExtensionConfigStatus struct {
 	// +kubebuilder:validation:MaxItems=512
 	Handlers []ExtensionHandler `json:"handlers,omitempty"`
 
-	// conditions define the current service state of the ExtensionConfig.
-	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in ExtensionConfig's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *ExtensionConfigV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// ExtensionConfigV1Beta2Status groups all the fields that will be added or modified in ExtensionConfig with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type ExtensionConfigV1Beta2Status struct {
 	// conditions represents the observations of a ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
 	// +optional
@@ -142,6 +130,31 @@ type ExtensionConfigV1Beta2Status struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *ExtensionConfigDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// ExtensionConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+type ExtensionConfigDeprecatedStatus struct {
+	// v1alpha1 groups all the status fields that are deprecated and will be removed when support for v1alpha1 will be dropped.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1alpha1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	V1Alpha1 *ExtensionConfigV1Alpha1DeprecatedStatus `json:"v1alpha1,omitempty"`
+}
+
+// ExtensionConfigV1Alpha1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1alpha1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ExtensionConfigV1Alpha1DeprecatedStatus struct {
+	// conditions defines current service state of the Machine.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1alpha1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // ExtensionHandler specifies the details of a handler for a particular runtime hook registered by an Extension server.
@@ -224,29 +237,32 @@ type ExtensionConfig struct {
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
-	return e.Status.Conditions
+func (m *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Alpha1 == nil {
+		return nil
+	}
+	return m.Status.Deprecated.V1Alpha1.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
-func (e *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
-	e.Status.Conditions = conditions
+func (m *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &ExtensionConfigDeprecatedStatus{}
+	}
+	if m.Status.Deprecated.V1Alpha1 == nil {
+		m.Status.Deprecated.V1Alpha1 = &ExtensionConfigV1Alpha1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Alpha1.Conditions = conditions
 }
 
 // GetConditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetConditions() []metav1.Condition {
-	if e.Status.V1Beta2 == nil {
-		return nil
-	}
-	return e.Status.V1Beta2.Conditions
+func (m *ExtensionConfig) GetConditions() []metav1.Condition {
+	return m.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
-func (e *ExtensionConfig) SetConditions(conditions []metav1.Condition) {
-	if e.Status.V1Beta2 == nil {
-		e.Status.V1Beta2 = &ExtensionConfigV1Beta2Status{}
-	}
-	e.Status.V1Beta2.Conditions = conditions
+func (m *ExtensionConfig) SetConditions(conditions []metav1.Condition) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

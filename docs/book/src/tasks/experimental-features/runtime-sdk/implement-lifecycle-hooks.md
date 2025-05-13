@@ -336,7 +336,7 @@ For additional details, you can see the full schema in <button onclick="openSwag
 This hook is called after all the workers have been upgraded to the version specified in `spec.topology.version`
 or to an intermediate version in the upgrade plan, and:
 - if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook
-- if the upgrade plan is not complete and the entrire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
+- if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
 
 Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks; if the upgrade plan is not completed,
 this hook allows to block upgrades to the next version of the control plane until everything is ready.

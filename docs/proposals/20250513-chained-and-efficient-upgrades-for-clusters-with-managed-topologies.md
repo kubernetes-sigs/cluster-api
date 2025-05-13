@@ -10,7 +10,7 @@ last-updated: 2025-05-13
 status: implementable
 see-also:
   - "/docs/proposals/20210526-cluster-class-and-managed-topologies.md"
-  - "/docs/proposals/20220414-runtime-hooks.md"
+  - "/docs/proposals/20220414-lifecycle-hooks.md"
 ---
 
 # Chained and efficient upgrades for Clusters with managed topologies
@@ -46,15 +46,15 @@ see-also:
 ## Glossary
 
 - **Chained upgrade**: an upgrade sequence that goes from one Kubernetes version to another
-  by passing through a set of intermediate versions. e.g., Upgrading from v1.31.0 to v1.33.0 requires
-  a chained upgrade with the following intermediate steps: v1.31.0 (initial state) -> v1.32.0 (intermediate version)
+  by passing through a set of intermediate versions. e.g., Upgrading from v1.31.0 (current state) to v1.34.0 (target version) requires
+  a chained upgrade with the following steps: v1.32.0 (first intermediate version)-> v1.32.0 (second intermediate version) 
   -> v1.33.0 (target version)
 
-- **Efficient upgrade**: a chained upgrade where workers node skips some of the intermediate versions,
-  when allowed by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
+- **Upgrade plan**: the sequence of intermediate versions ... target version that a Cluster must upgrade to when
+  performing a chained upgrade;
 
-- **Upgrade plan**: the sequence of intermediate versions that a Cluster must upgrade to when 
-  performing a chained upgrade; when the chained upgrade is also an efficient upgrade,
+- **Efficient upgrade**: a chained upgrade where worker nodes skip some of the intermediate versions,
+  when allowed by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) when the chained upgrade is also an efficient upgrade,
   the upgrade plan for worker machines is a subset of the upgrade plan for control plane machines.
 
 ## Summary
@@ -78,14 +78,14 @@ by more than one minor Kubernetes version by performing chained and efficient up
 
 ### Goals
 
-- Allow Cluster API users using managed topologies to perform chained upgrades.
-- Automatically perform efficient upgrades whenever possible.
-- Allow Cluster API users to influence the upgrade plan considering e.g. availability of machines images for
-  the intermediate versions.
+When using clusters with managed topologies:
+- Allow Cluster API users to perform chained upgrades.
+- Automatically perform chained upgrades in an efficient way by skipping workers upgrades whenever possible.
+- Allow Cluster API users to influence the upgrade plan e.g. availability of machines images for the intermediate versions.
 
 ### Future Work
 
-- Consider if and how to allow users to change the target version while a chained upgrade is being performed.
+- Consider if and how to allow users to change the desired version while a chained upgrade is in progress.
 
 ### Non-Goals
 
@@ -104,8 +104,8 @@ by more than one minor Kubernetes version by performing chained and efficient up
 - As a cluster class author, I want to be able to specify the Kubernetes versions that the system might use as
   intermediate or target versions for a chained upgrades for a Cluster using a specific cluster class.
 
-- As a developer building on top of Cluster API, I want that lifecycle hooks allow orchestration of my external process
-  during different steps of a chained upgrade.
+- As a developer building on top of Cluster API, I want that lifecycle hooks allow orchestration of external process, 
+  like e.g. addon management, during different steps of a chained upgrade.
 
 ### Implementation Details/Notes/Constraints
 
@@ -129,21 +129,22 @@ kind: ClusterClass
 metadata:
   name: quick-start-runtimesdk
 spec:
-  upgrade:
-    versions:
-    - v1.28.0
-    - v1.29.0
-    - v1.30.0
-    - v1.30.1
-    - v1.31.2
-    - ... 
+  kubernetesVersions:
+  - v1.28.0
+  - v1.29.0
+  - v1.30.0
+  - v1.30.1
+  - v1.31.2
+  - ... 
 ```
 
 When computing the upgrade plan from Kubernetes vA to vB, Cluster API will use the latest version for each minor in
 between vA and vB. 
 
-In the example above, the upgrade plan from v1.28.0 to v1.31.2, will be: v1.29.0 -> v1.30.1 -> v1.31.2
-(by convention, the current version is omitted by the upgrade plan, the target version is included).
+In the example above, the upgrade plan from v1.28.0 - current version - to v1.31.2 - target version -, will be: 
+v1.29.0 -> v1.30.1 -> v1.31.2
+
+Note: by convention, the current version is omitted from the upgrade plan, the target version is included.
 
 Note: Cluster API cannot determine the list of available Kubernetes versions automatically, because the versions that can be used 
 in a Cluster API management cluster depend on external factors, e.g., by the availability of machine images for a Kubernetes version.
@@ -160,14 +161,14 @@ metadata:
 spec:
   upgrade:
     external:    
-      getUpgradePlanExtension: get-upgrade-plan.foo
+      generateUpgradePlanExtension: get-upgrade-plan.foo
 ```
 
 Example Request:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: GetUpgradePlanRequest
+kind: GenerateUpgradePlanRequest
 settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
@@ -187,7 +188,7 @@ Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: GetUpgradePlanResponse
+kind: GenerateUpgradePlanResponse
 status: Success # or Failure
 message: "error message if status == Failure"
 controlPlaneVersions:
@@ -196,6 +197,9 @@ controlPlaneVersions:
 - v1.32.3
 - v1.33.0
  ```
+
+Note: in this case the system will infer the list of intermediate version for workers from the list of control plane versions, taking
+care of performing the minimum number of workers upgrade by taking into account the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
 
 Implementers of this runtime extension can also support more sophisticated use cases, e.g.
 
@@ -209,6 +213,9 @@ Implementers of this runtime extension can also support more sophisticated use c
   - ...
   ```
   
+Note: in this case the system will infer the list of intermediate version for workers from the list of control plane versions, taking
+care of performing the minimum number of workers upgrade by taking into account the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
+
 - Force workers to upgrade to specific versions, e.g., force workers upgrade to v1.30.0 when doing v1.29.0 -> v1.32.3
   (in this example, worker upgrade to 1.30.0 is not required by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/), so it would
   be skipped under normal circumstances).
@@ -223,6 +230,9 @@ Implementers of this runtime extension can also support more sophisticated use c
   - v1.30.0
   ```
   
+Note: in this case the system will take into consideration the provided `workersVersions`, but if required by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/),
+also add necessary intermediate version for workers inferred from the list of control plane versions.
+
 - Force workers to upgrade to all the intermediate steps (opt out from efficient upgrades).
 
   ```yaml
@@ -240,11 +250,13 @@ Implementers of this runtime extension can also support more sophisticated use c
 Please note:
 - In case both the list of Kubernetes versions and the runtime extension definition will be left empty in a cluster class, 
   Cluster API will behave as of today: only upgrades to the next minor are allowed for the corresponding clusters.
-- If the list of Kubernetes versions is defined in a ClusterClass, the system is going to use this info to:
-  - Validate the target version for an upgrade of a corresponding cluster
-  - Check if there is a valid upgrade path from the current version to the target version.
-- If instead, the ClusterClass is reading upgrade plans from a runtime extension, the system is NOT going to use it 
-  to validate the target version for an upgrade of a corresponding cluster.
+- If the list of Kubernetes versions is defined in a ClusterClass, the system is going to use this info also in 
+  the Cluster validation webhook in order to:
+  - Validate the initial version of a corresponding cluster (on create)
+  - Validate the target version for an upgrade of a corresponding cluster (on update) 
+  - Check if there is a valid upgrade path from the current version to the target version (on update)
+- If instead, the ClusterClass is reading upgrade plans from a runtime extension, the Cluster validation webhook is 
+  NOT going to call this runtime extension, and thus it won't validate the initial/target version of a corresponding cluster.
   - This limitation is driven by the fact that adding nested http calls into webhooks might lead to performance
     issues; also, in most cases advanced users already are implementing additional checks for cluster upgrades, and they
     need full flexibility in how to integrate the upgrade plan checks.
@@ -258,12 +270,12 @@ Please note:
 The topology controller is the component responsible to orchestrate upgrades for clusters using a managed topology,
 and it will be improved to:
 - compute the upgrade plan (when an upgrade is required/in progress)
-- perform the upgrade sequence accordingly
+- perform the chained upgrade going through all the intermediate steps in the upgrade plan
 
 While the first change can be inferred from the previous paragraph, the second change requires some additional details.
 
 The topology controller is already capable of performing two atomic operations used during upgrades, "upgrade control
-plane" and "upgrade workers"; as of today, these two operations are performed sequentially, one after the other.
+plane" and "upgrade workers". Today for an upgrade we run "upgrade control plane" and then "upgrade workers".
 
 This proposal is planning to use existing "upgrade control plane" and "upgrade workers" primitives multiple times
 to perform chained and efficient upgrades, e.g., v1.29.0 -> v1.33.0 will be executed as:
@@ -273,7 +285,7 @@ to perform chained and efficient upgrades, e.g., v1.29.0 -> v1.33.0 will be exec
 | CP upgrade v1.29.0 -> v1.30.0      | workers can remain on v1.29.0                                              |
 | CP upgrade v1.30.0 -> v1.31.0      | workers can remain on v1.29.0                                              |
 | CP upgrade v1.31.0 -> v1.32.0      |                                                                            |
-| Workers upgrade v1.31.0 -> v1.32.0 | workers must upgrade to prevent violation of Kubernetes version skew rules |
+| Workers upgrade v1.29.0 -> v1.32.0 | workers must upgrade to prevent violation of Kubernetes version skew rules |
 | CP upgrade v1.32.0 -> v1.33.0      |                                                                            |
 | Workers upgrade v1.32.0 -> v1.33.0 |                                                                            |
 
@@ -296,9 +308,9 @@ are upgraded to the intermediate/target version of this iteration, which is poss
 `topology.cluster.x-k8s.io/hold-upgrade-sequence` annotations are removed.
 
 However, it might be worth to notice that:
-- While performing different "upgrade workers" iterations, the target version all Machine deployment should upgrade to also changes.
+- While performing different "upgrade workers" operations, the target version all MachineDeployments should upgrade to also changes.
 - `topology.cluster.x-k8s.io/defer-upgrade` and `topology.cluster.x-k8s.io/hold-upgrade-sequence` annotations,  must be
-  applied before each upgrade step (lifecycle hooks described in the next paragraph can be used to orchestrate this process).
+  applied before each upgrade operation (lifecycle hooks described in the next paragraph can be used to orchestrate this process).
 
 #### Lifecycle hooks
 
@@ -320,7 +332,7 @@ More specifically:
   request and response payload will be similar to corresponding messages for `BeforeControlPlaneUpgrade`
 - A new `AfterWorkersUpgrade` hook will be added and called after each "upgrade workers" step;
   request and response payload will be similar to corresponding messages for `AfterControlPlaneUpgrade`, but the
-  hook will be considered blocking only for the intermediate steps of the upgrade (not blocking for the final step).
+  hook will be considered blocking only for the intermediate steps of the upgrade. 
 - `AfterClusterUpgrade` will remain as of today, but the system will ensure that a new upgrade
   can't start until `AfterClusterUpgrade` is completed.
 
@@ -354,7 +366,7 @@ allowing users to implement additional pre-upgrade checks.
 
 ## Alternatives
 
-An alternative to option leveraging a new CRs to define the list of Kubernetes version to be used for upgrade plans
+An alternative option to leverage a new CR to define the list of Kubernetes version to be used for upgrade plans
 was considered.
 
 However, the option was discarded because it seems more consistent having the list of 
@@ -363,7 +375,7 @@ how a managed topology should behave.
 
 ## Upgrade Strategy
 
-No particular upgrade considerations are required, this feature will available to users upgrading to
+No particular upgrade considerations are required, this feature will be available to users upgrading to
 Cluster API v1.11.
 
 However, it is required to enhance ClusterClasses with the information required to compute upgrade plans,

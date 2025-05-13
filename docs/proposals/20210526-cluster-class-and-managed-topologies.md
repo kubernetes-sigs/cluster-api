@@ -380,18 +380,17 @@ as well as in
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
           kind: VSphereClusterTemplate
           name: vsphere-prod-cluster-template
-      upgrade:
-        versions:
-        - v1.28.0
-        - v1.29.0
-        - v1.30.0
-        - v1.30.1
-        - v1.31.2
-        - ... 
-   ```
+      kubernetesVersions:
+      - v1.28.0
+      - v1.29.0
+      - v1.30.0
+      - v1.30.1
+      - v1.31.2
+      - ...
+      ```
 
-   see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md) for more options
-   for configuring Kubernetes version upgrade of clusters using managed topologies.
+      see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md) for more options
+      for configuring Kubernetes version upgrade of clusters using managed topologies.
 
 2. User creates a cluster using the class name and defining the topology.
    ```yaml

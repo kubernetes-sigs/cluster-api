@@ -138,20 +138,20 @@ type ExtensionConfigStatus struct {
 
 // ExtensionConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
 type ExtensionConfigDeprecatedStatus struct {
-	// v1alpha1 groups all the status fields that are deprecated and will be removed when support for v1alpha1 will be dropped.
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1alpha1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	V1Alpha1 *ExtensionConfigV1Alpha1DeprecatedStatus `json:"v1alpha1,omitempty"`
+	V1Beta1 *ExtensionConfigV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
 }
 
-// ExtensionConfigV1Alpha1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1alpha1 will be dropped.
+// ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type ExtensionConfigV1Alpha1DeprecatedStatus struct {
+type ExtensionConfigV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the Machine.
 	//
-	// Deprecated: This field is deprecated and is going to be removed when support for v1alpha1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
@@ -238,10 +238,10 @@ type ExtensionConfig struct {
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
 func (m *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
-	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Alpha1 == nil {
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return m.Status.Deprecated.V1Alpha1.Conditions
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
@@ -249,10 +249,10 @@ func (m *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) 
 	if m.Status.Deprecated == nil {
 		m.Status.Deprecated = &ExtensionConfigDeprecatedStatus{}
 	}
-	if m.Status.Deprecated.V1Alpha1 == nil {
-		m.Status.Deprecated.V1Alpha1 = &ExtensionConfigV1Alpha1DeprecatedStatus{}
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &ExtensionConfigV1Beta1DeprecatedStatus{}
 	}
-	m.Status.Deprecated.V1Alpha1.Conditions = conditions
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetConditions returns the set of conditions for this object.

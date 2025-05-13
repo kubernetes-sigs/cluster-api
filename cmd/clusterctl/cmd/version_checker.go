@@ -157,7 +157,7 @@ func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, er
 	// NOTE: local state file is ignored if older than 1d.
 	vs, err := readStateFile(v.versionFilePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to read version state file")
+		return nil, errors.Wrapf(err, "unable to read version state file %s", v.versionFilePath)
 	}
 	if vs != nil {
 		return &vs.LatestRelease, nil

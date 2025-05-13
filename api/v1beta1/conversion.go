@@ -573,3 +573,9 @@ func Convert_v1beta1_Condition_To_v1_Condition(_ *Condition, _ *metav1.Condition
 	// NOTE: legacy (v1beta1) conditions should not be automatically converted into v1beta2 conditions.
 	return nil
 }
+
+func Convert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in *ClusterVariable, out *clusterv1.ClusterVariable, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 ClusterVariable does not have DefinitionFrom anymore. But it's fine to just lose this field,
+	// because it was already not possible to set it anymore with v1beta1.
+	return autoConvert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in, out, s)
+}

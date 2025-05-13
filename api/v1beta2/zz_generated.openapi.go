@@ -1231,13 +1231,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterVariable(ref common.Referen
 							Format:      "",
 						},
 					},
-					"definitionFrom": {
-						SchemaProps: spec.SchemaProps{
-							Description: "definitionFrom specifies where the definition of this Variable is from.\n\nDeprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
 							Description: "value of the variable. Note: the value will be validated against the schema of the corresponding ClusterClassVariable from the ClusterClass. Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools, i.e. it is not possible to have no type field. Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111",

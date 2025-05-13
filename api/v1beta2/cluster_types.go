@@ -852,14 +852,6 @@ type ClusterVariable struct {
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
-	// definitionFrom specifies where the definition of this Variable is from.
-	//
-	// Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
-	//
-	// +optional
-	// +kubebuilder:validation:MaxLength=256
-	DefinitionFrom string `json:"definitionFrom,omitempty"`
-
 	// value of the variable.
 	// Note: the value will be validated against the schema of the corresponding ClusterClassVariable
 	// from the ClusterClass.

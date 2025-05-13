@@ -598,7 +598,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	return nil
 }
 
-// definitionsForPatch returns a set which of variables in a ClusterClass defined by "definitionFrom".
+// definitionsForPatch returns a set of variables in a ClusterClass defined by "definitionFrom".
 func definitionsForPatch(blueprint *scope.ClusterBlueprint, definitionFrom string) map[string]bool {
 	variableDefinitionsForPatch := make(map[string]bool)
 	for _, definitionsWithName := range blueprint.ClusterClass.Status.Variables {

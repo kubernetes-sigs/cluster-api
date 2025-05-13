@@ -2649,13 +2649,6 @@ spec:
                                 ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
                                 Variable definition in the ClusterClass `status` variables.
                               properties:
-                                definitionFrom:
-                                  description: |-
-                                    definitionFrom specifies where the definition of this Variable is from.
-
-                                    Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
-                                  maxLength: 256
-                                  type: string
                                 name:
                                   description: name of the variable.
                                   maxLength: 256
@@ -2700,13 +2693,6 @@ spec:
                         ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
                         Variable definition in the ClusterClass `status` variables.
                       properties:
-                        definitionFrom:
-                          description: |-
-                            definitionFrom specifies where the definition of this Variable is from.
-
-                            Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
-                          maxLength: 256
-                          type: string
                         name:
                           description: name of the variable.
                           maxLength: 256
@@ -3115,13 +3101,6 @@ spec:
                                       ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
                                       Variable definition in the ClusterClass `status` variables.
                                     properties:
-                                      definitionFrom:
-                                        description: |-
-                                          definitionFrom specifies where the definition of this Variable is from.
-
-                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
-                                        maxLength: 256
-                                        type: string
                                       name:
                                         description: name of the variable.
                                         maxLength: 256
@@ -3260,13 +3239,6 @@ spec:
                                       ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
                                       Variable definition in the ClusterClass `status` variables.
                                     properties:
-                                      definitionFrom:
-                                        description: |-
-                                          definitionFrom specifies where the definition of this Variable is from.
-
-                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
-                                        maxLength: 256
-                                        type: string
                                       name:
                                         description: name of the variable.
                                         maxLength: 256

@@ -266,39 +266,6 @@ func Test_ValidateClusterVariables(t *testing.T) {
 			validateRequired: true,
 		},
 		{
-			name: "Fail if DefinitionFrom not empty.",
-			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
-					"spec.topology.variables[cpu]"),
-			},
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							From: clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					// Non-empty definitionFrom is not valid.
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-				},
-			},
-			validateRequired: true,
-		},
-		{
 			name: "Fail if a value is set twice.",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
@@ -331,55 +298,6 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
-				},
-			},
-			validateRequired: true,
-		},
-		{
-			name: "Fail if DefinitionFrom not empty and value is set twice.",
-			wantErrs: []validationMatch{
-				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
-					"spec.topology.variables[cpu]"),
-				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
-					"spec.topology.variables[cpu]"),
-			},
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From: "somepatch",
-						},
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From: clusterv1.VariableDefinitionFromInline,
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					// Non-empty definitionFrom is not valid.
-					DefinitionFrom: "somepatch",
 				},
 			},
 			validateRequired: true,
@@ -2495,38 +2413,6 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`"us-east-1"`),
 					},
-				},
-			},
-		},
-		{
-			name: "Fail if value DefinitionFrom is not empty",
-			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
-					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu]"),
-			},
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							From: clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "string",
-								},
-							},
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					// Non-empty definitionFrom is not valid.
-					DefinitionFrom: "non-existent-patch",
 				},
 			},
 		},

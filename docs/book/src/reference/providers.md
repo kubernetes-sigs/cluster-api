@@ -43,7 +43,6 @@ source of inspiration and ideas for others.
 - [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
 - [CoxEdge](https://github.com/coxedge/cluster-api-provider-coxedge)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
-- [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [Google Cloud Platform (GCP)](https://cluster-api-gcp.sigs.k8s.io/)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [Hivelocity](https://github.com/hivelocity/cluster-api-provider-hivelocity)

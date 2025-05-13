@@ -494,6 +494,12 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/runtime/test/v1alpha1 \
 		./internal/runtime/test/v1alpha2
+	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/runtime/api/v1alpha1,./$(EXP_DIR)/runtime/api/v1beta2"
+	$(CONVERSION_GEN) \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./$(EXP_DIR)/runtime/api/v1alpha1 \
+		./$(EXP_DIR)/runtime/api/v1beta2
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap

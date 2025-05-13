@@ -65,6 +65,8 @@ import (
 	expv1beta1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
+	ipamv1alpha1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
@@ -158,6 +160,8 @@ func init() {
 
 	_ = runtimev1.AddToScheme(scheme)
 
+	_ = ipamv1alpha1.AddToScheme(scheme)
+	_ = ipamv1beta1.AddToScheme(scheme)
 	_ = ipamv1.AddToScheme(scheme)
 
 	// Register the RuntimeHook types into the catalog.

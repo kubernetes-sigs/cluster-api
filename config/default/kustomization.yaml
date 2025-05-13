@@ -58,8 +58,6 @@ replacements:
     select:
       kind: CustomResourceDefinition
     reject:
-    - name: ipaddressclaims.ipam.cluster.x-k8s.io
-    - name: ipaddresses.ipam.cluster.x-k8s.io
     - name: extensionconfigs.runtime.cluster.x-k8s.io
 - source:
     fieldPath: .metadata.name
@@ -93,8 +91,6 @@ replacements:
     select:
       kind: CustomResourceDefinition
     reject:
-    - name: ipaddressclaims.ipam.cluster.x-k8s.io
-    - name: ipaddresses.ipam.cluster.x-k8s.io
     - name: extensionconfigs.runtime.cluster.x-k8s.io
 - source:
     fieldPath: .metadata.name

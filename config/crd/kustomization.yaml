@@ -30,6 +30,8 @@ patches:
 - path: patches/webhook_in_machinehealthchecks.yaml
 - path: patches/webhook_in_clusterresourcesets.yaml
 - path: patches/webhook_in_clusterresourcesetbindings.yaml
+- path: patches/webhook_in_ipaddresses.yaml
+- path: patches/webhook_in_ipaddressclaims.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

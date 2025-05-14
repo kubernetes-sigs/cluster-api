@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -436,7 +437,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	s.deletingReason = clusterv1.MachineDeletingReason
 	s.deletingMessage = "Deletion started"
 
-	err := r.isDeleteNodeAllowed(ctx, cluster, m)
+	err := r.isDeleteNodeAllowed(ctx, cluster, m, s.infraMachine)
 	isDeleteNodeAllowed := err == nil
 	if err != nil {
 		switch err {
@@ -711,14 +712,24 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
-func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, infraMachine *unstructured.Unstructured) error {
 	log := ctrl.LoggerFrom(ctx)
 	// Return early if the cluster is being deleted.
 	if !cluster.DeletionTimestamp.IsZero() {
 		return errClusterIsBeingDeleted
 	}
 
-	if machine.Status.NodeRef == nil && machine.Spec.ProviderID != nil {
+	var providerID string
+	if machine.Spec.ProviderID != nil {
+		providerID = *machine.Spec.ProviderID
+	} else if infraMachine != nil {
+		// Fallback to retrieve from infraMachine.
+		if providerIDFromInfraMachine, err := contract.InfrastructureMachine().ProviderID().Get(infraMachine); err == nil {
+			providerID = *providerIDFromInfraMachine
+		}
+	}
+
+	if machine.Status.NodeRef == nil && providerID != "" {
 		// If we don't have a node reference, but a provider id has been set,
 		// try to retrieve the node one more time.
 		//
@@ -729,7 +740,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		if err != nil {
 			log.Error(err, "Failed to get cluster client while deleting Machine and checking for nodes")
 		} else {
-			node, err := r.getNode(ctx, remoteClient, *machine.Spec.ProviderID)
+			node, err := r.getNode(ctx, remoteClient, providerID)
 			if err != nil && err != ErrNodeNotFound {
 				log.Error(err, "Failed to get node while deleting Machine")
 			} else if err == nil {

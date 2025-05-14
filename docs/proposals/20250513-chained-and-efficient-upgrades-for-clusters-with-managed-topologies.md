@@ -47,8 +47,8 @@ see-also:
 
 - **Chained upgrade**: an upgrade sequence that goes from one Kubernetes version to another
   by passing through a set of intermediate versions. e.g., Upgrading from v1.31.0 (current state) to v1.34.0 (target version) requires
-  a chained upgrade with the following steps: v1.32.0 (first intermediate version)-> v1.32.0 (second intermediate version) 
-  -> v1.33.0 (target version)
+  a chained upgrade with the following steps: v1.32.0 (first intermediate version)-> v1.33.0 (second intermediate version) 
+  -> v1.34.0 (target version)
 
 - **Upgrade plan**: the sequence of intermediate versions ... target version that a Cluster must upgrade to when
   performing a chained upgrade;
@@ -191,11 +191,11 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: GenerateUpgradePlanResponse
 status: Success # or Failure
 message: "error message if status == Failure"
-controlPlaneVersions:
-- v1.30.0
-- v1.31.0
-- v1.32.3
-- v1.33.0
+controlPlaneUpgrades:
+- version: v1.30.0
+- version: v1.31.0
+- version: v1.32.3
+- version: v1.33.0
  ```
 
 Note: in this case the system will infer the list of intermediate version for workers from the list of control plane versions, taking
@@ -207,9 +207,9 @@ Implementers of this runtime extension can also support more sophisticated use c
 
   ```yaml
   ...
-  controlPlaneVersions:
-  - v1.30.0
-  - v1.30.1
+  controlPlaneUpgrades:
+  - version: v1.30.0
+  - version: v1.30.1
   - ...
   ```
   
@@ -222,29 +222,30 @@ care of performing the minimum number of workers upgrade by taking into account 
 
   ```yaml
   ...
-  controlPlaneVersions:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  workersVersions:
-  - v1.30.0
+  controlPlaneUpgrades:
+  - version: v1.30.0
+  - version: v1.31.0
+  - version: v1.32.3
+  workersUpgrades:
+  - version: v1.30.0
+  - version: v1.32.3
   ```
   
-Note: in this case the system will take into consideration the provided `workersVersions`, but if required by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/),
-also add necessary intermediate version for workers inferred from the list of control plane versions.
+Note: in this case the system will take into consideration the provided `workersUpgrades`, and validated it is 
+consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
 
 - Force workers to upgrade to all the intermediate steps (opt out from efficient upgrades).
 
   ```yaml
   ...
-  controlPlaneVersions:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  workersVersions:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
+  controlPlaneUpgrades:
+  - version: v1.30.0
+  - version: v1.31.0
+  - version: v1.32.3
+  workersUpgrades:
+  - version: v1.30.0
+  - version: v1.31.0
+  - version: v1.32.3
   ```
   
 Please note:

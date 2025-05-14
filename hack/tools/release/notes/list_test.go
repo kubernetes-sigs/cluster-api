@@ -69,45 +69,45 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 func Test_githubFromToPRLister_listPRs(t *testing.T) {
 	tests := []struct {
 		name    string
-		lister  *githubFromToPRLister
+		fields  *githubFromToPRLister
 		args    ref
 		wantErr bool
 	}{
 		{
 			name: "Successful PR Listing",
-			lister: &githubFromToPRLister{
+			fields: &githubFromToPRLister{
 				client: &githubClient{
-					repo: "kubernetes-sigs/cluster-api",
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value:  "v1.4.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value:  "v1.5.0",
+					value:  "v0.27.0",
 				},
 				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value:  "v1.4.0",
+				value:  "v0.26.0",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Setting previousReleaseRef.value blank - should use toRef and fromRef from fields",
-			lister: &githubFromToPRLister{
+			fields: &githubFromToPRLister{
 				client: &githubClient{
-					repo: "kubernetes-sigs/cluster-api",
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value:  "v1.4.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value:  "v1.5.0",
+					value:  "v0.27.0",
 				},
 				branch: "main",
 			},
@@ -119,35 +119,35 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		},
 		{
 			name: "Create PR List when fromRef is not set",
-			lister: &githubFromToPRLister{
+			fields: &githubFromToPRLister{
 				client: &githubClient{
-					repo: "kubernetes-sigs/cluster-api",
+					repo: "kubernetes-sigs/kind",
 				},
 				toRef: ref{
 					reType: "tags",
-					value:  "v1.5.0",
+					value:  "v0.27.0",
 				},
 				branch: "main",
 			},
 			args: ref{
 				reType: "tags",
-				value:  "v1.4.0",
+				value:  "v0.26.0",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Fail when previousReleaseRef.value is set to invalid",
-			lister: &githubFromToPRLister{
+			fields: &githubFromToPRLister{
 				client: &githubClient{
-					repo: "kubernetes-sigs/cluster-api",
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value:  "v1.4.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
-					value:  "v1.5.0",
+					value:  "v0.27.0",
 				},
 				branch: "main",
 			},
@@ -159,13 +159,13 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		},
 		{
 			name: "Fail when toRef and previousReleaseRef set blank",
-			lister: &githubFromToPRLister{
+			fields: &githubFromToPRLister{
 				client: &githubClient{
-					repo: "kubernetes-sigs/cluster-api",
+					repo: "kubernetes-sigs/kind",
 				},
 				fromRef: ref{
 					reType: "tags",
-					value:  "v1.4.0",
+					value:  "v0.26.0",
 				},
 				toRef: ref{
 					reType: "tags",
@@ -182,7 +182,13 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.lister.listPRs(tt.args)
+			l := &githubFromToPRLister{
+				client:  tt.fields.client,
+				fromRef: tt.fields.fromRef,
+				toRef:   tt.fields.toRef,
+				branch:  tt.fields.branch,
+			}
+			_, err := l.listPRs(tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("githubFromToPRLister.listPRs() error = %v, wantErr %v", err, tt.wantErr)
 				return

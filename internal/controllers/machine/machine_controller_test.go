@@ -2528,6 +2528,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		name          string
 		cluster       *clusterv1.Cluster
 		machine       *clusterv1.Machine
+		infraMachine  *unstructured.Unstructured
 		expectedError error
 	}{
 		{
@@ -2554,6 +2555,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
+			infraMachine:  nil,
 			expectedError: errNilNodeRef,
 		},
 		{
@@ -2584,6 +2586,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
@@ -2616,6 +2619,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: errNoControlPlaneNodes,
 		},
 		{
@@ -2646,6 +2650,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: nil,
 		},
 		{
@@ -2659,6 +2664,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine:       &clusterv1.Machine{},
+			infraMachine:  nil,
 			expectedError: errClusterIsBeingDeleted,
 		},
 		{
@@ -2697,6 +2703,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: nil,
 		},
 		{
@@ -2735,6 +2742,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: errControlPlaneIsBeingDeleted,
 		},
 		{
@@ -2773,7 +2781,39 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					},
 				},
 			},
+			infraMachine:  nil,
 			expectedError: errControlPlaneIsBeingDeleted,
+		},
+		{
+			name: "no nodeRef, infrastructure machine has providerID",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: metav1.NamespaceDefault,
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "created",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"providerID": "test-node-1",
+				},
+			}},
+			expectedError: nil,
 		},
 	}
 
@@ -2812,6 +2852,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	empBeingDeleted.SetNamespace("test-cluster")
 	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
 	empBeingDeleted.SetFinalizers([]string{"block-deletion"})
+
+	testNodeA := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-1",
+		},
+		Spec: corev1.NodeSpec{
+			ProviderID: "test-node-1",
+		},
+	}
+	remoteClient := fake.NewClientBuilder().WithIndex(&corev1.Node{}, "spec.providerID", index.NodeByProviderID).WithObjects(testNodeA).Build()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -2873,10 +2923,11 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				empBeingDeleted,
 			).Build()
 			mr := &Reconciler{
-				Client: c,
+				Client:       c,
+				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(tc.cluster)),
 			}
 
-			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)
+			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine, tc.infraMachine)
 			if tc.expectedError == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

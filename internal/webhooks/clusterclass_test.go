@@ -1644,7 +1644,7 @@ func TestClusterClassValidation(t *testing.T) {
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("{{ .cluster.name }}-infra-{{ .random }}")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureClassNamingStrategy{Template: ptr.To("{{ .cluster.name }}-infra-{{ .random }}")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
@@ -1672,11 +1672,11 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "should return error for invalid InfraCluster InfrastructureNamingStrategy.template",
+			name: "should return error for invalid InfraCluster Infrastructure.NamingStrategy.template",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("template-infra-{{ .invalidkey }}")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureClassNamingStrategy{Template: ptr.To("template-infra-{{ .invalidkey }}")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
@@ -1687,11 +1687,11 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "should return error for invalid InfraCluster InfrastructureNamingStrategy.template when the generated name does not conform to RFC 1123",
+			name: "should return error for invalid InfraCluster Infrastructure.NamingStrategy.template when the generated name does not conform to RFC 1123",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithInfraClusterStrategy(&clusterv1.InfrastructureNamingStrategy{Template: ptr.To("template-infra-{{ .cluster.name }}-")}).
+				WithInfraClusterStrategy(&clusterv1.InfrastructureClassNamingStrategy{Template: ptr.To("template-infra-{{ .cluster.name }}-")}).
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).

@@ -98,17 +98,10 @@ type ClusterClassSpec struct {
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
 
-	// infrastructure is a reference to a provider-specific template that holds
-	// the details for provisioning infrastructure specific cluster
-	// for the underlying provider.
-	// The underlying provider is responsible for the implementation
-	// of the template to an infrastructure cluster.
+	// infrastructure is a reference to a local struct that holds the details
+	// for provisioning the infrastructure cluster for the Cluster.
 	// +optional
-	Infrastructure LocalObjectTemplate `json:"infrastructure,omitempty"`
-
-	// infrastructureNamingStrategy allows changing the naming pattern used when creating the infrastructure object.
-	// +optional
-	InfrastructureNamingStrategy *InfrastructureNamingStrategy `json:"infrastructureNamingStrategy,omitempty"`
+	Infrastructure InfrastructureClass `json:"infrastructure,omitempty"`
 
 	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
@@ -135,6 +128,16 @@ type ClusterClassSpec struct {
 	Patches []ClusterClassPatch `json:"patches,omitempty"`
 }
 
+// InfrastructureClass defines the class for the infrastructure cluster.
+type InfrastructureClass struct {
+	// LocalObjectTemplate contains the reference to a provider-specific infrastructure cluster template.
+	LocalObjectTemplate `json:",inline"`
+
+	// namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.
+	// +optional
+	NamingStrategy *InfrastructureClassNamingStrategy `json:"namingStrategy,omitempty"`
+}
+
 // ControlPlaneClass defines the class for the control plane.
 type ControlPlaneClass struct {
 	// metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
@@ -147,7 +150,7 @@ type ControlPlaneClass struct {
 	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// LocalObjectTemplate contains the reference to the control plane provider.
+	// LocalObjectTemplate contains the reference to a provider-specific control plane template.
 	LocalObjectTemplate `json:",inline"`
 
 	// machineInfrastructure defines the metadata and infrastructure information
@@ -221,8 +224,8 @@ type ControlPlaneClassNamingStrategy struct {
 	Template *string `json:"template,omitempty"`
 }
 
-// InfrastructureNamingStrategy defines the naming strategy for infrastructure objects.
-type InfrastructureNamingStrategy struct {
+// InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.
+type InfrastructureClassNamingStrategy struct {
 	// template defines the template to use for generating the name of the Infrastructure object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will

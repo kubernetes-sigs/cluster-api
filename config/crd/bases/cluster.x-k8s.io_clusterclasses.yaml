@@ -3232,12 +3232,26 @@ spec:
                 type: object
               infrastructure:
                 description: |-
-                  infrastructure is a reference to a provider-specific template that holds
-                  the details for provisioning infrastructure specific cluster
-                  for the underlying provider.
-                  The underlying provider is responsible for the implementation
-                  of the template to an infrastructure cluster.
+                  infrastructure is a reference to a local struct that holds the details
+                  for provisioning the infrastructure cluster for the Cluster.
                 properties:
+                  namingStrategy:
+                    description: namingStrategy allows changing the naming pattern
+                      used when creating the infrastructure cluster object.
+                    properties:
+                      template:
+                        description: |-
+                          template defines the template to use for generating the name of the Infrastructure object.
+                          If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+                          If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+                          get concatenated with a random suffix of length 5.
+                          The templating mechanism provides the following arguments:
+                          * `.cluster.name`: The name of the cluster object.
+                          * `.random`: A random alphanumeric string, without vowels, of length 5.
+                        maxLength: 1024
+                        minLength: 1
+                        type: string
+                    type: object
                   ref:
                     description: |-
                       ref is a required reference to a custom resource
@@ -3285,23 +3299,6 @@ spec:
                     x-kubernetes-map-type: atomic
                 required:
                 - ref
-                type: object
-              infrastructureNamingStrategy:
-                description: infrastructureNamingStrategy allows changing the naming
-                  pattern used when creating the infrastructure object.
-                properties:
-                  template:
-                    description: |-
-                      template defines the template to use for generating the name of the Infrastructure object.
-                      If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
-                      If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
-                      get concatenated with a random suffix of length 5.
-                      The templating mechanism provides the following arguments:
-                      * `.cluster.name`: The name of the cluster object.
-                      * `.random`: A random alphanumeric string, without vowels, of length 5.
-                    maxLength: 1024
-                    minLength: 1
-                    type: string
                 type: object
               patches:
                 description: |-

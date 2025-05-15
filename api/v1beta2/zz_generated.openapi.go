@@ -59,7 +59,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneVariables":                     schema_sigsk8sio_cluster_api_api_v1beta2_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ExternalPatchDefinition":                   schema_sigsk8sio_cluster_api_api_v1beta2_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.FailureDomainSpec":                         schema_sigsk8sio_cluster_api_api_v1beta2_FailureDomainSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureNamingStrategy":              schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClass":                       schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureClass(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClassNamingStrategy":         schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatch":                                 schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatch(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.JSONPatchValue":                            schema_sigsk8sio_cluster_api_api_v1beta2_JSONPatchValue(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.JSONSchemaProps":                           schema_sigsk8sio_cluster_api_api_v1beta2_JSONSchemaProps(ref),
@@ -481,15 +482,9 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref common.Refere
 					},
 					"infrastructure": {
 						SchemaProps: spec.SchemaProps{
-							Description: "infrastructure is a reference to a provider-specific template that holds the details for provisioning infrastructure specific cluster for the underlying provider. The underlying provider is responsible for the implementation of the template to an infrastructure cluster.",
+							Description: "infrastructure is a reference to a local struct that holds the details for provisioning the infrastructure cluster for the Cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.LocalObjectTemplate"),
-						},
-					},
-					"infrastructureNamingStrategy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureNamingStrategy allows changing the naming pattern used when creating the infrastructure object.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureNamingStrategy"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClass"),
 						},
 					},
 					"controlPlane": {
@@ -538,7 +533,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassPatch", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariable", "sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClass", "sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureNamingStrategy", "sigs.k8s.io/cluster-api/api/v1beta2.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersClass"},
+			"sigs.k8s.io/cluster-api/api/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassPatch", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassVariable", "sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneClass", "sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClass", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersClass"},
 	}
 }
 
@@ -1623,11 +1618,39 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_FailureDomainSpec(ref common.Refer
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "InfrastructureNamingStrategy defines the naming strategy for infrastructure objects.",
+				Description: "InfrastructureClass defines the class for the infrastructure cluster.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ref is a required reference to a custom resource offered by a provider.",
+							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+						},
+					},
+					"namingStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClassNamingStrategy"),
+						},
+					},
+				},
+				Required: []string{"ref"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/v1beta2.InfrastructureClassNamingStrategy"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_InfrastructureClassNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {

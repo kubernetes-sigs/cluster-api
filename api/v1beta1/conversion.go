@@ -98,6 +98,48 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil)
 }
 
+func Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Infrastructure.NamingStrategy != nil {
+		out.InfrastructureNamingStrategy = &InfrastructureNamingStrategy{
+			Template: in.Infrastructure.NamingStrategy.Template,
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_InfrastructureClass_To_v1beta1_LocalObjectTemplate(in *clusterv1.InfrastructureClass, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+	if in == nil {
+		return nil
+	}
+
+	return autoConvert_v1beta2_LocalObjectTemplate_To_v1beta1_LocalObjectTemplate(&in.LocalObjectTemplate, out, s)
+}
+
+func Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterClassSpec, out *clusterv1.ClusterClassSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.InfrastructureNamingStrategy != nil {
+		out.Infrastructure.NamingStrategy = &clusterv1.InfrastructureClassNamingStrategy{
+			Template: in.InfrastructureNamingStrategy.Template,
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *LocalObjectTemplate, out *clusterv1.InfrastructureClass, s apimachineryconversion.Scope) error {
+	if in == nil {
+		return nil
+	}
+
+	return autoConvert_v1beta1_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(in, &out.LocalObjectTemplate, s)
+}
+
 func Convert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *clusterv1.ClusterClassStatus, out *ClusterClassStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in, out, s); err != nil {
 		return err

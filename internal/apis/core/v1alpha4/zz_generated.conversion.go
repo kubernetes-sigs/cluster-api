@@ -379,6 +379,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.InfrastructureClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(a.(*LocalObjectTemplate), b.(*v1beta2.InfrastructureClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*MachineDeploymentStatus)(nil), (*v1beta2.MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(a.(*MachineDeploymentStatus), b.(*v1beta2.MachineDeploymentStatus), scope)
 	}); err != nil {
@@ -421,6 +426,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.ControlPlaneTopology)(nil), (*ControlPlaneTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(a.(*v1beta2.ControlPlaneTopology), b.(*ControlPlaneTopology), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.InfrastructureClass)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(a.(*v1beta2.InfrastructureClass), b.(*LocalObjectTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -633,7 +643,7 @@ func Convert_v1beta2_ClusterClassList_To_v1alpha4_ClusterClassList(in *v1beta2.C
 }
 
 func autoConvert_v1alpha4_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterClassSpec, out *v1beta2.ClusterClassSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
 	if err := Convert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(&in.ControlPlane, &out.ControlPlane, s); err != nil {
@@ -652,10 +662,9 @@ func Convert_v1alpha4_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterCl
 
 func autoConvert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *v1beta2.ClusterClassSpec, out *ClusterClassSpec, s conversion.Scope) error {
 	// WARNING: in.AvailabilityGates requires manual conversion: does not exist in peer-type
-	if err := Convert_v1beta2_LocalObjectTemplate_To_v1alpha4_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
-	// WARNING: in.InfrastructureNamingStrategy requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}

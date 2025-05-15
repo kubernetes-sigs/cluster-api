@@ -20,8 +20,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
@@ -97,7 +99,7 @@ type RunContainerInput struct {
 	// PortMappings contains host<>container ports to map.
 	PortMappings []PortMapping
 	// IPFamily is the IP version to use.
-	IPFamily clusterv1.ClusterIPFamily
+	IPFamily ClusterIPFamily
 	// RestartPolicy to use for the container.
 	// If not set, defaults to RestartPolicyUnlessStopped.
 	RestartPolicy dockercontainer.RestartPolicyMode
@@ -156,4 +158,88 @@ func RuntimeFrom(ctx context.Context) (Runtime, error) {
 // context.
 func RuntimeInto(ctx context.Context, runtime Runtime) context.Context {
 	return context.WithValue(ctx, providerKey{}, runtime)
+}
+
+// GetClusterIPFamily returns a ClusterIPFamily based on the Cluster provided.
+func GetClusterIPFamily(c *clusterv1.Cluster) (ClusterIPFamily, error) {
+	var podCIDRs, serviceCIDRs []string
+	if c.Spec.ClusterNetwork != nil {
+		if c.Spec.ClusterNetwork.Pods != nil {
+			podCIDRs = c.Spec.ClusterNetwork.Pods.CIDRBlocks
+		}
+		if c.Spec.ClusterNetwork.Services != nil {
+			serviceCIDRs = c.Spec.ClusterNetwork.Services.CIDRBlocks
+		}
+	}
+	if len(podCIDRs) == 0 && len(serviceCIDRs) == 0 {
+		return IPv4IPFamily, nil
+	}
+
+	podsIPFamily, err := ipFamilyForCIDRStrings(podCIDRs)
+	if err != nil {
+		return InvalidIPFamily, fmt.Errorf("pods: %s", err)
+	}
+	if len(serviceCIDRs) == 0 {
+		return podsIPFamily, nil
+	}
+
+	servicesIPFamily, err := ipFamilyForCIDRStrings(serviceCIDRs)
+	if err != nil {
+		return InvalidIPFamily, fmt.Errorf("services: %s", err)
+	}
+	if len(podCIDRs) == 0 {
+		return servicesIPFamily, nil
+	}
+
+	if podsIPFamily == DualStackIPFamily {
+		return DualStackIPFamily, nil
+	} else if podsIPFamily != servicesIPFamily {
+		return InvalidIPFamily, errors.New("pods and services IP family mismatch")
+	}
+
+	return podsIPFamily, nil
+}
+
+func ipFamilyForCIDRStrings(cidrs []string) (ClusterIPFamily, error) {
+	if len(cidrs) > 2 {
+		return InvalidIPFamily, errors.New("too many CIDRs specified")
+	}
+	var foundIPv4 bool
+	var foundIPv6 bool
+	for _, cidr := range cidrs {
+		ip, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return InvalidIPFamily, fmt.Errorf("could not parse CIDR: %s", err)
+		}
+		if ip.To4() != nil {
+			foundIPv4 = true
+		} else {
+			foundIPv6 = true
+		}
+	}
+	switch {
+	case foundIPv4 && foundIPv6:
+		return DualStackIPFamily, nil
+	case foundIPv4:
+		return IPv4IPFamily, nil
+	case foundIPv6:
+		return IPv6IPFamily, nil
+	default:
+		return InvalidIPFamily, nil
+	}
+}
+
+// ClusterIPFamily defines the types of supported IP families.
+type ClusterIPFamily int
+
+// Define the ClusterIPFamily constants.
+const (
+	InvalidIPFamily ClusterIPFamily = iota
+	IPv4IPFamily
+	IPv6IPFamily
+	DualStackIPFamily
+)
+
+func (f ClusterIPFamily) String() string {
+	return [...]string{"InvalidIPFamily", "IPv4IPFamily", "IPv6IPFamily", "DualStackIPFamily"}[f]
 }

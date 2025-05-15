@@ -486,7 +486,6 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.cluster.network.serviceDomain",
 	"builtin.cluster.network.services",
 	"builtin.cluster.network.pods",
-	"builtin.cluster.network.ipFamily",
 
 	// ControlPlane builtins.
 	"builtin.controlPlane",

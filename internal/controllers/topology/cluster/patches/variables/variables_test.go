@@ -113,8 +113,7 @@ func TestGlobal(t *testing.T) {
   						"network":{
 							"serviceDomain":"cluster.local",
   						 	"services":["10.10.10.1/24"],
-   							"pods":["11.10.10.1/24"],
-    						"ipFamily": "IPv4"
+   							"pods":["11.10.10.1/24"]
 						}
 					}}`),
 				},
@@ -186,8 +185,7 @@ func TestGlobal(t *testing.T) {
   						"network":{
 							"serviceDomain":"cluster.local",
   						 	"services":["10.10.10.1/24"],
-   							"pods":["11.10.10.1/24"],
-    						"ipFamily": "IPv4"
+   							"pods":["11.10.10.1/24"]
 						}
 					}}`),
 				},
@@ -258,8 +256,7 @@ func TestGlobal(t *testing.T) {
   						},
   						"network":{
   						 	"services":["10.10.10.1/24"],
-   							"pods":["11.10.10.1/24"],
-    						"ipFamily": "IPv4"
+   							"pods":["11.10.10.1/24"]
 						}
 					}}`),
 				},
@@ -326,8 +323,7 @@ func TestGlobal(t *testing.T) {
 							"classNamespace": "default"
   						},
   						"network":{
-    						"serviceDomain":"cluster.local",
-    						"ipFamily": "IPv4"
+    						"serviceDomain":"cluster.local"
 						}
 					}}`),
 				},

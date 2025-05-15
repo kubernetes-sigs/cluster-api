@@ -239,10 +239,6 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|dockerMachine.Spec.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated'
-        # Deprecations forGetIPFamily
-      - linters:
-          - staticcheck
-        text: 'SA1019: cluster.GetIPFamily is deprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521'
         # Deprecations for MD revision management
       - linters:
           - staticcheck

@@ -443,7 +443,7 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, _ apimachineryconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
-	// V1Beta2 was added in v1alpha3.
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, nil)
 }
 

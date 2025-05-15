@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
@@ -56,14 +55,14 @@ type nodeCreateOpts struct {
 	Mounts       []v1alpha4.Mount
 	PortMappings []v1alpha4.PortMapping
 	Labels       map[string]string
-	IPFamily     clusterv1.ClusterIPFamily
+	IPFamily     container.ClusterIPFamily
 	KindMapping  kind.Mapping
 }
 
 // CreateControlPlaneNode will create a new control plane container.
 // NOTE: If port is 0 picking a host port for the control plane is delegated to the container runtime and is not stable across container restarts.
 // This means that connection to a control plane node may take some time to recover if the underlying container is restarted.
-func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily container.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
 	// add api server port mapping
 	portMappingsWithAPIServer := append(portMappings, v1alpha4.PortMapping{
 		ListenAddress: listenAddress,
@@ -90,7 +89,7 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName,
 }
 
 // CreateWorkerNode will create a new worker container.
-func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
+func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily container.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
 	createOpts := &nodeCreateOpts{
 		Name:         name,
 		ClusterName:  clusterName,
@@ -107,7 +106,7 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string
 // CreateExternalLoadBalancerNode will create a new container to act as the load balancer for external access.
 // NOTE: If port is 0 picking a host port for the load balancer is delegated to the container runtime and is not stable across container restarts.
 // This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME' if the load balancer container is restarted.
-func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ clusterv1.ClusterIPFamily) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ container.ClusterIPFamily) (*types.Node, error) {
 	// load balancer port mapping
 	portMappings := []v1alpha4.PortMapping{
 		{

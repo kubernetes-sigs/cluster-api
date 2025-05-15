@@ -31,7 +31,7 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error)
+	CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, ipFamily container.ClusterIPFamily) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
@@ -39,7 +39,7 @@ type LoadBalancer struct {
 	name                     string
 	image                    string
 	container                *types.Node
-	ipFamily                 clusterv1.ClusterIPFamily
+	ipFamily                 container.ClusterIPFamily
 	lbCreator                lbCreator
 	backendControlPlanePort  string
 	frontendControlPlanePort string
@@ -58,15 +58,12 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, imageRepos
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster.Name)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ExternalLoadBalancerNodeRoleValue)
 
-	container, err := getContainer(ctx, filters)
+	c, err := getContainer(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
 
-	// We tolerate this until removal;
-	// after removal IPFamily will become an internal CAPD concept.
-	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
-	ipFamily, err := cluster.GetIPFamily()
+	ipFamily, err := container.GetClusterIPFamily(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("create load balancer: %s", err)
 	}
@@ -80,7 +77,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, imageRepos
 	return &LoadBalancer{
 		name:                     cluster.Name,
 		image:                    image,
-		container:                container,
+		container:                c,
 		ipFamily:                 ipFamily,
 		lbCreator:                &Manager{},
 		frontendControlPlanePort: frontendControlPlanePort,
@@ -112,7 +109,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 	log = log.WithValues("ipFamily", s.ipFamily, "loadbalancer", s.name)
 
 	listenAddr := "0.0.0.0"
-	if s.ipFamily == clusterv1.IPv6IPFamily {
+	if s.ipFamily == container.IPv6IPFamily {
 		listenAddr = "::"
 	}
 	// Create if not exists.
@@ -148,7 +145,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 		FrontendControlPlanePort: s.frontendControlPlanePort,
 		BackendControlPlanePort:  s.backendControlPlanePort,
 		BackendServers:           map[string]loadbalancer.BackendServer{},
-		IPv6:                     s.ipFamily == clusterv1.IPv6IPFamily,
+		IPv6:                     s.ipFamily == container.IPv6IPFamily,
 	}
 
 	// collect info about the existing controlplane nodes
@@ -167,7 +164,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
-		if s.ipFamily == clusterv1.IPv6IPFamily {
+		if s.ipFamily == container.IPv6IPFamily {
 			backendServer.Address = controlPlaneIPv6
 		} else {
 			backendServer.Address = controlPlaneIPv4
@@ -216,7 +213,7 @@ func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
 		return "", errors.WithStack(err)
 	}
 	var lbIP string
-	if s.ipFamily == clusterv1.IPv6IPFamily {
+	if s.ipFamily == container.IPv6IPFamily {
 		lbIP = lbIPv6
 	} else {
 		lbIP = lbIPv4

@@ -69,17 +69,22 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 		}
 	}
 	if cluster.Spec.ClusterNetwork != nil {
-		clusterNetworkIPFamily, _ := cluster.GetIPFamily()
-		builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{
-			IPFamily: ipFamilyToString(clusterNetworkIPFamily),
-		}
 		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+			if builtin.Cluster.Network == nil {
+				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
+			}
 			builtin.Cluster.Network.ServiceDomain = &cluster.Spec.ClusterNetwork.ServiceDomain
 		}
 		if cluster.Spec.ClusterNetwork.Services != nil && cluster.Spec.ClusterNetwork.Services.CIDRBlocks != nil {
+			if builtin.Cluster.Network == nil {
+				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
+			}
 			builtin.Cluster.Network.Services = cluster.Spec.ClusterNetwork.Services.CIDRBlocks
 		}
 		if cluster.Spec.ClusterNetwork.Pods != nil && cluster.Spec.ClusterNetwork.Pods.CIDRBlocks != nil {
+			if builtin.Cluster.Network == nil {
+				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
+			}
 			builtin.Cluster.Network.Pods = cluster.Spec.ClusterNetwork.Pods.CIDRBlocks
 		}
 	}
@@ -279,17 +284,4 @@ func toVariable(name string, value interface{}) (*runtimehooksv1.Variable, error
 		Name:  name,
 		Value: apiextensionsv1.JSON{Raw: marshalledValue},
 	}, nil
-}
-
-func ipFamilyToString(ipFamily clusterv1.ClusterIPFamily) string {
-	switch ipFamily {
-	case clusterv1.DualStackIPFamily:
-		return "DualStack"
-	case clusterv1.IPv4IPFamily:
-		return "IPv4"
-	case clusterv1.IPv6IPFamily:
-		return "IPv6"
-	default:
-		return "Invalid"
-	}
 }

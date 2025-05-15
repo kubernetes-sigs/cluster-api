@@ -55,15 +55,15 @@ var (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
-	CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
+	CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily container.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
+	CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily container.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
 type Machine struct {
 	cluster     string
 	machine     string
-	ipFamily    clusterv1.ClusterIPFamily
+	ipFamily    container.ClusterIPFamily
 	container   *types.Node
 	nodeCreator nodeCreator
 }
@@ -92,10 +92,7 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string,
 		return nil, err
 	}
 
-	// We tolerate this until removal;
-	// after removal IPFamily will become an internal CAPD concept.
-	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
-	ipFamily, err := cluster.GetIPFamily()
+	ipFamily, err := container.GetClusterIPFamily(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("create docker machine: %s", err)
 	}
@@ -129,10 +126,7 @@ func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labe
 		return nil, err
 	}
 
-	// We tolerate this until removal;
-	// after removal IPFamily will become an internal CAPD concept.
-	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521 .
-	ipFamily, err := cluster.GetIPFamily()
+	ipFamily, err := container.GetClusterIPFamily(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("list docker machines by cluster: %s", err)
 	}
@@ -187,11 +181,11 @@ func (m *Machine) Address(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	switch m.ipFamily {
-	case clusterv1.IPv6IPFamily:
+	case container.IPv6IPFamily:
 		return []string{ipv6}, nil
-	case clusterv1.IPv4IPFamily:
+	case container.IPv4IPFamily:
 		return []string{ipv4}, nil
-	case clusterv1.DualStackIPFamily:
+	case container.DualStackIPFamily:
 		return []string{ipv4, ipv6}, nil
 	}
 	return nil, errors.New("unknown ipFamily")

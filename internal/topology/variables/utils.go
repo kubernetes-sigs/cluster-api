@@ -28,18 +28,11 @@ import (
 )
 
 // newValuesIndex returns a map of ClusterVariable per name.
-// This function validates that:
-// - DefinitionFrom is not set
-// - variables are not defined more than once.
+// This function validates that variables are not defined more than once.
 func newValuesIndex(fldPath *field.Path, values []clusterv1.ClusterVariable) (map[string]*clusterv1.ClusterVariable, field.ErrorList) {
 	valuesMap := map[string]*clusterv1.ClusterVariable{}
 	errs := field.ErrorList{}
 	for _, value := range values {
-		// Check that the variable has DefinitionFrom not set.
-		if value.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
-			errs = append(errs, field.Invalid(fldPath.Key(value.Name), string(value.Value.Raw), fmt.Sprintf("variable %q has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion", value.Name)))
-		}
-
 		// Check that the variable has not been defined more than once.
 		if _, ok := valuesMap[value.Name]; ok {
 			errs = append(errs, field.Invalid(fldPath.Key(value.Name), string(value.Value.Raw), fmt.Sprintf("variable %q is set more than once", value.Name)))

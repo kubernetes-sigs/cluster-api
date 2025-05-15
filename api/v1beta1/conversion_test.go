@@ -72,6 +72,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterStatus,
 		spokeClusterStatus,
+		spokeClusterVariable,
 	}
 }
 
@@ -100,6 +101,13 @@ func spokeClusterStatus(in *ClusterStatus, c fuzz.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+}
+
+func spokeClusterVariable(in *ClusterVariable, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop DefinitionFrom as we intentionally don't preserve it.
+	in.DefinitionFrom = ""
 }
 
 func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {

@@ -400,6 +400,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./util/test/builder/... \
+		paths=./util/deprecated/v1beta1/test/builder/... \
 		paths=./controllers/crdmigrator/test/...
 
 .PHONY: generate-go-deepcopy-kubeadm-bootstrap

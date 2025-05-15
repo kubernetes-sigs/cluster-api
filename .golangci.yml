@@ -233,6 +233,7 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
       - internal/apis/.*
+      - util/deprecated
     rules:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.

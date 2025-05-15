@@ -58,6 +58,15 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controlPlane.KCP.Status.Initialization).To(BeNil())
+
+		setInitializedCondition(ctx, controlPlane.KCP)
+		c := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
+		g.Expect(c).ToNot(BeNil())
+		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+			Status: metav1.ConditionFalse,
+			Reason: controlplanev1.KubeadmControlPlaneNotInitializedReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
 	})
 	t.Run("ControlPlaneInitialized true if the kubeadm config exists", func(t *testing.T) {
 		g := NewWithT(t)
@@ -78,6 +87,15 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 
 		g.Expect(controlPlane.KCP.Status.Initialization).ToNot(BeNil())
 		g.Expect(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+
+		setInitializedCondition(ctx, controlPlane.KCP)
+		c := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
+		g.Expect(c).ToNot(BeNil())
+		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
 	})
 }
 

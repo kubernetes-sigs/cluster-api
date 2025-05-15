@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -105,27 +104,24 @@ func setPhase(_ context.Context, machineDeployment *clusterv1.MachineDeployment,
 		return
 	}
 
-	desiredReplicas := ptr.Deref(machineDeployment.Spec.Replicas, 0)
 	if !machineDeployment.DeletionTimestamp.IsZero() {
-		desiredReplicas = 0
-	}
-	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
-
-	if desiredReplicas < currentReplicas {
 		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
 		return
 	}
-	if desiredReplicas > currentReplicas {
-		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
-		return
-	}
-	if desiredReplicas == currentReplicas {
-		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
-		return
-	}
 
-	// NOTE: this should never happen.
-	machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
+	desiredReplicas := *machineDeployment.Spec.Replicas
+	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
+
+	switch {
+	case desiredReplicas == currentReplicas:
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
+	case desiredReplicas < currentReplicas:
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
+	case desiredReplicas > currentReplicas:
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
+	default:
+		machineDeployment.Status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
+	}
 }
 
 func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {

@@ -164,7 +164,6 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.Cont
 				controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
 			}
 			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
-			v1beta1conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition)
 		}
 	}
 	return nil
@@ -765,7 +764,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 }
 
 // setLastRemediation surface lastRemediation data in status.
-// LastRemediation is the remediation currently in progress, in any, or the
+// LastRemediation is the remediation currently in progress, if any, or the
 // most recent of the remediation we are keeping track on machines.
 func setLastRemediation(_ context.Context, controlPlane *internal.ControlPlane) error {
 	var lastRemediation *RemediationData

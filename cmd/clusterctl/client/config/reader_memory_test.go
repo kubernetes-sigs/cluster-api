@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -54,7 +53,7 @@ func TestMemoryReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			f := NewMemoryReader()
 			g.Expect(f.Init(ctx, "")).To(Succeed())

@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -110,7 +109,7 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := &DockerMachineTemplate{}
-			ctx := context.Background()
+			ctx := t.Context()
 			if tt.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tt.req)
 			}

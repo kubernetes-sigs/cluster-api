@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -131,7 +130,7 @@ func Test_gitLabRepository_newGitLabRepository(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitLab, err := NewGitLabRepository(context.Background(), tt.field.providerConfig, tt.field.variableClient)
+			gitLab, err := NewGitLabRepository(t.Context(), tt.field.providerConfig, tt.field.variableClient)
 			if tt.wantedErr != "" {
 				g.Expect(err).To(MatchError(tt.wantedErr))
 				return
@@ -193,11 +192,11 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitLab, err := NewGitLabRepository(context.Background(), providerConfig, configVariablesClient)
+			gitLab, err := NewGitLabRepository(t.Context(), providerConfig, configVariablesClient)
 			gitLab.(*gitLabRepository).authenticatingHTTPClient = client
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gitLab.GetFile(context.Background(), tt.version, tt.fileName)
+			got, err := gitLab.GetFile(t.Context(), tt.version, tt.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

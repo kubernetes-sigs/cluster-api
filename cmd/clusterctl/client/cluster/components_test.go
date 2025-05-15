@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -258,7 +257,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 
 			c := newComponentsClient(proxy)
 
-			err := c.Delete(context.Background(), DeleteOptions{
+			err := c.Delete(t.Context(), DeleteOptions{
 				Provider:         tt.args.provider,
 				IncludeNamespace: tt.args.includeNamespace,
 				IncludeCRDs:      tt.args.includeCRD,
@@ -271,7 +270,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			cs, err := proxy.NewClient(context.Background())
+			cs, err := proxy.NewClient(t.Context())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, want := range tt.wantDiff {
@@ -284,7 +283,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 					Name:      want.object.Name,
 				}
 
-				err := cs.Get(context.Background(), key, obj)
+				err := cs.Get(t.Context(), key, obj)
 				if err != nil && !apierrors.IsNotFound(err) {
 					t.Fatalf("Failed to get %v from the cluster: %v", key, err)
 				}
@@ -323,19 +322,19 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 		}
 
 		proxy := test.NewFakeProxy().WithObjs(initObjs...)
-		proxyClient, _ := proxy.NewClient(context.Background())
+		proxyClient, _ := proxy.NewClient(t.Context())
 		var nsList corev1.NamespaceList
 
 		// assert length before deleting
-		_ = proxyClient.List(context.Background(), &nsList)
+		_ = proxyClient.List(t.Context(), &nsList)
 		g.Expect(nsList.Items).Should(HaveLen(1))
 
 		c := newComponentsClient(proxy)
-		err := c.DeleteWebhookNamespace(context.Background())
+		err := c.DeleteWebhookNamespace(t.Context())
 		g.Expect(err).To(Not(HaveOccurred()))
 
 		// assert length after deleting
-		_ = proxyClient.List(context.Background(), &nsList)
+		_ = proxyClient.List(t.Context(), &nsList)
 		g.Expect(nsList.Items).Should(BeEmpty())
 	})
 }
@@ -450,7 +449,7 @@ func Test_providerComponents_Create(t *testing.T) {
 				}
 				unstructuredObjectsToCreate = append(unstructuredObjectsToCreate, *uns)
 			}
-			err := c.Create(context.Background(), unstructuredObjectsToCreate)
+			err := c.Create(t.Context(), unstructuredObjectsToCreate)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -458,7 +457,7 @@ func Test_providerComponents_Create(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			cs, err := proxy.NewClient(context.Background())
+			cs, err := proxy.NewClient(t.Context())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, item := range tt.want {
@@ -470,7 +469,7 @@ func Test_providerComponents_Create(t *testing.T) {
 					Name:      item.GetName(),
 				}
 
-				err := cs.Get(context.Background(), key, obj)
+				err := cs.Get(t.Context(), key, obj)
 
 				if err != nil && !apierrors.IsNotFound(err) {
 					t.Fatalf("Failed to get %v from the cluster: %v", key, err)
@@ -565,7 +564,7 @@ func Test_providerComponents_ValidateNoObjectsExist(t *testing.T) {
 
 			c := newComponentsClient(proxy)
 
-			if err := c.ValidateNoObjectsExist(context.Background(), tt.provider); (err != nil) != tt.wantErr {
+			if err := c.ValidateNoObjectsExist(t.Context(), tt.provider); (err != nil) != tt.wantErr {
 				t.Errorf("providerComponents.ValidateNoObjectsExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -17,7 +17,6 @@ limitations under the License.
 package clusterctl
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -121,7 +120,7 @@ func Test_resolveReleaseMarker(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := resolveReleaseMarker(context.Background(), tt.releaseMarker, clientGoproxy, toMetadataURL)
+			got, err := resolveReleaseMarker(t.Context(), tt.releaseMarker, clientGoproxy, toMetadataURL)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

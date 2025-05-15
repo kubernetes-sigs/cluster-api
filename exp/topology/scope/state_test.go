@@ -17,7 +17,6 @@ limitations under the License.
 package scope
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ func TestMDUpgrading(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("should return the names of the upgrading MachineDeployments", func(*testing.T) {
 		stableMD := builder.MachineDeployment("ns", "stableMD").
@@ -77,7 +76,7 @@ func TestMPUpgrading(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("should return the names of the upgrading MachinePools", func(*testing.T) {
 		stableMP := builder.MachinePool("ns", "stableMP").

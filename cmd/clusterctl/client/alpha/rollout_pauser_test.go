@@ -17,7 +17,6 @@ limitations under the License.
 package alpha
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -147,25 +146,25 @@ func Test_ObjectPauser(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectPauser(context.Background(), proxy, tt.fields.ref)
+			err := r.ObjectPauser(t.Context(), proxy, tt.fields.ref)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			for _, obj := range tt.fields.objs {
-				cl, err := proxy.NewClient(context.Background())
+				cl, err := proxy.NewClient(t.Context())
 				g.Expect(err).ToNot(HaveOccurred())
 				key := client.ObjectKeyFromObject(obj)
 				switch obj.(type) {
 				case *clusterv1.MachineDeployment:
 					md := &clusterv1.MachineDeployment{}
-					err = cl.Get(context.TODO(), key, md)
+					err = cl.Get(t.Context(), key, md)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ptr.Deref(md.Spec.Paused, false)).To(Equal(tt.wantPaused))
 				case *controlplanev1.KubeadmControlPlane:
 					kcp := &controlplanev1.KubeadmControlPlane{}
-					err = cl.Get(context.TODO(), key, kcp)
+					err = cl.Get(t.Context(), key, kcp)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(annotations.HasPaused(kcp.GetObjectMeta())).To(Equal(tt.wantPaused))
 				}

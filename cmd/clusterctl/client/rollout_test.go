@@ -173,7 +173,7 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.RolloutRestart(ctx, tt.args.options)
 			if tt.wantErr {
@@ -258,7 +258,7 @@ func Test_clusterctlClient_RolloutPause(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.RolloutPause(ctx, tt.args.options)
 			if tt.wantErr {
@@ -343,7 +343,7 @@ func Test_clusterctlClient_RolloutResume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.RolloutResume(ctx, tt.args.options)
 			if tt.wantErr {

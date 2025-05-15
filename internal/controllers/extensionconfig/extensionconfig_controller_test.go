@@ -17,7 +17,6 @@ limitations under the License.
 package extensionconfig
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"net/http"
@@ -366,7 +365,7 @@ func Test_reconcileCABundle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := reconcileCABundle(context.TODO(), tt.client, tt.config)
+			err := reconcileCABundle(t.Context(), tt.client, tt.config)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 
 			g.Expect(tt.config.Spec.ClientConfig.CABundle).To(Equal(tt.wantCABundle))

@@ -60,7 +60,7 @@ func Test_cache_scale(t *testing.T) {
 		deleteCount atomic.Uint64
 	)
 
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	c := NewCache(scheme).(*cache)

@@ -339,7 +339,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 }
 
 func Test_setScalingUpCondition(t *testing.T) {
-	defaultMachineDeployment := &clusterv1.MachineDeployment{
+	machineDeploymentWith0Replicas := &clusterv1.MachineDeployment{
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: ptr.To[int32](0),
 			Template: clusterv1.MachineTemplateSpec{
@@ -361,10 +361,10 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 	}
 
-	scalingUpMachineDeploymentWith3Replicas := defaultMachineDeployment.DeepCopy()
-	scalingUpMachineDeploymentWith3Replicas.Spec.Replicas = ptr.To[int32](3)
+	machineDeploymentWith3Replicas := machineDeploymentWith0Replicas.DeepCopy()
+	machineDeploymentWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
-	deletingMachineDeploymentWith3Replicas := defaultMachineDeployment.DeepCopy()
+	deletingMachineDeploymentWith3Replicas := machineDeploymentWith0Replicas.DeepCopy()
 	deletingMachineDeploymentWith3Replicas.DeletionTimestamp = ptr.To(metav1.Now())
 	deletingMachineDeploymentWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
@@ -380,7 +380,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 	}{
 		{
 			name:                           "getAndAdoptMachineSetsForDeploymentSucceeded failed",
-			machineDeployment:              defaultMachineDeployment,
+			machineDeployment:              machineDeploymentWith0Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      false,
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: false,
@@ -395,7 +395,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		{
 			name: "replicas not set",
 			machineDeployment: func() *clusterv1.MachineDeployment {
-				md := defaultMachineDeployment.DeepCopy()
+				md := machineDeploymentWith0Replicas.DeepCopy()
 				md.Spec.Replicas = nil
 				return md
 			}(),
@@ -412,7 +412,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "not scaling up and no machines",
-			machineDeployment:              defaultMachineDeployment,
+			machineDeployment:              machineDeploymentWith0Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      false,
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -425,7 +425,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:              "not scaling up with machines",
-			machineDeployment: scalingUpMachineDeploymentWith3Replicas,
+			machineDeployment: machineDeploymentWith3Replicas.DeepCopy(),
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 				fakeMachineSet("ms2", withStatusReplicas(2)),
@@ -442,7 +442,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "not scaling up and no machines and bootstrapConfig object not found",
-			machineDeployment:              defaultMachineDeployment,
+			machineDeployment:              machineDeploymentWith0Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      true,
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -456,7 +456,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "not scaling up and no machines and infrastructure object not found",
-			machineDeployment:              defaultMachineDeployment,
+			machineDeployment:              machineDeploymentWith0Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      false,
 			infrastructureTemplateNotFound: true,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -470,7 +470,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "not scaling up and no machines and bootstrapConfig and infrastructure object not found",
-			machineDeployment:              defaultMachineDeployment,
+			machineDeployment:              machineDeploymentWith0Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      true,
 			infrastructureTemplateNotFound: true,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -484,7 +484,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "scaling up",
-			machineDeployment:              scalingUpMachineDeploymentWith3Replicas,
+			machineDeployment:              machineDeploymentWith3Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      false,
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -498,7 +498,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:              "scaling up with machines",
-			machineDeployment: scalingUpMachineDeploymentWith3Replicas,
+			machineDeployment: machineDeploymentWith3Replicas.DeepCopy(),
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 				fakeMachineSet("ms2", withStatusReplicas(1)),
@@ -516,7 +516,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "scaling up and blocked by bootstrap object",
-			machineDeployment:              scalingUpMachineDeploymentWith3Replicas,
+			machineDeployment:              machineDeploymentWith3Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      true,
 			infrastructureTemplateNotFound: false,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -530,7 +530,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "scaling up and blocked by infrastructure object",
-			machineDeployment:              scalingUpMachineDeploymentWith3Replicas,
+			machineDeployment:              machineDeploymentWith3Replicas.DeepCopy(),
 			bootstrapTemplateNotFound:      false,
 			infrastructureTemplateNotFound: true,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
@@ -544,7 +544,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                           "deleting, don't show block message when templates are not found",
-			machineDeployment:              deletingMachineDeploymentWith3Replicas,
+			machineDeployment:              deletingMachineDeploymentWith3Replicas.DeepCopy(),
 			machineSets:                    []*clusterv1.MachineSet{{}, {}, {}},
 			bootstrapTemplateNotFound:      true,
 			infrastructureTemplateNotFound: true,
@@ -554,7 +554,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingUpReason,
 			},
-			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 	}
 	for _, tt := range tests {
@@ -762,7 +762,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotScalingDownReason,
 			},
-			expectedPhase: clusterv1.MachineDeploymentPhaseRunning,
+			expectedPhase: clusterv1.MachineDeploymentPhaseScalingDown,
 		},
 		{
 			name:              "deleting machine deployment having 1 replica",

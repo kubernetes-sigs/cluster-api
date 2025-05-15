@@ -17,7 +17,6 @@ limitations under the License.
 package check
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -97,7 +96,7 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			objs := []client.Object{}
 			objs = append(objs, tt.md)
@@ -205,7 +204,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			objs := []client.Object{}
 			for _, m := range tt.nodes {

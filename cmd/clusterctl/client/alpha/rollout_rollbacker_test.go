@@ -17,7 +17,6 @@ limitations under the License.
 package alpha
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -241,17 +240,17 @@ func Test_ObjectRollbacker(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectRollbacker(context.Background(), proxy, tt.fields.ref, tt.fields.toRevision)
+			err := r.ObjectRollbacker(t.Context(), proxy, tt.fields.ref, tt.fields.toRevision)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			cl, err := proxy.NewClient(context.Background())
+			cl, err := proxy.NewClient(t.Context())
 			g.Expect(err).ToNot(HaveOccurred())
 			key := client.ObjectKeyFromObject(deployment)
 			md := &clusterv1.MachineDeployment{}
-			err = cl.Get(context.TODO(), key, md)
+			err = cl.Get(t.Context(), key, md)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(*md.Spec.Template.Spec.Version).To(Equal(tt.wantVersion))
 			g.Expect(md.Spec.Template.Spec.InfrastructureRef.Name).To(Equal(tt.wantInfraTemplate))

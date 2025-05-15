@@ -17,7 +17,6 @@ limitations under the License.
 package docker
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -32,7 +31,7 @@ import (
 func TestCreateNode(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 	containerRuntime.ResetRunContainerCallLogs()
 
 	portMappingsWithAPIServer := []v1alpha4.PortMapping{
@@ -75,7 +74,7 @@ func TestCreateNode(t *testing.T) {
 func TestCreateControlPlaneNode(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 	containerRuntime.ResetRunContainerCallLogs()
 
 	containerRuntime.ResetRunContainerCallLogs()
@@ -98,7 +97,7 @@ func TestCreateControlPlaneNode(t *testing.T) {
 func TestCreateWorkerNode(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 	containerRuntime.ResetRunContainerCallLogs()
 
 	containerRuntime.ResetRunContainerCallLogs()
@@ -121,7 +120,7 @@ func TestCreateWorkerNode(t *testing.T) {
 func TestCreateExternalLoadBalancerNode(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 	containerRuntime.ResetRunContainerCallLogs()
 
 	containerRuntime.ResetRunContainerCallLogs()

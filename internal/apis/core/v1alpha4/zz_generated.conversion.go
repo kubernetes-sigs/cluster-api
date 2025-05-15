@@ -1884,6 +1884,7 @@ func autoConvert_v1beta2_Topology_To_v1alpha4_Topology(in *v1beta2.Topology, out
 		out.Workers = nil
 	}
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -4904,6 +4904,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref common.ReferenceCallb
 							},
 						},
 					},
+					"nodeDeletionStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionStrategy specifies the strategy to delete nodes in the cluster. Valid values are Force, Graceful and omitted. When omitted, the default behaviour will be Force. Graceful means that nodes will be deleted with drain. Force means that nodes will be deleted immediately without drain.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"class", "version"},
 			},

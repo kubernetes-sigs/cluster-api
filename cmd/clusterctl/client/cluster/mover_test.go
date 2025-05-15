@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -735,7 +734,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -816,7 +815,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			dir := t.TempDir()
 
@@ -926,7 +925,7 @@ func Test_objectMover_toDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1054,7 +1053,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			dir := t.TempDir()
 
@@ -1134,7 +1133,7 @@ func Test_getMoveSequence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1167,7 +1166,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1242,7 +1241,7 @@ func Test_objectMover_move(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1319,7 +1318,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			toNamespace := "foobar"
 			updateKnownKinds := map[string][][]string{
@@ -1638,7 +1637,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1731,7 +1730,7 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			o := &objectMover{
 				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil, currentContractVersion),
@@ -1786,7 +1785,7 @@ func Test_objectMoverService_ensureNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			mover := objectMover{
 				fromProxy: test.NewFakeProxy(),
@@ -1896,7 +1895,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
@@ -2021,13 +2020,13 @@ func Test_createTargetObject(t *testing.T) {
 				nsKey := client.ObjectKey{
 					Name: "ns1",
 				}
-				g.Expect(toClient.Get(context.Background(), nsKey, ns)).To(Succeed())
+				g.Expect(toClient.Get(t.Context(), nsKey, ns)).To(Succeed())
 				c := &clusterv1.Cluster{}
 				key := client.ObjectKey{
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(t.Context(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
 				g.Expect(c.OwnerReferences[0].Controller).To(Equal(ptr.To(true)))
 			},
@@ -2067,7 +2066,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(t.Context(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).To(BeEmpty())
 			},
 		},
@@ -2113,7 +2112,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "mutatedns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(t.Context(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).To(BeEmpty())
 			},
 		},
@@ -2149,7 +2148,7 @@ func Test_createTargetObject(t *testing.T) {
 				key := client.ObjectKey{
 					Name: "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(t.Context(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},
@@ -2189,7 +2188,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(t.Context(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},
@@ -2199,7 +2198,7 @@ func Test_createTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			mover := objectMover{
 				fromProxy: tt.args.fromProxy,
@@ -2250,7 +2249,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(t.Context(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2279,7 +2278,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(t.Context(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2307,7 +2306,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(t.Context(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2337,7 +2336,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(t.Context(), key, c))).To(BeTrue())
 			},
 		},
 	}
@@ -2346,7 +2345,7 @@ func Test_deleteSourceObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			mover := objectMover{
 				fromProxy: tt.args.fromProxy,
@@ -2396,7 +2395,7 @@ func TestWaitReadyForMove(t *testing.T) {
 			clusterNamespace := "ns1"
 			objs := test.NewFakeCluster(clusterNamespace, clusterName).Objs()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(objs)

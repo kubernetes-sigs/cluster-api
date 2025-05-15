@@ -1249,7 +1249,7 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 			{NamespacedName: types.NamespacedName{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name}},
 			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
 		}
-		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !cmp.Equal(got, firstExtConfigExpected) {
+		if got := r.extensionConfigToClusterClass(t.Context(), firstExtConfig); !cmp.Equal(got, firstExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, firstExtConfigExpected)
 		}
 
@@ -1257,7 +1257,7 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 		secondExtConfigExpected := []reconcile.Request{
 			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
 		}
-		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !cmp.Equal(got, secondExtConfigExpected) {
+		if got := r.extensionConfigToClusterClass(t.Context(), secondExtConfig); !cmp.Equal(got, secondExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, secondExtConfigExpected)
 		}
 	})

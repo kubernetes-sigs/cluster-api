@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"testing"
@@ -224,7 +223,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			graph := newObjectGraph(tt.fields.proxy, nil)
 			err := graph.getDiscoveryTypes(ctx)
@@ -1789,7 +1788,7 @@ func TestObjectGraph_Discovery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.args.objs)
@@ -2185,7 +2184,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.args.objs)

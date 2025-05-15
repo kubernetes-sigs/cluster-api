@@ -47,7 +47,7 @@ kind: Machine`
 func Test_templateClient_GetFromConfigMap(t *testing.T) {
 	g := NewWithT(t)
 
-	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	configMap := &corev1.ConfigMap{
@@ -135,7 +135,7 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			processor := yaml.NewSimpleProcessor()
 			tc := newTemplateClient(TemplateClientInput{tt.fields.proxy, tt.fields.configClient, processor})
@@ -165,7 +165,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, _ *http.Request) {
@@ -210,7 +210,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			c := &templateClient{
 				configClient: configClient,
@@ -260,7 +260,7 @@ func Test_templateClient_getRawUrlFileContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			c := newTemplateClient(TemplateClientInput{})
 			got, err := c.getRawURLFileContent(ctx, tt.args.rURL)
@@ -333,7 +333,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeGithubClient, mux, teardown := test.NewFakeGitHub()
@@ -482,7 +482,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			gitHubClientFactory := func(context.Context, config.VariablesClient) (*github.Client, error) {
 				return fakeGithubClient, nil

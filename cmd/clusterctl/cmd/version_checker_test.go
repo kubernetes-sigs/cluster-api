@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,7 +35,7 @@ import (
 func TestVersionChecker_newVersionChecker(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 
@@ -237,7 +236,7 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 			defer cleanDir()
@@ -275,7 +274,7 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 func TestVersionChecker_WriteStateFile(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	fakeGithubClient, mux, cleanup := test.NewFakeGitHub()
 	mux.HandleFunc(
@@ -310,7 +309,7 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()
@@ -360,7 +359,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()
@@ -404,7 +403,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 func TestVersionChecker_ReadFromCorruptedStateFile(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()

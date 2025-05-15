@@ -797,7 +797,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 		}
 		if len(containerWaitingMessages) > 0 {
 			if terminatedWithError {
-				v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, strings.Join(containerWaitingMessages, ", "))
+				v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", strings.Join(containerWaitingMessages, ", "))
 
 				conditions.Set(machine, metav1.Condition{
 					Type:    staticPodCondition,
@@ -809,7 +809,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 			}
 			// Note: Some error cases cannot be caught when container state == "Waiting",
 			// e.g., "waiting.reason: ErrImagePull" is an error, but since LastTerminationState does not exist, this cannot be differentiated from "PodProvisioningReason"
-			v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodProvisioningV1Beta1Reason, clusterv1.ConditionSeverityInfo, strings.Join(containerWaitingMessages, ", "))
+			v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodProvisioningV1Beta1Reason, clusterv1.ConditionSeverityInfo, "%s", strings.Join(containerWaitingMessages, ", "))
 
 			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodCondition,
@@ -828,7 +828,7 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 			}
 		}
 		if len(containerTerminatedMessages) > 0 {
-			v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, strings.Join(containerTerminatedMessages, ", "))
+			v1beta1conditions.MarkFalse(machine, staticPodV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", strings.Join(containerTerminatedMessages, ", "))
 
 			conditions.Set(machine, metav1.Condition{
 				Type:    staticPodCondition,
@@ -955,7 +955,7 @@ func aggregateV1Beta1ConditionsFromMachinesToKCP(input aggregateV1Beta1Condition
 		input.kcpErrors = append(input.kcpErrors, fmt.Sprintf("Following Machines are reporting %s errors: %s", input.note, strings.Join(sets.List(kcpMachinesWithErrors), ", ")))
 	}
 	if len(input.kcpErrors) > 0 {
-		v1beta1conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityError, strings.Join(input.kcpErrors, "; "))
+		v1beta1conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityError, "%s", strings.Join(input.kcpErrors, "; "))
 		return
 	}
 

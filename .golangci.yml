@@ -1,7 +1,7 @@
 version: "2"
 run:
   timeout: 10m
-  go: "1.23"
+  go: "1.24"
   build-tags:
     - tools
     - e2e
@@ -47,6 +47,9 @@ linters:
     - usestdlibvars # using variables/constants from the standard library
     - usetesting # report function to be replace by testing
     - whitespace # unnecessary newlines
+  disable:
+    # TODO: It will be dropped when the Go version migration is done.
+    - usetesting
   settings:
     ginkgolinter:
       forbid-focus-container: true

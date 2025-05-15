@@ -76,9 +76,9 @@ func merge(conditions []localizedCondition, targetCondition clusterv1.ConditionT
 	targetReason := getReason(g, options)
 	targetMessage := getMessage(g, options)
 	if g.TopGroup().status == corev1.ConditionFalse {
-		return FalseCondition(targetCondition, targetReason, g.TopGroup().severity, targetMessage)
+		return FalseCondition(targetCondition, targetReason, g.TopGroup().severity, "%s", targetMessage)
 	}
-	return UnknownCondition(targetCondition, targetReason, targetMessage)
+	return UnknownCondition(targetCondition, targetReason, "%s", targetMessage)
 }
 
 // getConditionGroups groups a list of conditions according to status, severity values.

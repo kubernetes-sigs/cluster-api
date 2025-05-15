@@ -1565,7 +1565,7 @@ func TestAggregateV1Beta1ConditionsFromMachinesToKCP(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityError)),
 			},
-			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Following Machines are reporting %s errors: %s", note, "m1")),
+			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityError, "%s", fmt.Sprintf("Following Machines are reporting %s errors: %s", note, "m1")),
 		},
 		{
 			name: "input kcp errors",
@@ -1580,14 +1580,14 @@ func TestAggregateV1Beta1ConditionsFromMachinesToKCP(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityWarning)),
 			},
-			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityWarning, fmt.Sprintf("Following Machines are reporting %s warnings: %s", note, "m1")),
+			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityWarning, "%s", fmt.Sprintf("Following Machines are reporting %s warnings: %s", note, "m1")),
 		},
 		{
 			name: "kcp machines with info",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityInfo)),
 			},
-			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityInfo, fmt.Sprintf("Following Machines are reporting %s info: %s", note, "m1")),
+			expectedCondition: *v1beta1conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityInfo, "%s", fmt.Sprintf("Following Machines are reporting %s info: %s", note, "m1")),
 		},
 		{
 			name: "kcp machines with true",
@@ -1601,7 +1601,7 @@ func TestAggregateV1Beta1ConditionsFromMachinesToKCP(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionUnknown, clusterv1.ConditionSeverityNone)),
 			},
-			expectedCondition: *v1beta1conditions.UnknownCondition(conditionType, unknownReason, fmt.Sprintf("Following Machines are reporting unknown %s status: %s", note, "m1")),
+			expectedCondition: *v1beta1conditions.UnknownCondition(conditionType, unknownReason, "%s", fmt.Sprintf("Following Machines are reporting unknown %s status: %s", note, "m1")),
 		},
 	}
 

@@ -61,7 +61,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledV1Beta1Condition,
 				clusterv1.TopologyReconciledPausedV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
-				strings.Join(messages, ", "),
+				"%s", strings.Join(messages, ", "),
 			),
 		)
 		conditions.Set(cluster, metav1.Condition{
@@ -101,7 +101,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconcileFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityError,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
-				reconcileErr.Error(),
+				"%s", reconcileErr.Error(),
 			),
 		)
 		conditions.Set(cluster, metav1.Condition{
@@ -146,7 +146,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledHookBlockingV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
-				s.HookResponseTracker.AggregateMessage(),
+				"%s", s.HookResponseTracker.AggregateMessage(),
 			),
 		)
 		conditions.Set(cluster, metav1.Condition{
@@ -254,7 +254,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledV1Beta1Condition,
 				reason,
 				clusterv1.ConditionSeverityInfo,
-				msgBuilder.String(),
+				"%s", msgBuilder.String(),
 			),
 		)
 		conditions.Set(cluster, metav1.Condition{

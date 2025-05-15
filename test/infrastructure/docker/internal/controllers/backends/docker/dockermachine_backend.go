@@ -152,7 +152,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 				return ctrl.Result{}, errors.Wrap(err, "failed to set the machine address")
 			}
 		} else {
-			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()))
+			v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.ContainerDeletedReason, clusterv1.ConditionSeverityError, "%s", fmt.Sprintf("Container %s does not exist anymore", externalMachine.Name()))
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,

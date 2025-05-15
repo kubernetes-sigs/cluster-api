@@ -316,7 +316,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options := []patch.Option{
-		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyV1Beta1Condition,
 			clusterv1.MachinesCreatedV1Beta1Condition,
 			clusterv1.ResizedV1Beta1Condition,
@@ -1356,7 +1356,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 		}
 
-		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 		}}, patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.MachineOwnerRemediatedCondition,
@@ -1546,7 +1546,7 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 		conditions.Set(m, condition)
 
 		if err := patchHelper.Patch(ctx, m,
-			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			}}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineOwnerRemediatedCondition,

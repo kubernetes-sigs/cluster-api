@@ -179,7 +179,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 	}
 
 	options = append(options,
-		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			runtimev1.RuntimeExtensionDiscoveredV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{

@@ -194,7 +194,7 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	}
 
 	// Validate InfrastructureClusterTemplate changes desired a compatible way.
-	allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(current.Spec.Infrastructure, desired.Spec.Infrastructure,
+	allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(current.Spec.Infrastructure.LocalObjectTemplate, desired.Spec.Infrastructure.LocalObjectTemplate,
 		field.NewPath("spec", "infrastructure"))...)
 
 	// Validate control plane changes desired a compatible way.
@@ -428,7 +428,7 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, LocalObjectTemplateIsValid(&clusterClass.Spec.Infrastructure, clusterClass.Namespace,
+	allErrs = append(allErrs, LocalObjectTemplateIsValid(&clusterClass.Spec.Infrastructure.LocalObjectTemplate, clusterClass.Namespace,
 		field.NewPath("spec", "infrastructure"))...)
 	allErrs = append(allErrs, LocalObjectTemplateIsValid(&clusterClass.Spec.ControlPlane.LocalObjectTemplate, clusterClass.Namespace,
 		field.NewPath("spec", "controlPlane"))...)

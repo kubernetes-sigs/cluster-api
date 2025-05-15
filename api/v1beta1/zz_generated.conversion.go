@@ -110,16 +110,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterClassSpec)(nil), (*v1beta2.ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(a.(*ClusterClassSpec), b.(*v1beta2.ClusterClassSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterClassSpec)(nil), (*ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(a.(*v1beta2.ClusterClassSpec), b.(*ClusterClassSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ClusterClassStatusVariable)(nil), (*v1beta2.ClusterClassStatusVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVariable(a.(*ClusterClassStatusVariable), b.(*v1beta2.ClusterClassStatusVariable), scope)
 	}); err != nil {
@@ -272,16 +262,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.FailureDomainSpec)(nil), (*FailureDomainSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_FailureDomainSpec_To_v1beta1_FailureDomainSpec(a.(*v1beta2.FailureDomainSpec), b.(*FailureDomainSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*InfrastructureNamingStrategy)(nil), (*v1beta2.InfrastructureNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_InfrastructureNamingStrategy_To_v1beta2_InfrastructureNamingStrategy(a.(*InfrastructureNamingStrategy), b.(*v1beta2.InfrastructureNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.InfrastructureNamingStrategy)(nil), (*InfrastructureNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_InfrastructureNamingStrategy_To_v1beta1_InfrastructureNamingStrategy(a.(*v1beta2.InfrastructureNamingStrategy), b.(*InfrastructureNamingStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -860,6 +840,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ClusterClassSpec)(nil), (*v1beta2.ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(a.(*ClusterClassSpec), b.(*v1beta2.ClusterClassSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClusterClassStatus)(nil), (*v1beta2.ClusterClassStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(a.(*ClusterClassStatus), b.(*v1beta2.ClusterClassStatus), scope)
 	}); err != nil {
@@ -877,6 +862,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Condition_To_v1_Condition(a.(*Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.InfrastructureClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(a.(*LocalObjectTemplate), b.(*v1beta2.InfrastructureClass), scope)
 	}); err != nil {
 		return err
 	}
@@ -900,6 +890,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterClassSpec)(nil), (*ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(a.(*v1beta2.ClusterClassSpec), b.(*ClusterClassSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterClassStatus)(nil), (*ClusterClassStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(a.(*v1beta2.ClusterClassStatus), b.(*ClusterClassStatus), scope)
 	}); err != nil {
@@ -907,6 +902,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(a.(*v1beta2.ClusterStatus), b.(*ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.InfrastructureClass)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_InfrastructureClass_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.InfrastructureClass), b.(*LocalObjectTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -1135,10 +1135,10 @@ func Convert_v1beta2_ClusterClassPatch_To_v1beta1_ClusterClassPatch(in *v1beta2.
 
 func autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterClassSpec, out *v1beta2.ClusterClassSpec, s conversion.Scope) error {
 	out.AvailabilityGates = *(*[]v1beta2.ClusterAvailabilityGate)(unsafe.Pointer(&in.AvailabilityGates))
-	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
-	out.InfrastructureNamingStrategy = (*v1beta2.InfrastructureNamingStrategy)(unsafe.Pointer(in.InfrastructureNamingStrategy))
+	// WARNING: in.InfrastructureNamingStrategy requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}
@@ -1150,17 +1150,11 @@ func autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *Cluste
 	return nil
 }
 
-// Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec is an autogenerated conversion function.
-func Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterClassSpec, out *v1beta2.ClusterClassSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in, out, s)
-}
-
 func autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta2.ClusterClassSpec, out *ClusterClassSpec, s conversion.Scope) error {
 	out.AvailabilityGates = *(*[]ClusterAvailabilityGate)(unsafe.Pointer(&in.AvailabilityGates))
-	if err := Convert_v1beta2_LocalObjectTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta2_InfrastructureClass_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
-	out.InfrastructureNamingStrategy = (*InfrastructureNamingStrategy)(unsafe.Pointer(in.InfrastructureNamingStrategy))
 	if err := Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}
@@ -1170,11 +1164,6 @@ func autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta
 	out.Variables = *(*[]ClusterClassVariable)(unsafe.Pointer(&in.Variables))
 	out.Patches = *(*[]ClusterClassPatch)(unsafe.Pointer(&in.Patches))
 	return nil
-}
-
-// Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec is an autogenerated conversion function.
-func Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta2.ClusterClassSpec, out *ClusterClassSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(in *ClusterClassStatus, out *v1beta2.ClusterClassStatus, s conversion.Scope) error {
@@ -1772,26 +1761,6 @@ func autoConvert_v1beta2_FailureDomainSpec_To_v1beta1_FailureDomainSpec(in *v1be
 // Convert_v1beta2_FailureDomainSpec_To_v1beta1_FailureDomainSpec is an autogenerated conversion function.
 func Convert_v1beta2_FailureDomainSpec_To_v1beta1_FailureDomainSpec(in *v1beta2.FailureDomainSpec, out *FailureDomainSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_FailureDomainSpec_To_v1beta1_FailureDomainSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_InfrastructureNamingStrategy_To_v1beta2_InfrastructureNamingStrategy(in *InfrastructureNamingStrategy, out *v1beta2.InfrastructureNamingStrategy, s conversion.Scope) error {
-	out.Template = (*string)(unsafe.Pointer(in.Template))
-	return nil
-}
-
-// Convert_v1beta1_InfrastructureNamingStrategy_To_v1beta2_InfrastructureNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta1_InfrastructureNamingStrategy_To_v1beta2_InfrastructureNamingStrategy(in *InfrastructureNamingStrategy, out *v1beta2.InfrastructureNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_InfrastructureNamingStrategy_To_v1beta2_InfrastructureNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_InfrastructureNamingStrategy_To_v1beta1_InfrastructureNamingStrategy(in *v1beta2.InfrastructureNamingStrategy, out *InfrastructureNamingStrategy, s conversion.Scope) error {
-	out.Template = (*string)(unsafe.Pointer(in.Template))
-	return nil
-}
-
-// Convert_v1beta2_InfrastructureNamingStrategy_To_v1beta1_InfrastructureNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta2_InfrastructureNamingStrategy_To_v1beta1_InfrastructureNamingStrategy(in *v1beta2.InfrastructureNamingStrategy, out *InfrastructureNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_InfrastructureNamingStrategy_To_v1beta1_InfrastructureNamingStrategy(in, out, s)
 }
 
 func autoConvert_v1beta1_JSONPatch_To_v1beta2_JSONPatch(in *JSONPatch, out *v1beta2.JSONPatch, s conversion.Scope) error {

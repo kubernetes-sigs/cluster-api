@@ -197,8 +197,8 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	currentRef := cluster.Spec.InfrastructureRef
 
 	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
-	if s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy != nil && s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy.Template != nil {
-		nameTemplate = *s.Blueprint.ClusterClass.Spec.InfrastructureNamingStrategy.Template
+	if s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template != nil {
+		nameTemplate = *s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template
 	}
 
 	infrastructureCluster, err := templateToObject(templateToInput{

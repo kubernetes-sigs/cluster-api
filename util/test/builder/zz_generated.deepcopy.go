@@ -165,7 +165,7 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 	}
 	if in.infraClusterNamingStrategy != nil {
 		in, out := &in.infraClusterNamingStrategy, &out.infraClusterNamingStrategy
-		*out = new(v1beta2.InfrastructureNamingStrategy)
+		*out = new(v1beta2.InfrastructureClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.machineDeploymentClasses != nil {

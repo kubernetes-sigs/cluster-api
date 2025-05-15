@@ -439,19 +439,19 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if clusterClass.Spec.InfrastructureNamingStrategy != nil && clusterClass.Spec.InfrastructureNamingStrategy.Template != nil {
-		name, err := topologynames.InfraClusterNameGenerator(*clusterClass.Spec.InfrastructureNamingStrategy.Template, "cluster").GenerateName()
-		templateFldPath := field.NewPath("spec", "infrastructureNamingStrategy", "template")
+	if clusterClass.Spec.Infrastructure.NamingStrategy != nil && clusterClass.Spec.Infrastructure.NamingStrategy.Template != nil {
+		name, err := topologynames.InfraClusterNameGenerator(*clusterClass.Spec.Infrastructure.NamingStrategy.Template, "cluster").GenerateName()
+		templateFldPath := field.NewPath("spec", "infrastructure", "namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					templateFldPath,
-					*clusterClass.Spec.InfrastructureNamingStrategy.Template,
+					*clusterClass.Spec.Infrastructure.NamingStrategy.Template,
 					fmt.Sprintf("invalid InfraCluster name template: %v", err),
 				))
 		} else {
 			for _, err := range validation.IsDNS1123Subdomain(name) {
-				allErrs = append(allErrs, field.Invalid(templateFldPath, *clusterClass.Spec.InfrastructureNamingStrategy.Template, err))
+				allErrs = append(allErrs, field.Invalid(templateFldPath, *clusterClass.Spec.Infrastructure.NamingStrategy.Template, err))
 			}
 		}
 	}

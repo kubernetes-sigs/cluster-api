@@ -175,7 +175,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ControlPlane.MachineHealthCheck = restored.Spec.ControlPlane.MachineHealthCheck
 	dst.Spec.ControlPlane.ReadinessGates = restored.Spec.ControlPlane.ReadinessGates
 	dst.Spec.ControlPlane.NamingStrategy = restored.Spec.ControlPlane.NamingStrategy
-	dst.Spec.InfrastructureNamingStrategy = restored.Spec.InfrastructureNamingStrategy
+	dst.Spec.Infrastructure.NamingStrategy = restored.Spec.Infrastructure.NamingStrategy
 	dst.Spec.ControlPlane.NodeDrainTimeout = restored.Spec.ControlPlane.NodeDrainTimeout
 	dst.Spec.ControlPlane.NodeVolumeDetachTimeout = restored.Spec.ControlPlane.NodeVolumeDetachTimeout
 	dst.Spec.ControlPlane.NodeDeletionTimeout = restored.Spec.ControlPlane.NodeDeletionTimeout
@@ -286,7 +286,7 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
 		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
-	
+
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
@@ -517,6 +517,22 @@ func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, 
 func Convert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apimachineryconversion.Scope) error {
 	// spec.{variables,patches} has been added with v1beta1.
 	return autoConvert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
+}
+
+func Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(in *clusterv1.InfrastructureClass, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+	if in == nil {
+		return nil
+	}
+
+	return autoConvert_v1beta2_LocalObjectTemplate_To_v1alpha4_LocalObjectTemplate(&in.LocalObjectTemplate, out, s)
+}
+
+func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *LocalObjectTemplate, out *clusterv1.InfrastructureClass, s apimachineryconversion.Scope) error {
+	if in == nil {
+		return nil
+	}
+
+	return autoConvert_v1alpha4_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(in, &out.LocalObjectTemplate, s)
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {

@@ -15,6 +15,9 @@ limitations under the License.
 */
 
 // Package builder implements builder and CRDs for creating API objects for testing.
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+//
 // +kubebuilder:object:generate=true
 // +groupName=test.cluster.x-k8s.io
 // +versionName=v1alpha1

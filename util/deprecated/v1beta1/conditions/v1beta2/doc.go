@@ -29,4 +29,6 @@ limitations under the License.
 //
 // In order to make this transition easier both for CAPI and other projects using this package,
 // utils automatically adapt to handle objects at different stage of the transition.
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 package v1beta2

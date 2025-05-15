@@ -477,7 +477,9 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
 func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
-	md.Status = calculateV1Beta1Status(allMSs, newMS, md)
+	// Set replica counters on MD status.
+	setReplicas(md, allMSs)
+	calculateV1Beta1Status(allMSs, newMS, md)
 
 	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
 	minReplicasNeeded := *(md.Spec.Replicas) - mdutil.MaxUnavailable(*md)
@@ -503,14 +505,11 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 		v1beta1conditions.MarkFalse(md, clusterv1.MachineSetReadyV1Beta1Condition, clusterv1.WaitingForMachineSetFallbackV1Beta1Reason, clusterv1.ConditionSeverityInfo, "MachineSet not found")
 	}
 
-	// Set replica counters on MD status.
-	setReplicas(md, allMSs)
-
 	return nil
 }
 
 // calculateV1Beta1Status calculates the latest status for the provided deployment by looking into the provided MachineSets.
-func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) clusterv1.MachineDeploymentStatus {
+func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) {
 	availableReplicas := mdutil.GetV1Beta1AvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	unavailableReplicas := totalReplicas - availableReplicas
@@ -521,49 +520,17 @@ func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.Mac
 		unavailableReplicas = 0
 	}
 
-	// Calculate the label selector. We check the error in the MD reconcile function, ignore here.
-	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector)
-
-	// Carry over deprecated v1beta1 conditions if defined.
-	var conditions clusterv1.Conditions
-	if deployment.Status.Deprecated != nil && deployment.Status.Deprecated.V1Beta1 != nil {
-		conditions = deployment.Status.Deprecated.V1Beta1.Conditions
+	if deployment.Status.Deprecated == nil {
+		deployment.Status.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}
+	}
+	if deployment.Status.Deprecated.V1Beta1 == nil {
+		deployment.Status.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
 	}
 
-	status := clusterv1.MachineDeploymentStatus{
-		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.
-		ObservedGeneration: deployment.Generation,
-		Selector:           selector.String(),
-		Replicas:           mdutil.GetActualReplicaCountForMachineSets(allMSs),
-		Deprecated: &clusterv1.MachineDeploymentDeprecatedStatus{
-			V1Beta1: &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{
-				Conditions:          conditions,
-				UpdatedReplicas:     mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS}),
-				ReadyReplicas:       mdutil.GetV1Beta1ReadyReplicaCountForMachineSets(allMSs),
-				AvailableReplicas:   availableReplicas,
-				UnavailableReplicas: unavailableReplicas,
-			},
-		},
-		// preserve v1beta2 status
-		Conditions:        deployment.Status.Conditions,
-		AvailableReplicas: deployment.Status.AvailableReplicas,
-		ReadyReplicas:     deployment.Status.ReadyReplicas,
-		UpToDateReplicas:  deployment.Status.UpToDateReplicas,
-	}
-
-	status.Phase = string(clusterv1.MachineDeploymentPhaseUnknown)
-	if *deployment.Spec.Replicas == status.Deprecated.V1Beta1.ReadyReplicas {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
-	}
-	if *deployment.Spec.Replicas > status.Deprecated.V1Beta1.ReadyReplicas {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
-	}
-	// This is the same as unavailableReplicas, but we have to recalculate because unavailableReplicas
-	// would have been reset to zero above if it was negative
-	if totalReplicas-availableReplicas < 0 {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
-	}
-	return status
+	deployment.Status.Deprecated.V1Beta1.UpdatedReplicas = mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS})
+	deployment.Status.Deprecated.V1Beta1.ReadyReplicas = mdutil.GetV1Beta1ReadyReplicaCountForMachineSets(allMSs)
+	deployment.Status.Deprecated.V1Beta1.AvailableReplicas = availableReplicas
+	deployment.Status.Deprecated.V1Beta1.UnavailableReplicas = unavailableReplicas
 }
 
 func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {

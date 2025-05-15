@@ -23,8 +23,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -37,7 +39,15 @@ import (
 // updateStatus updates MachineSet's status.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
-func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	selector, err := metav1.LabelSelectorAsSelector(&s.machineSet.Spec.Selector)
+	if err != nil {
+		return errors.Wrapf(err, "failed to update status for MachineSet %s", klog.KObj(s.machineSet))
+	}
+	s.machineSet.Status.Selector = selector.String()
+
 	// Update replica counter fields in status from the machines list.
 	setReplicas(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
@@ -59,6 +69,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
+
+	return nil
 }
 
 func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
@@ -80,6 +92,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 		}
 	}
 
+	ms.Status.Replicas = int32(len(machines))
 	ms.Status.ReadyReplicas = ptr.To(readyReplicas)
 	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
 	ms.Status.UpToDateReplicas = ptr.To(upToDateReplicas)

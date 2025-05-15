@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/test/builder"
 )
@@ -37,10 +38,10 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	g.Expect(builder.AddTransitionV1Beta2ToScheme(scheme)).To(Succeed())
-	g.Expect(clusterv1beta1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	// Cluster Case 1: unpaused
-	normalCluster := &clusterv1beta1.Cluster{
+	normalCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "some-cluster",
 			Namespace: "default",
@@ -64,7 +65,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	tests := []struct {
 		name                             string
-		cluster                          *clusterv1beta1.Cluster
+		cluster                          *clusterv1.Cluster
 		object                           ConditionSetter
 		wantIsPaused                     bool
 		wantRequeueAfterGenerationChange bool
@@ -103,7 +104,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 			g := NewWithT(t)
 			ctx := context.Background()
 
-			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1beta1.Cluster{}, &builder.Phase1Obj{}).
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}, &builder.Phase1Obj{}).
 				WithObjects(tt.object, tt.cluster).Build()
 
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(tt.object), tt.object)).To(Succeed())

@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -41,7 +42,7 @@ type ConditionSetter interface {
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1beta1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
+func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
 	oldCondition := v1beta2conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1beta1.PausedV1Beta2Condition)
 
@@ -90,7 +91,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 }
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1beta1.Cluster, obj ConditionSetter, targetConditionType string) metav1.Condition {
+func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj ConditionSetter, targetConditionType string) metav1.Condition {
 	if (cluster != nil && cluster.Spec.Paused) || annotations.HasPaused(obj) {
 		var messages []string
 		if cluster != nil && cluster.Spec.Paused {

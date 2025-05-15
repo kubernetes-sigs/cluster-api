@@ -279,7 +279,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	return patchHelper.Patch(
 		ctx,
 		dockerMachine,
-		patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyV1Beta1Condition,
 			infrav1.ContainerProvisionedCondition,
 			infrav1.BootstrapExecSucceededCondition,

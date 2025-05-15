@@ -77,7 +77,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 		}
 
-		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+		if err := patchHelper.Patch(ctx, m, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 		}}, patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.MachineOwnerRemediatedCondition,
@@ -156,7 +156,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	defer func() {
 		// Always attempt to Patch the Machine conditions after each reconcileUnhealthyMachines.
 		if err := patchHelper.Patch(ctx, machineToBeRemediated,
-			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			}},
 			patch.WithOwnedConditions{Conditions: []string{

@@ -330,7 +330,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 	for i := range c.Machines {
 		machine := c.Machines[i]
 		if helper, ok := c.machinesPatchHelpers[machine.Name]; ok {
-			if err := helper.Patch(ctx, machine, patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+			if err := helper.Patch(ctx, machine, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 				controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition,
 				controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition,
 				controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition,

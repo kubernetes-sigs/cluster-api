@@ -255,7 +255,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{
-			patch.WithOwnedV1beta1Conditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.ReadyV1Beta1Condition,
 				bootstrapv1.DataSecretAvailableV1Beta1Condition,
 				bootstrapv1.CertificatesAvailableV1Beta1Condition,

@@ -86,26 +86,26 @@ type IPAddressClaim struct {
 	Status IPAddressClaimStatus `json:"status,omitempty"`
 }
 
-// GetV1Beta1Conditions returns the set of conditions for this object.
-func (m *IPAddressClaim) GetV1Beta1Conditions() clusterv1beta1.Conditions {
+// GetConditions returns the set of conditions for this object.
+func (m *IPAddressClaim) GetConditions() clusterv1beta1.Conditions {
 	return m.Status.Conditions
 }
 
-// SetV1Beta1Conditions sets the conditions on this object.
-func (m *IPAddressClaim) SetV1Beta1Conditions(conditions clusterv1beta1.Conditions) {
+// SetConditions sets the conditions on this object.
+func (m *IPAddressClaim) SetConditions(conditions clusterv1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 
-// GetConditions returns the set of conditions for this object.
-func (m *IPAddressClaim) GetConditions() []metav1.Condition {
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (m *IPAddressClaim) GetV1Beta2Conditions() []metav1.Condition {
 	if m.Status.V1Beta2 == nil {
 		return nil
 	}
 	return m.Status.V1Beta2.Conditions
 }
 
-// SetConditions sets conditions for an API object.
-func (m *IPAddressClaim) SetConditions(conditions []metav1.Condition) {
+// SetV1Beta2Conditions sets conditions for an API object.
+func (m *IPAddressClaim) SetV1Beta2Conditions(conditions []metav1.Condition) {
 	if m.Status.V1Beta2 == nil {
 		m.Status.V1Beta2 = &IPAddressClaimV1Beta2Status{}
 	}

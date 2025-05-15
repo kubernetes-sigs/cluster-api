@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
@@ -258,6 +259,12 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			Count:             int(clusterResources.ExpectedTotalNodes()),
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
+
+		Byf("Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines")
+		verifyV1Beta2Conditions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster.Name, clusterResources.Cluster.Namespace,
+			map[string]struct{}{
+				clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
+			})
 
 		if !input.SkipConformanceTests {
 			By("Running conformance tests")

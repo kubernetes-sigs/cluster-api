@@ -302,6 +302,12 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...).Should(Succeed())
 		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.FilterMetadataBeforeValidation)
 
+		Byf("Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines")
+		verifyV1Beta2Conditions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster.Name, clusterResources.Cluster.Namespace,
+			map[string]struct{}{
+				clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
+			})
+
 		By("PASSED!")
 	})
 

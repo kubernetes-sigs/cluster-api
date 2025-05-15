@@ -72,7 +72,7 @@ type CertManagerUpgradePlan struct {
 type CertManagerClient interface {
 	// EnsureInstalled makes sure cert-manager is running and its API is available.
 	// This is required to install a new provider.
-	EnsureInstalled(ctx context.Context) error
+	EnsureInstalled(ctx context.Context, retryReadinessCheck bool) error
 
 	// EnsureLatestVersion checks the cert-manager version currently installed, and if it is
 	// older than the version currently suggested by clusterctl, upgrades it.
@@ -155,11 +155,11 @@ func (cm *certManagerClient) certManagerNamespaceExists(ctx context.Context) (bo
 
 // EnsureInstalled makes sure cert-manager is running and its API is available.
 // This is required to install a new provider.
-func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
+func (cm *certManagerClient) EnsureInstalled(ctx context.Context, retryReadinessCheck bool) error {
 	log := logf.Log
 
 	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
-	if err := cm.waitForAPIReady(ctx, false); err == nil {
+	if err := cm.waitForAPIReady(ctx, retryReadinessCheck); err == nil {
 		log.Info("Skipping installing cert-manager as it is already installed")
 		return nil
 	}
@@ -555,13 +555,14 @@ func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) er
 		return err
 	}
 
+	waitTimeout := cm.getWaitTimeout()
 	for i := range testObjs {
 		o := testObjs[i]
 
 		// Create the Kubernetes object.
 		// This is wrapped with a retry as the cert-manager API may not be available
-		// yet, so we need to keep retrying until it is.
-		if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, cm.getWaitTimeout(), func(ctx context.Context) (bool, error) {
+		// yet, so we need to keep retrying until it is.createObjcreateObj
+		if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, waitTimeout, func(ctx context.Context) (bool, error) {
 			if err := cm.createObj(ctx, o); err != nil {
 				// If retrying is disabled, return the error here.
 				if !retry {

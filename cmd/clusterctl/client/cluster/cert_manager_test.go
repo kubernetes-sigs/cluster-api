@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -808,6 +809,67 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 	}
 }
 
+func Test_certManagerClient_EnsureInstalled(t *testing.T) {
+	tests := []struct {
+		name                     string
+		retryReadinessCheck      bool
+		expectedError            error
+		expectedCertManagerCalls int
+	}{
+		{
+			name:                "Retries checking for existing cert-manager",
+			retryReadinessCheck: true,
+			// because of current EnsureInstalled logic, where the code to check for existing cert-manager
+			// and code to do a new installation if that check failed call the same methods/functions
+			// (or those methods/functions aren't really mockable from unit test POV), counting the number
+			// of calls to cm.configClient.CertManager() seems like a reasonable way to differntiate between paths
+			// and test the retry logic
+			expectedCertManagerCalls: 1,
+		},
+		{
+			name:                     "Checks for existing cert-manager only once",
+			retryReadinessCheck:      false,
+			expectedCertManagerCalls: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeConfigClient := newFakeConfig()
+			// make the proxy NewClient() calls return two errors on two initial calls, then nil's
+			proxy := test.NewFakeProxy().WithNewClientErrors(
+				errors.New("fail1"),
+				errors.New("fail2"),
+			)
+			pollImmediateWaiter := func(ctx context.Context, _ time.Duration, _ time.Duration, f wait.ConditionWithContextFunc) error {
+				// mimic non-test behavior
+				return wait.PollUntilContextTimeout(ctx, 0, 10*time.Second, true, f)
+			}
+			repo := repository.NewMemoryRepository().
+				WithPaths("root", "components.yaml").
+				WithDefaultVersion(config.CertManagerDefaultVersion).
+				WithFile(config.CertManagerDefaultVersion, "components.yaml", certManagerDeploymentYaml)
+			repositoryClientFactory := func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
+				return repository.New(ctx, provider, configClient, repository.InjectRepository(repo))
+			}
+
+			cm := newCertManagerClient(fakeConfigClient, repositoryClientFactory, proxy, pollImmediateWaiter)
+
+			err := cm.EnsureInstalled(context.TODO(), tt.retryReadinessCheck)
+
+			if tt.expectedError != nil {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err).To(MatchError(tt.expectedError))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(fakeConfigClient.certManagerCalls).To(Equal(tt.expectedCertManagerCalls))
+		})
+	}
+}
+
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
@@ -821,23 +883,26 @@ func newFakeConfig() *fakeConfigClient {
 type fakeConfigClient struct {
 	fakeReader     *test.FakeReader
 	internalclient config.Client
+
+	certManagerCalls int
 }
 
 var _ config.Client = &fakeConfigClient{}
 
-func (f fakeConfigClient) CertManager() config.CertManagerClient {
+func (f *fakeConfigClient) CertManager() config.CertManagerClient {
+	f.certManagerCalls++
 	return f.internalclient.CertManager()
 }
 
-func (f fakeConfigClient) Providers() config.ProvidersClient {
+func (f *fakeConfigClient) Providers() config.ProvidersClient {
 	return f.internalclient.Providers()
 }
 
-func (f fakeConfigClient) Variables() config.VariablesClient {
+func (f *fakeConfigClient) Variables() config.VariablesClient {
 	return f.internalclient.Variables()
 }
 
-func (f fakeConfigClient) ImageMeta() config.ImageMetaClient {
+func (f *fakeConfigClient) ImageMeta() config.ImageMetaClient {
 	return f.internalclient.ImageMeta()
 }
 

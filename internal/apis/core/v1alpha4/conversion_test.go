@@ -115,7 +115,7 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
 			in.Deprecated = nil
 		}
 	}
-	
+
 	// Drop empty structs with only omit empty fields.
 	if in.Initialization != nil {
 		if reflect.DeepEqual(in.Initialization, &clusterv1.ClusterInitializationStatus{}) {

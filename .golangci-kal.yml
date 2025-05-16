@@ -23,6 +23,7 @@ linters:
               - "nofloats" # Ensure floats are not used.
               - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
               - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+              - "statusoptional" # Ensure all first children within status should be optional.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
 
             # Per discussion in July 2024, we are keeping phase fields for now.

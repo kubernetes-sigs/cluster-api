@@ -36,7 +36,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:

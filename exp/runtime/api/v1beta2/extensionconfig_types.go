@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 )
 
 // ANCHOR: ExtensionConfigSpec
@@ -116,25 +116,6 @@ type ServiceReference struct {
 
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
 type ExtensionConfigStatus struct {
-	// handlers defines the current ExtensionHandlers supported by an Extension.
-	// +optional
-	// +listType=map
-	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=512
-	Handlers []ExtensionHandler `json:"handlers,omitempty"`
-
-	// conditions define the current service state of the ExtensionConfig.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in ExtensionConfig's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *ExtensionConfigV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// ExtensionConfigV1Beta2Status groups all the fields that will be added or modified in ExtensionConfig with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type ExtensionConfigV1Beta2Status struct {
 	// conditions represents the observations of a ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
 	// +optional
@@ -142,6 +123,38 @@ type ExtensionConfigV1Beta2Status struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// handlers defines the current ExtensionHandlers supported by an Extension.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=512
+	Handlers []ExtensionHandler `json:"handlers,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *ExtensionConfigDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// ExtensionConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+type ExtensionConfigDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	V1Beta1 *ExtensionConfigV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// ExtensionConfigV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ExtensionConfigV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the ExtensionConfig.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // ExtensionHandler specifies the details of a handler for a particular runtime hook registered by an Extension server.
@@ -203,7 +216,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:deprecatedversion
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ExtensionConfig"
 
 // ExtensionConfig is the Schema for the ExtensionConfig API.
@@ -223,30 +236,33 @@ type ExtensionConfig struct {
 	Status ExtensionConfigStatus `json:"status,omitempty"`
 }
 
-// GetConditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetConditions() clusterv1beta1.Conditions {
-	return e.Status.Conditions
-}
-
-// SetConditions sets the conditions on this object.
-func (e *ExtensionConfig) SetConditions(conditions clusterv1beta1.Conditions) {
-	e.Status.Conditions = conditions
-}
-
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetV1Beta2Conditions() []metav1.Condition {
-	if e.Status.V1Beta2 == nil {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (m *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
+	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return e.Status.V1Beta2.Conditions
+	return m.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if e.Status.V1Beta2 == nil {
-		e.Status.V1Beta2 = &ExtensionConfigV1Beta2Status{}
+// SetV1Beta1Conditions sets the conditions on this object.
+func (m *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if m.Status.Deprecated == nil {
+		m.Status.Deprecated = &ExtensionConfigDeprecatedStatus{}
 	}
-	e.Status.V1Beta2.Conditions = conditions
+	if m.Status.Deprecated.V1Beta1 == nil {
+		m.Status.Deprecated.V1Beta1 = &ExtensionConfigV1Beta1DeprecatedStatus{}
+	}
+	m.Status.Deprecated.V1Beta1.Conditions = conditions
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *ExtensionConfig) GetConditions() []metav1.Condition {
+	return m.Status.Conditions
+}
+
+// SetConditions sets conditions for an API object.
+func (m *ExtensionConfig) SetConditions(conditions []metav1.Condition) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
@@ -268,22 +284,22 @@ func init() {
 
 // ExtensionConfig's Discovered conditions and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
+	// ExtensionConfigDiscoveredCondition is true if the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredCondition = "Discovered"
 
-	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
+	// ExtensionConfigDiscoveredReason surfaces that the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredReason = "Discovered"
 
-	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.
-	ExtensionConfigNotDiscoveredV1Beta2Reason = "NotDiscovered"
+	// ExtensionConfigNotDiscoveredReason surfaces that the runtime extension has not been successfully discovered.
+	ExtensionConfigNotDiscoveredReason = "NotDiscovered"
 )
 
 const (
-	// RuntimeExtensionDiscoveredCondition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
-	RuntimeExtensionDiscoveredCondition clusterv1beta1.ConditionType = "Discovered"
+	// RuntimeExtensionDiscoveredV1Beta1Condition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
+	RuntimeExtensionDiscoveredV1Beta1Condition clusterv1.ConditionType = "Discovered"
 
-	// DiscoveryFailedReason documents failure of a Discovery call.
-	DiscoveryFailedReason string = "DiscoveryFailed"
+	// DiscoveryFailedV1Beta1Reason documents failure of a Discovery call.
+	DiscoveryFailedV1Beta1Reason string = "DiscoveryFailed"
 
 	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
 	// object wants injection of CAs. The value is a reference to a Secret

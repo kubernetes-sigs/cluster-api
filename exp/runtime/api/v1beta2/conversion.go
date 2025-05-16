@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains the v1alpha1 implementation of ExtensionConfig.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2
-package v1alpha1
+package v1beta2
+
+func (*ExtensionConfig) Hub() {}

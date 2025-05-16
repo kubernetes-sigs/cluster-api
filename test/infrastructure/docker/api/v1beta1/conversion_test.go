@@ -1,7 +1,7 @@
 //go:build !race
 
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1beta1
 
 import (
 	"testing"
@@ -31,6 +31,11 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for DockerCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &infrav1.DockerCluster{},
 		Spoke: &DockerCluster{},
+	}))
+
+	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerClusterTemplate{},
+		Spoke: &DockerClusterTemplate{},
 	}))
 
 	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

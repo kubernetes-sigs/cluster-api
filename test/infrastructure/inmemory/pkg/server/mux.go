@@ -612,7 +612,7 @@ func (m *WorkloadClustersMux) DeleteWorkloadClusterListener(wclName string) erro
 	}
 
 	if wcl.listener != nil {
-		if err := wcl.listener.Close(); !errors.Is(err, net.ErrClosed) {
+		if err := wcl.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
 		}
 	}
@@ -634,7 +634,7 @@ func (m *WorkloadClustersMux) Shutdown(ctx context.Context) error {
 	}
 
 	// NOTE: this closes all the listeners
-	if err := m.muxServer.Shutdown(ctx); !errors.Is(err, net.ErrClosed) {
+	if err := m.muxServer.Shutdown(ctx); err != nil && !errors.Is(err, net.ErrClosed) {
 		return errors.Wrap(err, "failed to shutdown the mux server")
 	}
 

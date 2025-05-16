@@ -760,7 +760,7 @@ func Convert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *
 	if err := autoConvert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Template.Spec.MinReadySeconds = *in.MinReadySeconds
+	out.Template.Spec.MinReadySeconds = in.MinReadySeconds
 	return nil
 }
 
@@ -768,7 +768,7 @@ func Convert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec
 	if err := autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Template.Spec.MinReadySeconds = in.MinReadySeconds
+	out.Template.Spec.MinReadySeconds = &in.MinReadySeconds
 	return nil
 }
 

@@ -21,7 +21,7 @@ import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 )
 
@@ -49,7 +49,7 @@ func Convert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
 		if in.Deprecated.V1Beta1.Conditions != nil {
-			out.Conditions = in.Deprecated.V1Beta1.Conditions
+			clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 		}
 	}
 
@@ -88,17 +88,15 @@ func Convert_v1alpha1_ExtensionConfigStatus_To_v1beta2_ExtensionConfigStatus(in 
 		out.Deprecated.V1Beta1 = &runtimev1.ExtensionConfigV1Beta1DeprecatedStatus{}
 	}
 	if in.Conditions != nil {
-		out.Deprecated.V1Beta1.Conditions = in.Conditions
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 	return nil
 }
 
-func Convert_v1_Condition_To_v1beta2_Condition(_ *metav1.Condition, _ *clusterv1.Condition, _ apimachineryconversion.Scope) error {
-	// NOTE: v1beta2 conditions should not be automatically converted into legacy (v1beta2) conditions.
-	return nil
+func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *clusterv1beta1.Condition, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1_Condition_To_v1beta1_Condition(in, out, s)
 }
 
-func Convert_v1beta2_Condition_To_v1_Condition(_ *clusterv1.Condition, _ *metav1.Condition, _ apimachineryconversion.Scope) error {
-	// NOTE: legacy (v1beta2) conditions should not be automatically converted into v1beta2 conditions.
-	return nil
+func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
 }

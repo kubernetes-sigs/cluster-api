@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ANCHOR: ExtensionConfigSpec
@@ -125,7 +125,7 @@ type ExtensionConfigStatus struct {
 
 	// conditions define the current service state of the ExtensionConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in ExtensionConfig's status with the V1Beta2 version.
 	// +optional
@@ -203,6 +203,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ExtensionConfig"
 
 // ExtensionConfig is the Schema for the ExtensionConfig API.
@@ -222,26 +223,26 @@ type ExtensionConfig struct {
 	Status ExtensionConfigStatus `json:"status,omitempty"`
 }
 
-// GetV1Beta1Conditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetV1Beta1Conditions() clusterv1.Conditions {
+// GetConditions returns the set of conditions for this object.
+func (e *ExtensionConfig) GetConditions() clusterv1beta1.Conditions {
 	return e.Status.Conditions
 }
 
-// SetV1Beta1Conditions sets the conditions on this object.
-func (e *ExtensionConfig) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+// SetConditions sets the conditions on this object.
+func (e *ExtensionConfig) SetConditions(conditions clusterv1beta1.Conditions) {
 	e.Status.Conditions = conditions
 }
 
-// GetConditions returns the set of conditions for this object.
-func (e *ExtensionConfig) GetConditions() []metav1.Condition {
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (e *ExtensionConfig) GetV1Beta2Conditions() []metav1.Condition {
 	if e.Status.V1Beta2 == nil {
 		return nil
 	}
 	return e.Status.V1Beta2.Conditions
 }
 
-// SetConditions sets conditions for an API object.
-func (e *ExtensionConfig) SetConditions(conditions []metav1.Condition) {
+// SetV1Beta2Conditions sets conditions for an API object.
+func (e *ExtensionConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
 	if e.Status.V1Beta2 == nil {
 		e.Status.V1Beta2 = &ExtensionConfigV1Beta2Status{}
 	}
@@ -267,22 +268,22 @@ func init() {
 
 // ExtensionConfig's Discovered conditions and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// ExtensionConfigDiscoveredCondition is true if the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredCondition = "Discovered"
+	// ExtensionConfigDiscoveredV1Beta2Condition is true if the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredV1Beta2Condition = "Discovered"
 
-	// ExtensionConfigDiscoveredReason surfaces that the runtime extension has been successfully discovered.
-	ExtensionConfigDiscoveredReason = "Discovered"
+	// ExtensionConfigDiscoveredV1Beta2Reason surfaces that the runtime extension has been successfully discovered.
+	ExtensionConfigDiscoveredV1Beta2Reason = "Discovered"
 
-	// ExtensionConfigNotDiscoveredReason surfaces that the runtime extension has not been successfully discovered.
-	ExtensionConfigNotDiscoveredReason = "NotDiscovered"
+	// ExtensionConfigNotDiscoveredV1Beta2Reason surfaces that the runtime extension has not been successfully discovered.
+	ExtensionConfigNotDiscoveredV1Beta2Reason = "NotDiscovered"
 )
 
 const (
-	// RuntimeExtensionDiscoveredV1Beta1Condition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
-	RuntimeExtensionDiscoveredV1Beta1Condition clusterv1.ConditionType = "Discovered"
+	// RuntimeExtensionDiscoveredCondition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
+	RuntimeExtensionDiscoveredCondition clusterv1beta1.ConditionType = "Discovered"
 
-	// DiscoveryFailedV1Beta1Reason documents failure of a Discovery call.
-	DiscoveryFailedV1Beta1Reason string = "DiscoveryFailed"
+	// DiscoveryFailedReason documents failure of a Discovery call.
+	DiscoveryFailedReason string = "DiscoveryFailed"
 
 	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
 	// object wants injection of CAs. The value is a reference to a Secret

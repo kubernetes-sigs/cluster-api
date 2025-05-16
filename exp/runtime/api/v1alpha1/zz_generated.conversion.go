@@ -27,7 +27,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 )
 
@@ -108,8 +108,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta2.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1_Condition_To_v1beta2_Condition(a.(*v1.Condition), b.(*apiv1beta2.Condition), scope)
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*v1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*v1beta1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -118,8 +118,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Condition_To_v1_Condition(a.(*apiv1beta2.Condition), b.(*v1.Condition), scope)
+	if err := s.AddConversionFunc((*v1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*v1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func autoConvert_v1alpha1_ExtensionConfigStatus_To_v1beta2_ExtensionConfigStatus
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -277,9 +277,9 @@ func autoConvert_v1alpha1_ExtensionConfigStatus_To_v1beta2_ExtensionConfigStatus
 func autoConvert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in *v1beta2.ExtensionConfigStatus, out *ExtensionConfigStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta2.Conditions, len(*in))
+		*out = make(v1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

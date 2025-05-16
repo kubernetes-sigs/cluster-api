@@ -17,7 +17,6 @@ limitations under the License.
 package tree
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -845,11 +844,11 @@ func Test_Discovery(t *testing.T) {
 			for _, crd := range test.FakeCRDList() {
 				tt.args.objs = append(tt.args.objs, crd)
 			}
-			client, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient(context.Background())
+			client, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient(t.Context())
 			g.Expect(client).ToNot(BeNil())
 			g.Expect(err).ToNot(HaveOccurred())
 
-			tree, err := Discovery(context.TODO(), client, "ns1", "cluster1", tt.args.discoverOptions)
+			tree, err := Discovery(t.Context(), client, "ns1", "cluster1", tt.args.discoverOptions)
 			g.Expect(tree).ToNot(BeNil())
 			g.Expect(err).ToNot(HaveOccurred())
 

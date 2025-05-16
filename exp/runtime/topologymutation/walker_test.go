@@ -222,7 +222,7 @@ func Test_WalkTemplates(t *testing.T) {
 			response := &runtimehooksv1.GeneratePatchesResponse{}
 			request := &runtimehooksv1.GeneratePatchesRequest{Variables: tt.globalVariables, Items: tt.requestItems}
 
-			WalkTemplates(context.Background(), decoder, request, response, mutatingFunc, tt.options...)
+			WalkTemplates(t.Context(), decoder, request, response, mutatingFunc, tt.options...)
 
 			g.Expect(response.Status).To(Equal(tt.expectedResponse.Status))
 			g.Expect(response.Message).To(ContainSubstring(tt.expectedResponse.Message))

@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -67,7 +66,7 @@ func Test_componentsClient_Get(t *testing.T) {
 
 	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
 
-	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithVar(variableName, variableValue)))
+	configClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader().WithVar(variableName, variableValue)))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
@@ -260,7 +259,7 @@ func Test_componentsClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			options := ComponentsOptions{
 				Version:             tt.args.version,

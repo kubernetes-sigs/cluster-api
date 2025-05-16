@@ -18,7 +18,6 @@ package inline
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"testing"
 
@@ -415,7 +414,7 @@ func TestGenerate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := NewGenerator(tt.patch).Generate(context.Background(), &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, tt.req)
+			got, err := NewGenerator(tt.patch).Generate(t.Context(), &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, tt.req)
 
 			g.Expect(got).To(BeComparableTo(tt.want))
 			g.Expect(err).ToNot(HaveOccurred())

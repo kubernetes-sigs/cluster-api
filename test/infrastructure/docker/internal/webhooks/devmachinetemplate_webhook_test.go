@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -117,7 +116,7 @@ func TestDevMachineTemplateInvalid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := &DevMachineTemplate{}
-			ctx := context.Background()
+			ctx := t.Context()
 			if tt.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tt.req)
 			}

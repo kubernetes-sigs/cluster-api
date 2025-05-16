@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -106,7 +105,7 @@ func Test_viperReader_Init(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gg := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			v, _ := newViperReader(injectConfigPaths(tt.configDirs))
 			if tt.expectErr {
@@ -166,7 +165,7 @@ func Test_viperReader_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			v, _ := newViperReader(injectConfigPaths([]string{dir}))
 
@@ -187,7 +186,7 @@ func Test_viperReader_Get(t *testing.T) {
 func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	dir := t.TempDir()
 
@@ -235,7 +234,7 @@ func Test_viperReader_Set(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			v := &viperReader{}
 

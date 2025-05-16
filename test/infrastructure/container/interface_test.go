@@ -17,7 +17,6 @@ limitations under the License.
 package container
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -46,7 +45,7 @@ func TestFilterBuildKeyNameValue(t *testing.T) {
 func TestFakeContext(t *testing.T) {
 	g := NewWithT(t)
 	fake := FakeRuntime{}
-	ctx := RuntimeInto(context.Background(), &fake)
+	ctx := RuntimeInto(t.Context(), &fake)
 	rtc, err := RuntimeFrom(ctx)
 
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -58,7 +57,7 @@ func TestFakeContext(t *testing.T) {
 func TestDockerContext(t *testing.T) {
 	g := NewWithT(t)
 	docker := dockerRuntime{}
-	ctx := RuntimeInto(context.Background(), &docker)
+	ctx := RuntimeInto(t.Context(), &docker)
 	rtc, err := RuntimeFrom(ctx)
 
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -69,7 +68,7 @@ func TestDockerContext(t *testing.T) {
 
 func TestInvalidContext(t *testing.T) {
 	g := NewWithT(t)
-	_, err := RuntimeFrom(context.Background())
+	_, err := RuntimeFrom(t.Context())
 	g.Expect(err).Should(HaveOccurred())
 }
 

@@ -16,6 +16,7 @@ linters:
             enable:
               - "commentstart" # Ensure comments start with the serialized version of the field name.
               - "conditions" # Ensure conditions have the correct json tags and markers.
+              - "duplicatemarkers" # Ensure there are no exact duplicate markers. for types and fields.
               - "integers" # Ensure only int32 and int64 are used for integers.
               - "jsontags" # Ensure every field has a json tag.
               - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.

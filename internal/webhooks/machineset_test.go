@@ -61,6 +61,7 @@ func TestMachineSetDefault(t *testing.T) {
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+	g.Expect(ms.Spec.Template.Spec.MinReadySeconds).To(Equal(ptr.To[int32](0)))
 }
 
 func TestCalculateMachineSetReplicas(t *testing.T) {

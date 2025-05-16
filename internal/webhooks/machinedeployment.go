@@ -100,10 +100,6 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	}
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = ptr.To[int32](0)
-	}
-
 	if m.Spec.RevisionHistoryLimit == nil {
 		m.Spec.RevisionHistoryLimit = ptr.To[int32](1)
 	}
@@ -166,6 +162,10 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 
 	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
 		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
+
+	if m.Spec.Template.Spec.MinReadySeconds == nil {
+		m.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 	}
 
 	return nil

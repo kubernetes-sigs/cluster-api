@@ -65,11 +65,6 @@ type MachineSetSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
-	// Defaults to 0 (machine will be considered available as soon as the Node is ready)
-	// +optional
-	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
-
 	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
 	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest

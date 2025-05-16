@@ -58,6 +58,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
 		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
 	}
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	// Manually restore data.
 	restored := &expv1.MachinePool{}
@@ -111,6 +112,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
 
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -140,4 +143,8 @@ func Convert_v1_Condition_To_v1alpha4_Condition(in *metav1.Condition, out *clust
 
 func Convert_v1alpha4_Condition_To_v1_Condition(in *clusterv1alpha4.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1alpha4_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *expv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }

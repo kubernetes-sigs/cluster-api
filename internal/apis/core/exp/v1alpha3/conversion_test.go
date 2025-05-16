@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
@@ -50,8 +50,8 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
@@ -68,15 +68,15 @@ func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
 	}
 }
 
-func spokeBootstrap(in *clusterv1alpha3.Bootstrap, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeBootstrap(in *clusterv1alpha3.Bootstrap, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Bootstrap.Data has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	in.Data = nil
 }
 
-func spokeObjectMeta(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeObjectMeta(in *clusterv1alpha3.ObjectMeta, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.
@@ -86,8 +86,8 @@ func spokeObjectMeta(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
 	in.OwnerReferences = nil
 }
 
-func spokeMachinePoolSpec(in *MachinePoolSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeMachinePoolSpec(in *MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.

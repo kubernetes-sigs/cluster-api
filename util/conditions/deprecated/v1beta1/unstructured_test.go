@@ -53,7 +53,7 @@ func TestUnstructuredGetConditions(t *testing.T) {
 	g.Expect(UnstructuredGetter(u).GetV1Beta1Conditions()).To(BeNil())
 
 	// GetV1Beta1Conditions should return nil for an unstructured object without conditions
-	e := &corev1.Endpoints{}
+	e := &corev1.Pod{}
 	u = &unstructured.Unstructured{}
 	g.Expect(scheme.Scheme.Convert(e, u, nil)).To(Succeed())
 

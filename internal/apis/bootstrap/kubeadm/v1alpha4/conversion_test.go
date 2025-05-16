@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -56,8 +56,8 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
@@ -91,12 +91,12 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *BootstrapTokenString, _ fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }

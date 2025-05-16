@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -39,8 +40,9 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneFuzzFuncs},
 	}))
 	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &controlplanev1.KubeadmControlPlaneTemplate{},
-		Spoke: &KubeadmControlPlaneTemplate{},
+		Hub:         &controlplanev1.KubeadmControlPlaneTemplate{},
+		Spoke:       &KubeadmControlPlaneTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmControlPlaneTemplateFuzzFuncs},
 	}))
 }
 
@@ -48,6 +50,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 	return []interface{}{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
+		spokeKubeadmConfigSpec,
 	}
 }
 
@@ -80,4 +83,17 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Contin
 
 	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
 	in.Ready = in.ReadyReplicas > 0
+}
+
+func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
+	}
+}
+
+func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
 }

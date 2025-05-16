@@ -39,14 +39,16 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &bootstrapv1.KubeadmConfigTemplate{},
-		Spoke: &KubeadmConfigTemplate{},
+		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
+		Spoke:       &KubeadmConfigTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},
 	}))
 }
 
 func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmConfigStatus,
+		spokeKubeadmConfigSpec,
 		spokeKubeadmConfigStatus,
 	}
 }
@@ -69,6 +71,13 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue
 	}
 }
 
+func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
+}
+
 func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -76,5 +85,11 @@ func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c fuzz.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &KubeadmConfigV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
 	}
 }

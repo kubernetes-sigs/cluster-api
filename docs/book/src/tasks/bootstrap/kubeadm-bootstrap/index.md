@@ -259,10 +259,4 @@ The `KubeadmConfig` object supports customizing the content of the config-data. 
     verbosity: 10
     ```
 
-- `KubeadmConfig.UseExperimentalRetryJoin` replaces a basic kubeadm command with a shell script with retries for joins. This will add about 40KB to userdata.
-
-    ```yaml
-    useExperimentalRetryJoin: true
-    ```
-
 For more information on cloud-init options, see [cloud config examples](https://cloudinit.readthedocs.io/en/latest/topics/examples.html).

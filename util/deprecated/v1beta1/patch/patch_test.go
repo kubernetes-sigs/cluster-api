@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -52,7 +51,7 @@ func TestPatchHelper(t *testing.T) {
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta2",
 				"metadata": map[string]interface{}{
 					"generateName": "test-bootstrap-",
 					"namespace":    ns.Name,
@@ -171,8 +170,8 @@ func TestPatchHelper(t *testing.T) {
 			}, timeout).Should(BeTrue())
 		})
 
-		t.Run("on a clusterv1.Cluster object", func(t *testing.T) {
-			obj := &clusterv1.Cluster{
+		t.Run("on a Phase1 object", func(t *testing.T) {
+			obj := &builder.Phase1Obj{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test-",
 					Namespace:    ns.Name,
@@ -317,10 +316,8 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Changing the object spec, status, and adding Ready=True condition")
-				obj.Spec.Paused = true
-				obj.Spec.ControlPlaneEndpoint.Host = "test://endpoint"
-				obj.Spec.ControlPlaneEndpoint.Port = 8443
-				obj.Status.Phase = "Provisioning"
+				obj.Spec.Foo = "Foo"
+				obj.Status.Bar = "Bar"
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
@@ -353,9 +350,8 @@ func TestPatchHelper(t *testing.T) {
 						return false
 					}
 
-					return obj.Spec.Paused == objAfter.Spec.Paused &&
-						obj.Spec.ControlPlaneEndpoint == objAfter.Spec.ControlPlaneEndpoint &&
-						obj.Status.Phase == objAfter.Status.Phase
+					return obj.Spec.Foo == objAfter.Spec.Foo &&
+						obj.Status.Bar == objAfter.Status.Bar
 				}, timeout).Should(BeTrue(), cmp.Diff(obj, objAfter))
 			})
 
@@ -514,8 +510,8 @@ func TestPatchHelper(t *testing.T) {
 		})
 	})
 
-	t.Run("Should patch a clusterv1.Cluster", func(t *testing.T) {
-		obj := &clusterv1.Cluster{
+	t.Run("Should patch a Phase1Obj", func(t *testing.T) {
+		obj := &builder.Phase1Obj{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
 				Namespace:    ns.Name,
@@ -624,12 +620,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: ns.Name,
-			}
+			obj.Spec.Foo = "Foo"
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -641,8 +632,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return objAfter.Spec.Paused &&
-					cmp.Equal(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+				return obj.Spec.Foo == objAfter.Spec.Foo
 			}, timeout).Should(BeTrue())
 		})
 
@@ -669,7 +659,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
-			obj.Status.InfrastructureReady = true
+			obj.Status.Bar = "Bar"
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -707,15 +697,10 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: ns.Name,
-			}
+			obj.Spec.Foo = "Foo"
 
 			t.Log("Updating the object status")
-			obj.Status.InfrastructureReady = true
+			obj.Status.Bar = "Bar"
 
 			t.Log("Setting Ready condition")
 			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -730,7 +715,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
+				return cmp.Equal(obj.Status.Bar, objAfter.Status.Bar) &&
 					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
 					cmp.Equal(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())
@@ -788,18 +773,10 @@ func TestPatchHelper(t *testing.T) {
 	})
 
 	t.Run("Should update Status.ObservedGeneration when using WithStatusObservedGeneration option", func(t *testing.T) {
-		obj := &clusterv1.MachineSet{
+		obj := &builder.Phase1Obj{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-ms",
 				Namespace:    ns.Name,
-			},
-			Spec: clusterv1.MachineSetSpec{
-				ClusterName: "test1",
-				Template: clusterv1.MachineTemplateSpec{
-					Spec: clusterv1.MachineSpec{
-						ClusterName: "test1",
-					},
-				},
 			},
 		}
 
@@ -826,7 +803,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Replicas = ptr.To[int32](10)
+			obj.Spec.Foo = "Foo"
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
@@ -866,11 +843,10 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Replicas = ptr.To[int32](10)
+			obj.Spec.Foo = "Foo"
 
 			t.Log("Updating the object status")
-			obj.Status.AvailableReplicas = 6
-			obj.Status.ReadyReplicas = 6
+			obj.Status.Bar = "Bar"
 
 			t.Log("Updating the object metadata")
 			obj.ObjectMeta.Annotations = map[string]string{
@@ -936,25 +912,17 @@ func TestPatchHelper(t *testing.T) {
 	t.Run("Should error if the object isn't the same", func(t *testing.T) {
 		g := NewWithT(t)
 
-		cluster := &clusterv1.Cluster{
+		cluster := &builder.Phase0Obj{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
 				Namespace:    ns.Name,
 			},
 		}
 
-		machineSet := &clusterv1.MachineSet{
+		machineSet := &builder.Phase1Obj{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-ms",
+				GenerateName: "test-2",
 				Namespace:    ns.Name,
-			},
-			Spec: clusterv1.MachineSetSpec{
-				ClusterName: "test1",
-				Template: clusterv1.MachineTemplateSpec{
-					Spec: clusterv1.MachineSpec{
-						ClusterName: "test1",
-					},
-				},
 			},
 		}
 
@@ -975,13 +943,13 @@ func TestPatchHelper(t *testing.T) {
 
 	t.Run("Should not error if there are no finalizers and deletion timestamp is not nil", func(t *testing.T) {
 		g := NewWithT(t)
-		cluster := &clusterv1.Cluster{
+		cluster := &builder.Phase1Obj{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       "test-cluster",
 				Namespace:  ns.Name,
 				Finalizers: []string{"block-deletion"},
 			},
-			Status: clusterv1.ClusterStatus{},
+			Status: builder.Phase1ObjStatus{},
 		}
 		key := client.ObjectKey{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
@@ -998,7 +966,7 @@ func TestPatchHelper(t *testing.T) {
 		patcher, err := NewHelper(cluster, env)
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster.Finalizers = []string{}
-		cluster.Status.Phase = "Running"
+		cluster.Status.Bar = "Bar"
 		g.Expect(patcher.Patch(ctx, cluster)).To(Succeed())
 	})
 }

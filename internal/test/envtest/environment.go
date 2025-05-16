@@ -108,16 +108,20 @@ func init() {
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	// Calculate the global scheme used by fakeclients.
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(runtimev1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(ipamv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(addonsv1.AddToScheme(scheme.Scheme))
+	registerSchemes(scheme.Scheme)
+}
+
+func registerSchemes(s *runtime.Scheme) {
+	utilruntime.Must(admissionv1.AddToScheme(s))
+	utilruntime.Must(apiextensionsv1.AddToScheme(s))
+
+	utilruntime.Must(addonsv1.AddToScheme(s))
+	utilruntime.Must(bootstrapv1.AddToScheme(s))
+	utilruntime.Must(clusterv1.AddToScheme(s))
+	utilruntime.Must(controlplanev1.AddToScheme(s))
+	utilruntime.Must(expv1.AddToScheme(s))
+	utilruntime.Must(ipamv1.AddToScheme(s))
+	utilruntime.Must(runtimev1.AddToScheme(s))
 }
 
 // RunInput is the input for Run.
@@ -153,20 +157,12 @@ func Run(ctx context.Context, input RunInput) int {
 
 	// Calculate the scheme.
 	scheme := runtime.NewScheme()
+	registerSchemes(scheme)
+	// Register additional schemes from k8s APIs.
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
-
-	utilruntime.Must(addonsv1.AddToScheme(scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(bootstrapv1.AddToScheme(scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(controlplanev1.AddToScheme(scheme))
-	utilruntime.Must(expv1.AddToScheme(scheme))
-	utilruntime.Must(ipamv1.AddToScheme(scheme))
-	utilruntime.Must(runtimev1.AddToScheme(scheme))
+	// Register additionally passed schemes.
 	if input.AdditionalSchemeBuilder != nil {
 		utilruntime.Must(input.AdditionalSchemeBuilder.AddToScheme(scheme))
 	}

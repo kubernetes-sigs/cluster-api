@@ -18,12 +18,15 @@ package patch
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 const (
@@ -39,5 +42,11 @@ func TestMain(m *testing.M) {
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M:        m,
 		SetupEnv: func(e *envtest.Environment) { env = e },
+		AdditionalCRDDirectoryPaths: []string{
+			filepath.Join("util", "test", "builder", "crd"),
+		},
+		AdditionalSchemeBuilder: runtime.NewSchemeBuilder(
+			builder.AddTransitionV1Beta2ToScheme,
+		),
 	}))
 }

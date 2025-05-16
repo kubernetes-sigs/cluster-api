@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
 const (
@@ -43,7 +43,7 @@ type DockerMachinePoolMachineTemplate struct {
 	// ExtraMounts describes additional mount points for the node container
 	// These may be used to bind a hostPath
 	// +optional
-	ExtraMounts []infrav1beta1.Mount `json:"extraMounts,omitempty"`
+	ExtraMounts []infrav1.Mount `json:"extraMounts,omitempty"`
 }
 
 // DockerMachinePoolSpec defines the desired state of DockerMachinePool.
@@ -119,7 +119,7 @@ type DockerMachinePoolInstanceStatus struct {
 }
 
 // +kubebuilder:resource:path=dockermachinepools,scope=Namespaced,categories=cluster-api
-// +kubebuilder:deprecatedversion
+// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePool"

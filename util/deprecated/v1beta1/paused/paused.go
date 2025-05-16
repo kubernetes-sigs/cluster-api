@@ -42,9 +42,9 @@ type ConditionSetter interface {
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, requeue bool, err error) {
-	oldCondition := v1beta2conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
-	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1beta1.PausedV1Beta2Condition)
+func EnsurePausedCondition(ctx context.Context, c client.Client, v1beta1Cluster *clusterv1.Cluster, v1beta1Obj ConditionSetter) (isPaused bool, requeue bool, err error) {
+	oldCondition := v1beta2conditions.Get(v1beta1Obj, clusterv1beta1.PausedV1Beta2Condition)
+	newCondition := pausedCondition(c.Scheme(), v1beta1Cluster, v1beta1Obj, clusterv1beta1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
 	pausedStatusChanged := oldCondition == nil || oldCondition.Status != newCondition.Status
@@ -69,19 +69,19 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 		// Set condition and return early if only observed generation changed and obj is not paused.
 		// In this case we want to avoid the additional reconcile that we would get by requeueing.
 		if v1beta2conditions.HasSameStateExceptObservedGeneration(oldCondition, &newCondition) && !isPaused {
-			v1beta2conditions.Set(obj, newCondition)
+			v1beta2conditions.Set(v1beta1Obj, newCondition)
 			return isPaused, false, nil
 		}
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
+	patchHelper, err := patch.NewHelper(v1beta1Obj, c)
 	if err != nil {
 		return isPaused, false, err
 	}
 
-	v1beta2conditions.Set(obj, newCondition)
+	v1beta2conditions.Set(v1beta1Obj, newCondition)
 
-	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+	if err := patchHelper.Patch(ctx, v1beta1Obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 		clusterv1beta1.PausedV1Beta2Condition,
 	}}); err != nil {
 		return isPaused, false, err

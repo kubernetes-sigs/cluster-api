@@ -29,7 +29,7 @@ import (
 
 var (
 	// TestGroupVersion is group version used for test CRDs used for validating the v1beta2 transition.
-	TestGroupVersion = schema.GroupVersion{Group: "test.cluster.x-k8s.io", Version: "v1alpha1"}
+	TestGroupVersion = schema.GroupVersion{Group: "deprecatedtest.cluster.x-k8s.io", Version: "v1alpha1"}
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addTransitionV1beta2Types)
@@ -130,6 +130,10 @@ type Phase1ObjStatus struct {
 
 	// +optional
 	V1Beta2 *Phase1ObjV1Beta2Status `json:"v1beta2,omitempty"`
+
+	// observedGeneration reflects the generation of the most recently observed MachineSet.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // Phase1ObjV1Beta2Status defines the status.V1Beta2 of a Phase1Obj.

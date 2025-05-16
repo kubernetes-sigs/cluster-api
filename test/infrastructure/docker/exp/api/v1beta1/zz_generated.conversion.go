@@ -26,9 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
-	dockerapiv1beta2 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+	apiv1beta2 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 )
 
@@ -175,7 +175,7 @@ func Convert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(in *v1beta2.
 }
 
 func autoConvert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus(in *DockerMachinePoolInstanceStatus, out *v1beta2.DockerMachinePoolInstanceStatus, s conversion.Scope) error {
-	out.Addresses = *(*[]apiv1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceName = in.InstanceName
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
@@ -190,7 +190,7 @@ func Convert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoo
 }
 
 func autoConvert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(in *v1beta2.DockerMachinePoolInstanceStatus, out *DockerMachinePoolInstanceStatus, s conversion.Scope) error {
-	out.Addresses = *(*[]apiv1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceName = in.InstanceName
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.Version = (*string)(unsafe.Pointer(in.Version))
@@ -229,7 +229,7 @@ func Convert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(in *
 func autoConvert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(in *DockerMachinePoolMachineTemplate, out *v1beta2.DockerMachinePoolMachineTemplate, s conversion.Scope) error {
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]dockerapiv1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
+	out.ExtraMounts = *(*[]apiv1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
 	return nil
 }
 
@@ -283,7 +283,7 @@ func autoConvert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolSta
 	out.Replicas = in.Replicas
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Instances = *(*[]v1beta2.DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.InfrastructureMachineKind = in.InfrastructureMachineKind
 	return nil
 }
@@ -298,7 +298,7 @@ func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolSta
 	out.Replicas = in.Replicas
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Instances = *(*[]DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	out.Conditions = *(*apiv1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.InfrastructureMachineKind = in.InfrastructureMachineKind
 	return nil
 }

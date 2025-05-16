@@ -176,6 +176,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
           alias: infrav1alpha4
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
+          alias: infrav1beta1
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2
           alias: infrav1
         # CAPD exp
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3
@@ -183,6 +185,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
           alias: infraexpv1alpha4
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
+          alias: infraexpv1beta1
+        - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2
           alias: infraexpv1
       no-unaliased: true
     nolintlint:

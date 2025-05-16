@@ -107,7 +107,7 @@ func init() {
 	// Add logger for ginkgo.
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
-	// Calculate the scheme.
+	// Calculate the global scheme used by fakeclients.
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))

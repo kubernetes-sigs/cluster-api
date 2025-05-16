@@ -643,6 +643,11 @@ func Convert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, 
 	return autoConvert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in, out, s)
 }
 
+func Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 MachineDeploymentSpec does not have ProgressDeadlineSeconds anymore. But it's fine to just lose this field it was never used.
+	return autoConvert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
+}
+
 func Convert_v1alpha4_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *clusterv1.MachineDeploymentStatus, s apimachineryconversion.Scope) error {
 	return autoConvert_v1alpha4_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in, out, s)
 }

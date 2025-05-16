@@ -382,14 +382,13 @@ func TestScaleMachineSet(t *testing.T) {
 	}
 }
 
-func newTestMachineDeployment(pds *int32, replicas, statusReplicas, upToDateReplicas, availableReplicas int32) *clusterv1.MachineDeployment {
+func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availableReplicas int32) *clusterv1.MachineDeployment {
 	d := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "progress-test",
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ProgressDeadlineSeconds: pds,
-			Replicas:                &replicas,
+			Replicas: &replicas,
 			Strategy: &clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
@@ -432,7 +431,6 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 }
 
 func TestSyncDeploymentStatus(t *testing.T) {
-	pds := int32(60)
 	tests := []struct {
 		name               string
 		d                  *clusterv1.MachineDeployment
@@ -442,7 +440,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 	}{
 		{
 			name:           "Deployment not available: MachineDeploymentAvailableCondition should exist and be false",
-			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2),
+			d:              newTestMachineDeployment(3, 2, 2, 2),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2, nil),
 			expectedConditions: []*clusterv1.Condition{
@@ -456,7 +454,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "Deployment Available: MachineDeploymentAvailableCondition should exist and be true",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
+			d:              newTestMachineDeployment(3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3, nil),
 			expectedConditions: []*clusterv1.Condition{
@@ -468,7 +466,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "MachineSet exist: MachineSetReadyCondition should exist and mirror MachineSet Ready condition",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
+			d:              newTestMachineDeployment(3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet: newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{
 				{
@@ -489,7 +487,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 		},
 		{
 			name:           "MachineSet doesn't exist: MachineSetReadyCondition should exist and be false",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3),
+			d:              newTestMachineDeployment(3, 3, 3, 3),
 			oldMachineSets: []*clusterv1.MachineSet{},
 			newMachineSet:  nil,
 			expectedConditions: []*clusterv1.Condition{

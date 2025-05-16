@@ -312,17 +312,6 @@ type MachineDeploymentSpec struct {
 	// paused indicates that the deployment is paused.
 	// +optional
 	Paused bool `json:"paused,omitempty"`
-
-	// progressDeadlineSeconds is the maximum time in seconds for a deployment to make progress before it
-	// is considered to be failed. The deployment controller will continue to
-	// process failed deployments and a condition with a ProgressDeadlineExceeded
-	// reason will be surfaced in the deployment status. Note that progress will
-	// not be estimated during the time a deployment is paused. Defaults to 600s.
-	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details.
-	//
-	// +optional
-	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentSpec

@@ -108,10 +108,6 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 		m.Spec.RevisionHistoryLimit = ptr.To[int32](1)
 	}
 
-	if m.Spec.ProgressDeadlineSeconds == nil {
-		m.Spec.ProgressDeadlineSeconds = ptr.To[int32](600)
-	}
-
 	if m.Spec.Selector.MatchLabels == nil {
 		m.Spec.Selector.MatchLabels = make(map[string]string)
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // DevClusterTemplateSpec defines the desired state of DevClusterTemplate.
@@ -29,7 +29,7 @@ type DevClusterTemplateSpec struct {
 
 // +kubebuilder:resource:path=devclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
-// +kubebuilder:deprecatedversion
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of the DevClusterTemplate"
 
 // DevClusterTemplate is the Schema for the DevClusterTemplate API.
@@ -58,6 +58,6 @@ type DevClusterTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
-	Spec       DevClusterSpec            `json:"spec"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	Spec       DevClusterSpec       `json:"spec"`
 }

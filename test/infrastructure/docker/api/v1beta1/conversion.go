@@ -16,7 +16,67 @@ limitations under the License.
 
 package v1beta1
 
-func (*DockerCluster) Hub()         {}
-func (*DockerClusterTemplate) Hub() {}
-func (*DockerMachine) Hub()         {}
-func (*DockerMachineTemplate) Hub() {}
+import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+)
+
+func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1.DockerCluster)
+
+	return Convert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(src, dst, nil)
+}
+
+func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1.DockerCluster)
+
+	return Convert_v1beta2_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil)
+}
+
+func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1.DockerClusterTemplate)
+
+	return Convert_v1beta1_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(src, dst, nil)
+}
+
+func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1.DockerClusterTemplate)
+
+	return Convert_v1beta2_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil)
+}
+
+func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1.DockerMachine)
+
+	return Convert_v1beta1_DockerMachine_To_v1beta2_DockerMachine(src, dst, nil)
+}
+
+func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1.DockerMachine)
+
+	return Convert_v1beta2_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil)
+}
+
+func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1.DockerMachineTemplate)
+
+	return Convert_v1beta1_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(src, dst, nil)
+}
+
+func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1.DockerMachineTemplate)
+
+	return Convert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil)
+}
+
+func Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in *clusterv1beta1.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in, out, s)
+}
+
+func Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1.ObjectMeta, out *clusterv1beta1.ObjectMeta, s apiconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
+}

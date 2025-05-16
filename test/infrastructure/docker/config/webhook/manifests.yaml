@@ -6,12 +6,12 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-devcluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-devcluster
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.devcluster.infrastructure.cluster.x-k8s.io
@@ -19,7 +19,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -28,12 +28,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-devclustertemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-devclustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.devclustertemplate.infrastructure.cluster.x-k8s.io
@@ -41,7 +41,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -50,12 +50,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-devmachine
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-devmachine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.devmachine.infrastructure.cluster.x-k8s.io
@@ -63,7 +63,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -72,12 +72,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-devmachinetemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-devmachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.devmachinetemplate.infrastructure.cluster.x-k8s.io
@@ -85,7 +85,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -94,12 +94,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-dockercluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-dockercluster
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.dockercluster.infrastructure.cluster.x-k8s.io
@@ -107,7 +107,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -116,12 +116,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-dockerclustertemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-dockerclustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.dockerclustertemplate.infrastructure.cluster.x-k8s.io
@@ -129,7 +129,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -254,12 +254,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-dockerclustertemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-dockerclustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.dockerclustertemplate.infrastructure.cluster.x-k8s.io
@@ -267,7 +267,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -276,12 +276,12 @@ webhooks:
   sideEffects: None
 - admissionReviewVersions:
   - v1
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-dockermachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-dockermachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.dockermachinetemplate.infrastructure.cluster.x-k8s.io
@@ -289,7 +289,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE

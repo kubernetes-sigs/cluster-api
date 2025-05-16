@@ -29,6 +29,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -60,6 +61,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		// the values for ID and Secret to working alphanumeric values.
 		hubBootstrapTokenString,
 		spokeKubeadmBootstrapTokenString,
+		spokeKubeadmConfigSpec,
 	}
 }
 
@@ -110,4 +112,11 @@ func spokeKubeadmClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration,
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.UseHyperKubeImage = false
+}
+
+func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
 }

@@ -60,9 +60,8 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	// TODO: Consider validating that the correct certificates exist. It is different for external/stacked etcd
 	input.WriteFiles = input.AsFiles()
 	input.ControlPlane = true
-	if err := input.prepare(); err != nil {
-		return nil, err
-	}
+	input.prepare()
+
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate user data for machine joining control plane")

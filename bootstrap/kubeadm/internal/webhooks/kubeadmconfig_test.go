@@ -340,20 +340,6 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
-		"format is Ignition, experimental retry join is set": {
-			enableIgnitionFeature: true,
-			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					Format:                   bootstrapv1.Ignition,
-					UseExperimentalRetryJoin: true,
-				},
-			},
-			expectErr: true,
-		},
 		"feature gate disabled, format is Ignition": {
 			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{

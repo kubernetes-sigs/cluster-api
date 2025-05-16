@@ -46,13 +46,14 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs, fuzzFuncs},
 	}))
 }
 
 func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmConfigStatus,
+		spokeKubeadmConfigSpec,
 	}
 }
 
@@ -72,6 +73,13 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue
 			in.Initialization = nil
 		}
 	}
+}
+
+func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
 }
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -99,4 +107,10 @@ func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenStri
 func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
+}
+
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
+	}
 }

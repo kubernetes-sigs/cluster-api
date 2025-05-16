@@ -216,7 +216,6 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, diskSetup, "*"},
 		{spec, kubeadmConfigSpec, "format"},
 		{spec, kubeadmConfigSpec, "mounts"},
-		{spec, kubeadmConfigSpec, "useExperimentalRetryJoin"},
 		// spec.machineTemplate
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "metadata", "*"},

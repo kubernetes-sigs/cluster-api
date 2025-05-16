@@ -72,6 +72,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		// the values for ID and Secret to working alphanumeric values.
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
+		spokeKubeadmConfigSpec,
 	}
 }
 
@@ -115,6 +116,7 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 		// the values for ID and Secret to working alphanumeric values.
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
+		spokeKubeadmConfigSpec,
 	}
 }
 
@@ -136,4 +138,11 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 	in.Spec.Version = ""
 	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
+}
+
+func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
 }

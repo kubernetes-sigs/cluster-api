@@ -175,7 +175,9 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			topology:    &clusterv1.Topology{},
 			oldTopology: &clusterv1.Topology{},
 			expect: &clusterv1.Topology{
-				Class:     "class1",
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
+				},
 				Version:   "v1.22.2",
 				Variables: []clusterv1.ClusterVariable{},
 			},
@@ -1296,10 +1298,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setting Class and Version here to avoid obfuscating the test cases above.
-			tt.topology.Class = "class1"
+			tt.topology.ClassRef.Name = "class1"
 			tt.topology.Version = "v1.22.2"
 			if tt.expect != nil {
-				tt.expect.Class = "class1"
+				tt.expect.ClassRef.Name = "class1"
 				tt.expect.Version = "v1.22.2"
 			}
 
@@ -3014,7 +3016,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 
 			// Create and updated cluster which uses the name of the second class from the test definition in its '.spec.topology.'
 			secondCluster := cluster.DeepCopy()
-			secondCluster.Spec.Topology.Class = tt.secondClass.Name
+			secondCluster.Spec.Topology.ClassRef.Name = tt.secondClass.Name
 
 			// Checks the return error.
 			warnings, err := c.ValidateUpdate(ctx, cluster, secondCluster)
@@ -3281,7 +3283,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			injectedErr: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the second ClusterClass `class2` used as the new ClusterClass is being retrieved.
-					if key.Name == secondTopology.Class {
+					if key.Name == secondTopology.ClassRef.Name {
 						return errors.New("connection error")
 					}
 					return client.Get(ctx, key, obj)
@@ -3298,7 +3300,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			injectedErr: interceptor.Funcs{
 				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the ClusterClass `class1` used as the old ClusterClass is being retrieved.
-					if key.Name == topology.Class {
+					if key.Name == topology.ClassRef.Name {
 						return errors.New("connection error")
 					}
 					return client.Get(ctx, key, obj)

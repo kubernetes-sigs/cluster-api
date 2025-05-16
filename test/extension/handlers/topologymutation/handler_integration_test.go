@@ -146,7 +146,9 @@ func getCluster() *clusterv1.Cluster {
 			Topology: &clusterv1.Topology{
 				Version: "v1.29.0",
 				// NOTE: Class name must match the ClusterClass name.
-				Class: "quick-start-runtimesdk",
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "quick-start-runtimesdk",
+				},
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](1),
 				},

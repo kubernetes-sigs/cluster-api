@@ -74,7 +74,9 @@ func TestGlobal(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:   "clusterClass1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "clusterClass1",
+						},
 						Version: "v1.21.1",
 					},
 					ClusterNetwork: &clusterv1.ClusterNetwork{
@@ -147,7 +149,9 @@ func TestGlobal(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:   "clusterClass1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "clusterClass1",
+						},
 						Version: "v1.21.1",
 					},
 					ClusterNetwork: &clusterv1.ClusterNetwork{
@@ -220,7 +224,9 @@ func TestGlobal(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:   "clusterClass1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "clusterClass1",
+						},
 						Version: "v1.21.1",
 					},
 					ClusterNetwork: &clusterv1.ClusterNetwork{
@@ -291,7 +297,9 @@ func TestGlobal(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:   "clusterClass1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "clusterClass1",
+						},
 						Version: "v1.21.1",
 					},
 					ClusterNetwork: &clusterv1.ClusterNetwork{
@@ -358,7 +366,9 @@ func TestGlobal(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:   "clusterClass1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "clusterClass1",
+						},
 						Version: "v1.21.1",
 					},
 					ClusterNetwork: nil,

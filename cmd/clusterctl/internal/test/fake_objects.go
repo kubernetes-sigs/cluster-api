@@ -152,9 +152,13 @@ func (f *FakeCluster) Objs() []client.Object {
 	}
 
 	if f.topologyClass != nil {
-		cluster.Spec.Topology = &clusterv1.Topology{Class: *f.topologyClass}
+		cluster.Spec.Topology = &clusterv1.Topology{
+			ClassRef: clusterv1.ClusterClassRef{
+				Name: *f.topologyClass,
+			},
+		}
 		if f.topologyClassNamespace != nil {
-			cluster.Spec.Topology.ClassNamespace = *f.topologyClassNamespace
+			cluster.Spec.Topology.ClassRef.Namespace = *f.topologyClassNamespace
 		}
 	}
 

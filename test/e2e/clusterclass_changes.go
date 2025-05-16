@@ -802,8 +802,8 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	// Rebase the Cluster to the new ClusterClass.
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
-	input.Cluster.Spec.Topology.Class = newClusterClassName
-	input.Cluster.Spec.Topology.ClassNamespace = input.ClusterClassNamespace
+	input.Cluster.Spec.Topology.ClassRef.Name = newClusterClassName
+	input.Cluster.Spec.Topology.ClassRef.Namespace = input.ClusterClassNamespace
 	// We have to retry the patch. The ClusterClass was just created so the client cache in the
 	// controller/webhook might not be aware of it yet. If the webhook is not aware of the ClusterClass
 	// we get a "Cluster ... can't be validated. ClusterClass ... can not be retrieved" error.

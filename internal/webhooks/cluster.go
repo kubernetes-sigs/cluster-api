@@ -112,7 +112,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 				allErrs,
 				field.Required(
 					field.NewPath("spec", "topology", "class"),
-					"class cannot be empty",
+					"classRef.name cannot be empty",
 				),
 			)
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
@@ -311,7 +311,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			allErrs,
 			field.Required(
 				fldPath.Child("class"),
-				"class cannot be empty",
+				"classRef.name cannot be empty",
 			),
 		)
 		// Return early if there is no defined class to validate.
@@ -395,7 +395,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				allErrs,
 				field.Forbidden(
 					fldPath.Child("class"),
-					"class cannot be set on an existing Cluster",
+					"classRef cannot be set on an existing Cluster",
 				),
 			)
 			// return early here if there is no class to compare.

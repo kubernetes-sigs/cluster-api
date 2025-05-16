@@ -219,10 +219,11 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 				fmt.Sprintf("  namespace: %s\n", tt.targetNamespace) +
 				"spec:\n" +
 				"  topology:\n" +
-				"    class: dev"
+				"    classRef:\n" +
+				"      name: dev"
 
 			if tt.clusterClassNamespace != "" {
-				clusterWithTopology = fmt.Sprintf("%s\n    classNamespace: %s", clusterWithTopology, tt.clusterClassNamespace)
+				clusterWithTopology = fmt.Sprintf("%s\n      namespace: %s", clusterWithTopology, tt.clusterClassNamespace)
 			}
 
 			baseTemplate, err := repository.NewTemplate(repository.TemplateInput{

@@ -402,7 +402,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	// Change the ClusterClass pointed to in the Cluster's Topology. This is a ClusterClass rebase operation.
 	clusterWithRebase := actualCluster.DeepCopy()
-	clusterWithRebase.Spec.Topology.Class = clusterClassName2
+	clusterWithRebase.Spec.Topology.ClassRef.Name = clusterClassName2
 	g.Expect(patchHelper.Patch(ctx, clusterWithRebase)).Should(Succeed())
 
 	// Check to ensure all objects are correctly reconciled with the new ClusterClass.

@@ -2387,21 +2387,28 @@ spec:
                   feature gate flag to activate managed topologies support;
                   this feature is highly experimental, and parts of it might still be not implemented.
                 properties:
-                  class:
-                    description: class is the name of the ClusterClass object to create
-                      the topology.
-                    maxLength: 253
-                    minLength: 1
-                    type: string
-                  classNamespace:
-                    description: |-
-                      classNamespace is the namespace of the ClusterClass object to create the topology.
-                      If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
-                      Value must follow the DNS1123Subdomain syntax.
-                    maxLength: 253
-                    minLength: 1
-                    pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$
-                    type: string
+                  classRef:
+                    description: classRef is the ref to the ClusterClass that should
+                      be used for the topology.
+                    properties:
+                      name:
+                        description: name is the name of the ClusterClass that should
+                          be used for the topology.
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: |-
+                          namespace is the namespace of the ClusterClass that should be used for the topology.
+                          If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
+                          Value must follow the DNS1123Subdomain syntax.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                    required:
+                    - name
+                    type: object
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
                     properties:
@@ -3275,7 +3282,7 @@ spec:
                         x-kubernetes-list-type: map
                     type: object
                 required:
-                - class
+                - classRef
                 - version
                 type: object
             type: object

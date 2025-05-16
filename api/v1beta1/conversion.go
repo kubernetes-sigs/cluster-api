@@ -247,6 +247,16 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 	return nil
 }
 
+func Convert_v1beta1_Topology_To_v1beta2_Topology(in *Topology, out *clusterv1.Topology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_Topology_To_v1beta2_Topology(in, out, s); err != nil {
+		return err
+	}
+
+	out.ClassRef.Name = in.Class
+	out.ClassRef.Namespace = in.ClassNamespace
+	return nil
+}
+
 func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, out *clusterv1.ClusterStatus, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in, out, s); err != nil {
 		return err
@@ -304,6 +314,16 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+	return nil
+}
+
+func Convert_v1beta2_Topology_To_v1beta1_Topology(in *clusterv1.Topology, out *Topology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Topology_To_v1beta1_Topology(in, out, s); err != nil {
+		return err
+	}
+
+	out.Class = in.ClassRef.Name
+	out.ClassNamespace = in.ClassRef.Namespace
 	return nil
 }
 

@@ -187,10 +187,12 @@ func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 	t := &clusterv1.Topology{
-		Class:          c.class,
-		ClassNamespace: c.classNamespace,
-		Workers:        c.workers,
-		Version:        c.version,
+		ClassRef: clusterv1.ClusterClassRef{
+			Name:      c.class,
+			Namespace: c.classNamespace,
+		},
+		Workers: c.workers,
+		Version: c.version,
 		ControlPlane: clusterv1.ControlPlaneTopology{
 			Replicas:           &c.controlPlaneReplicas,
 			MachineHealthCheck: c.controlPlaneMHC,

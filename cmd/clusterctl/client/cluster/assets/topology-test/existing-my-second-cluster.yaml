@@ -27,7 +27,8 @@ spec:
     name: my-second-cluster-zrq96
     namespace: default
   topology:
-    class: my-cluster-class
+    classRef:
+      name: my-cluster-class
     version: v1.21.2
     controlPlane:
       metadata: {}

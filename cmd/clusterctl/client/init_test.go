@@ -967,7 +967,8 @@ func mangedTopologyTemplateYAML(ns, clusterName, clusterClassName string) []byte
 		fmt.Sprintf("  namespace: %s\n", ns) +
 		"spec:\n" +
 		"  topology:\n" +
-		fmt.Sprintf("    class: %s", clusterClassName))
+		"    classRef:\n" +
+		fmt.Sprintf("      name: %s", clusterClassName))
 }
 
 func clusterClassYAML(ns, clusterClassName string) []byte {

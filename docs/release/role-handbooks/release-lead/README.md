@@ -68,33 +68,43 @@ If necessary, the release lead can adjust the release team during the cycle to h
 The goal of this issue is to bump the versions on the main branch so that the upcoming release version
 is used for e.g. local development and e2e tests. We also modify tests so that they are testing the previous release.
 
-This comes down to changing occurrences of the old version to the new version, e.g. `v1.5` to `v1.6`:
+Here's an example of how to do this for the `v1.11` release cycle. That means `v1.10` just released and we are preparing for `v1.11`.
 
 1. Setup E2E tests for the new release:
    1. Goal is that we have clusterctl upgrade tests for all relevant upgrade cases
        1. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go`. Please note the comments above each test case (look for `This test should be changed during "prepare main branch"`)
           Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest management cluster version supported by the respective Cluster API version.
-       2. Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
+            1. Be careful here. For example, let's say you're updating the `v1.9` test in `test/e2e/clusterctl_upgrade_test.go`. You want to set WorkloadKubernetesVersion to be the latest
+            version of kubernetes that `v1.9` supports, which would be `1.32`. You can't just use the very latest version of k8s `1.32.X` that exists, because the e2e tests use the
+            version of kind inside the `release-1.9` branch. So you have to use the latest version of k8s `1.32` that is in the `release-1.9` branch's `test/infrastructure/kind/mapper.go`
+            file. Which would be `1.32.0` as of this writing.
+            2. You may even have to delay using the latest verison of k8s for the version of CAPI that just released until kind is updated with an image of that new version.
+            So for `v1.10`, which supports k8s `v1.33`, we had to use `1.32.2` at first, as that was the latest version of `1.32` that was in the `release-1.10` branch's
+            `test/infrastructure/kind/mapper.go` file. We usually add a comment in the test case to remind us to update `release-1.10`'s kind and use `1.33.X` later.
+       2. :warning: Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
    2. Update providers in `docker.yaml`:
-       1. Add a new `v1.6` entry.
+       1. Add a new `v1.11` entry.
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
-       3. Change `v1.5.99` to `v1.6.99`.
+       3. Change `v1.10.99` to `v1.11.99`.
    3. Adjust `metadata.yaml`'s:
-      1. Create a new `v1.6` `metadata.yaml` (`test/e2e/data/shared/v1.6/metadata.yaml`) by copying
-   `test/e2e/data/shared/main/metadata.yaml`
-      2. Add the new release to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Add the new release to the root level `metadata.yaml`
-      4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
+      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/v1.10/metadata.yaml`) by copying the `test/e2e/data/shared/main` folder and renaming it to `v1.10`.
+      2. Add the new release, `v1.11`, to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
+      3. Add the new release, `v1.11`, to the root level `metadata.yaml`.
+      4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
-      1. Create a new `v1.6` folder. It should be created based on the `main` folder and only contain the templates we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
-      2. Remove old folders that are not used anymore in clusterctl upgrade tests.
-   5. Add a new Makefile target (e.g. `generate-e2e-templates-v1.6`) and potentially remove the Makefile target of versions that are not used anymore (if something was removed in 4.2)
-2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.5.99` => `v1.6.99`.
+      1. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the templates we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
+      2. Remove old folders that are not used anymore in clusterctl upgrade tests, `test/e2e/data/infrastructure-docker/v1.7` in this example.
+   5. Add a new Makefile target
+         1. Create the new target, `generate-e2e-templates-v1.10` in this example.
+         1. Add the new target `v1.10` to `generate-e2e-templates`.
+         1. Potentially remove the Makefile target of versions that are not used anymore (if something was removed in 4.2)
+            1. In this example we removed `generate-e2e-templates-v1.7` and removed `v1.7` from `generate-e2e-templates`.
+2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.10.99` => `v1.11.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-27-latest-main`).
 
 Prior art:
 
-* 1.10 - https://github.com/kubernetes-sigs/cluster-api/pull/11647
+* 1.11 - <https://github.com/kubernetes-sigs/cluster-api/pull/12000>
 
 ### Create a new GitHub milestone for the next release
 

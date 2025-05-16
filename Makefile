@@ -324,6 +324,10 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./controllers/crdmigrator/test/t4/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=./controllers/crdmigrator/test/t4/crd
+	$(CONTROLLER_GEN) \
+		paths=./util/deprecated/v1beta1/test/builder/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=./util/deprecated/v1beta1/test/builder/crd
 
 .PHONY: generate-manifests-kubeadm-bootstrap
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
@@ -400,6 +404,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./util/test/builder/... \
+		paths=./util/deprecated/v1beta1/test/builder/... \
 		paths=./controllers/crdmigrator/test/...
 
 .PHONY: generate-go-deepcopy-kubeadm-bootstrap

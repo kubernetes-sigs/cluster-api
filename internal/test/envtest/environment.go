@@ -32,10 +32,13 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -104,29 +107,34 @@ func init() {
 	// Add logger for ginkgo.
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
-	// Calculate the scheme.
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(runtimev1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(ipamv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(builder.AddTransitionV1Beta2ToScheme(scheme.Scheme))
-	utilruntime.Must(addonsv1.AddToScheme(scheme.Scheme))
+	// Calculate the global scheme used by fakeclients.
+	registerSchemes(scheme.Scheme)
+}
+
+func registerSchemes(s *runtime.Scheme) {
+	utilruntime.Must(admissionv1.AddToScheme(s))
+	utilruntime.Must(apiextensionsv1.AddToScheme(s))
+
+	utilruntime.Must(addonsv1.AddToScheme(s))
+	utilruntime.Must(bootstrapv1.AddToScheme(s))
+	utilruntime.Must(clusterv1.AddToScheme(s))
+	utilruntime.Must(controlplanev1.AddToScheme(s))
+	utilruntime.Must(expv1.AddToScheme(s))
+	utilruntime.Must(ipamv1.AddToScheme(s))
+	utilruntime.Must(runtimev1.AddToScheme(s))
 }
 
 // RunInput is the input for Run.
 type RunInput struct {
-	M                   *testing.M
-	ManagerUncachedObjs []client.Object
-	ManagerCacheOptions cache.Options
-	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
-	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
-	SetupEnv            func(e *Environment)
-	MinK8sVersion       string
+	M                           *testing.M
+	ManagerUncachedObjs         []client.Object
+	ManagerCacheOptions         cache.Options
+	SetupIndexes                func(ctx context.Context, mgr ctrl.Manager)
+	SetupReconcilers            func(ctx context.Context, mgr ctrl.Manager)
+	SetupEnv                    func(e *Environment)
+	MinK8sVersion               string
+	AdditionalSchemeBuilder     runtime.SchemeBuilder
+	AdditionalCRDDirectoryPaths []string
 }
 
 // Run executes the tests of the given testing.M in a test environment.
@@ -147,8 +155,20 @@ func Run(ctx context.Context, input RunInput) int {
 		return input.M.Run()
 	}
 
+	// Calculate the scheme.
+	scheme := runtime.NewScheme()
+	registerSchemes(scheme)
+	// Register additional schemes from k8s APIs.
+	utilruntime.Must(appsv1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(rbacv1.AddToScheme(scheme))
+	// Register additionally passed schemes.
+	if input.AdditionalSchemeBuilder != nil {
+		utilruntime.Must(input.AdditionalSchemeBuilder.AddToScheme(scheme))
+	}
+
 	// Bootstrapping test environment
-	env := newEnvironment(input.ManagerCacheOptions, input.ManagerUncachedObjs...)
+	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -233,20 +253,24 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
 
+	crdDirectoryPaths := []string{
+		filepath.Join(root, "config", "crd", "bases"),
+		filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
+		filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
+	}
+	for _, path := range additionalCRDDirectoryPaths {
+		crdDirectoryPaths = append(crdDirectoryPaths, filepath.Join(root, path))
+	}
+
 	// Create the test environment.
 	env := &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
-		CRDDirectoryPaths: []string{
-			filepath.Join(root, "config", "crd", "bases"),
-			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
-			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
-			filepath.Join(root, "util", "test", "builder", "crd"),
-		},
+		CRDDirectoryPaths:     crdDirectoryPaths,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
 			builder.GenericBootstrapConfigCRD.DeepCopy(),
 			builder.GenericBootstrapConfigTemplateCRD.DeepCopy(),
@@ -296,7 +320,7 @@ func newEnvironment(managerCacheOptions cache.Options, uncachedObjs ...client.Ob
 		Controller: config.Controller{
 			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
 		},
-		Scheme: scheme.Scheme,
+		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: "0",
 		},

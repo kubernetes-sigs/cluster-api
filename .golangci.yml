@@ -233,6 +233,7 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
       - internal/apis/.*
+      - util/deprecated
     rules:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
@@ -365,6 +366,9 @@ linters:
       - linters:
           - govet
         text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.
+      - linters:
+          - govet
+        text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/deprecated\/v1beta1\/conditions\.
       - linters:
           - goconst
         path: (.+)_test\.go

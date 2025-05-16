@@ -442,7 +442,7 @@ type ContainerLinuxConfig struct {
 	// The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
 	// +optional
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=10240
+	// +kubebuilder:validation:MaxLength=32768
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
 
 	// strict controls if AdditionalConfig should be strictly parsed. If so, warnings are treated as errors.

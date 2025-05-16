@@ -47,7 +47,7 @@ import (
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }

@@ -42,7 +42,7 @@ type ExtensionConfig struct{}
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }

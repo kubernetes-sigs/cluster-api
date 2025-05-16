@@ -56,7 +56,7 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }

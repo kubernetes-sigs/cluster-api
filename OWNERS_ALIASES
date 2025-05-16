@@ -23,12 +23,12 @@ aliases:
   - chrischdi
   - enxebre
   - fabriziopandini
+  - JoelSpeed
   - sbueringer
   - vincepri
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-  - JoelSpeed
   - richardcase
   - sivchari
 

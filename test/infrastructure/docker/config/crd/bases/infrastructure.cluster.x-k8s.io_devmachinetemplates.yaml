@@ -21,7 +21,242 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: DevMachineTemplate is the schema for the in-memory machine template
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DevMachineTemplateSpec defines the desired state of DevMachineTemplate.
+            properties:
+              template:
+                description: DevMachineTemplateResource describes the data needed
+                  to create a DevMachine from a template.
+                properties:
+                  metadata:
+                    description: |-
+                      Standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: Spec is the specification of the desired behavior
+                      of the machine.
+                    properties:
+                      backend:
+                        description: backend defines backends for a DevMachine.
+                        properties:
+                          docker:
+                            description: docker defines a backend for a DevMachine
+                              using docker containers.
+                            properties:
+                              bootstrapTimeout:
+                                description: |-
+                                  bootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
+                                  The default value is 3m.
+                                type: string
+                              bootstrapped:
+                                description: |-
+                                  bootstrapped is true when the kubeadm bootstrapping has been run
+                                  against this machine
+
+                                  Deprecated: This field will be removed in the next apiVersion.
+                                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
+                                type: boolean
+                              customImage:
+                                description: |-
+                                  customImage allows customizing the container image that is used for
+                                  running the machine
+                                type: string
+                              extraMounts:
+                                description: |-
+                                  extraMounts describes additional mount points for the node container
+                                  These may be used to bind a hostPath
+                                items:
+                                  description: |-
+                                    Mount specifies a host volume to mount into a container.
+                                    This is a simplified version of kind v1alpha4.Mount types.
+                                  properties:
+                                    containerPath:
+                                      description: Path of the mount within the container.
+                                      type: string
+                                    hostPath:
+                                      description: |-
+                                        Path of the mount on the host. If the hostPath doesn't exist, then runtimes
+                                        should report error. If the hostpath is a symbolic link, runtimes should
+                                        follow the symlink and mount the real destination to container.
+                                      type: string
+                                    readOnly:
+                                      description: If set, the mount is read-only.
+                                      type: boolean
+                                  type: object
+                                type: array
+                              preLoadImages:
+                                description: |-
+                                  preLoadImages allows to pre-load images in a newly created machine. This can be used to
+                                  speed up tests by avoiding e.g. to download CNI images on all the containers.
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          inMemory:
+                            description: inMemory defines a backend for a DevMachine
+                              that runs in memory.
+                            properties:
+                              apiServer:
+                                description: apiServer defines the behaviour of the
+                                  APIServer hosted on the InMemoryMachine.
+                                properties:
+                                  provisioning:
+                                    description: |-
+                                      provisioning defines variables influencing how the APIServer hosted on the InMemoryMachine is going to be provisioned.
+                                      NOTE: APIServer provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
+                                    properties:
+                                      startupDuration:
+                                        description: startupDuration defines the duration
+                                          of the object provisioning phase.
+                                        type: string
+                                      startupJitter:
+                                        description: |-
+                                          startupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                                          amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                                          NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
+                                        type: string
+                                    required:
+                                    - startupDuration
+                                    type: object
+                                type: object
+                              etcd:
+                                description: etcd defines the behaviour of the etcd
+                                  member hosted on the InMemoryMachine.
+                                properties:
+                                  provisioning:
+                                    description: |-
+                                      provisioning defines variables influencing how the etcd member hosted on the InMemoryMachine is going to be provisioned.
+                                      NOTE: Etcd provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
+                                    properties:
+                                      startupDuration:
+                                        description: startupDuration defines the duration
+                                          of the object provisioning phase.
+                                        type: string
+                                      startupJitter:
+                                        description: |-
+                                          startupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                                          amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                                          NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
+                                        type: string
+                                    required:
+                                    - startupDuration
+                                    type: object
+                                type: object
+                              node:
+                                description: node defines the behaviour of the Node
+                                  (the kubelet) hosted on the InMemoryMachine.
+                                properties:
+                                  provisioning:
+                                    description: |-
+                                      provisioning defines variables influencing how the Node (the kubelet) hosted on the InMemoryMachine is going to be provisioned.
+                                      NOTE: Node provisioning includes all the steps from starting kubelet to the node become ready, get a provider ID, and being registered in K8s.
+                                    properties:
+                                      startupDuration:
+                                        description: startupDuration defines the duration
+                                          of the object provisioning phase.
+                                        type: string
+                                      startupJitter:
+                                        description: |-
+                                          startupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                                          amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                                          NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
+                                        type: string
+                                    required:
+                                    - startupDuration
+                                    type: object
+                                type: object
+                              vm:
+                                description: vm defines the behaviour of the VM implementing
+                                  the InMemoryMachine.
+                                properties:
+                                  provisioning:
+                                    description: |-
+                                      provisioning defines variables influencing how the VM implementing the InMemoryMachine is going to be provisioned.
+                                      NOTE: VM provisioning includes all the steps from creation to power-on.
+                                    properties:
+                                      startupDuration:
+                                        description: startupDuration defines the duration
+                                          of the object provisioning phase.
+                                        type: string
+                                      startupJitter:
+                                        description: |-
+                                          startupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                                          amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                                          NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
+                                        type: string
+                                    required:
+                                    - startupDuration
+                                    type: object
+                                type: object
+                            type: object
+                        type: object
+                      providerID:
+                        description: providerID used to link this machine with the
+                          node hosted on it.
+                        type: string
+                    required:
+                    - backend
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - description: Time duration since creation of the DevMachineTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: DevMachineTemplate is the schema for the in-memory machine template

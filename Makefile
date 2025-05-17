@@ -530,8 +530,10 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1alpha3 \
 		./api/v1alpha4 \
+		./api/v1beta1 \
 		./$(EXP_DIR)/api/v1alpha3 \
-		./$(EXP_DIR)/api/v1alpha4
+		./$(EXP_DIR)/api/v1alpha4 \
+		./$(EXP_DIR)/api/v1beta1
 
 .PHONY: generate-go-conversions-test-extension
 generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for test runtime extension provider

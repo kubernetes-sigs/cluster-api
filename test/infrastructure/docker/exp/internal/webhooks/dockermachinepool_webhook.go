@@ -19,7 +19,7 @@ package webhooks
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 )
 
 // DockerMachinePool implements a validating and defaulting webhook for DockerMachinePool.

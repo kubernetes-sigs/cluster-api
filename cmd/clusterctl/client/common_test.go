@@ -51,6 +51,24 @@ func Test_parseProviderName(t *testing.T) {
 			wantVersion: "version",
 			wantErr:     false,
 		},
+		{
+			name: "name & upper case version",
+			args: args{
+				provider: "provider:1.0.0-VERSION",
+			},
+			wantName:    "provider",
+			wantVersion: "1.0.0-VERSION",
+			wantErr:     false,
+		},
+		{
+			name: "upper name & version",
+			args: args{
+				provider: "PROVIDER:VERSION",
+			},
+			wantName:    "provider",
+			wantVersion: "VERSION",
+			wantErr:     false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -59,9 +77,9 @@ func Test_parseProviderName(t *testing.T) {
 			gotName, gotVersion, err := parseProviderName(tt.args.provider)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gotName).To(Equal(tt.wantName))
 
 			g.Expect(gotVersion).To(Equal(tt.wantVersion))

@@ -214,20 +214,21 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	defer func() {
 		// Always attempt to update status.
-		var connFailure *internal.RemoteClusterConnectionError
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
+			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
 				log.Error(err, "Could not connect to workload cluster to fetch status")
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "Failed to update KubeadmControlPlane status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane status")})
 			}
 		}
 
 		if err := r.updateV1Beta1Status(ctx, controlPlane); err != nil {
+			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
-				log.Error(err, "Could not connect to workload cluster to fetch status")
+				log.Error(err, "Could not connect to workload cluster to fetch deprecated v1beta1 status")
 			} else {
-				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "Failed to update KubeadmControlPlane deprecated v1beta1 status")})
+				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to update KubeadmControlPlane deprecated v1beta1 status")})
 			}
 		}
 
@@ -237,7 +238,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp, patchOpts...); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "Failed to patch KubeadmControlPlane")})
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to patch KubeadmControlPlane")})
 		}
 
 		// Only requeue if there is no error, Requeue or RequeueAfter and the object does not have a deletion timestamp.

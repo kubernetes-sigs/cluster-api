@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -129,8 +130,9 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 		controlPlane.KCP.Status.Version = lowestVersion
 	}
 
+	allErrors := []error{}
 	if err := setControlPlaneInitialized(ctx, controlPlane); err != nil {
-		return err
+		allErrors = append(allErrors, err)
 	}
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
@@ -142,7 +144,10 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	setRemediatingCondition(ctx, controlPlane.KCP, controlPlane.MachinesToBeRemediatedByKCP(), controlPlane.UnhealthyMachines())
 	setDeletingCondition(ctx, controlPlane.KCP, controlPlane.DeletingReason, controlPlane.DeletingMessage)
 	setAvailableCondition(ctx, controlPlane.KCP, controlPlane.IsEtcdManaged(), controlPlane.EtcdMembers, controlPlane.EtcdMembersAndMachinesAreMatching, controlPlane.Machines)
-	return setLastRemediation(ctx, controlPlane)
+	if err := setLastRemediation(ctx, controlPlane); err != nil {
+		allErrors = append(allErrors, err)
+	}
+	return kerrors.NewAggregate(allErrors)
 }
 
 // setControlPlaneInitialized surface control plane initialized when it is possible to check that the Kubeadm config exists in the workload cluster;

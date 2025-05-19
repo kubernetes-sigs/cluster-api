@@ -39,7 +39,7 @@ type ClusterResourceSet struct{}
 func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }

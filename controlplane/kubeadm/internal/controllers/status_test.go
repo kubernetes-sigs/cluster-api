@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2049,11 +2050,10 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 		err = setLastRemediation(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Status.LastRemediation).To(Equal(&controlplanev1.LastRemediationStatus{
-			Machine:    r1.Machine,
-			Timestamp:  r1.Timestamp,
-			RetryCount: int32(r1.RetryCount),
-		}))
+		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r1.Machine))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Timestamp.Time).To(BeTemporally("==", r1.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Timestamp.Time, r1.Timestamp.Time))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r1.RetryCount)))
 	})
 	t.Run("Remediation completed, get data from past remediation", func(t *testing.T) {
 		g := NewWithT(t)
@@ -2082,11 +2082,10 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 		err = setLastRemediation(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Status.LastRemediation).To(Equal(&controlplanev1.LastRemediationStatus{
-			Machine:    r2.Machine,
-			Timestamp:  r2.Timestamp,
-			RetryCount: int32(r2.RetryCount),
-		}))
+		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r2.Machine))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Timestamp.Time).To(BeTemporally("==", r2.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Timestamp.Time, r2.Timestamp.Time))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r2.RetryCount)))
 	})
 }
 

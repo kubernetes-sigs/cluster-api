@@ -57,8 +57,6 @@ replacements:
       delimiter: /
     select:
       kind: CustomResourceDefinition
-    reject:
-    - name: extensionconfigs.runtime.cluster.x-k8s.io
 - source:
     fieldPath: .metadata.name
     group: cert-manager.io
@@ -90,8 +88,6 @@ replacements:
       index: 1
     select:
       kind: CustomResourceDefinition
-    reject:
-    - name: extensionconfigs.runtime.cluster.x-k8s.io
 - source:
     fieldPath: .metadata.name
     kind: Service

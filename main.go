@@ -69,7 +69,8 @@ import (
 	ipamv1beta1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
@@ -158,6 +159,7 @@ func init() {
 	_ = expv1beta1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
 
+	_ = runtimev1alpha1.AddToScheme(scheme)
 	_ = runtimev1.AddToScheme(scheme)
 
 	_ = ipamv1alpha1.AddToScheme(scheme)

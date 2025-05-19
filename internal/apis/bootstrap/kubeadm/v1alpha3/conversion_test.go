@@ -48,6 +48,7 @@ func TestFuzzyConversion(t *testing.T) {
 
 func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		spokeKubeadmConfigSpec,
 		spokeKubeadmConfigStatus,
 		spokeDNS,
 		spokeClusterConfiguration,
@@ -87,6 +88,7 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue
 
 func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		spokeKubeadmConfigSpec,
 		spokeKubeadmConfigStatus,
 		spokeDNS,
 		spokeClusterConfiguration,
@@ -103,6 +105,13 @@ func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfac
 		spokeKubeadmBootstrapTokenString,
 		hubKubeadmBootstrapTokenString,
 	}
+}
+
+func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
+	in.UseExperimentalRetryJoin = false
 }
 
 func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c fuzz.Continue) {

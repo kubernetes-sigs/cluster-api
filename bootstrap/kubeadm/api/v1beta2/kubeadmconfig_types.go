@@ -122,22 +122,6 @@ type KubeadmConfigSpec struct {
 	// +optional
 	Verbosity *int32 `json:"verbosity,omitempty"`
 
-	// useExperimentalRetryJoin replaces a basic kubeadm command with a shell
-	// script with retries for joins.
-	//
-	// This is meant to be an experimental temporary workaround on some environments
-	// where joins fail due to timing (and other issues). The long term goal is to add retries to
-	// kubeadm proper and use that functionality.
-	//
-	// This will add about 40KB to userdata
-	//
-	// For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-	// +optional
-	//
-	// Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
-	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml
-	UseExperimentalRetryJoin bool `json:"useExperimentalRetryJoin,omitempty"`
-
 	// ignition contains Ignition specific configuration.
 	// +optional
 	Ignition *IgnitionSpec `json:"ignition,omitempty"`
@@ -345,16 +329,6 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 				),
 			)
 		}
-	}
-
-	if c.UseExperimentalRetryJoin {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				pathPrefix.Child("useExperimentalRetryJoin"),
-				cannotUseWithIgnition,
-			),
-		)
 	}
 
 	for i, file := range c.Files {

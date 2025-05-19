@@ -205,6 +205,11 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
+func Convert_v1alpha3_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 KubeadmConfigSpec does not have UseExperimentalRetryJoin anymore, so it's fine to just lose this field.
+	return autoConvert_v1alpha3_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s)
+}
+
 func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apimachineryconversion.Scope) error {
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4 because its content has been moved to the bootstrap data secret, value will be lost during conversion.
 	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)

@@ -806,7 +806,9 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec
 func autoConvert_v1alpha3_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *v1beta2.MachineDeploymentStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	// WARNING: in.UpdatedReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
@@ -823,7 +825,9 @@ func autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentSt
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}
@@ -1177,7 +1181,9 @@ func autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *v1beta2.M
 
 func autoConvert_v1alpha3_MachineSetStatus_To_v1beta2_MachineSetStatus(in *MachineSetStatus, out *v1beta2.MachineSetStatus, s conversion.Scope) error {
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	// WARNING: in.FullyLabeledReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
@@ -1194,7 +1200,9 @@ func autoConvert_v1alpha3_MachineSetStatus_To_v1beta2_MachineSetStatus(in *Machi
 func autoConvert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *v1beta2.MachineSetStatus, out *MachineSetStatus, s conversion.Scope) error {
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}

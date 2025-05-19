@@ -178,6 +178,11 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 		*out = make([]corev1.ObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.Replicas != nil {
+		in, out := &in.Replicas, &out.Replicas
+		*out = new(int32)
+		**out = **in
+	}
 	if in.ReadyReplicas != nil {
 		in, out := &in.ReadyReplicas, &out.ReadyReplicas
 		*out = new(int32)

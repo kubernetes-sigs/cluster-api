@@ -188,7 +188,7 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 		}
 	}
 
-	kcp.Status.Replicas = int32(len(machines))
+	kcp.Status.Replicas = ptr.To(int32(len(machines)))
 	kcp.Status.ReadyReplicas = ptr.To(readyReplicas)
 	kcp.Status.AvailableReplicas = ptr.To(availableReplicas)
 	kcp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)

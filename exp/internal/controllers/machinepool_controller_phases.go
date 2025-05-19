@@ -346,8 +346,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		}
 	}
 
-	if len(providerIDList) == 0 && mp.Status.Replicas != 0 {
-		log.Info("Retrieved empty spec.providerIDList from infrastructure provider but status.replicas is not zero.", "replicas", mp.Status.Replicas)
+	if len(providerIDList) == 0 && ptr.Deref(mp.Status.Replicas, 0) != 0 {
+		log.Info("Retrieved empty spec.providerIDList from infrastructure provider but status.replicas is not zero.", "replicas", ptr.Deref(mp.Status.Replicas, 0))
 		return ctrl.Result{}, nil
 	}
 
@@ -361,7 +361,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		}
 		mp.Status.Deprecated.V1Beta1.ReadyReplicas = 0
 		mp.Status.Deprecated.V1Beta1.AvailableReplicas = 0
-		mp.Status.Deprecated.V1Beta1.UnavailableReplicas = mp.Status.Replicas
+		mp.Status.Deprecated.V1Beta1.UnavailableReplicas = ptr.Deref(mp.Status.Replicas, 0)
 	}
 
 	return ctrl.Result{}, nil

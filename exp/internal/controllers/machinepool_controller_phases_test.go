@@ -663,7 +663,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				ReadyReplicas: 1,
 			},
 		}
-		machinePool.Status.Replicas = 1
+		machinePool.Status.Replicas = ptr.To(int32(1))
 
 		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &MachinePoolReconciler{
@@ -759,7 +759,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				ReadyReplicas: 1,
 			},
 		}
-		machinePool.Status.Replicas = 1
+		machinePool.Status.Replicas = ptr.To(int32(1))
 
 		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &MachinePoolReconciler{

@@ -130,7 +130,8 @@ func TestSetReplicas(t *testing.T) {
 	setReplicas(ctx, c.KCP, c.Machines)
 
 	g.Expect(kcp.Status).ToNot(BeNil())
-	g.Expect(kcp.Status.Replicas).To(Equal(int32(6)))
+	g.Expect(kcp.Status.Replicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.Replicas).To(Equal(int32(6)))
 	g.Expect(kcp.Status.ReadyReplicas).ToNot(BeNil())
 	g.Expect(*kcp.Status.ReadyReplicas).To(Equal(int32(3)))
 	g.Expect(kcp.Status.AvailableReplicas).ToNot(BeNil())
@@ -304,7 +305,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -323,7 +324,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: corev1.ObjectReference{Kind: "AWSTemplate"}}},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -344,7 +345,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -365,7 +366,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
 					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -384,7 +385,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: corev1.ObjectReference{Kind: "AWSTemplate"}}},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -413,7 +414,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				},
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -475,7 +476,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -494,7 +495,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 5},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(5))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -517,7 +518,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
 					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: 5},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(5))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -539,7 +540,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})},
@@ -579,7 +580,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
@@ -607,7 +608,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				},
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},

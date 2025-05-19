@@ -399,7 +399,9 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(
 
 func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, out *v1beta2.KubeadmControlPlaneStatus, s conversion.Scope) error {
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	// WARNING: in.UpdatedReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
@@ -441,7 +443,9 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}

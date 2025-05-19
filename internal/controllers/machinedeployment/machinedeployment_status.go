@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -110,7 +111,7 @@ func setPhase(_ context.Context, machineDeployment *clusterv1.MachineDeployment,
 	}
 
 	desiredReplicas := *machineDeployment.Spec.Replicas
-	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
+	currentReplicas := ptr.Deref(mdutil.GetActualReplicaCountForMachineSets(machineSets), 0)
 
 	switch {
 	case desiredReplicas == currentReplicas:
@@ -278,7 +279,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
+	currentReplicas := ptr.Deref(mdutil.GetActualReplicaCountForMachineSets(machineSets), 0)
 
 	missingReferencesMessage := calculateMissingReferencesMessage(machineDeployment, bootstrapObjectNotFound, infrastructureObjectNotFound)
 
@@ -337,7 +338,7 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
+	currentReplicas := ptr.Deref(mdutil.GetActualReplicaCountForMachineSets(machineSets), 0)
 
 	// Scaling down.
 	if currentReplicas > desiredReplicas {

@@ -25,6 +25,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -62,6 +63,12 @@ func hubMachinePoolStatus(in *expv1.MachinePoolStatus, c fuzz.Continue) {
 		if reflect.DeepEqual(in.Initialization, &expv1.MachinePoolInitializationStatus{}) {
 			in.Initialization = nil
 		}
+	}
+
+	// nil becomes &0 after hub => spoke => hub conversion
+	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
+	if in.Replicas == nil {
+		in.Replicas = ptr.To(int32(0))
 	}
 }
 

@@ -219,6 +219,11 @@ func (in *KubeadmControlPlaneStatus) DeepCopyInto(out *KubeadmControlPlaneStatus
 		*out = new(KubeadmControlPlaneInitializationStatus)
 		**out = **in
 	}
+	if in.Replicas != nil {
+		in, out := &in.Replicas, &out.Replicas
+		*out = new(int32)
+		**out = **in
+	}
 	if in.ReadyReplicas != nil {
 		in, out := &in.ReadyReplicas, &out.ReadyReplicas
 		*out = new(int32)

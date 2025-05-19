@@ -527,7 +527,7 @@ func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.Mac
 		deployment.Status.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
 	}
 
-	deployment.Status.Deprecated.V1Beta1.UpdatedReplicas = mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS})
+	deployment.Status.Deprecated.V1Beta1.UpdatedReplicas = ptr.Deref(mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS}), 0)
 	deployment.Status.Deprecated.V1Beta1.ReadyReplicas = mdutil.GetV1Beta1ReadyReplicaCountForMachineSets(allMSs)
 	deployment.Status.Deprecated.V1Beta1.AvailableReplicas = availableReplicas
 	deployment.Status.Deprecated.V1Beta1.UnavailableReplicas = unavailableReplicas
@@ -610,7 +610,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 		}
 
 		// Avoid delete machine set with non-zero replica counts
-		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || !ms.DeletionTimestamp.IsZero() {
+		if ptr.Deref(ms.Status.Replicas, 0) != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || !ms.DeletionTimestamp.IsZero() {
 			continue
 		}
 

@@ -98,7 +98,7 @@ type MachinePoolStatus struct {
 
 	// replicas is the most recently observed number of replicas.
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
 	// +optional

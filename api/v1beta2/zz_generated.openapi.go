@@ -2578,7 +2578,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentStatus(ref common
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "replicas is the total number of non-terminated machines targeted by this deployment (their labels match the selector).",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4212,7 +4211,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetStatus(ref common.Refere
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "replicas is the most recently observed number of replicas.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

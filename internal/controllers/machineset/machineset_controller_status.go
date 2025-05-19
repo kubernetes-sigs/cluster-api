@@ -92,7 +92,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 		}
 	}
 
-	ms.Status.Replicas = int32(len(machines))
+	ms.Status.Replicas = ptr.To(int32(len(machines)))
 	ms.Status.ReadyReplicas = ptr.To(readyReplicas)
 	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
 	ms.Status.UpToDateReplicas = ptr.To(upToDateReplicas)

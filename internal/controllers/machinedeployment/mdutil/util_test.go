@@ -612,10 +612,10 @@ func TestFindOldMachineSets(t *testing.T) {
 func TestGetReplicaCountForMachineSets(t *testing.T) {
 	ms1 := generateMS(generateDeployment("foo"))
 	*(ms1.Spec.Replicas) = 1
-	ms1.Status.Replicas = 2
+	ms1.Status.Replicas = ptr.To[int32](2)
 	ms2 := generateMS(generateDeployment("bar"))
 	*(ms2.Spec.Replicas) = 5
-	ms2.Status.Replicas = 3
+	ms2.Status.Replicas = ptr.To[int32](3)
 
 	tests := []struct {
 		Name           string
@@ -645,7 +645,7 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 			g := NewWithT(t)
 
 			g.Expect(GetReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedCount))
-			g.Expect(GetActualReplicaCountForMachineSets(test.Sets)).To(Equal(test.ExpectedActual))
+			g.Expect(ptr.Deref(GetActualReplicaCountForMachineSets(test.Sets), 0)).To(Equal(test.ExpectedActual))
 			g.Expect(TotalMachineSetsReplicaSum(test.Sets)).To(Equal(test.ExpectedTotal))
 		})
 	}
@@ -783,7 +783,7 @@ func TestDeploymentComplete(t *testing.T) {
 				},
 			},
 			Status: clusterv1.MachineDeploymentStatus{
-				Replicas:          current,
+				Replicas:          ptr.To[int32](current),
 				UpToDateReplicas:  ptr.To[int32](upToDate),
 				AvailableReplicas: ptr.To[int32](available),
 			},

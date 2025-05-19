@@ -370,6 +370,6 @@ func AssertMachinePoolReplicas(ctx context.Context, input AssertMachinePoolRepli
 		g.Expect(input.Getter.Get(ctx, key, mp)).To(Succeed(), fmt.Sprintf("failed to get MachinePool %s", klog.KObj(input.MachinePool)))
 		g.Expect(mp.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachinePool %s replicas should not be nil", klog.KObj(mp)))
 		g.Expect(*mp.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachinePool %s replicas should match expected replicas", klog.KObj(mp)))
-		g.Expect(mp.Status.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachinePool %s status.replicas should match expected replicas", klog.KObj(mp)))
+		g.Expect(ptr.Deref(mp.Status.Replicas, 0)).Should(Equal(input.Replicas), fmt.Sprintf("MachinePool %s status.replicas should match expected replicas", klog.KObj(mp)))
 	}, input.WaitForMachinePool...).Should(Succeed())
 }

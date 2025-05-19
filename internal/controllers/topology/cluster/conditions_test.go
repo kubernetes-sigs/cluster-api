@@ -277,7 +277,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(1),
+									Replicas:          ptr.To[int32](1),
 									ReadyReplicas:     ptr.To[int32](1),
 									UpToDateReplicas:  ptr.To[int32](1),
 									AvailableReplicas: ptr.To[int32](1),
@@ -324,7 +324,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(1),
+									Replicas: ptr.To(int32(1)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
@@ -375,7 +375,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](2),
 									UpToDateReplicas:  ptr.To[int32](2),
 									AvailableReplicas: ptr.To[int32](2),
@@ -423,7 +423,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
@@ -545,7 +545,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								}).
 								WithStatus(clusterv1.MachineDeploymentStatus{
 									// MD is not ready because we don't have 2 updated, ready and available replicas.
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](1),
 									UpToDateReplicas:  ptr.To[int32](1),
 									AvailableReplicas: ptr.To[int32](1),
@@ -562,7 +562,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 									},
 								}).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](2),
 									UpToDateReplicas:  ptr.To[int32](2),
 									AvailableReplicas: ptr.To[int32](2),
@@ -622,7 +622,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithVersion("v1.22.0").
 								WithStatus(expv1.MachinePoolStatus{
 									// mp is not ready because we don't have 2 updated, ready and available replicas.
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
@@ -638,7 +638,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.21.2").
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
@@ -701,7 +701,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](2),
 									UpToDateReplicas:  ptr.To[int32](2),
 									AvailableReplicas: ptr.To[int32](2),
@@ -713,7 +713,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.21.2").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](2),
 									UpToDateReplicas:  ptr.To[int32](2),
 									AvailableReplicas: ptr.To[int32](2),
@@ -761,7 +761,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
@@ -777,7 +777,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.21.2").
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
@@ -829,7 +829,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(1),
+									Replicas:          ptr.To[int32](1),
 									ReadyReplicas:     ptr.To[int32](1),
 									UpToDateReplicas:  ptr.To[int32](1),
 									AvailableReplicas: ptr.To[int32](1),
@@ -841,7 +841,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
+									Replicas:          ptr.To[int32](2),
 									ReadyReplicas:     ptr.To[int32](2),
 									UpToDateReplicas:  ptr.To[int32](2),
 									AvailableReplicas: ptr.To[int32](2),
@@ -855,7 +855,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(1),
+									Replicas: ptr.To(int32(1)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
@@ -871,7 +871,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(expv1.MachinePoolStatus{
-									Replicas: int32(2),
+									Replicas: ptr.To(int32(2)),
 									Deprecated: &expv1.MachinePoolDeprecatedStatus{
 										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),

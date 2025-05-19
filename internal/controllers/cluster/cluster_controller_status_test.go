@@ -278,7 +278,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 				fakeMachine("m1"), // not owned by the cluster
 			),
 			getDescendantsSucceeded: true,
-			expectReplicas:          ptr.To(int32(0)), // Note: currently this is still not a pointer in v1beta1, but it should change in v1beta2
+			expectReplicas:          nil,
 		},
 		{
 			name:    "should count workers from different objects",
@@ -3077,15 +3077,15 @@ func (r currentReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r currentReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
-	mp.Status.Replicas = int32(r)
+	mp.Status.Replicas = ptr.To(int32(r))
 }
 
 func (r currentReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Status.Replicas = int32(r)
+	md.Status.Replicas = ptr.To(int32(r))
 }
 
 func (r currentReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Status.Replicas = int32(r)
+	ms.Status.Replicas = ptr.To(int32(r))
 }
 
 type readyReplicas int32

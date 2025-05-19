@@ -340,7 +340,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 
 			// MachineSet should be rolled out.
 			g.Expect(newMachineSet.Spec.Replicas).To(Equal(deployment.Spec.Replicas))
-			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.Replicas))
+			g.Expect(newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.Replicas))
 			g.Expect(newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.ReadyReplicas))
 			g.Expect(newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.AvailableReplicas))
 
@@ -803,6 +803,6 @@ func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDep
 		g.Expect(input.Getter.Get(ctx, key, md)).To(Succeed(), fmt.Sprintf("failed to get MachineDeployment %s", klog.KObj(input.MachineDeployment)))
 		g.Expect(md.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachineDeployment %s replicas should not be nil", klog.KObj(md)))
 		g.Expect(*md.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s replicas should match expected replicas", klog.KObj(md)))
-		g.Expect(md.Status.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
+		g.Expect(ptr.Deref(md.Status.Replicas, 0)).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
 	}, input.WaitForMachineDeployment...).Should(Succeed())
 }

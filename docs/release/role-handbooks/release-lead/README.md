@@ -166,8 +166,15 @@ The goal of this task is to ensure we are always using the latest Go version for
 2. Bump the Go version in supported branches if necessary
    <br>Prior art: [Bump go to v1.23.7](https://github.com/kubernetes-sigs/cluster-api/pull/11981)
 
-Note: If the Go minor version of one of our supported branches goes out of supported, we should consider bumping
+Note: If the Go minor version of one of our supported branches goes out of support, we should consider bumping
 to a newer Go minor version according to our [backport policy](./../../../../CONTRIBUTING.md#backporting-a-patch).
+Usually this is done after k/k bumps the Go version in their release branches.
+
+The right Go minor version for a Cluster API branch can be looked up as follows (based on an example):
+* Cluster API v1.10 has Kubernetes v1.32 as a dependency: https://github.com/kubernetes-sigs/cluster-api/blob/v1.10.0/go.mod
+* Kubernetes v1.32 uses Go 1.23.8 (can be seen by checking the corresponding kubekins image in https://github.com/kubernetes/test-infra/blob/1a5662a/images/kubekins-e2e-v2/variants.yaml#L19)
+* => Cluster API v1.10 can be bumped to Go 1.23
+
 
 ### [Repeatedly] Cut a release
 

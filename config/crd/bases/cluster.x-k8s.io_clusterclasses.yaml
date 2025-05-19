@@ -2969,14 +2969,14 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
-                      unhealthyConditions:
+                      unhealthyNodeConditions:
                         description: |-
-                          unhealthyConditions contains a list of the conditions that determine
+                          unhealthyNodeConditions contains a list of conditions that determine
                           whether a node is considered unhealthy. The conditions are combined in a
                           logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                         items:
                           description: |-
-                            UnhealthyCondition represents a Node condition type and value with a timeout
+                            UnhealthyNodeCondition represents a Node condition type and value with a timeout
                             specified as a duration.  When the named condition has been in the given
                             status for at least the timeout value, a node is considered unhealthy.
                           properties:
@@ -4031,14 +4031,14 @@ spec:
                                   type: string
                               type: object
                               x-kubernetes-map-type: atomic
-                            unhealthyConditions:
+                            unhealthyNodeConditions:
                               description: |-
-                                unhealthyConditions contains a list of the conditions that determine
+                                unhealthyNodeConditions contains a list of conditions that determine
                                 whether a node is considered unhealthy. The conditions are combined in a
                                 logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                               items:
                                 description: |-
-                                  UnhealthyCondition represents a Node condition type and value with a timeout
+                                  UnhealthyNodeCondition represents a Node condition type and value with a timeout
                                   specified as a duration.  When the named condition has been in the given
                                   status for at least the timeout value, a node is considered unhealthy.
                                 properties:

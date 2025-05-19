@@ -75,7 +75,7 @@ type KCPRemediationSpecInput struct {
 	//   NOTE: In order for this to work communications from workload cluster to management cluster must be enabled.
 	// - An MHC targeting control plane machines with the mhc-test=fail labels and
 	//     nodeStartupTimeout: 30s
-	// 	   unhealthyConditions:
+	// 	   unhealthyNodeConditions:
 	//     - type: e2e.remediation.condition
 	//       status: "False"
 	// 	     timeout: 10s

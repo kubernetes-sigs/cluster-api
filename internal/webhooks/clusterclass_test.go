@@ -893,7 +893,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
 							Type:    corev1.NodeReady,
 							Status:  corev1.ConditionUnknown,
@@ -924,7 +924,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create does not fail if ControlPlane MachineHealthCheck does not define UnhealthyConditions",
+			name: "create does not fail if ControlPlane MachineHealthCheck does not define UnhealthyNodeConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -957,7 +957,7 @@ func TestClusterClassValidation(t *testing.T) {
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
@@ -986,7 +986,7 @@ func TestClusterClassValidation(t *testing.T) {
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
@@ -1003,7 +1003,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create does not fail if MachineDeployment MachineHealthCheck does not define UnhealthyConditions",
+			name: "create does not fail if MachineDeployment MachineHealthCheck does not define UnhealthyNodeConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -2302,7 +2302,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
 							Type:    corev1.NodeReady,
 							Status:  corev1.ConditionUnknown,
@@ -2355,7 +2355,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 							Enable: ptr.To(true),
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
 										Type:    corev1.NodeReady,
 										Status:  corev1.ConditionUnknown,
@@ -2488,7 +2488,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 								Enable: ptr.To(true),
 								MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-									UnhealthyConditions: []clusterv1.UnhealthyCondition{
+									UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 										{
 											Type:    corev1.NodeReady,
 											Status:  corev1.ConditionUnknown,

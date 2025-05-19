@@ -40,7 +40,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
 			RemediationTemplate: &corev1.ObjectReference{},
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -86,7 +86,7 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -148,7 +148,7 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -164,7 +164,7 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -184,15 +184,15 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 	}
 }
 
-func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
+func TestMachineHealthCheckUnhealthyNodeConditions(t *testing.T) {
 	tests := []struct {
-		name                string
-		unhealthyConditions []clusterv1.UnhealthyCondition
-		expectErr           bool
+		name                    string
+		unhealthyNodeConditions []clusterv1.UnhealthyNodeCondition
+		expectErr               bool
 	}{
 		{
-			name: "pass with correctly defined unhealthyConditions",
-			unhealthyConditions: []clusterv1.UnhealthyCondition{
+			name: "pass with correctly defined unhealthyNodeConditions",
+			unhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -201,14 +201,14 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:                "do not fail if the UnhealthyCondition array is nil",
-			unhealthyConditions: nil,
-			expectErr:           false,
+			name:                    "do not fail if the UnhealthyNodeCondition array is nil",
+			unhealthyNodeConditions: nil,
+			expectErr:               false,
 		},
 		{
-			name:                "do not fail if the UnhealthyCondition array is nil",
-			unhealthyConditions: []clusterv1.UnhealthyCondition{},
-			expectErr:           false,
+			name:                    "do not fail if the UnhealthyNodeCondition array is nil",
+			unhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
+			expectErr:               false,
 		},
 	}
 
@@ -222,7 +222,7 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: tt.unhealthyConditions,
+					UnhealthyNodeConditions: tt.unhealthyNodeConditions,
 				},
 			}
 			webhook := &MachineHealthCheck{}
@@ -301,7 +301,7 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 						"test": "test",
 					},
 				},
-				UnhealthyConditions: []clusterv1.UnhealthyCondition{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
@@ -369,7 +369,7 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 						"test": "test",
 					},
 				},
-				UnhealthyConditions: []clusterv1.UnhealthyCondition{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
@@ -401,7 +401,7 @@ func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 	g := NewWithT(t)
 	mhc := &clusterv1.MachineHealthCheck{
 		Spec: clusterv1.MachineHealthCheckSpec{
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -427,7 +427,7 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 					"baz":                      "qux",
 				},
 			},
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -455,7 +455,7 @@ func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) 
 		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector:            metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			RemediationTemplate: &corev1.ObjectReference{Namespace: "foo"},
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,

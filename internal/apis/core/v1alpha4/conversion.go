@@ -634,6 +634,38 @@ func Convert_v1beta2_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *clusterv1
 	return autoConvert_v1beta2_MachineSetStatus_To_v1alpha4_MachineSetStatus(in, out, s)
 }
 
+func Convert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in *MachineHealthCheckSpec, out *clusterv1.MachineHealthCheckSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyConditions {
+		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSpec(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyNodeConditions {
+		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
+	return nil
+}
+
 func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apimachineryconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in, out, s)

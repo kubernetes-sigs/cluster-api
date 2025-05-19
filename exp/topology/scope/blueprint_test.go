@@ -112,7 +112,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
@@ -136,7 +136,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 						Enable: ptr.To(false),
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
@@ -160,7 +160,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 						Enable: ptr.To(true),
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
@@ -185,7 +185,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 
 func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,
@@ -196,7 +196,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 
 	percent50 := intstr.FromString("50%")
 	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,
@@ -325,7 +325,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 				Class: "worker-class",
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-						UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:    corev1.NodeReady,
 								Status:  corev1.ConditionUnknown,
@@ -349,7 +349,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
 					Enable: ptr.To(false),
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-						UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:    corev1.NodeReady,
 								Status:  corev1.ConditionUnknown,
@@ -373,7 +373,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
 					Enable: ptr.To(true),
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-						UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:    corev1.NodeReady,
 								Status:  corev1.ConditionUnknown,
@@ -397,7 +397,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 
 func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,
@@ -408,7 +408,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 
 	percent50 := intstr.FromString("50%")
 	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,

@@ -204,7 +204,7 @@ spec:
     machineHealthCheck:
       maxUnhealthy: 33%
       nodeStartupTimeout: 15m
-      unhealthyConditions:
+      unhealthyNodeConditions:
       - type: Ready
         status: Unknown
         timeout: 300s
@@ -218,7 +218,7 @@ spec:
       machineHealthCheck:
         unhealthyRange: "[0-2]"
         nodeStartupTimeout: 10m
-        unhealthyConditions:
+        unhealthyNodeConditions:
         - type: Ready
           status: Unknown
           timeout: 300s

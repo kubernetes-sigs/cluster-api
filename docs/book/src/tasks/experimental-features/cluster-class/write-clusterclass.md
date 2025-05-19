@@ -612,7 +612,8 @@ spec:
 In addition to variables specified in the ClusterClass, the following builtin variables can be 
 referenced in patches:
 - `builtin.cluster.{name,namespace,uid,metadata.labels,metadata.annotations}`
-- `builtin.cluster.topology.{version,class,classNamespace}`
+- `builtin.cluster.topology.{version,classRef.name,classRef.namespace,class,classNamespace}`
+    - Note: `class` and `classNamespace` are deprecated and will be removed with the next apiVersion.
 - `builtin.cluster.network.{serviceDomain,services,pods}`
 - `builtin.controlPlane.{replicas,version,name,metadata.labels,metadata.annotations}`
     - Please note, these variables are only available when patching control plane or control plane 

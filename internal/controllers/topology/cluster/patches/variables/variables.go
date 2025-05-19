@@ -59,6 +59,10 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 				Version:        cluster.Spec.Topology.Version,
 				Class:          cluster.GetClassKey().Name,
 				ClassNamespace: cluster.GetClassKey().Namespace,
+				ClassRef: runtimehooksv1.ClusterTopologyClusterClassRefBuiltins{
+					Name:      cluster.GetClassKey().Name,
+					Namespace: cluster.GetClassKey().Namespace,
+				},
 			},
 		},
 	}

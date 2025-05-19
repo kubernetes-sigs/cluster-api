@@ -109,6 +109,10 @@ func TestGlobal(t *testing.T) {
 						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
  						 "topology":{
   						  	"version": "v1.21.1",
+							"classRef": {
+								"name": "clusterClass1",
+								"namespace": "default"
+							},
 							"class": "clusterClass1",
 							"classNamespace": "default"
   						},
@@ -183,6 +187,10 @@ func TestGlobal(t *testing.T) {
 						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
+							"classRef": {
+								"name": "clusterClass1",
+								"namespace": "default"
+							},
 							"class": "clusterClass1",
 							"classNamespace": "default"
   						},
@@ -257,6 +265,10 @@ func TestGlobal(t *testing.T) {
 						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
 							"version": "v1.21.1",
+							"classRef": {
+								"name": "clusterClass1",
+								"namespace": "default"
+							},
 							"class": "clusterClass1",
 							"classNamespace": "default"
   						},
@@ -327,6 +339,10 @@ func TestGlobal(t *testing.T) {
 						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						"topology":{
 							"version": "v1.21.1",
+							"classRef": {
+								"name": "clusterClass1",
+								"namespace": "default"
+							},
 							"class": "clusterClass1",
 							"classNamespace": "default"
   						},
@@ -392,6 +408,10 @@ func TestGlobal(t *testing.T) {
 						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
   						"topology":{
 							"version": "v1.21.1",
+							"classRef": {
+								"name": "clusterClass1",
+								"namespace": "default"
+							},
 							"class": "clusterClass1",
 							"classNamespace": "default"
 						}

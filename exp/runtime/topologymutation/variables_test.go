@@ -307,7 +307,7 @@ func TestMergeVariables(t *testing.T) {
 
 		m, err := MergeVariableMaps(
 			map[string]apiextensionsv1.JSON{
-				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"classRef":{"name":"clusterClass1","namespace":"default"},"class":"clusterClass1","version":"v1.21.1"}}}`)},
 				"a":                         {Raw: []byte("a-different")},
 				"c":                         {Raw: []byte("c")},
 			},
@@ -321,7 +321,7 @@ func TestMergeVariables(t *testing.T) {
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(m).To(HaveKeyWithValue(runtimehooksv1.BuiltinsName, apiextensionsv1.JSON{Raw: []byte(`{"cluster":{"name":"cluster-name-overwrite","namespace":"default","topology":{"version":"v1.21.1","class":"clusterClass1"}},"controlPlane":{"replicas":3}}`)}))
+		g.Expect(m).To(HaveKeyWithValue(runtimehooksv1.BuiltinsName, apiextensionsv1.JSON{Raw: []byte(`{"cluster":{"name":"cluster-name-overwrite","namespace":"default","topology":{"version":"v1.21.1","classRef":{"name":"clusterClass1","namespace":"default"},"class":"clusterClass1"}},"controlPlane":{"replicas":3}}`)}))
 		g.Expect(m).To(HaveKeyWithValue("a", apiextensionsv1.JSON{Raw: []byte("a")}))
 		g.Expect(m).To(HaveKeyWithValue("b", apiextensionsv1.JSON{Raw: []byte("b")}))
 		g.Expect(m).To(HaveKeyWithValue("c", apiextensionsv1.JSON{Raw: []byte("c")}))

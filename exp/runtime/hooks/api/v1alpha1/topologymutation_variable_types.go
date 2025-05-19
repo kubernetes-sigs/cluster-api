@@ -76,13 +76,37 @@ type ClusterTopologyBuiltins struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 
+	// classRef is the ref to the ClusterClass that is used for the topology.
+	//
+	// +required
+	ClassRef ClusterTopologyClusterClassRefBuiltins `json:"classRef"`
+
 	// class is the name of the ClusterClass of the Cluster.
+	//
+	// Deprecated: Class is deprecated in favor of ClassRef.Name and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	Class string `json:"class,omitempty"`
 
 	// classNamespace is the namespace of the ClusterClass of the Cluster.
+	//
+	// Deprecated: ClassNamespace is deprecated in favor of ClassRef.Namespace and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	ClassNamespace string `json:"classNamespace,omitempty"`
+}
+
+// ClusterTopologyClusterClassRefBuiltins is the ref to the ClusterClass that is used for the topology.
+type ClusterTopologyClusterClassRefBuiltins struct {
+	// name is the name of the ClusterClass that is used for the topology.
+	//
+	// +required
+	Name string `json:"name"`
+
+	// namespace is the namespace of the ClusterClass that is used for the topology.
+	//
+	// +required
+	Namespace string `json:"namespace"`
 }
 
 // ClusterNetworkBuiltins represents builtin cluster network variables.

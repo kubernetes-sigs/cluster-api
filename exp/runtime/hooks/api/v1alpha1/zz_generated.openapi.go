@@ -44,6 +44,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins":                                      schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins":                               schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins":                              schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyClusterClassRefBuiltins":               schema_runtime_hooks_api_v1alpha1_ClusterTopologyClusterClassRefBuiltins(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRequest":                                        schema_runtime_hooks_api_v1alpha1_CommonRequest(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":                                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRetryResponse":                                  schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref),
@@ -876,21 +877,61 @@ func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.Refere
 							Format:      "",
 						},
 					},
+					"classRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "classRef is the ref to the ClusterClass that is used for the topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyClusterClassRefBuiltins"),
+						},
+					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
-							Description: "class is the name of the ClusterClass of the Cluster.",
+							Description: "class is the name of the ClusterClass of the Cluster.\n\nDeprecated: Class is deprecated in favor of ClassRef.Name and is going to be removed in the next apiVersion.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"classNamespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "classNamespace is the namespace of the ClusterClass of the Cluster.",
+							Description: "classNamespace is the namespace of the ClusterClass of the Cluster.\n\nDeprecated: ClassNamespace is deprecated in favor of ClassRef.Namespace and is going to be removed in the next apiVersion.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+				Required: []string{"classRef"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyClusterClassRefBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ClusterTopologyClusterClassRefBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterTopologyClusterClassRefBuiltins is the ref to the ClusterClass that is used for the topology.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the ClusterClass that is used for the topology.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is the namespace of the ClusterClass that is used for the topology.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "namespace"},
 			},
 		},
 	}

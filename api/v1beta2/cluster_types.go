@@ -578,18 +578,24 @@ type Topology struct {
 // ClusterClassRef is the ref to the ClusterClass that should be used for the topology.
 type ClusterClassRef struct {
 	// name is the name of the ClusterClass that should be used for the topology.
+	// name must be a valid ClusterClass name and because of that be at most 253 characters in length
+	// and it must consist only of lower case alphanumeric characters, hyphens (-) and periods (.), and must start
+	// and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 
 	// namespace is the namespace of the ClusterClass that should be used for the topology.
-	// If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
-	// Value must follow the DNS1123Subdomain syntax.
+	// If namespace is empty or not set, it is defaulted to the namespace of the Cluster object.
+	// namespace must be a valid namespace name and because of that be at most 63 characters in length
+	// and it must consist only of lower case alphanumeric characters or hyphens (-), and must start
+	// and end with an alphanumeric character.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$`
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])$`
 	Namespace string `json:"namespace,omitempty"`
 }
 

@@ -461,7 +461,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassRef(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "name is the name of the ClusterClass that should be used for the topology.",
+							Description: "name is the name of the ClusterClass that should be used for the topology. name must be a valid ClusterClass name and because of that be at most 253 characters in length and it must consist only of lower case alphanumeric characters, hyphens (-) and periods (.), and must start and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -469,7 +469,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassRef(ref common.Referen
 					},
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "namespace is the namespace of the ClusterClass that should be used for the topology. If the namespace is empty or not set, it is defaulted to the namespace of the cluster object. Value must follow the DNS1123Subdomain syntax.",
+							Description: "namespace is the namespace of the ClusterClass that should be used for the topology. If namespace is empty or not set, it is defaulted to the namespace of the Cluster object. namespace must be a valid namespace name and because of that be at most 63 characters in length and it must consist only of lower case alphanumeric characters or hyphens (-), and must start and end with an alphanumeric character.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

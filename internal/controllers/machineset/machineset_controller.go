@@ -206,14 +206,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	defer func() {
-		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+		if err := r.updateStatus(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update status")})
 		}
 
-		r.updateStatus(ctx, s)
+		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update deprecated v1beta1 status")})
+		}
 
 		// Always attempt to patch the object and status after each reconciliation.
-		if err := patchMachineSet(ctx, patchHelper, s.machineSet); err != nil {
+		patchOpts := []patch.Option{}
+		if reterr == nil {
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+		}
+		if err := patchMachineSet(ctx, patchHelper, s.machineSet, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 
@@ -304,7 +310,7 @@ func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc
 	return res, nil
 }
 
-func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet *clusterv1.MachineSet) error {
+func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet *clusterv1.MachineSet, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	v1beta1conditions.SetSummary(machineSet,
 		v1beta1conditions.WithConditions(
@@ -315,7 +321,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
-	options := []patch.Option{
+	options = append(options,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyV1Beta1Condition,
 			clusterv1.MachinesCreatedV1Beta1Condition,
@@ -331,7 +337,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 			clusterv1.MachineSetRemediatingCondition,
 			clusterv1.MachineSetDeletingCondition,
 		}},
-	}
+	)
 	return patchHelper.Patch(ctx, machineSet, options...)
 }
 
@@ -1159,15 +1165,6 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 	}
 
 	log := ctrl.LoggerFrom(ctx)
-	newStatus := ms.Status.DeepCopy()
-
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	selector, err := metav1.LabelSelectorAsSelector(&ms.Spec.Selector)
-	if err != nil {
-		return errors.Wrapf(err, "failed to update status for MachineSet %s/%s", ms.Namespace, ms.Name)
-	}
-	newStatus.Selector = selector.String()
 
 	// Count the number of machines that have labels matching the labels of the machine
 	// template of the replica set, the matching machines may have more
@@ -1211,60 +1208,32 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 		}
 	}
 
-	newStatus.Replicas = int32(len(filteredMachines))
-	if newStatus.Deprecated == nil {
-		newStatus.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
+	if ms.Status.Deprecated == nil {
+		ms.Status.Deprecated = &clusterv1.MachineSetDeprecatedStatus{}
 	}
-	if newStatus.Deprecated.V1Beta1 == nil {
-		newStatus.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
+	if ms.Status.Deprecated.V1Beta1 == nil {
+		ms.Status.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
 	}
-	newStatus.Deprecated.V1Beta1.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
-	newStatus.Deprecated.V1Beta1.ReadyReplicas = int32(readyReplicasCount)
-	newStatus.Deprecated.V1Beta1.AvailableReplicas = int32(availableReplicasCount)
+	ms.Status.Deprecated.V1Beta1.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
+	ms.Status.Deprecated.V1Beta1.ReadyReplicas = int32(readyReplicasCount)
+	ms.Status.Deprecated.V1Beta1.AvailableReplicas = int32(availableReplicasCount)
 
-	fullyLabeledReplicas := int32(0)
-	readyReplicas := int32(0)
-	availableReplicas := int32(0)
-	if ms.Status.Deprecated != nil && ms.Status.Deprecated.V1Beta1 != nil {
-		fullyLabeledReplicas = ms.Status.Deprecated.V1Beta1.FullyLabeledReplicas
-		readyReplicas = ms.Status.Deprecated.V1Beta1.ReadyReplicas
-		availableReplicas = ms.Status.Deprecated.V1Beta1.AvailableReplicas
-	}
-
-	// Copy the newly calculated status into the machineset
-	if ms.Status.Replicas != newStatus.Replicas ||
-		fullyLabeledReplicas != newStatus.Deprecated.V1Beta1.FullyLabeledReplicas ||
-		readyReplicas != newStatus.Deprecated.V1Beta1.ReadyReplicas ||
-		availableReplicas != newStatus.Deprecated.V1Beta1.AvailableReplicas ||
-		ms.Generation != ms.Status.ObservedGeneration {
-		log.V(4).Info("Updating status: " +
-			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
-			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", fullyLabeledReplicas, newStatus.Deprecated.V1Beta1.FullyLabeledReplicas) +
-			fmt.Sprintf("readyReplicas %d->%d, ", readyReplicas, newStatus.Deprecated.V1Beta1.ReadyReplicas) +
-			fmt.Sprintf("availableReplicas %d->%d, ", availableReplicas, newStatus.Deprecated.V1Beta1.AvailableReplicas) +
-			fmt.Sprintf("observedGeneration %v->%v", ms.Status.ObservedGeneration, ms.Generation))
-
-		// Save the generation number we acted on, otherwise we might wrongfully indicate
-		// that we've seen a spec update when we retry.
-		newStatus.ObservedGeneration = ms.Generation
-		newStatus.DeepCopyInto(&ms.Status)
-	}
 	switch {
 	// We are scaling up
-	case newStatus.Replicas < desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+	case ms.Status.Replicas < desiredReplicas:
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingUpV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, ms.Status.Replicas)
 	// We are scaling down
-	case newStatus.Replicas > desiredReplicas:
-		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, newStatus.Replicas)
+	case ms.Status.Replicas > desiredReplicas:
+		v1beta1conditions.MarkFalse(ms, clusterv1.ResizedV1Beta1Condition, clusterv1.ScalingDownV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, ms.Status.Replicas)
 		// This means that there was no error in generating the desired number of machine objects
 		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesCreatedV1Beta1Condition)
 	default:
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
-		if newStatus.Deprecated.V1Beta1.ReadyReplicas == newStatus.Replicas {
+		if ms.Status.Deprecated.V1Beta1.ReadyReplicas == ms.Status.Replicas {
 			if v1beta1conditions.IsFalse(ms, clusterv1.ResizedV1Beta1Condition) {
-				log.Info("All the replicas are ready", "replicas", newStatus.Deprecated.V1Beta1.ReadyReplicas)
+				log.Info("All the replicas are ready", "replicas", ms.Status.Deprecated.V1Beta1.ReadyReplicas)
 			}
 			v1beta1conditions.MarkTrue(ms, clusterv1.ResizedV1Beta1Condition)
 		}

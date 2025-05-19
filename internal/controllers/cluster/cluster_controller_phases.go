@@ -49,31 +49,6 @@ import (
 
 var externalReadyWait = 30 * time.Second
 
-func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
-	preReconcilePhase := cluster.Status.GetTypedPhase()
-
-	if cluster.Status.Phase == "" {
-		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
-	}
-
-	if cluster.Spec.InfrastructureRef != nil || cluster.Spec.ControlPlaneRef != nil {
-		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
-	}
-
-	if cluster.Status.Initialization != nil && cluster.Status.Initialization.InfrastructureProvisioned && cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
-	}
-
-	if !cluster.DeletionTimestamp.IsZero() {
-		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseDeleting)
-	}
-
-	// Only record the event if the status has changed
-	if preReconcilePhase != cluster.Status.GetTypedPhase() {
-		r.recorder.Eventf(cluster, corev1.EventTypeNormal, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s", cluster.Name, string(cluster.Status.GetTypedPhase()))
-	}
-}
-
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)

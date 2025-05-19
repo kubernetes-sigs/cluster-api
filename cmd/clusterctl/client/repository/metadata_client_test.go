@@ -135,3 +135,85 @@ func Test_metadataClient_Get(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateMetadata(t *testing.T) {
+	tests := []struct {
+		name          string
+		metadata      *clusterctlv1.Metadata
+		providerLabel string
+		wantErr       bool
+		errMessage    string
+	}{
+		{
+			name: "valid metadata",
+			metadata: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: "v1beta1"},
+				},
+			},
+			providerLabel: "infra-test",
+			wantErr:       false,
+		},
+		{
+			name: "invalid apiVersion",
+			metadata: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "wrong.group/v1",
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: "v1beta1"},
+				},
+			},
+			providerLabel: "infra-test",
+			wantErr:       true,
+			errMessage:    "invalid provider metadata: unexpected apiVersion \"wrong.group/v1\" for provider infra-test (expected \"clusterctl.cluster.x-k8s.io/v1alpha3\")",
+		},
+		{
+			name: "invalid kind",
+			metadata: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "WrongKind",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: "v1beta1"},
+				},
+			},
+			providerLabel: "infra-test",
+			wantErr:       true,
+			errMessage:    "invalid provider metadata: unexpected kind \"WrongKind\" for provider infra-test (expected \"Metadata\")",
+		},
+		{
+			name: "empty releaseSeries",
+			metadata: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{},
+			},
+			providerLabel: "infra-test",
+			wantErr:       true,
+			errMessage:    "invalid provider metadata: releaseSeries is empty in metadata.yaml for provider infra-test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := validateMetadata(tt.metadata, tt.providerLabel)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring(tt.errMessage))
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}

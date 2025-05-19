@@ -277,6 +277,19 @@ linters:
       - linters:
           - errcheck
         text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+        # v1beta1 deprecated util packages
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated'
+        path: util/deprecated/v1beta1/.*\.go$
+      - linters:
+          - staticcheck
+        text: "QF1001: could apply De Morgan's law"
+        path: util/deprecated/v1beta1/.*\.go$
+      - linters:
+          - importas
+        text: 'imported as ".*" but must be ".*" according to config'
+        path: util/deprecated/v1beta1/.*\.go$
         # Exclude some packages or code to require comments, for example test code, or fake clients.
       - linters:
           - revive
@@ -368,8 +381,16 @@ linters:
           - govet
         text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.
       - linters:
+          - govet
+        text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/deprecated\/v1beta1\/conditions\.
+      - linters:
           - goconst
         path: (.+)_test\.go
+        # It's clearer to see that a field gets accessed or func gets called on the embedded objects 
+      - linters:
+          - staticcheck
+        path: (.+)\.go$
+        text: 'QF1008: could remove embedded field'
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

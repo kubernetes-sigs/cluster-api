@@ -42,9 +42,9 @@ type ConditionSetter interface {
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition(ctx context.Context, c client.Client, v1beta1Cluster *clusterv1.Cluster, v1beta1Obj ConditionSetter) (isPaused bool, requeue bool, err error) {
+func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, v1beta1Obj ConditionSetter) (isPaused bool, requeue bool, err error) {
 	oldCondition := v1beta2conditions.Get(v1beta1Obj, clusterv1beta1.PausedV1Beta2Condition)
-	newCondition := pausedCondition(c.Scheme(), v1beta1Cluster, v1beta1Obj, clusterv1beta1.PausedV1Beta2Condition)
+	newCondition := pausedCondition(c.Scheme(), cluster, v1beta1Obj, clusterv1beta1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
 	pausedStatusChanged := oldCondition == nil || oldCondition.Status != newCondition.Status

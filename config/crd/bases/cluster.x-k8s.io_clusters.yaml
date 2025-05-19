@@ -975,7 +975,7 @@ spec:
                       and end with an alphanumeric character.
                     maxLength: 63
                     minLength: 1
-                    pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])$
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                     type: string
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
@@ -2401,7 +2401,7 @@ spec:
                           and end with an alphanumeric character.
                         maxLength: 253
                         minLength: 1
-                        pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                       namespace:
                         description: |-
@@ -2412,7 +2412,7 @@ spec:
                           and end with an alphanumeric character.
                         maxLength: 63
                         minLength: 1
-                        pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])$
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                         type: string
                     required:
                     - name

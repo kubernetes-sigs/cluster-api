@@ -531,6 +531,11 @@ func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.Mac
 	return autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
 }
 
+func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 MachineDeploymentSpec does not have ProgressDeadlineSeconds anymore. But it's fine to just lose this field it was never used.
+	return autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
+}
+
 func Convert_v1alpha3_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *clusterv1.MachineDeploymentStatus, s apimachineryconversion.Scope) error {
 	return autoConvert_v1alpha3_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in, out, s)
 }

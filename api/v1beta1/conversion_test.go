@@ -290,6 +290,7 @@ func spokeMachineSetStatus(in *MachineSetStatus, c fuzz.Continue) {
 func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineDeploymentStatus,
+		spokeMachineDeploymentSpec,
 		spokeMachineDeploymentStatus,
 	}
 }
@@ -303,6 +304,13 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Co
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
 	}
+}
+
+func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// Drop ProgressDeadlineSeconds as we intentionally don't preserve it.
+	in.ProgressDeadlineSeconds = nil
 }
 
 func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c fuzz.Continue) {

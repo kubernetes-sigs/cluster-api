@@ -494,6 +494,24 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		return nil, retryError
 	}
 
+	// If this is a metadata.yaml file and verbose logging is enabled (-v=10), dump the content to logs
+	if filepath.Base(fileName) == "metadata.yaml" {
+		log := logf.Log
+		verboseLog := log.V(10)
+
+		// Get version from release tag
+		version := ""
+		if release.TagName != nil {
+			version = *release.TagName
+		}
+
+		verboseLog.Info("Dumping metadata.yaml via downloadFilesFromRelease", "provider", g.providerConfig.Name(), "fileName", fileName)
+		providerID := fmt.Sprintf("%s/%s", g.providerConfig.Name(), version)
+		verboseLog.Info("metadata.yaml content",
+			"providerID", providerID,
+			"content", string(content))
+	}
+
 	return content, nil
 }
 

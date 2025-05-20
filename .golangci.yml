@@ -254,6 +254,9 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This package will be removed in one of the next releases.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
         # Specific exclude rules for deprecated types that are still part of the codebase. These
         # should be removed as the referenced deprecated types are removed from the project.
       - linters:

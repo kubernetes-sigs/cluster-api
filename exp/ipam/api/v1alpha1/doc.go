@@ -16,4 +16,6 @@ limitations under the License.
 
 // Package v1alpha1 contains API Schema definitions for the exp v1alpha1 IPAM API.
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
 package v1alpha1

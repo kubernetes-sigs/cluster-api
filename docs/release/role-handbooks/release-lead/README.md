@@ -83,7 +83,7 @@ Here's an example of how to do this for the `v1.11` release cycle. That means `v
             `test/infrastructure/kind/mapper.go` file. We usually add a comment in the test case to remind us to update `release-1.10`'s kind and use `1.33.X` later.
        2. :warning: Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
    2. Update providers in `docker.yaml`:
-       1. Add a new `v1.11` entry.
+       1. Add a new `v1.10` entry.
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.10.99` to `v1.11.99`.
    3. Adjust `metadata.yaml`'s:

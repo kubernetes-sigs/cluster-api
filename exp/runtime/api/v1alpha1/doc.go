@@ -16,4 +16,6 @@ limitations under the License.
 
 // Package v1alpha1 contains the v1alpha1 implementation of ExtensionConfig.
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
 package v1alpha1

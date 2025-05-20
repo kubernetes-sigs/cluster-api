@@ -1100,7 +1100,9 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			InfrastructureRef: nil,
 			Topology: &clusterv1.Topology{
 				Version: "v1.21.2",
-				Class:   clusterClass.Name,
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: clusterClass.Name,
+				},
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](3),
 					Variables: &clusterv1.ControlPlaneVariables{

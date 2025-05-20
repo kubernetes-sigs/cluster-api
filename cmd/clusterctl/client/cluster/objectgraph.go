@@ -827,13 +827,13 @@ func (o *objectGraph) setShouldNotDelete(ctx context.Context, namespace string) 
 		}
 
 		// ignore cluster not referencing a CC in the namespace being moved.
-		if cluster.Spec.Topology.ClassNamespace != namespace {
+		if cluster.Spec.Topology.ClassRef.Namespace != namespace {
 			continue
 		}
 
 		// Otherwise mark the referenced CC as should not be deleted.
 		for _, class := range o.getClusterClasses() {
-			if class.identity.Namespace == cluster.Spec.Topology.ClassNamespace && class.identity.Name == cluster.Spec.Topology.Class {
+			if class.identity.Namespace == cluster.Spec.Topology.ClassRef.Namespace && class.identity.Name == cluster.Spec.Topology.ClassRef.Name {
 				class.shouldNotDelete = true
 				// Ensure that also the templates referenced by the CC won't be deleted.
 				o.setShouldNotDeleteHierarchy(class)

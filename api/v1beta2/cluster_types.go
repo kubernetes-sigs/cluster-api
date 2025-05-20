@@ -538,20 +538,9 @@ type ClusterAvailabilityGate struct {
 
 // Topology encapsulates the information of the managed resources.
 type Topology struct {
-	// class is the name of the ClusterClass object to create the topology.
+	// classRef is the ref to the ClusterClass that should be used for the topology.
 	// +required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	Class string `json:"class"`
-
-	// classNamespace is the namespace of the ClusterClass object to create the topology.
-	// If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
-	// Value must follow the DNS1123Subdomain syntax.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$`
-	ClassNamespace string `json:"classNamespace,omitempty"`
+	ClassRef ClusterClassRef `json:"classRef"`
 
 	// version is the Kubernetes version of the cluster.
 	// +required
@@ -584,6 +573,30 @@ type Topology struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
+}
+
+// ClusterClassRef is the ref to the ClusterClass that should be used for the topology.
+type ClusterClassRef struct {
+	// name is the name of the ClusterClass that should be used for the topology.
+	// name must be a valid ClusterClass name and because of that be at most 253 characters in length
+	// and it must consist only of lower case alphanumeric characters, hyphens (-) and periods (.), and must start
+	// and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+
+	// namespace is the namespace of the ClusterClass that should be used for the topology.
+	// If namespace is empty or not set, it is defaulted to the namespace of the Cluster object.
+	// namespace must be a valid namespace name and because of that be at most 63 characters in length
+	// and it must consist only of lower case alphanumeric characters or hyphens (-), and must start
+	// and end with an alphanumeric character.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
@@ -1180,8 +1193,8 @@ func (c *Cluster) GetClassKey() types.NamespacedName {
 		return types.NamespacedName{}
 	}
 
-	namespace := cmp.Or(c.Spec.Topology.ClassNamespace, c.Namespace)
-	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.Class}
+	namespace := cmp.Or(c.Spec.Topology.ClassRef.Namespace, c.Namespace)
+	return types.NamespacedName{Namespace: namespace, Name: c.Spec.Topology.ClassRef.Name}
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

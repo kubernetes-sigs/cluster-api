@@ -376,7 +376,7 @@ func TestGetBlueprint(t *testing.T) {
 
 			// If no clusterClass is defined in the test case fill in a dummy value "foo".
 			if tt.clusterClass == nil {
-				cluster.Spec.Topology.Class = "foo"
+				cluster.Spec.Topology.ClassRef.Name = "foo"
 			}
 
 			// Sets up the fakeClient for the test case.

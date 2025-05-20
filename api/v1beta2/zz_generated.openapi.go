@@ -36,6 +36,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassDeprecatedStatus":              schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassList":                          schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassPatch":                         schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassPatch(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassRef":                           schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassRef(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassSpec":                          schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatus":                        schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassStatusVariable":                schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassStatusVariable(ref),
@@ -448,6 +449,35 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassPatch(ref common.Refer
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta2.ExternalPatchDefinition", "sigs.k8s.io/cluster-api/api/v1beta2.PatchDefinition"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta2_ClusterClassRef(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassRef is the ref to the ClusterClass that should be used for the topology.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the ClusterClass that should be used for the topology. name must be a valid ClusterClass name and because of that be at most 253 characters in length and it must consist only of lower case alphanumeric characters, hyphens (-) and periods (.), and must start and end with an alphanumeric character.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is the namespace of the ClusterClass that should be used for the topology. If namespace is empty or not set, it is defaulted to the namespace of the Cluster object. namespace must be a valid namespace name and because of that be at most 63 characters in length and it must consist only of lower case alphanumeric characters or hyphens (-), and must start and end with an alphanumeric character.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
 	}
 }
 
@@ -4856,19 +4886,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref common.ReferenceCallb
 				Description: "Topology encapsulates the information of the managed resources.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"class": {
+					"classRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "class is the name of the ClusterClass object to create the topology.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"classNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "classNamespace is the namespace of the ClusterClass object to create the topology. If the namespace is empty or not set, it is defaulted to the namespace of the cluster object. Value must follow the DNS1123Subdomain syntax.",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "classRef is the ref to the ClusterClass that should be used for the topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassRef"),
 						},
 					},
 					"version": {
@@ -4921,11 +4943,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"class", "version"},
+				Required: []string{"classRef", "version"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersTopology"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterClassRef", "sigs.k8s.io/cluster-api/api/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/v1beta2.WorkersTopology"},
 	}
 }
 

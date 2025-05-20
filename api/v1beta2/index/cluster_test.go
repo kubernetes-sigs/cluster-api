@@ -46,7 +46,9 @@ func TestClusterByClusterClassRef(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class: "class1",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class1",
+						},
 					},
 				},
 			},
@@ -61,8 +63,10 @@ func TestClusterByClusterClassRef(t *testing.T) {
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
-						Class:          "class1",
-						ClassNamespace: "other",
+						ClassRef: clusterv1.ClusterClassRef{
+							Name:      "class1",
+							Namespace: "other",
+						},
 					},
 				},
 			},

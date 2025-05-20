@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -82,10 +81,6 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 
 	if m.Spec.NodeDeletionTimeout == nil {
 		m.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: defaultNodeDeletionTimeout}
-	}
-
-	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = ptr.To[int32](0)
 	}
 
 	return nil

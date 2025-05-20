@@ -119,10 +119,6 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 		m.Spec.Template.Spec.Version = &normalizedVersion
 	}
 
-	if m.Spec.Template.Spec.MinReadySeconds == nil {
-		m.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
-	}
-
 	return nil
 }
 

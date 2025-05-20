@@ -1,6 +1,5 @@
 resources:
   - ../namespace.yaml
-  - alloy-config.yaml
 
 helmCharts:
   - name: alloy

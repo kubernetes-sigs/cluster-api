@@ -546,13 +546,15 @@ type Topology struct {
 	// +kubebuilder:validation:MaxLength=253
 	Class string `json:"class"`
 
-	// classNamespace is the namespace of the ClusterClass object to create the topology.
-	// If the namespace is empty or not set, it is defaulted to the namespace of the cluster object.
-	// Value must follow the DNS1123Subdomain syntax.
+	// classNamespace is the namespace of the ClusterClass that should be used for the topology.
+	// If classNamespace is empty or not set, it is defaulted to the namespace of the Cluster object.
+	// classNamespace must be a valid namespace name and because of that be at most 63 characters in length
+	// and it must consist only of lower case alphanumeric characters or hyphens (-), and must start
+	// and end with an alphanumeric character.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:Pattern=`^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*$`
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 	ClassNamespace string `json:"classNamespace,omitempty"`
 
 	// version is the Kubernetes version of the cluster.

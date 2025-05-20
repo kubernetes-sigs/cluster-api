@@ -361,6 +361,7 @@ func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machi
 // There are small differences in how we calculate the Machine depending on if it
 // is a create or update. Example: for a new Machine we have to calculate a new name,
 // while for an existing Machine we have to use the name of the existing Machine.
+// Note: We intentionally don't set "minReadySeconds" on Machines because we consider enough to have machine availability.
 func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, failureDomain *string, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	var machineName string
 	var machineUID types.UID

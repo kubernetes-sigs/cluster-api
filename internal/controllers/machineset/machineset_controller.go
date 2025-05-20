@@ -517,6 +517,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			m.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
 			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
+			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 
 			// Set machine's up to date condition
 			if upToDateCondition != nil {
@@ -1200,7 +1201,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 
 		if noderefutil.IsNodeReady(node) {
 			readyReplicasCount++
-			if noderefutil.IsNodeAvailable(node, ptr.Deref(machine.Spec.MinReadySeconds, 0), metav1.Now()) {
+			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), metav1.Now()) {
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {

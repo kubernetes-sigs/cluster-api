@@ -775,6 +775,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 // "metadata.annotations" from "manager" so that "capi-kubeadmcontrolplane" can own these fields and can work with SSA.
 // Otherwise, fields would be co-owned by our "old" "manager" and "capi-kubeadmcontrolplane" and then we would not be
 // able to e.g. drop labels and annotations.
+// Note: We intentionally don't set "minReadySeconds" on Machines because we consider enough to have machine availability.
 func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	patchHelpers := map[string]*patch.Helper{}
 	for machineName := range controlPlane.Machines {

@@ -566,6 +566,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &bootstrapRef,
 					},
+					MinReadySeconds:         ptr.To[int32](3),
 					ReadinessGates:          []clusterv1.MachineReadinessGate{{ConditionType: "foo"}},
 					NodeDrainTimeout:        duration10s,
 					NodeVolumeDetachTimeout: duration10s,
@@ -790,6 +791,9 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 	for k, v := range expectedMS.Spec.Template.Annotations {
 		g.Expect(actualMS.Spec.Template.Annotations).Should(HaveKeyWithValue(k, v))
 	}
+
+	// Check MinReadySeconds
+	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
 
 	// Check DeletePolicy
 	g.Expect(actualMS.Spec.DeletePolicy).Should(Equal(expectedMS.Spec.DeletePolicy))

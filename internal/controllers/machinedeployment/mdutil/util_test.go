@@ -184,6 +184,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			ClusterName:             "cluster1",
 			Version:                 ptr.To("v1.25.0"),
 			FailureDomain:           ptr.To("failure-domain1"),
+			MinReadySeconds:         ptr.To[int32](10),
 			InfrastructureRef: corev1.ObjectReference{
 				Name:       "infra1",
 				Namespace:  "default",

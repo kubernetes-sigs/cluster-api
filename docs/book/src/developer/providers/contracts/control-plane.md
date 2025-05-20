@@ -333,61 +333,9 @@ documentation][scale].
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
 preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regards to replicas:
-
-Cluster API will continue to temporarily support ControlPlane resource using the `status.ready` field to
-report initialization completed.
-
-After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` fields in
-the ControlPlane resource will be ignored.
-
-</aside>
-
-<aside class="note warning">
-
-<h1>Heads up! this will change with the v1beta2 contract</h1>
-
-When the v1beta2 contract will be released (tentative Apr 2025), Cluster API is going to standardize replica 
-counters across all the API resources.
-
-In order to ensure a nice and consistent user experience across the entire Cluster, also ControlPlane providers 
-are expected to align to this effort and implement the following replica counter fields / field semantic.
-
-```go
-type FooControlPlaneStatus struct {
-    // selector is the label selector in string format to avoid introspection
-    // by clients, and is used to provide the CRD-based integration for the
-    // scale subresource and additional integrations for things like kubectl
-    // describe. The string will be in the same format as the query-param syntax.
-    // More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
-    // +optional
-    Selector string `json:"selector,omitempty"`
-    
-    // replicas is the total number of machines targeted by this control plane
-    // (their labels match the selector).
-    // +optional
-    Replicas *int32 `json:"replicas,omitempty"`
-
-    // readyReplicas is the number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
-    // +optional
-    ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
-
-    // availableReplicas is the number of available replicas for this ControlPlane. A machine is considered available when Machine's Available condition is true.
-    // +optional
-    AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
-
-    // upToDateReplicas is the number of up-to-date replicas targeted by this ControlPlane. A machine is considered available when Machine's  UpToDate condition is true.
-    // +optional
-    UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
-
-    // See other rules for more details about mandatory/optional fields in ControlPlane status.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-```
-
-Other fields will be ignored.
-
-See [Improving status in CAPI resources] for more context.
+With regards to v1beta1 replica counters, the Cluster controller with temporarily continue to read
+`status.readyReplicas`,  `status.updatedReplicas` and `status.unavailableReplicas`, even if the semantic of the 
+field might be different from what expected.
 
 </aside>
 

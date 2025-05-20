@@ -135,7 +135,7 @@ func TestGetCurrentState(t *testing.T) {
 	// MachineHealthChecks for the MachineDeployment and the ControlPlane.
 	machineHealthCheckForMachineDeployment := builder.MachineHealthCheck(machineDeployment.Namespace, machineDeployment.Name).
 		WithSelector(*selectors.ForMachineDeploymentMHC(machineDeployment)).
-		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,
@@ -152,7 +152,7 @@ func TestGetCurrentState(t *testing.T) {
 
 	machineHealthCheckForControlPlane := builder.MachineHealthCheck(controlPlane.GetNamespace(), controlPlane.GetName()).
 		WithSelector(*selectors.ForControlPlaneMHC()).
-		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,

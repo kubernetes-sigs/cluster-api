@@ -1420,7 +1420,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	labels := map[string]string{"fizzLabel": "buzz", "fooLabel": "bar"}
 	annotations := map[string]string{"fizzAnnotation": "buzz", "fooAnnotation": "bar"}
 
-	unhealthyConditions := []clusterv1.UnhealthyCondition{
+	unhealthyNodeConditions := []clusterv1.UnhealthyNodeCondition{
 		{
 			Type:    corev1.NodeReady,
 			Status:  corev1.ConditionUnknown,
@@ -1452,8 +1452,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
 		WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-			UnhealthyConditions: unhealthyConditions,
-			NodeStartupTimeout:  nodeTimeoutDuration,
+			UnhealthyNodeConditions: unhealthyNodeConditions,
+			NodeStartupTimeout:      nodeTimeoutDuration,
 		}).
 		WithReadinessGates(clusterClassReadinessGates).
 		WithFailureDomain(&clusterClassFailureDomain).
@@ -1493,7 +1493,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-					UnhealthyConditions: unhealthyConditions,
+					UnhealthyNodeConditions: unhealthyNodeConditions,
 					NodeStartupTimeout: &metav1.Duration{
 						Duration: time.Duration(1),
 					},
@@ -1653,7 +1653,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 					BootstrapTemplate:             workerBootstrapTemplate,
 					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 					MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-						UnhealthyConditions: unhealthyConditions,
+						UnhealthyNodeConditions: unhealthyNodeConditions,
 						NodeStartupTimeout: &metav1.Duration{
 							Duration: time.Duration(1),
 						},
@@ -1913,8 +1913,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 		// Check that the NodeStartupTime is set as expected.
 		g.Expect(actual.MachineHealthCheck.Spec.NodeStartupTimeout).To(Equal(nodeTimeoutDuration))
 
-		// Check that UnhealthyConditions are set as expected.
-		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyConditions).To(BeComparableTo(unhealthyConditions))
+		// Check that UnhealthyNodeConditions are set as expected.
+		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyNodeConditions).To(BeComparableTo(unhealthyNodeConditions))
 	})
 }
 
@@ -3045,7 +3045,7 @@ func TestMergeMap(t *testing.T) {
 func Test_computeMachineHealthCheck(t *testing.T) {
 	maxUnhealthyValue := intstr.FromString("100%")
 	mhcSpec := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,
@@ -3090,7 +3090,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			}},
 			// MaxUnhealthy is added by defaulting values using MachineHealthCheck.Default()
 			MaxUnhealthy: &maxUnhealthyValue,
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,

@@ -170,7 +170,7 @@ func IsUnhealthy(machine *clusterv1.Machine) bool {
 // HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
 // have any of the following control plane component conditions set to False:
 // APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy & EtcdMemberHealthy (if using managed etcd).
-// It is different from the HasUnhealthyCondition func which checks MachineHealthCheck conditions.
+// It is different from the IsUnhealthyAndOwnerRemediated and IsUnhealthy funcs which check MachineHealthCheck conditions.
 func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 	controlPlaneMachineHealthConditions := []string{
 		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,

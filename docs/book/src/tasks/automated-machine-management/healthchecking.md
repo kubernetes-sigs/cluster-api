@@ -28,7 +28,7 @@ By default, the action of remediating a Machine should trigger a new Machine to 
 Use the following example as a basis for creating a MachineHealthCheck for worker nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineHealthCheck
 metadata:
   name: capi-quickstart-node-unhealthy-5m
@@ -51,7 +51,7 @@ spec:
     matchLabels:
       nodepool: nodepool-0
   # Conditions to check on Nodes for matched Machines, if any condition is matched for the duration of its timeout, the Machine is considered unhealthy
-  unhealthyConditions:
+  unhealthyNodeConditions:
   - type: Ready
     status: Unknown
     timeout: 300s
@@ -64,7 +64,7 @@ Use this example as the basis for defining a MachineHealthCheck for control plan
 the KubeadmControlPlane:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineHealthCheck
 metadata:
   name: capi-quickstart-kcp-unhealthy-5m
@@ -74,7 +74,7 @@ spec:
   selector:
     matchLabels:
       cluster.x-k8s.io/control-plane: ""
-  unhealthyConditions:
+  unhealthyNodeConditions:
     - type: Ready
       status: Unknown
       timeout: 300s
@@ -106,7 +106,7 @@ KubeadmControlPlane allows to control how remediation happen by defining an opti
 this feature can be used for preventing unnecessary load on infrastructure provider e.g. in case of quota problems,or for allowing the infrastructure provider to stabilize in case of temporary problems.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: my-control-plane

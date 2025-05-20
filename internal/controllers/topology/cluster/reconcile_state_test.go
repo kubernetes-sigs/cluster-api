@@ -1733,7 +1733,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
 	mhcClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,
@@ -1758,7 +1758,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
 		WithSelector(*selectors.ForControlPlaneMHC()).
-		WithUnhealthyConditions(mhcClass.UnhealthyConditions).
+		WithUnhealthyNodeConditions(mhcClass.UnhealthyNodeConditions).
 		WithClusterName("cluster1")
 
 	tests := []struct {
@@ -3309,7 +3309,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 	maxUnhealthy := intstr.Parse("45%")
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
 		WithSelector(*selectors.ForMachineDeploymentMHC(md)).
-		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,
@@ -3713,7 +3713,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 	cp := builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
 		WithSelector(*selectors.ForControlPlaneMHC()).
-		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionUnknown,
@@ -3738,14 +3738,14 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			name:    "Update a MachineHealthCheck with changes",
 			current: mhcBuilder.DeepCopy().Build(),
 			// update the unhealthy conditions in the MachineHealthCheck
-			desired: mhcBuilder.DeepCopy().WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			desired: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,
 					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
 				},
 			}).Build(),
-			want: mhcBuilder.DeepCopy().WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			want: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,

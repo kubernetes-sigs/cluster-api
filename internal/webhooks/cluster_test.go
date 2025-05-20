@@ -2255,7 +2255,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-								UnhealthyConditions: []clusterv1.UnhealthyCondition{},
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
 							},
 						}).
 						Build()).
@@ -2276,7 +2276,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
 										Type:   corev1.NodeReady,
 										Status: corev1.ConditionFalse,
@@ -2321,7 +2321,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 							Enable: ptr.To(true),
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
 										Type:   corev1.NodeReady,
 										Status: corev1.ConditionFalse,
@@ -2376,7 +2376,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-										UnhealthyConditions: []clusterv1.UnhealthyCondition{},
+										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
 									},
 								}).
 								Build(),
@@ -2433,7 +2433,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 									Enable: ptr.To(true),
 									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-										UnhealthyConditions: []clusterv1.UnhealthyCondition{
+										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 											{
 												Type:   corev1.NodeReady,
 												Status: corev1.ConditionFalse,

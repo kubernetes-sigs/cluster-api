@@ -1156,7 +1156,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.UnhealthyConditions = nil
+		mhc.Spec.UnhealthyNodeConditions = nil
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -2752,7 +2752,7 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 			},
 			MaxUnhealthy:       &maxUnhealthy,
 			NodeStartupTimeout: &metav1.Duration{Duration: 1 * time.Millisecond},
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,

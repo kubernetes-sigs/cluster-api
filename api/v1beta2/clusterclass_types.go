@@ -376,13 +376,13 @@ type MachineDeploymentClassNamingStrategy struct {
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
 type MachineHealthCheckClass struct {
-	// unhealthyConditions contains a list of the conditions that determine
+	// unhealthyNodeConditions contains a list of conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
 	// +optional
 	// +kubebuilder:validation:MaxItems=100
-	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
+	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 
 	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
 	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by

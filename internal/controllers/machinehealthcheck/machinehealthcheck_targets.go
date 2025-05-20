@@ -181,7 +181,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	}
 
 	// check conditions
-	for _, c := range t.MHC.Spec.UnhealthyConditions {
+	for _, c := range t.MHC.Spec.UnhealthyNodeConditions {
 		nodeCondition := getNodeCondition(t.Node, c.Type)
 
 		// Skip when current node condition is different from the one reported

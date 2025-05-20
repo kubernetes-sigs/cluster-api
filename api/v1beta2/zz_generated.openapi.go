@@ -125,7 +125,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta2.PatchSelectorMatchMachinePoolClass":        schema_sigsk8sio_cluster_api_api_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.RemediationStrategy":                       schema_sigsk8sio_cluster_api_api_v1beta2_RemediationStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.Topology":                                  schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition":                        schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyCondition(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition":                    schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyNodeCondition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.ValidationRule":                            schema_sigsk8sio_cluster_api_api_v1beta2_ValidationRule(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchema":                            schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchema(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta2.VariableSchemaMetadata":                    schema_sigsk8sio_cluster_api_api_v1beta2_VariableSchemaMetadata(ref),
@@ -3199,15 +3199,15 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckClass(ref common
 				Description: "MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"unhealthyConditions": {
+					"unhealthyNodeConditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"),
 									},
 								},
 							},
@@ -3242,7 +3242,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckClass(ref common
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3340,15 +3340,15 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckSpec(ref common.
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 						},
 					},
-					"unhealthyConditions": {
+					"unhealthyNodeConditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"),
 									},
 								},
 							},
@@ -3384,7 +3384,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckSpec(ref common.
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3491,15 +3491,15 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref com
 							Format:      "",
 						},
 					},
-					"unhealthyConditions": {
+					"unhealthyNodeConditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "unhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"),
 									},
 								},
 							},
@@ -3534,7 +3534,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineHealthCheckTopology(ref com
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -4951,11 +4951,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_Topology(ref common.ReferenceCallb
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_sigsk8sio_cluster_api_api_v1beta2_UnhealthyNodeCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "UnhealthyCondition represents a Node condition type and value with a timeout specified as a duration.  When the named condition has been in the given status for at least the timeout value, a node is considered unhealthy.",
+				Description: "UnhealthyNodeCondition represents a Node condition type and value with a timeout specified as a duration.  When the named condition has been in the given status for at least the timeout value, a node is considered unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"type": {

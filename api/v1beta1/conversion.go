@@ -132,6 +132,38 @@ func Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterCla
 	return nil
 }
 
+func Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(in *MachineHealthCheckClass, out *clusterv1.MachineHealthCheckClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyConditions {
+		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(in *clusterv1.MachineHealthCheckClass, out *MachineHealthCheckClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyNodeConditions {
+		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
+	return nil
+}
+
 func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *LocalObjectTemplate, out *clusterv1.InfrastructureClass, s apimachineryconversion.Scope) error {
 	if in == nil {
 		return nil
@@ -400,6 +432,38 @@ func Convert_v1beta1_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(
 	out.Deprecated.V1Beta1.UnavailableReplicas = in.UnavailableReplicas
 	out.Deprecated.V1Beta1.UpdatedReplicas = in.UpdatedReplicas
 	out.Deprecated.V1Beta1.ReadyReplicas = in.ReadyReplicas
+	return nil
+}
+
+func Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in *MachineHealthCheckSpec, out *clusterv1.MachineHealthCheckSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyConditions {
+		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in, out, s); err != nil {
+		return err
+	}
+
+	for _, c := range in.UnhealthyNodeConditions {
+		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
+			Type:    c.Type,
+			Status:  c.Status,
+			Timeout: c.Timeout,
+		})
+	}
+
 	return nil
 }
 

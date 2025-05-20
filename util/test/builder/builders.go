@@ -2048,13 +2048,13 @@ func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface
 
 // MachineHealthCheckBuilder holds fields for creating a MachineHealthCheck.
 type MachineHealthCheckBuilder struct {
-	name         string
-	namespace    string
-	ownerRefs    []metav1.OwnerReference
-	selector     metav1.LabelSelector
-	clusterName  string
-	conditions   []clusterv1.UnhealthyCondition
-	maxUnhealthy *intstr.IntOrString
+	name                    string
+	namespace               string
+	ownerRefs               []metav1.OwnerReference
+	selector                metav1.LabelSelector
+	clusterName             string
+	unhealthyNodeConditions []clusterv1.UnhealthyNodeCondition
+	maxUnhealthy            *intstr.IntOrString
 }
 
 // MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
@@ -2077,9 +2077,9 @@ func (m *MachineHealthCheckBuilder) WithClusterName(clusterName string) *Machine
 	return m
 }
 
-// WithUnhealthyConditions adds the spec used to build the parameters of the MachineHealthCheck.
-func (m *MachineHealthCheckBuilder) WithUnhealthyConditions(conditions []clusterv1.UnhealthyCondition) *MachineHealthCheckBuilder {
-	m.conditions = conditions
+// WithUnhealthyNodeConditions adds the spec used to build the parameters of the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithUnhealthyNodeConditions(conditions []clusterv1.UnhealthyNodeCondition) *MachineHealthCheckBuilder {
+	m.unhealthyNodeConditions = conditions
 	return m
 }
 
@@ -2109,10 +2109,10 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 			OwnerReferences: m.ownerRefs,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName:         m.clusterName,
-			Selector:            m.selector,
-			UnhealthyConditions: m.conditions,
-			MaxUnhealthy:        m.maxUnhealthy,
+			ClusterName:             m.clusterName,
+			Selector:                m.selector,
+			UnhealthyNodeConditions: m.unhealthyNodeConditions,
+			MaxUnhealthy:            m.maxUnhealthy,
 		},
 	}
 	if m.clusterName != "" {

@@ -78,7 +78,7 @@ resources:
 The content of the `workload-mhc.yaml` file would be the definition of a standard MHC:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineHealthCheck
 metadata:
   name: md-0-mhc
@@ -89,7 +89,7 @@ spec:
   selector:
     matchLabels:
       cluster.x-k8s.io/deployment-name: md-0
-  unhealthyConditions:
+  unhealthyNodeConditions:
   - type: Ready
     status: Unknown
     timeout: 300s

@@ -449,12 +449,12 @@ func Convert_v1beta2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1
 
 func Convert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apimachineryconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.Topology does not exist in v1alpha3
-	// AvailabilityGates was added in v1alpha3.
+	// AvailabilityGates was added in v1beta1
 	return autoConvert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s)
 }
 
 func Convert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1alpha3.
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s)
 }
 
@@ -543,11 +543,6 @@ func Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStra
 
 func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
-}
-
-func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
-	// NOTE: v1beta2 MachineDeploymentSpec does not have ProgressDeadlineSeconds anymore. But it's fine to just lose this field it was never used.
-	return autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
 }
 
 func Convert_v1alpha3_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *clusterv1.MachineDeploymentStatus, s apimachineryconversion.Scope) error {

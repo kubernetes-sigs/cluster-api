@@ -756,20 +756,8 @@ func Convert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in *ClusterVaria
 	return autoConvert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in, out, s)
 }
 
-func Convert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s); err != nil {
-		return err
-	}
-	out.Template.Spec.MinReadySeconds = in.MinReadySeconds
-	return nil
-}
-
 func Convert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s); err != nil {
-		return err
-	}
-	out.Template.Spec.MinReadySeconds = &in.MinReadySeconds
-	return nil
+	return autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
 }
 
 func Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {

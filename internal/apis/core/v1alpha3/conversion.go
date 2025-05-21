@@ -499,7 +499,7 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 }
 
 func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1alpha3.
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in, out, s)
 }
 
@@ -512,13 +512,13 @@ func Convert_v1alpha3_ObjectMeta_To_v1beta2_ObjectMeta(in *ObjectMeta, out *clus
 }
 
 func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1alpha3.
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
-	// spec.nodeDeletionTimeout was added in v1alpha3.
-	// ReadinessGates was added in v1alpha3.
+	// spec.nodeDeletionTimeout was added in v1beta1.
+	// ReadinessGates was added in v1beta1.
 	return autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
 }
 
@@ -528,12 +528,12 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in 
 
 func Convert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apimachineryconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
-	// V1Beta2 was added in v1alpha3.
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
 }
 
 func Convert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apimachineryconversion.Scope) error {
-	// Status.version has been removed in v1alpha3, thus requiring custom conversion function. the information will be dropped.
+	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
 }
 
@@ -543,6 +543,11 @@ func Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStra
 
 func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
+}
+
+func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 MachineDeploymentSpec does not have ProgressDeadlineSeconds anymore. But it's fine to just lose this field it was never used.
+	return autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
 }
 
 func Convert_v1alpha3_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *clusterv1.MachineDeploymentStatus, s apimachineryconversion.Scope) error {
@@ -575,10 +580,6 @@ func Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(in *Co
 	for i := range *in {
 		(*out)[i] = *(*clusterv1.Condition)(unsafe.Pointer(&(*in)[i]))
 	}
-}
-
-func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {
-	return autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in, out, s)
 }
 
 func Convert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {

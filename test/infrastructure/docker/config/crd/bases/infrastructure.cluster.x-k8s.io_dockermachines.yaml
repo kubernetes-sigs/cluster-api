@@ -352,7 +352,273 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: DockerMachine is the Schema for the dockermachines API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DockerMachineSpec defines the desired state of DockerMachine.
+            properties:
+              bootstrapTimeout:
+                description: |-
+                  BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
+                  The default value is 3m.
+                type: string
+              bootstrapped:
+                description: |-
+                  Bootstrapped is true when the kubeadm bootstrapping has been run
+                  against this machine
+
+                  Deprecated: This field will be removed in the next apiVersion.
+                  When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
+                type: boolean
+              customImage:
+                description: |-
+                  CustomImage allows customizing the container image that is used for
+                  running the machine
+                type: string
+              extraMounts:
+                description: |-
+                  ExtraMounts describes additional mount points for the node container
+                  These may be used to bind a hostPath
+                items:
+                  description: |-
+                    Mount specifies a host volume to mount into a container.
+                    This is a simplified version of kind v1alpha4.Mount types.
+                  properties:
+                    containerPath:
+                      description: Path of the mount within the container.
+                      type: string
+                    hostPath:
+                      description: |-
+                        Path of the mount on the host. If the hostPath doesn't exist, then runtimes
+                        should report error. If the hostpath is a symbolic link, runtimes should
+                        follow the symlink and mount the real destination to container.
+                      type: string
+                    readOnly:
+                      description: If set, the mount is read-only.
+                      type: boolean
+                  type: object
+                type: array
+              preLoadImages:
+                description: |-
+                  PreLoadImages allows to pre-load images in a newly created machine. This can be used to
+                  speed up tests by avoiding e.g. to download CNI images on all the containers.
+                items:
+                  type: string
+                type: array
+              providerID:
+                description: ProviderID will be the container name in ProviderID format
+                  (docker:////<containername>)
+                type: string
+            type: object
+          status:
+            description: DockerMachineStatus defines the observed state of DockerMachine.
+            properties:
+              addresses:
+                description: Addresses contains the associated addresses for the docker
+                  machine.
+                items:
+                  description: MachineAddress contains information for the node's
+                    address.
+                  properties:
+                    address:
+                      description: address is the machine address.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    type:
+                      description: type is the machine address type, one of Hostname,
+                        ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
+                      type: string
+                  required:
+                  - address
+                  - type
+                  type: object
+                type: array
+              conditions:
+                description: Conditions defines current service state of the DockerMachine.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              loadBalancerConfigured:
+                description: |-
+                  LoadBalancerConfigured denotes that the machine has been
+                  added to the load balancer
+                type: boolean
+              ready:
+                description: Ready denotes that the machine (docker container) is
+                  ready
+                type: boolean
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in DockerMachine's status with the V1Beta2 version.
+                properties:
+                  conditions:
+                    description: |-
+                      conditions represents the observations of a DockerMachine's current state.
+                      Known condition types are Ready, ContainerProvisioned, BootstrapExecSucceeded, Deleting, Paused.
+                    items:
+                      description: Condition contains details for one aspect of the
+                        current state of this API Resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            lastTransitionTime is the last time the condition transitioned from one status to another.
+                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            message is a human readable message indicating details about the transition.
+                            This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: |-
+                            observedGeneration represents the .metadata.generation that the condition was set based upon.
+                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                            with respect to the current state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: |-
+                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                            Producers of specific condition types may define expected values and meanings for this field,
+                            and whether the values are considered a guaranteed API.
+                            The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
+    - description: Machine object which owns with this DockerMachine
+      jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
+      name: Machine
+      type: string
+    - description: Provider ID
+      jsonPath: .spec.providerID
+      name: ProviderID
+      type: string
+    - description: Machine ready status
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    - description: Time duration since creation of DockerMachine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: DockerMachine is the Schema for the dockermachines API.

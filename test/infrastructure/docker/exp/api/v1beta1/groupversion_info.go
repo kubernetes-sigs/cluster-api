@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
-// +kubebuilder:object:generate=true
-// +groupName=infrastructure.cluster.x-k8s.io
 package v1beta1
 
 import (
@@ -36,6 +33,9 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 
 	objectTypes = []runtime.Object{}
+
+	// localSchemeBuilder is used for type conversions.
+	localSchemeBuilder = schemeBuilder
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {

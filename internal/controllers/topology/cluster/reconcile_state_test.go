@@ -39,9 +39,9 @@ import (
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"

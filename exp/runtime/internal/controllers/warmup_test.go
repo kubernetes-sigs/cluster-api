@@ -27,7 +27,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"

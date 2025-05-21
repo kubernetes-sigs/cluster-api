@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 

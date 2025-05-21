@@ -284,6 +284,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./ \
 		paths=./api/... \
 		paths=./api/ipam/... \
+		paths=./api/runtime/... \
 		paths=./internal/apis/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
@@ -292,7 +293,6 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/internal/webhooks/... \
 		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
-		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/internal/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
@@ -391,15 +391,15 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./api/ipam,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/hooks/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
 		paths=./api/ipam/... \
+		paths=./api/runtime/... \
 		paths=./internal/apis/addons/... \
 		paths=./internal/apis/core/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/hooks/api/... \
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
@@ -499,12 +499,11 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/runtime/test/v1alpha1 \
 		./internal/runtime/test/v1alpha2
-	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/runtime/api/v1alpha1,./$(EXP_DIR)/runtime/api/v1beta2"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/runtime/v1alpha1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./$(EXP_DIR)/runtime/api/v1alpha1 \
-		./$(EXP_DIR)/runtime/api/v1beta2
+		./api/runtime/v1alpha1
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap

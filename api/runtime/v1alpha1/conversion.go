@@ -21,8 +21,8 @@ import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 )
 
 func (src *ExtensionConfig) ConvertTo(dstRaw conversion.Hub) error {

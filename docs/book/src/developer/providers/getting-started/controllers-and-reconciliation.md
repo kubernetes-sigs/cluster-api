@@ -150,11 +150,8 @@ If our cluster was just created, the Cluster API controller may not have set the
 
 ```go
 func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-    // You'll eventually get rid of this and use a context passed in from your main.go
-	ctx := context.Background() 
-
     // We change the _ to `log` since we're going to log something now
-	log = ctrl.LoggerFrom(ctx)
+    log = ctrl.LoggerFrom(ctx)
 
     var mailgunCluster infrav1.MailgunCluster
     if err := r.Get(ctx, req.NamespacedName, &mailgunCluster); err != nil {

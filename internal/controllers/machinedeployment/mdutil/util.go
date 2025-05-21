@@ -499,9 +499,9 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 		return matchingMachineSets[0], "", nil
 	}
 
-	// Pick the first matching MachineSet that has been created after RolloutAfter.
+	// Pick the first matching MachineSet that has been created at RolloutAfter or later.
 	for _, ms := range matchingMachineSets {
-		if ms.CreationTimestamp.After(deployment.Spec.RolloutAfter.Time) {
+		if ms.CreationTimestamp.Sub(deployment.Spec.RolloutAfter.Time) >= 0 {
 			return ms, "", nil
 		}
 	}

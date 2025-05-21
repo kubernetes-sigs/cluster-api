@@ -474,7 +474,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 
-			return newms.Status.Replicas == desiredMachineDeploymentReplicas
+			return ptr.Deref(newms.Status.Replicas, 0) == desiredMachineDeploymentReplicas
 		}, timeout*5).Should(BeTrue())
 
 		t.Log("Verifying MachineDeployment has correct Conditions")

@@ -362,7 +362,7 @@ func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployme
 		// will not be an accurate proportion estimation in case other machine sets have different values
 		// which means that the deployment was scaled at some point but we at least will stay in limits
 		// due to the min-max comparisons in getProportion.
-		annotatedReplicas = md.Status.Replicas
+		annotatedReplicas = ptr.Deref(md.Status.Replicas, 0)
 	}
 
 	// We should never proportionally scale up from zero which means ms.spec.replicas and annotatedReplicas
@@ -539,11 +539,11 @@ func GetReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 }
 
 // GetActualReplicaCountForMachineSets returns the sum of actual replicas of the given machine sets.
-func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
-	totalActualReplicas := int32(0)
+func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalActualReplicas *int32
 	for _, ms := range machineSets {
-		if ms != nil {
-			totalActualReplicas += ms.Status.Replicas
+		if ms != nil && ms.Status.Replicas != nil {
+			totalActualReplicas = ptr.To(ptr.Deref(totalActualReplicas, 0) + *ms.Status.Replicas)
 		}
 	}
 	return totalActualReplicas
@@ -559,7 +559,7 @@ func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
-			totalReplicas += max(*(ms.Spec.Replicas), ms.Status.Replicas)
+			totalReplicas += max(ptr.Deref(ms.Spec.Replicas, 0), ptr.Deref(ms.Status.Replicas, 0))
 		}
 	}
 	return totalReplicas
@@ -639,10 +639,11 @@ func IsRollingUpdate(deployment *clusterv1.MachineDeployment) bool {
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
 // are updated and available, and no old machines are running.
 func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clusterv1.MachineDeploymentStatus) bool {
+	currentReplicas := ptr.Deref(newStatus.Replicas, 0)
 	updatedReplicas := ptr.Deref(newStatus.UpToDateReplicas, 0)
 	availableReplicas := ptr.Deref(newStatus.AvailableReplicas, 0)
 	return updatedReplicas == *(deployment.Spec.Replicas) &&
-		newStatus.Replicas == *(deployment.Spec.Replicas) &&
+		currentReplicas == *(deployment.Spec.Replicas) &&
 		availableReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.ObservedGeneration >= deployment.Generation
 }

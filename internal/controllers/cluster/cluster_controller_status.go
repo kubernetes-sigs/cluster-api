@@ -211,7 +211,9 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if mp.Spec.Replicas != nil {
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *mp.Spec.Replicas)
 		}
-		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + mp.Status.Replicas)
+		if mp.Status.Replicas != nil {
+			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *mp.Status.Replicas)
+		}
 		if mp.Status.ReadyReplicas != nil {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *mp.Status.ReadyReplicas)
 		}
@@ -227,7 +229,9 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if md.Spec.Replicas != nil {
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *md.Spec.Replicas)
 		}
-		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + md.Status.Replicas)
+		if md.Status.Replicas != nil {
+			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *md.Status.Replicas)
+		}
 		if md.Status.ReadyReplicas != nil {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *md.Status.ReadyReplicas)
 		}
@@ -246,7 +250,9 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 		if ms.Spec.Replicas != nil {
 			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *ms.Spec.Replicas)
 		}
-		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + ms.Status.Replicas)
+		if ms.Status.Replicas != nil {
+			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *ms.Status.Replicas)
+		}
 		if ms.Status.ReadyReplicas != nil {
 			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}

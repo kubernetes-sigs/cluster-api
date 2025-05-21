@@ -1200,7 +1200,9 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec
 func autoConvert_v1alpha4_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(in *MachineDeploymentStatus, out *v1beta2.MachineDeploymentStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	// WARNING: in.UpdatedReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
@@ -1238,7 +1240,9 @@ func autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentSt
 	}
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}
@@ -1617,7 +1621,9 @@ func autoConvert_v1beta2_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *v1beta2.M
 
 func autoConvert_v1alpha4_MachineSetStatus_To_v1beta2_MachineSetStatus(in *MachineSetStatus, out *v1beta2.MachineSetStatus, s conversion.Scope) error {
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	// WARNING: in.FullyLabeledReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
@@ -1655,7 +1661,9 @@ func autoConvert_v1beta2_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *v1bet
 		out.Conditions = nil
 	}
 	out.Selector = in.Selector
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}

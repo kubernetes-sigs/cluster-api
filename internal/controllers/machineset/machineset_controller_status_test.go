@@ -49,7 +49,7 @@ func Test_setReplicas(t *testing.T) {
 			machines: nil,
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          int32(0),
+				Replicas:          ptr.To[int32](0),
 				ReadyReplicas:     ptr.To[int32](0),
 				AvailableReplicas: ptr.To[int32](0),
 				UpToDateReplicas:  ptr.To[int32](0),
@@ -72,7 +72,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          int32(3),
+				Replicas:          ptr.To[int32](3),
 				ReadyReplicas:     ptr.To[int32](1),
 				AvailableReplicas: ptr.To[int32](0),
 				UpToDateReplicas:  ptr.To[int32](0),
@@ -96,7 +96,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          int32(3),
+				Replicas:          ptr.To[int32](3),
 				ReadyReplicas:     ptr.To[int32](0),
 				AvailableReplicas: ptr.To[int32](1),
 				UpToDateReplicas:  ptr.To[int32](0),
@@ -120,7 +120,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          int32(3),
+				Replicas:          ptr.To[int32](3),
 				ReadyReplicas:     ptr.To[int32](0),
 				AvailableReplicas: ptr.To[int32](0),
 				UpToDateReplicas:  ptr.To[int32](1),
@@ -146,7 +146,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			expectedStatus: clusterv1.MachineSetStatus{
-				Replicas:          int32(1),
+				Replicas:          ptr.To[int32](1),
 				ReadyReplicas:     ptr.To[int32](1),
 				AvailableReplicas: ptr.To[int32](1),
 				UpToDateReplicas:  ptr.To[int32](1),

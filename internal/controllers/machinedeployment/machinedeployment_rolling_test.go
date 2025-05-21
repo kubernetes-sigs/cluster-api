@@ -167,7 +167,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Replicas: ptr.To[int32](3),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas: 3,
+						Replicas: ptr.To[int32](3),
 					},
 				},
 			},
@@ -211,7 +211,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Replicas: ptr.To[int32](0),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas: 1,
+						Replicas: ptr.To[int32](1),
 					},
 				},
 			},
@@ -425,7 +425,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Replicas: ptr.To[int32](5),
 				},
 				Status: clusterv1.MachineSetStatus{
-					Replicas: 5,
+					Replicas: ptr.To[int32](5),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
@@ -438,7 +438,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Replicas: ptr.To[int32](8),
 					},
 					Status: clusterv1.MachineSetStatus{
-						Replicas:          10,
+						Replicas:          ptr.To[int32](10),
 						ReadyReplicas:     ptr.To[int32](8),
 						AvailableReplicas: ptr.To[int32](8),
 					},

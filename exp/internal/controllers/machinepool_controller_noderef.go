@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -69,7 +70,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
 	}
-	if mp.Status.Replicas == readyReplicas && len(mp.Status.NodeRefs) == int(readyReplicas) {
+	if ptr.Deref(mp.Status.Replicas, 0) == readyReplicas && len(mp.Status.NodeRefs) == int(readyReplicas) {
 		v1beta1conditions.MarkTrue(mp, expv1.ReplicasReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
@@ -114,7 +115,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 	}
 	mp.Status.Deprecated.V1Beta1.ReadyReplicas = int32(nodeRefsResult.ready)
 	mp.Status.Deprecated.V1Beta1.AvailableReplicas = int32(nodeRefsResult.available)
-	mp.Status.Deprecated.V1Beta1.UnavailableReplicas = mp.Status.Replicas - mp.Status.Deprecated.V1Beta1.AvailableReplicas
+	mp.Status.Deprecated.V1Beta1.UnavailableReplicas = ptr.Deref(mp.Status.Replicas, 0) - mp.Status.Deprecated.V1Beta1.AvailableReplicas
 	mp.Status.NodeRefs = nodeRefsResult.references
 
 	log.Info("Set MachinePool's NodeRefs", "nodeRefs", mp.Status.NodeRefs)
@@ -126,8 +127,8 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, err
 	}
 
-	if mp.Status.Replicas != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
-		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", mp.Status.Replicas)
+	if ptr.Deref(mp.Status.Replicas, 0) != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
+		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", ptr.Deref(mp.Status.Replicas, 0))
 		v1beta1conditions.MarkFalse(mp, expv1.ReplicasReadyV1Beta1Condition, expv1.WaitingForReplicasReadyV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}

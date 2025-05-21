@@ -366,7 +366,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					},
 				},
 				Status: expv1.MachinePoolStatus{
-					Replicas: 1,
+					Replicas: ptr.To(int32(1)),
 					Deprecated: &expv1.MachinePoolDeprecatedStatus{
 						V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 							ReadyReplicas: 1,
@@ -1036,7 +1036,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				}
-				mp.Status.Replicas = 2
+				mp.Status.Replicas = ptr.To(int32(2))
 				if mp.Status.Deprecated == nil {
 					mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
 				}

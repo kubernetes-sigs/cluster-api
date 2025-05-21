@@ -275,6 +275,11 @@ func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c fuzz.Continue) {
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachineSetV1Beta1DeprecatedStatus{}
 	}
+	// nil becomes &0 after hub => spoke => hub conversion
+	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
+	if in.Replicas == nil {
+		in.Replicas = ptr.To(int32(0))
+	}
 }
 
 func spokeMachineSetStatus(in *MachineSetStatus, c fuzz.Continue) {
@@ -303,6 +308,11 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c fuzz.Co
 	}
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachineDeploymentV1Beta1DeprecatedStatus{}
+	}
+	// nil becomes &0 after hub => spoke => hub conversion
+	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
+	if in.Replicas == nil {
+		in.Replicas = ptr.To(int32(0))
 	}
 }
 

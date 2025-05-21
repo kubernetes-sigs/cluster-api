@@ -213,7 +213,9 @@ func Convert_v1beta2_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in *v1beta2.Mac
 
 func autoConvert_v1alpha4_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachinePoolStatus, out *v1beta2.MachinePoolStatus, s conversion.Scope) error {
 	out.NodeRefs = *(*[]corev1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
-	out.Replicas = in.Replicas
+	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}
@@ -255,7 +257,9 @@ func autoConvert_v1beta2_MachinePoolStatus_To_v1alpha4_MachinePoolStatus(in *v1b
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.NodeRefs = *(*[]corev1.ObjectReference)(unsafe.Pointer(&in.NodeRefs))
-	out.Replicas = in.Replicas
+	if err := v1.Convert_Pointer_int32_To_int32(&in.Replicas, &out.Replicas, s); err != nil {
+		return err
+	}
 	if err := v1.Convert_Pointer_int32_To_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
 	}

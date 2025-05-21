@@ -1858,7 +1858,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						WithVersion(*tt.currentMDVersion).
 						WithStatus(clusterv1.MachineDeploymentStatus{
 							ObservedGeneration: 2,
-							Replicas:           2,
+							Replicas:           ptr.To[int32](2),
 							ReadyReplicas:      ptr.To[int32](2),
 							UpToDateReplicas:   ptr.To[int32](2),
 							AvailableReplicas:  ptr.To[int32](2),
@@ -2256,7 +2256,7 @@ func TestComputeMachinePool(t *testing.T) {
 						WithVersion(*tt.currentMPVersion).
 						WithStatus(expv1.MachinePoolStatus{
 							ObservedGeneration: 2,
-							Replicas:           2,
+							Replicas:           ptr.To(int32(2)),
 							Deprecated: &expv1.MachinePoolDeprecatedStatus{
 								V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
 									ReadyReplicas:     2,

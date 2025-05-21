@@ -1317,7 +1317,7 @@ func fakeMachineSet(name string, options ...fakeMachineSetOption) *clusterv1.Mac
 
 func withStatusReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.Replicas = n
+		ms.Status.Replicas = ptr.To(n)
 	}
 }
 

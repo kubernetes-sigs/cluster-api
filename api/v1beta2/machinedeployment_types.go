@@ -463,7 +463,7 @@ type MachineDeploymentStatus struct {
 	// replicas is the total number of non-terminated machines targeted by this deployment
 	// (their labels match the selector).
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.
 	// +optional

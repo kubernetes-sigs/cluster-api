@@ -172,8 +172,8 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 			return false, errors.Wrapf(err, "failed to get KCP")
 		}
 
-		desiredReplicas := controlplane.Spec.Replicas
-		statusReplicas := controlplane.Status.Replicas
+		desiredReplicas := ptr.Deref(controlplane.Spec.Replicas, 0)
+		statusReplicas := ptr.Deref(controlplane.Status.Replicas, 0)
 		upToDatedReplicas := ptr.Deref(controlplane.Status.UpToDateReplicas, 0)
 		readyReplicas := ptr.Deref(controlplane.Status.ReadyReplicas, 0)
 		availableReplicas := ptr.Deref(controlplane.Status.AvailableReplicas, 0)
@@ -181,10 +181,10 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 		// Control plane is still rolling out (and thus not ready) if:
 		// * .spec.replicas, .status.replicas, .status.upToDateReplicas,
 		//   .status.readyReplicas, .status.availableReplicas are not equal.
-		if statusReplicas != *desiredReplicas ||
-			upToDatedReplicas != *desiredReplicas ||
-			readyReplicas != *desiredReplicas ||
-			availableReplicas != *desiredReplicas {
+		if statusReplicas != desiredReplicas ||
+			upToDatedReplicas != desiredReplicas ||
+			readyReplicas != desiredReplicas ||
+			availableReplicas != desiredReplicas {
 			return false, nil
 		}
 

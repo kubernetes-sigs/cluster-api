@@ -1385,7 +1385,7 @@ kubernetesVersion: metav1.16.1
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
+		g.Expect(kcp.Status.Replicas).To(HaveValue(BeEquivalentTo(1)))
 		g.Expect(v1beta1conditions.IsFalse(kcp, controlplanev1.AvailableV1Beta1Condition)).To(BeTrue())
 		g.Expect(conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneInitializedCondition)).To(BeTrue())
 
@@ -1626,7 +1626,7 @@ kubernetesVersion: metav1.16.1`,
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
-		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
+		g.Expect(kcp.Status.Replicas).To(HaveValue(BeEquivalentTo(1)))
 		g.Expect(v1beta1conditions.IsFalse(kcp, controlplanev1.AvailableV1Beta1Condition)).To(BeTrue())
 
 		// Verify that the kubeconfig is using the custom CA

@@ -126,7 +126,10 @@ That may not always be what you want - what if the object's been deleted? So let
     }
 ```
 
-Now, if this were any old `kubebuilder` project you'd be done, but in our case you have one more object to retrieve. While we defined our own cluster object (`MailGunCluster`) that represents all the infrastructure provider specific details for our cluster, we also need to retrieve the upstream [`Cluster` object that is defined by Cluster API itself][cluster]. Luckily, cluster API [provides a helper for us][getowner].
+Now that we have our own cluster object (`MailGunCluster`) that represents all the
+infrastructure provider specific details for our cluster, we also need to retrieve
+the upstream [`Cluster` object that is defined by Cluster API itself][cluster].
+Luckily, cluster API [provides a helper for us][getowner].
 
 First, you'll need to import the cluster-api package into our project if you haven't done so yet:
 

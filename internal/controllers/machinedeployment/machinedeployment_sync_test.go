@@ -642,6 +642,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
 		expectedMS.UID = existingMSUID
@@ -681,6 +682,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		oldMS := skeletonMSBasedOnMD.DeepCopy()
 		oldMS.Spec.Replicas = ptr.To[int32](2)
@@ -734,6 +736,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
 		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
 		expectedMS.UID = existingMSUID

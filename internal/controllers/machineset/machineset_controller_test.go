@@ -134,6 +134,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				NodeDrainTimeout:        duration10m,
 				NodeDeletionTimeout:     duration10m,
 				NodeVolumeDetachTimeout: duration10m,
+				MinReadySeconds:         ptr.To[int32](0),
 			},
 		}
 
@@ -1381,6 +1382,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	ms.Spec.Template.Spec.NodeDrainTimeout = duration10s
 	ms.Spec.Template.Spec.NodeDeletionTimeout = duration10s
 	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration10s
+	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](10)
 	s = &scope{
 		machineSet: ms,
 		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
@@ -1409,6 +1411,10 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(updatedInPlaceMutatingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
 			Not(BeNil()),
 			HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
+		))
+		g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(And(
+			Not(BeNil()),
+			HaveValue(Equal(*ms.Spec.Template.Spec.MinReadySeconds)),
 		))
 		// Verify readiness gates.
 		g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
@@ -1461,12 +1467,14 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeout).Should(Equal(deletingMachine.Spec.NodeDrainTimeout))
 		g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(Equal(deletingMachine.Spec.NodeDeletionTimeout))
 		g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(Equal(deletingMachine.Spec.NodeVolumeDetachTimeout))
+		g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(deletingMachine.Spec.MinReadySeconds))
 	}, 5*time.Second).Should(Succeed())
 
 	// Verify in-place mutable fields are updated on the deleting machine
 	ms.Spec.Template.Spec.NodeDrainTimeout = duration11s
 	ms.Spec.Template.Spec.NodeDeletionTimeout = duration11s
 	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration11s
+	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](11)
 	s = &scope{
 		machineSet: ms,
 		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
@@ -1489,6 +1497,10 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
 		Not(BeNil()),
 		HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
+	))
+	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.MinReadySeconds)),
 	))
 }
 
@@ -2304,6 +2316,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 						NodeDrainTimeout:        duration10m,
 						NodeDeletionTimeout:     duration10m,
 						NodeVolumeDetachTimeout: duration10m,
+						MinReadySeconds:         ptr.To[int32](10),
 					},
 				},
 			},
@@ -2453,6 +2466,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 			NodeDrainTimeout:        duration10s,
 			NodeVolumeDetachTimeout: duration10s,
 			NodeDeletionTimeout:     duration10s,
+			MinReadySeconds:         ptr.To[int32](10),
 		},
 	}
 
@@ -2473,6 +2487,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 			NodeDrainTimeout:        duration10s,
 			NodeVolumeDetachTimeout: duration10s,
 			NodeDeletionTimeout:     duration10s,
+			MinReadySeconds:         ptr.To[int32](10),
 		},
 	}
 
@@ -2500,6 +2515,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 	existingMachine.Spec.NodeDrainTimeout = duration5s
 	existingMachine.Spec.NodeDeletionTimeout = duration5s
 	existingMachine.Spec.NodeVolumeDetachTimeout = duration5s
+	existingMachine.Spec.MinReadySeconds = ptr.To[int32](5)
 
 	expectedUpdatedMachine := skeletonMachine.DeepCopy()
 	expectedUpdatedMachine.Name = existingMachine.Name

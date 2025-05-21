@@ -221,6 +221,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.MinReadySeconds = ptr.To[int32](20)
 
 	machineTemplateWithDifferentClusterName := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentClusterName.Spec.ClusterName = "cluster2"

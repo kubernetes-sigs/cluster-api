@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	machinepool "sigs.k8s.io/cluster-api/exp/internal/controllers"
+	"sigs.k8s.io/cluster-api/exp/internal/controllers/machinepool"
 )
 
 // MachinePoolReconciler reconciles a MachinePool object.
@@ -38,7 +38,7 @@ type MachinePoolReconciler struct {
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return (&machinepool.MachinePoolReconciler{
+	return (&machinepool.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		ClusterCache:     r.ClusterCache,

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers implements controller functionality.
-package controllers
+// Package machinepool implements machinepool controller functionality.
+package machinepool
 
 import (
 	"context"

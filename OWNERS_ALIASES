@@ -125,3 +125,11 @@ aliases:
   - mboersma
   - shecodesmagic
   - tsuzu
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for release-team
+  # -----------------------------------------------------------
+
+  cluster-api-machinepool-reviewers:
+  - mboersma
+  - richardcase

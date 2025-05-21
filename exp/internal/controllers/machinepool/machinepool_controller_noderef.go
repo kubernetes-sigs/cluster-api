@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"context"
@@ -48,7 +48,7 @@ type getNodeReferencesResult struct {
 	ready      int
 }
 
-func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 	mp := s.machinePool
@@ -140,7 +140,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.
 // A MachinePool infrastructure provider indicates an instance in the set has been deleted by
 // removing its ProviderID from the slice.
-func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
+func (r *Reconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 	nodeRefsMap := make(map[string]*corev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
@@ -172,7 +172,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerIDList []string, minReadySeconds int32, nodeRefsMap map[string]*corev1.Node) (getNodeReferencesResult, error) {
+func (r *Reconciler) getNodeReferences(ctx context.Context, providerIDList []string, minReadySeconds int32, nodeRefsMap map[string]*corev1.Node) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
@@ -206,7 +206,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerI
 }
 
 // patchNodes patches the nodes with the cluster name and cluster namespace annotations.
-func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *expv1.MachinePool) error {
+func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *expv1.MachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 	for _, nodeRef := range references {
 		node := &corev1.Node{}

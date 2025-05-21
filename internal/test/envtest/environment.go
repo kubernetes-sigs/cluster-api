@@ -59,9 +59,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"

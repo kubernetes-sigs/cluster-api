@@ -128,9 +128,9 @@ linters:
           alias: clusterv1alpha3
         - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4
           alias: clusterv1alpha4
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
           alias: clusterv1beta1
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta2
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
         # CAPI exp
         - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3

@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 )
 

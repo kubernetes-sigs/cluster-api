@@ -26,7 +26,7 @@ import (
 	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // DefaultClusterVariables defaults ClusterVariables.

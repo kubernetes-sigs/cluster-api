@@ -889,7 +889,7 @@ type ValidationRule struct {
 	// +optional
 	// +kubebuilder:validation:Enum=FieldValueInvalid;FieldValueForbidden;FieldValueRequired;FieldValueDuplicate
 	// +kubebuilder:default=FieldValueInvalid
-	// +default=ref(sigs.k8s.io/cluster-api/api/v1beta1.FieldValueInvalid)
+	// +default=ref(sigs.k8s.io/cluster-api/api/core/v1beta1.FieldValueInvalid)
 	Reason FieldValueErrorReason `json:"reason,omitempty"`
 	// fieldPath represents the field path returned when the validation fails.
 	// It must be a relative JSON path (i.e. with array notation) scoped to the location of this x-kubernetes-validations extension in the schema and refer to an existing field.

@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )

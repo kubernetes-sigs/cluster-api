@@ -50,7 +50,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	t1v1beta1 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t1/v1beta1"
 	t2v1beta2 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t2/v1beta2"
 	t3v1beta2 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t3/v1beta2"

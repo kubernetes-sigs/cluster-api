@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -215,7 +215,7 @@ func (in *MachinePoolV1Beta1DeprecatedStatus) DeepCopyInto(out *MachinePoolV1Bet
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta2.Conditions, len(*in))
+		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

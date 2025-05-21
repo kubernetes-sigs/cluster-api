@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"

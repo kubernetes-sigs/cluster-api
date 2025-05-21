@@ -28,7 +28,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	clusterapiapiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterapiapiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	apiv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	kubeadmv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"

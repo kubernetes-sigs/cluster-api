@@ -30,7 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	cmdtree "sigs.k8s.io/cluster-api/internal/util/tree"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"

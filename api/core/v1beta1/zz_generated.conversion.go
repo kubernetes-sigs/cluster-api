@@ -30,7 +30,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	v1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {

@@ -27,9 +27,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func init() {
@@ -252,7 +252,7 @@ func Convert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *I
 func autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(in *v1beta2.IPAddressClaimStatus, out *IPAddressClaimStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta1.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
 			if err := v1beta1.Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err

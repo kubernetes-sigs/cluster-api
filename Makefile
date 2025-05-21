@@ -282,7 +282,8 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases,./config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./ \
-		paths=./api/... \
+		paths=./api/addons/... \
+		paths=./api/core/... \
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
 		paths=./internal/apis/core/... \
@@ -391,10 +392,11 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/hooks/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/... \
+		paths=./api/addons/... \
+		paths=./api/core/... \
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
 		paths=./internal/apis/addons/... \
@@ -454,13 +456,13 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/v1beta1,./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/v1alpha3 \
 		./internal/apis/core/v1alpha4 \
-		./api/v1beta1
+		./api/core/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
 generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api
@@ -550,7 +552,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
-	for pkg in "api/v1beta2" "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
+	for pkg in "api/core/v1beta2" "api/core/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \

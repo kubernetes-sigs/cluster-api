@@ -115,7 +115,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
@@ -131,7 +131,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -220,7 +220,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref c
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref c
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -317,7 +317,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
@@ -333,7 +333,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -430,7 +430,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 				},
@@ -438,7 +438,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -535,7 +535,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 				},
@@ -543,7 +543,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -640,7 +640,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 						SchemaProps: spec.SchemaProps{
 							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
 						},
 					},
 					"fromKubernetesVersion": {
@@ -664,7 +664,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
 	}
 }
 
@@ -790,7 +790,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "metadata is the metadata set on the Cluster object.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta"),
 						},
 					},
 					"topology": {
@@ -809,7 +809,7 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"},
 	}
 }
 
@@ -1051,7 +1051,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "metadata is the metadata set on the ControlPlane object.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta"),
 						},
 					},
 					"name": {
@@ -1078,7 +1078,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"},
 	}
 }
 
@@ -1212,7 +1212,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta1.ClusterClassVariable"),
 									},
 								},
 							},
@@ -1223,7 +1223,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.ClusterClassVariable"},
 	}
 }
 
@@ -1732,7 +1732,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "metadata is the metadata set on the MachineDeployment.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
@@ -1779,7 +1779,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
 	}
 }
 
@@ -1820,7 +1820,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "metadata is the metadata set on the MachinePool.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
@@ -1867,7 +1867,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
 	}
 }
 

@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestFilterBuildKeyValue(t *testing.T) {

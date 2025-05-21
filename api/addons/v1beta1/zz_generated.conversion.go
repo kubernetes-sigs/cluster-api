@@ -28,7 +28,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func init() {
@@ -128,8 +128,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*corev1beta1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -138,8 +138,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
+	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -339,7 +339,7 @@ func autoConvert_v1beta1_ClusterResourceSetStatus_To_v1beta2_ClusterResourceSetS
 func autoConvert_v1beta2_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSetStatus(in *v1beta2.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta1.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
 			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err

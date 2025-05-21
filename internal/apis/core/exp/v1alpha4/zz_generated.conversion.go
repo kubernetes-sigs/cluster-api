@@ -28,7 +28,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta2 "sigs.k8s.io/cluster-api/api/v1beta2"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
@@ -85,8 +85,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*corev1alpha4.MachineTemplateSpec)(nil), (*apiv1beta2.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(a.(*corev1alpha4.MachineTemplateSpec), b.(*apiv1beta2.MachineTemplateSpec), scope)
+	if err := s.AddConversionFunc((*corev1alpha4.MachineTemplateSpec)(nil), (*corev1beta2.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(a.(*corev1alpha4.MachineTemplateSpec), b.(*corev1beta2.MachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -95,8 +95,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.MachineTemplateSpec)(nil), (*corev1alpha4.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(a.(*apiv1beta2.MachineTemplateSpec), b.(*corev1alpha4.MachineTemplateSpec), scope)
+	if err := s.AddConversionFunc((*corev1beta2.MachineTemplateSpec)(nil), (*corev1alpha4.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(a.(*corev1beta2.MachineTemplateSpec), b.(*corev1alpha4.MachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}

@@ -432,6 +432,7 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 	templateCopy.Annotations = nil
 
 	// Drop node timeout values
+	templateCopy.Spec.MinReadySeconds = nil
 	templateCopy.Spec.ReadinessGates = nil
 	templateCopy.Spec.NodeDrainTimeout = nil
 	templateCopy.Spec.NodeDeletionTimeout = nil

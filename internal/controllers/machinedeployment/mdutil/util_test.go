@@ -184,6 +184,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			ClusterName:             "cluster1",
 			Version:                 ptr.To("v1.25.0"),
 			FailureDomain:           ptr.To("failure-domain1"),
+			MinReadySeconds:         ptr.To[int32](10),
 			InfrastructureRef: corev1.ObjectReference{
 				Name:       "infra1",
 				Namespace:  "default",
@@ -220,6 +221,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.MinReadySeconds = ptr.To[int32](20)
 
 	machineTemplateWithDifferentClusterName := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentClusterName.Spec.ClusterName = "cluster2"

@@ -29,13 +29,25 @@ import (
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*expv1.MachinePool)
 
-	return Convert_v1beta1_MachinePool_To_v1beta2_MachinePool(src, dst, nil)
+	if err := Convert_v1beta1_MachinePool_To_v1beta2_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+
+	return nil
 }
 
 func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*expv1.MachinePool)
 
-	return Convert_v1beta2_MachinePool_To_v1beta1_MachinePool(src, dst, nil)
+	if err := Convert_v1beta2_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
+	return nil
 }
 
 func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *expv1.MachinePoolStatus, out *MachinePoolStatus, s apimachineryconversion.Scope) error {
@@ -147,4 +159,8 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *expv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }

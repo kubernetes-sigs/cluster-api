@@ -21,9 +21,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -53,37 +55,80 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
-	return Convert_v1beta1_Machine_To_v1beta2_Machine(src, dst, nil)
+	if err := Convert_v1beta1_Machine_To_v1beta2_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &clusterv1.Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
+
+	return nil
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Machine)
 
-	return Convert_v1beta2_Machine_To_v1beta1_Machine(src, dst, nil)
+	if err := Convert_v1beta2_Machine_To_v1beta1_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1beta1_MachineSet_To_v1beta2_MachineSet(src, dst, nil)
+	if err := Convert_v1beta1_MachineSet_To_v1beta2_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	if src.Spec.MinReadySeconds == 0 {
+		dst.Spec.Template.Spec.MinReadySeconds = nil
+	} else {
+		dst.Spec.Template.Spec.MinReadySeconds = &src.Spec.MinReadySeconds
+	}
+
+	return nil
 }
 
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1beta2_MachineSet_To_v1beta1_MachineSet(src, dst, nil)
+	if err := Convert_v1beta2_MachineSet_To_v1beta1_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
+
+	return nil
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1beta1_MachineDeployment_To_v1beta2_MachineDeployment(src, dst, nil)
+	if err := Convert_v1beta1_MachineDeployment_To_v1beta2_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+
+	return nil
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil)
+	if err := Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
+	return nil
 }
 
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
@@ -709,4 +754,12 @@ func Convert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in *ClusterVaria
 	// NOTE: v1beta2 ClusterVariable does not have DefinitionFrom anymore. But it's fine to just lose this field,
 	// because it was already not possible to set it anymore with v1beta1.
 	return autoConvert_v1beta1_ClusterVariable_To_v1beta2_ClusterVariable(in, out, s)
+}
+
+func Convert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec, out *clusterv1.MachineSetSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in, out, s)
+}
+
+func Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in, out, s)
 }

@@ -1676,14 +1676,6 @@ spec:
                   type: string
                 maxItems: 100
                 type: array
-              minReadySeconds:
-                description: |-
-                  minReadySeconds is the minimum number of seconds for which a newly created machine instances should
-                  be ready.
-                  Defaults to 0 (machine instance will be considered available as soon as it
-                  is ready)
-                format: int32
-                type: integer
               providerIDList:
                 description: |-
                   providerIDList are the identification IDs of machine instances provided by the provider.
@@ -1850,6 +1842,12 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
+                      minReadySeconds:
+                        description: |-
+                          minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
+                          Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
+                        format: int32
+                        type: integer
                       nodeDeletionTimeout:
                         description: |-
                           nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine

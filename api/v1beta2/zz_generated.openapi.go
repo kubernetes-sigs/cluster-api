@@ -2502,13 +2502,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineDeploymentSpec(ref common.R
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta2.MachineNamingStrategy"),
 						},
 					},
-					"minReadySeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available. Defaults to 0 (machine will be considered available as soon as the Node is ready)",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"revisionHistoryLimit": {
 						SchemaProps: spec.SchemaProps{
 							Description: "revisionHistoryLimit is the number of old MachineSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.",
@@ -4129,13 +4122,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSetSpec(ref common.Referenc
 							Format:      "int32",
 						},
 					},
-					"minReadySeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available. Defaults to 0 (machine will be considered available as soon as the Node is ready)",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"deletePolicy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "deletePolicy defines the policy used to identify nodes to delete when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
@@ -4372,6 +4358,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta2_MachineSpec(ref common.ReferenceCa
 							Description: "failureDomain is the failure domain the machine will be created in. Must match a key in the FailureDomains map stored on the cluster object.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"minReadySeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available. Defaults to 0 (Machine will be considered available as soon as the Machine is ready)",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"readinessGates": {

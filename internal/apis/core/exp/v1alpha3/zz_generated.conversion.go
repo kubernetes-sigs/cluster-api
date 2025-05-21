@@ -174,7 +174,7 @@ func autoConvert_v1alpha3_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *Machine
 		return err
 	}
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
-	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
+	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	return nil
@@ -186,7 +186,6 @@ func autoConvert_v1beta2_MachinePoolSpec_To_v1alpha3_MachinePoolSpec(in *v1beta2
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	return nil

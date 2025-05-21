@@ -93,11 +93,14 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
 	}
 
+	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
+
 	// Manually restore data.
 	restored := &expv1.MachinePool{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
@@ -144,6 +147,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
 		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
 	}
+
+	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
 	return utilconversion.MarshalData(src, dst)
 }

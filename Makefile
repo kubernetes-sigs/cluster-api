@@ -921,6 +921,10 @@ test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
 	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
 	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	$(MAKE) test-conversions TEST_ARGS="$(TEST_ARGS)"
+
+.PHONY: test-conversions
+test-conversions: $(SETUP_ENVTEST) ## Run conversions test
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
 
 .PHONY: test-verbose

@@ -1909,12 +1909,6 @@ spec:
                     minLength: 1
                     type: string
                 type: object
-              minReadySeconds:
-                description: |-
-                  minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
-                  Defaults to 0 (machine will be considered available as soon as the Node is ready)
-                format: int32
-                type: integer
               paused:
                 description: paused indicates that the deployment is paused.
                 type: boolean
@@ -2250,6 +2244,12 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
+                      minReadySeconds:
+                        description: |-
+                          minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
+                          Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
+                        format: int32
+                        type: integer
                       nodeDeletionTimeout:
                         description: |-
                           nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine

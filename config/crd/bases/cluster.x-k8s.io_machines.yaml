@@ -1624,6 +1624,12 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              minReadySeconds:
+                description: |-
+                  minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
+                  Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
+                format: int32
+                type: integer
               nodeDeletionTimeout:
                 description: |-
                   nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine

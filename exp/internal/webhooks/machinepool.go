@@ -100,10 +100,6 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = ptr.To[int32](0)
-	}
-
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}
@@ -122,6 +118,7 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
 		m.Spec.Template.Spec.Version = &normalizedVersion
 	}
+
 	return nil
 }
 

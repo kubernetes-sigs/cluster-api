@@ -328,7 +328,7 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 
 	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
 	if releaseSeries == nil {
-		availableSeries := []string{}
+		availableSeries := make([]string, 0, len(latestMetadata.ReleaseSeries))
 		for _, series := range latestMetadata.ReleaseSeries {
 			availableSeries = append(availableSeries, fmt.Sprintf("%d.%d", series.Major, series.Minor))
 		}

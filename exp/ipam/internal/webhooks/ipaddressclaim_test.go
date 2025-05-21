@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 )
 
 func TestIPAddressClaimValidateCreate(t *testing.T) {

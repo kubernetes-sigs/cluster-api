@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the exp v1alpha1 IPAM API.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2
+// Package v1beta1 contains API Schema definitions for the v1beta1 IPAM API.
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/ipam/v1beta2
+// +kubebuilder:object:generate=true
+// +groupName=ipam.cluster.x-k8s.io
 //
 // Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
-package v1alpha1
+package v1beta1

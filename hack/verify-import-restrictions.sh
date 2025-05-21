@@ -30,7 +30,7 @@ sub_packages=(
   "bootstrap/kubeadm/api"
   "cmd/clusterctl/api"
   "controlplane/kubeadm/api"
-  "exp/ipam/api"
+  "api/ipam"
   "exp/runtime/api"
   "test/infrastructure/docker/api"
   "test/infrastructure/docker/exp/api"

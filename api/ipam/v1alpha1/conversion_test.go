@@ -1,7 +1,7 @@
 //go:build !race
 
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha1
 
 import (
 	"reflect"
@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -47,7 +47,6 @@ func TestFuzzyConversion(t *testing.T) {
 func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubIPAddressClaimStatus,
-		spokeIPAddressClaimStatus,
 	}
 }
 
@@ -57,16 +56,6 @@ func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c fuzz.Continue) {
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
-		}
-	}
-}
-
-func spokeIPAddressClaimStatus(in *IPAddressClaimStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-	// Drop empty structs with only omit empty fields.
-	if in.V1Beta2 != nil {
-		if reflect.DeepEqual(in.V1Beta2, &IPAddressClaimV1Beta2Status{}) {
-			in.V1Beta2 = nil
 		}
 	}
 }

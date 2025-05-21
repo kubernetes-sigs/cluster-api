@@ -283,6 +283,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 	$(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
+		paths=./api/ipam/... \
 		paths=./internal/apis/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
@@ -290,7 +291,6 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/internal/webhooks/... \
-		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/internal/controllers/... \
@@ -391,14 +391,14 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./api/ipam,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
+		paths=./api/ipam/... \
 		paths=./internal/apis/addons/... \
 		paths=./internal/apis/core/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/hooks/api/... \
 		paths=./internal/runtime/test/... \
@@ -449,7 +449,7 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 	$(MAKE) generate-go-conversions-core-api
 	$(MAKE) generate-go-conversions-addons-api
 	$(MAKE) generate-go-conversions-core-exp
-	$(MAKE) generate-go-conversions-core-exp-ipam
+	$(MAKE) generate-go-conversions-core-ipam
 	$(MAKE) generate-go-conversions-core-runtime
 
 .PHONY: generate-go-conversions-core-api
@@ -482,14 +482,14 @@ generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go c
 		./internal/apis/core/exp/v1alpha4 \
 		./$(EXP_DIR)/api/v1beta1
 
-.PHONY: generate-go-conversions-core-exp-ipam
-generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
-	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1beta1,./$(EXP_DIR)/ipam/api/v1alpha1"
+.PHONY: generate-go-conversions-core-ipam
+generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/ipam/v1beta1,./api/ipam/v1alpha1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./$(EXP_DIR)/ipam/api/v1alpha1 \
-		./$(EXP_DIR)/ipam/api/v1beta1
+		./api/ipam/v1alpha1 \
+		./api/ipam/v1beta1
 
 .PHONY: generate-go-conversions-core-runtime
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime

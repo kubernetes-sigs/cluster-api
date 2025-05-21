@@ -59,6 +59,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
@@ -66,7 +67,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"

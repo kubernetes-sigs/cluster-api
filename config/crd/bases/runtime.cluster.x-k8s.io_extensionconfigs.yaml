@@ -368,7 +368,9 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: ExtensionConfig is the Schema for the ExtensionConfig API.
+        description: |-
+          ExtensionConfig is the Schema for the ExtensionConfig API.
+          NOTE: This CRD can only be used if the RuntimeSDK feature gate is enabled.
         properties:
           apiVersion:
             description: |-

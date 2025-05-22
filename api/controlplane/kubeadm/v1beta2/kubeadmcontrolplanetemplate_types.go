@@ -36,6 +36,7 @@ type KubeadmControlPlaneTemplateSpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmControlPlaneTemplate"
 
 // KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
+// NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.
 type KubeadmControlPlaneTemplate struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

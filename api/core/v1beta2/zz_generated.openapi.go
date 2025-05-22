@@ -283,7 +283,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClass(ref common.ReferenceCallba
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterClass is a template which can be used to create managed topologies.",
+				Description: "ClusterClass is a template which can be used to create managed topologies. NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -3663,7 +3663,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePool(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachinePool is the Schema for the machinepools API.",
+				Description: "MachinePool is the Schema for the machinepools API. NOTE: This CRD can only be used if the MachinePool feature gate is enabled.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {

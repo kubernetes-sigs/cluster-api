@@ -333,6 +333,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +k8s:conversion-gen=false
 
 // MachinePool is the Schema for the machinepools API.
+// NOTE: This CRD can only be used if the MachinePool feature gate is enabled.
 type MachinePool struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

@@ -71,6 +71,7 @@ const (
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
 
 // ClusterClass is a template which can be used to create managed topologies.
+// NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.
 type ClusterClass struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

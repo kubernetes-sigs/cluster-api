@@ -3341,8 +3341,9 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates
-          API.
+        description: |-
+          KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
+          NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.
         properties:
           apiVersion:
             description: |-

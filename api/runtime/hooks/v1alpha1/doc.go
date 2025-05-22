@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains the v1alpha1 RuntimeHooks.
+//
+// Note: This package contains the API of Runtime Hooks. It does not contain any Go types for CRDs.
 // +kubebuilder:object:generate=true
 // +k8s:openapi-gen=true
 package v1alpha1

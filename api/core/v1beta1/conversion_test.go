@@ -334,6 +334,9 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c fuzz.Continue) {
 
 	// Drop ProgressDeadlineSeconds as we intentionally don't preserve it.
 	in.ProgressDeadlineSeconds = nil
+
+	// Drop RevisionHistoryLimit as we intentionally don't preserve it.
+	in.RevisionHistoryLimit = nil
 }
 
 func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c fuzz.Continue) {

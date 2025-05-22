@@ -19,21 +19,14 @@ package alpha
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 // getMachineDeployment retrieves the MachineDeployment object corresponding to the name and namespace specified.
@@ -79,100 +72,4 @@ func patchMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, name
 		return errors.Wrapf(err, "failed while patching MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
 	}
 	return nil
-}
-
-// findMachineDeploymentRevision finds the specific revision in the machine sets.
-func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
-	var (
-		latestMachineSet   *clusterv1.MachineSet
-		latestRevision     = int64(-1)
-		previousMachineSet *clusterv1.MachineSet
-		previousRevision   = int64(-1)
-	)
-	for _, ms := range allMSs {
-		if v, err := revision(ms); err == nil {
-			switch toRevision {
-			case 0:
-				if latestRevision < v {
-					// newest one we've seen so far
-					previousRevision = latestRevision
-					previousMachineSet = latestMachineSet
-					latestRevision = v
-					latestMachineSet = ms
-				} else if previousRevision < v {
-					// second newest one we've seen so far
-					previousRevision = v
-					previousMachineSet = ms
-				}
-			case v:
-				return ms, nil
-			}
-		}
-	}
-
-	if toRevision > 0 {
-		return nil, errors.Errorf("unable to find specified MachineDeployment revision: %v", toRevision)
-	}
-
-	if previousMachineSet == nil {
-		return nil, errors.Errorf("no rollout history found for MachineDeployment")
-	}
-	return previousMachineSet, nil
-}
-
-// getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func getMachineSetsForDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
-	log := logf.Log
-	c, err := proxy.NewClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// List all MachineSets to find those we own but that no longer match our selector.
-	machineSets := &clusterv1.MachineSetList{}
-	if err := c.List(ctx, machineSets, client.InNamespace(md.Namespace)); err != nil {
-		return nil, err
-	}
-
-	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
-	for idx := range machineSets.Items {
-		ms := &machineSets.Items[idx]
-		log := log.WithValues("MachineSet", klog.KObj(ms))
-
-		// Skip this MachineSet if its controller ref is not pointing to this MachineDeployment
-		if !metav1.IsControlledBy(ms, md) {
-			log.V(5).Info("Skipping MachineSet, controller ref does not match MachineDeployment")
-			continue
-		}
-
-		selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
-		if err != nil {
-			log.V(5).Info("Skipping MachineSet, failed to get label selector from spec selector")
-			continue
-		}
-		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
-		if selector.Empty() {
-			log.V(5).Info("Skipping MachineSet as the selector is empty")
-			continue
-		}
-		// Skip this MachineSet if selector does not match
-		if !selector.Matches(labels.Set(ms.Labels)) {
-			log.V(5).Info("Skipping MachineSet, label mismatch")
-			continue
-		}
-		filtered = append(filtered, ms)
-	}
-
-	return filtered, nil
-}
-
-func revision(obj runtime.Object) (int64, error) {
-	acc, err := meta.Accessor(obj)
-	if err != nil {
-		return 0, err
-	}
-	v, ok := acc.GetAnnotations()[clusterv1.RevisionAnnotation]
-	if !ok {
-		return 0, nil
-	}
-	return strconv.ParseInt(v, 10, 64)
 }

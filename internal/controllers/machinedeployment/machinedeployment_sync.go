@@ -578,15 +578,9 @@ func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineS
 	return nil
 }
 
-// cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets
-// where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
-// around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
+// cleanupDeployment is responsible for cleaning up a MachineDeployment.
 func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
-
-	if deployment.Spec.RevisionHistoryLimit == nil {
-		return nil
-	}
 
 	// Avoid deleting machine set with deletion timestamp set
 	aliveFilter := func(ms *clusterv1.MachineSet) bool {
@@ -595,15 +589,15 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 
 	cleanableMSes := mdutil.FilterMachineSets(oldMSs, aliveFilter)
 
-	diff := int32(len(cleanableMSes)) - *deployment.Spec.RevisionHistoryLimit
-	if diff <= 0 {
+	cleanableMSCount := int32(len(cleanableMSes))
+	if cleanableMSCount == 0 {
 		return nil
 	}
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
 	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
-	for i := range diff {
+	for i := range cleanableMSCount {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
 			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)

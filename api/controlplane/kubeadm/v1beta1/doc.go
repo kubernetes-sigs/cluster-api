@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package v1beta1 contains API Schema definitions for the kubeadm v1beta1 API group,
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
 // +kubebuilder:object:generate=true
 // +groupName=controlplane.cluster.x-k8s.io
 //

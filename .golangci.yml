@@ -119,9 +119,9 @@ linters:
           alias: controlplanev1alpha3
         - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4
           alias: controlplanev1alpha4
-        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1
           alias: controlplanev1beta1
-        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
+        - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
           alias: controlplanev1
         # CAPI
         - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3

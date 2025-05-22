@@ -28,10 +28,10 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterapiapiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	kubeadmapiv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	apiv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 )
 
@@ -202,18 +202,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1.Condition)(nil), (*apiv1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*apiv1beta1.Condition), scope)
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*corev1beta1.Condition), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Condition_To_v1_Condition(a.(*apiv1beta1.Condition), b.(*v1.Condition), scope)
+	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*kubeadmapiv1beta1.KubeadmConfigSpec)(nil), (*apiv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*kubeadmapiv1beta1.KubeadmConfigSpec), b.(*apiv1beta2.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*kubeadmv1beta1.KubeadmConfigSpec)(nil), (*kubeadmv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*kubeadmv1beta1.KubeadmConfigSpec), b.(*kubeadmv1beta2.KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -222,13 +222,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*clusterapiapiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*clusterapiapiv1beta2.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*corev1beta1.ObjectMeta)(nil), (*corev1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1beta1.ObjectMeta), b.(*corev1beta2.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.KubeadmConfigSpec)(nil), (*kubeadmapiv1beta1.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*apiv1beta2.KubeadmConfigSpec), b.(*kubeadmapiv1beta1.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*kubeadmv1beta2.KubeadmConfigSpec)(nil), (*kubeadmv1beta1.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*kubeadmv1beta2.KubeadmConfigSpec), b.(*kubeadmv1beta1.KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -237,8 +237,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiapiv1beta2.ObjectMeta)(nil), (*apiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*clusterapiapiv1beta2.ObjectMeta), b.(*apiv1beta1.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*corev1beta2.ObjectMeta)(nil), (*corev1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*corev1beta2.ObjectMeta), b.(*corev1beta1.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
@@ -324,7 +324,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmCo
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.ReadinessGates = *(*[]clusterapiapiv1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
+	out.ReadinessGates = *(*[]corev1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
 	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
@@ -341,7 +341,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmCo
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
-	out.ReadinessGates = *(*[]apiv1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
+	out.ReadinessGates = *(*[]corev1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
 	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
@@ -432,7 +432,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in *v1beta2.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta1.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
 			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err

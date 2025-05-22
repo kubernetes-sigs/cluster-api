@@ -28,8 +28,8 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	clusterapiapiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	apiv1beta2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	kubeadmv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"
 	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
@@ -137,8 +137,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*kubeadmv1alpha4.KubeadmConfigSpec)(nil), (*apiv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*kubeadmv1alpha4.KubeadmConfigSpec), b.(*apiv1beta2.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*kubeadmv1alpha4.KubeadmConfigSpec)(nil), (*kubeadmv1beta2.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(a.(*kubeadmv1alpha4.KubeadmConfigSpec), b.(*kubeadmv1beta2.KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -152,13 +152,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*corev1alpha4.ObjectMeta)(nil), (*clusterapiapiv1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1alpha4.ObjectMeta), b.(*clusterapiapiv1beta2.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*corev1alpha4.ObjectMeta)(nil), (*corev1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1alpha4.ObjectMeta), b.(*corev1beta2.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.KubeadmConfigSpec)(nil), (*kubeadmv1alpha4.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(a.(*apiv1beta2.KubeadmConfigSpec), b.(*kubeadmv1alpha4.KubeadmConfigSpec), scope)
+	if err := s.AddConversionFunc((*kubeadmv1beta2.KubeadmConfigSpec)(nil), (*kubeadmv1alpha4.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(a.(*kubeadmv1beta2.KubeadmConfigSpec), b.(*kubeadmv1alpha4.KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -187,8 +187,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiapiv1beta2.ObjectMeta)(nil), (*corev1alpha4.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*clusterapiapiv1beta2.ObjectMeta), b.(*corev1alpha4.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*corev1beta2.ObjectMeta)(nil), (*corev1alpha4.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*corev1beta2.ObjectMeta), b.(*corev1alpha4.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}

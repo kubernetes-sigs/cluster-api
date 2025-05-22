@@ -332,8 +332,8 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
 	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases,./bootstrap/kubeadm/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
+		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm \
-		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		paths=./bootstrap/kubeadm/internal/webhooks/... \
 		paths=./internal/apis/bootstrap/kubeadm/... \
@@ -408,10 +408,10 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 
 .PHONY: generate-go-deepcopy-kubeadm-bootstrap
 generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm bootstrap
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./bootstrap/kubeadm/api,./bootstrap/kubeadm/types"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/bootstrap/kubeadm,./bootstrap/kubeadm/types"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./bootstrap/kubeadm/api/... \
+		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm/types/...
 
 .PHONY: generate-go-deepcopy-kubeadm-control-plane
@@ -495,13 +495,13 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
-	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/api/v1beta1,./internal/apis/bootstrap/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1,./internal/apis/bootstrap/kubeadm"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/bootstrap/kubeadm/v1alpha3 \
 		./internal/apis/bootstrap/kubeadm/v1alpha4 \
-		./bootstrap/kubeadm/api/v1beta1
+		./api/bootstrap/kubeadm/v1beta1
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta1,./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \

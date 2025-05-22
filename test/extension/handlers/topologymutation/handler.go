@@ -18,7 +18,7 @@ limitations under the License.
 //
 // The implementation of the handlers is specifically designed for Cluster API E2E tests use cases.
 // When implementing custom RuntimeExtension, it is only required to expose HandlerFunc with the
-// signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+// signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 package topologymutation
 
 import (
@@ -36,7 +36,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
@@ -55,7 +55,7 @@ var (
 // this is convenient because in Cluster API's E2E tests all of them are using a decoder for working with typed
 // API objects, which makes code easier to read and less error prone than using unstructured or working with raw json/yaml.
 // NOTE: it is not mandatory to use a ExtensionHandlers in custom RuntimeExtension, what is important
-// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 type ExtensionHandlers struct {
 	decoder runtime.Decoder
 }

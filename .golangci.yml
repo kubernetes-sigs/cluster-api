@@ -151,7 +151,7 @@ linters:
           alias: runtimev1alpha1
         - pkg: sigs.k8s.io/cluster-api/api/runtime/v1beta2
           alias: runtimev1
-        - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
+        - pkg: sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1
           alias: runtimehooksv1
         - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
           alias: runtimecontrollers

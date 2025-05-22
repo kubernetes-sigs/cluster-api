@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"context"
@@ -74,7 +74,7 @@ func TestMain(m *testing.M) {
 			clusterCache.(interface{ Shutdown() }).Shutdown()
 		}()
 
-		if err := (&MachinePoolReconciler{
+		if err := (&Reconciler{
 			Client:       mgr.GetClient(),
 			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,

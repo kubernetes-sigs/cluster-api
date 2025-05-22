@@ -884,3 +884,31 @@ func Convert_v1beta1_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachineP
 func Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *clusterv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
 }
+
+func Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *clusterv1.ClusterClassStatusVariableDefinition, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in, out, s); err != nil {
+		return err
+	}
+	return autoConvert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(&in.Metadata, &out.DeprecatedV1Beta1Metadata, s)
+}
+
+func Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in *clusterv1.ClusterClassStatusVariableDefinition, out *ClusterClassStatusVariableDefinition, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in, out, s); err != nil {
+		return err
+	}
+	return autoConvert_v1beta2_ClusterClassVariableMetadata_To_v1beta1_ClusterClassVariableMetadata(&in.DeprecatedV1Beta1Metadata, &out.Metadata, s)
+}
+
+func Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in *ClusterClassVariable, out *clusterv1.ClusterClassVariable, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in, out, s); err != nil {
+		return err
+	}
+	return autoConvert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(&in.Metadata, &out.DeprecatedV1Beta1Metadata, s)
+}
+
+func Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in *clusterv1.ClusterClassVariable, out *ClusterClassVariable, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in, out, s); err != nil {
+		return err
+	}
+	return autoConvert_v1beta2_ClusterClassVariableMetadata_To_v1beta1_ClusterClassVariableMetadata(&in.DeprecatedV1Beta1Metadata, &out.Metadata, s)
+}

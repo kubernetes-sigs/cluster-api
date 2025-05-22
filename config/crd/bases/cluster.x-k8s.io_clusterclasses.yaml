@@ -3521,13 +3521,13 @@ spec:
                     ClusterClassVariable defines a variable which can
                     be configured in the Cluster topology and used in patches.
                   properties:
-                    metadata:
+                    deprecatedV1Beta1Metadata:
                       description: |-
-                        metadata is the metadata of a variable.
+                        deprecatedV1Beta1Metadata is the metadata of a variable.
                         It can be used to add additional data for higher level tools to
                         a ClusterClassVariable.
 
-                        Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
+                        Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
                       properties:
                         annotations:
                           additionalProperties:
@@ -4785,21 +4785,13 @@ spec:
                         description: ClusterClassStatusVariableDefinition defines
                           a variable which appears in the status of a ClusterClass.
                         properties:
-                          from:
+                          deprecatedV1Beta1Metadata:
                             description: |-
-                              from specifies the origin of the variable definition.
-                              This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
-                              for variables discovered from a DiscoverVariables runtime extensions.
-                            maxLength: 256
-                            minLength: 1
-                            type: string
-                          metadata:
-                            description: |-
-                              metadata is the metadata of a variable.
+                              deprecatedV1Beta1Metadata is the metadata of a variable.
                               It can be used to add additional data for higher level tools to
                               a ClusterClassVariable.
 
-                              Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
+                              Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
                             properties:
                               annotations:
                                 additionalProperties:
@@ -4817,6 +4809,14 @@ spec:
                                   (scope and select) variables.
                                 type: object
                             type: object
+                          from:
+                            description: |-
+                              from specifies the origin of the variable definition.
+                              This will be `inline` for variables defined in the ClusterClass or the name of a patch defined in the ClusterClass
+                              for variables discovered from a DiscoverVariables runtime extensions.
+                            maxLength: 256
+                            minLength: 1
+                            type: string
                           required:
                             description: |-
                               required specifies if the variable is required.

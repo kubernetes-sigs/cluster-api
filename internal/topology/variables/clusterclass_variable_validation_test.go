@@ -451,7 +451,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid variable metadata",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "validVariable",
-				Metadata: clusterv1.ClusterClassVariableMetadata{
+				DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 					Labels: map[string]string{
 						"label-key": "label-value",
 					},
@@ -471,7 +471,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on invalid variable label: key does not start with alphanumeric character",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "variable",
-				Metadata: clusterv1.ClusterClassVariableMetadata{
+				DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 					Labels: map[string]string{
 						".label-key": "label-value",
 					},
@@ -485,14 +485,14 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 			wantErrs: []validationMatch{
 				invalid("\".label-key\": name part must consist of alphanumeric characters",
-					"spec.variables[variable].metadata.labels"),
+					"spec.variables[variable].deprecatedV1Beta1Metadata.labels"),
 			},
 		},
 		{
 			name: "fail on invalid variable annotation: key does not start with alphanumeric character",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "variable",
-				Metadata: clusterv1.ClusterClassVariableMetadata{
+				DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 					Annotations: map[string]string{
 						".annotation-key": "annotation-value",
 					},
@@ -506,7 +506,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 			wantErrs: []validationMatch{
 				invalid("\".annotation-key\": name part must consist of alphanumeric characters",
-					"spec.variables[variable].metadata.annotations"),
+					"spec.variables[variable].deprecatedV1Beta1Metadata.annotations"),
 			},
 		},
 		// Defaults

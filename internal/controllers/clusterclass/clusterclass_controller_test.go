@@ -131,7 +131,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 						},
 					},
 				},
-				Metadata: clusterv1.ClusterClassVariableMetadata{
+				DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 					Labels: map[string]string{
 						"some-label": "some-label-value",
 					},
@@ -205,8 +205,8 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			if !cmp.Equal(specVar.Schema, statusVarDefinition.Schema) {
 				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
 			}
-			if !cmp.Equal(specVar.Metadata, statusVarDefinition.Metadata) {
-				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.Metadata, statusVarDefinition.Metadata)
+			if !cmp.Equal(specVar.DeprecatedV1Beta1Metadata, statusVarDefinition.DeprecatedV1Beta1Metadata) {
+				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.DeprecatedV1Beta1Metadata, statusVarDefinition.DeprecatedV1Beta1Metadata)
 			}
 		}
 		if !found {
@@ -441,7 +441,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							}},
 						},
 					},
-					Metadata: clusterv1.ClusterClassVariableMetadata{
+					DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 						Labels: map[string]string{
 							"some-label": "some-label-value",
 						},
@@ -499,7 +499,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									}},
 								},
 							},
-							Metadata: clusterv1.ClusterClassVariableMetadata{
+							DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},
@@ -639,7 +639,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									}},
 								},
 							},
-							Metadata: clusterv1.ClusterClassVariableMetadata{
+							DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},
@@ -668,7 +668,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									}},
 								},
 							},
-							Metadata: clusterv1.ClusterClassVariableMetadata{
+							DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},
@@ -698,7 +698,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									},
 								},
 							},
-							Metadata: clusterv1.ClusterClassVariableMetadata{
+							DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},
@@ -911,7 +911,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									},
 								},
 							},
-							Metadata: clusterv1.ClusterClassVariableMetadata{
+							DeprecatedV1Beta1Metadata: clusterv1.ClusterClassVariableMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},

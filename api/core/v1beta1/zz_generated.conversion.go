@@ -120,26 +120,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterClassStatusVariableDefinition)(nil), (*v1beta2.ClusterClassStatusVariableDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(a.(*ClusterClassStatusVariableDefinition), b.(*v1beta2.ClusterClassStatusVariableDefinition), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterClassStatusVariableDefinition)(nil), (*ClusterClassStatusVariableDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(a.(*v1beta2.ClusterClassStatusVariableDefinition), b.(*ClusterClassStatusVariableDefinition), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ClusterClassVariable)(nil), (*v1beta2.ClusterClassVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(a.(*ClusterClassVariable), b.(*v1beta2.ClusterClassVariable), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterClassVariable)(nil), (*ClusterClassVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(a.(*v1beta2.ClusterClassVariable), b.(*ClusterClassVariable), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ClusterClassVariableMetadata)(nil), (*v1beta2.ClusterClassVariableMetadata)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(a.(*ClusterClassVariableMetadata), b.(*v1beta2.ClusterClassVariableMetadata), scope)
 	}); err != nil {
@@ -815,8 +795,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ClusterClassStatusVariableDefinition)(nil), (*v1beta2.ClusterClassStatusVariableDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(a.(*ClusterClassStatusVariableDefinition), b.(*v1beta2.ClusterClassStatusVariableDefinition), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClusterClassStatus)(nil), (*v1beta2.ClusterClassStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(a.(*ClusterClassStatus), b.(*v1beta2.ClusterClassStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ClusterClassVariable)(nil), (*v1beta2.ClusterClassVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(a.(*ClusterClassVariable), b.(*v1beta2.ClusterClassVariable), scope)
 	}); err != nil {
 		return err
 	}
@@ -900,8 +890,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterClassStatusVariableDefinition)(nil), (*ClusterClassStatusVariableDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(a.(*v1beta2.ClusterClassStatusVariableDefinition), b.(*ClusterClassStatusVariableDefinition), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterClassStatus)(nil), (*ClusterClassStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(a.(*v1beta2.ClusterClassStatus), b.(*ClusterClassStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterClassVariable)(nil), (*ClusterClassVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(a.(*v1beta2.ClusterClassVariable), b.(*ClusterClassVariable), scope)
 	}); err != nil {
 		return err
 	}
@@ -1175,7 +1175,17 @@ func autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *Cluste
 	if err := Convert_v1beta1_WorkersClass_To_v1beta2_WorkersClass(&in.Workers, &out.Workers, s); err != nil {
 		return err
 	}
-	out.Variables = *(*[]v1beta2.ClusterClassVariable)(unsafe.Pointer(&in.Variables))
+	if in.Variables != nil {
+		in, out := &in.Variables, &out.Variables
+		*out = make([]v1beta2.ClusterClassVariable, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Variables = nil
+	}
 	out.Patches = *(*[]v1beta2.ClusterClassPatch)(unsafe.Pointer(&in.Patches))
 	return nil
 }
@@ -1191,13 +1201,33 @@ func autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta
 	if err := Convert_v1beta2_WorkersClass_To_v1beta1_WorkersClass(&in.Workers, &out.Workers, s); err != nil {
 		return err
 	}
-	out.Variables = *(*[]ClusterClassVariable)(unsafe.Pointer(&in.Variables))
+	if in.Variables != nil {
+		in, out := &in.Variables, &out.Variables
+		*out = make([]ClusterClassVariable, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Variables = nil
+	}
 	out.Patches = *(*[]ClusterClassPatch)(unsafe.Pointer(&in.Patches))
 	return nil
 }
 
 func autoConvert_v1beta1_ClusterClassStatus_To_v1beta2_ClusterClassStatus(in *ClusterClassStatus, out *v1beta2.ClusterClassStatus, s conversion.Scope) error {
-	out.Variables = *(*[]v1beta2.ClusterClassStatusVariable)(unsafe.Pointer(&in.Variables))
+	if in.Variables != nil {
+		in, out := &in.Variables, &out.Variables
+		*out = make([]v1beta2.ClusterClassStatusVariable, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVariable(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Variables = nil
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -1226,7 +1256,17 @@ func autoConvert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *v1
 	} else {
 		out.Conditions = nil
 	}
-	out.Variables = *(*[]ClusterClassStatusVariable)(unsafe.Pointer(&in.Variables))
+	if in.Variables != nil {
+		in, out := &in.Variables, &out.Variables
+		*out = make([]ClusterClassStatusVariable, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ClusterClassStatusVariable_To_v1beta1_ClusterClassStatusVariable(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Variables = nil
+	}
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -1235,7 +1275,17 @@ func autoConvert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *v1
 func autoConvert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVariable(in *ClusterClassStatusVariable, out *v1beta2.ClusterClassStatusVariable, s conversion.Scope) error {
 	out.Name = in.Name
 	out.DefinitionsConflict = in.DefinitionsConflict
-	out.Definitions = *(*[]v1beta2.ClusterClassStatusVariableDefinition)(unsafe.Pointer(&in.Definitions))
+	if in.Definitions != nil {
+		in, out := &in.Definitions, &out.Definitions
+		*out = make([]v1beta2.ClusterClassStatusVariableDefinition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Definitions = nil
+	}
 	return nil
 }
 
@@ -1247,7 +1297,17 @@ func Convert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVar
 func autoConvert_v1beta2_ClusterClassStatusVariable_To_v1beta1_ClusterClassStatusVariable(in *v1beta2.ClusterClassStatusVariable, out *ClusterClassStatusVariable, s conversion.Scope) error {
 	out.Name = in.Name
 	out.DefinitionsConflict = in.DefinitionsConflict
-	out.Definitions = *(*[]ClusterClassStatusVariableDefinition)(unsafe.Pointer(&in.Definitions))
+	if in.Definitions != nil {
+		in, out := &in.Definitions, &out.Definitions
+		*out = make([]ClusterClassStatusVariableDefinition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Definitions = nil
+	}
 	return nil
 }
 
@@ -1259,69 +1319,41 @@ func Convert_v1beta2_ClusterClassStatusVariable_To_v1beta1_ClusterClassStatusVar
 func autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *v1beta2.ClusterClassStatusVariableDefinition, s conversion.Scope) error {
 	out.From = in.From
 	out.Required = in.Required
-	if err := Convert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
+	// WARNING: in.Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VariableSchema_To_v1beta2_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition is an autogenerated conversion function.
-func Convert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *v1beta2.ClusterClassStatusVariableDefinition, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in, out, s)
 }
 
 func autoConvert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in *v1beta2.ClusterClassStatusVariableDefinition, out *ClusterClassStatusVariableDefinition, s conversion.Scope) error {
 	out.From = in.From
 	out.Required = in.Required
-	if err := Convert_v1beta2_ClusterClassVariableMetadata_To_v1beta1_ClusterClassVariableMetadata(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
+	// WARNING: in.DeprecatedV1Beta1Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VariableSchema_To_v1beta1_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition is an autogenerated conversion function.
-func Convert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in *v1beta2.ClusterClassStatusVariableDefinition, out *ClusterClassStatusVariableDefinition, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in, out, s)
-}
-
 func autoConvert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in *ClusterClassVariable, out *v1beta2.ClusterClassVariable, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Required = in.Required
-	if err := Convert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
+	// WARNING: in.Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VariableSchema_To_v1beta2_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable is an autogenerated conversion function.
-func Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in *ClusterClassVariable, out *v1beta2.ClusterClassVariable, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in, out, s)
-}
-
 func autoConvert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in *v1beta2.ClusterClassVariable, out *ClusterClassVariable, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Required = in.Required
-	if err := Convert_v1beta2_ClusterClassVariableMetadata_To_v1beta1_ClusterClassVariableMetadata(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
+	// WARNING: in.DeprecatedV1Beta1Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VariableSchema_To_v1beta1_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable is an autogenerated conversion function.
-func Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in *v1beta2.ClusterClassVariable, out *ClusterClassVariable, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in, out, s)
 }
 
 func autoConvert_v1beta1_ClusterClassVariableMetadata_To_v1beta2_ClusterClassVariableMetadata(in *ClusterClassVariableMetadata, out *v1beta2.ClusterClassVariableMetadata, s conversion.Scope) error {

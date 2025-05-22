@@ -542,14 +542,14 @@ type ClusterClassVariable struct {
 	// +required
 	Required bool `json:"required"`
 
-	// metadata is the metadata of a variable.
+	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
+	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
 
 	// schema defines the schema of the variable.
 	// +required
@@ -1219,14 +1219,14 @@ type ClusterClassStatusVariableDefinition struct {
 	// +required
 	Required bool `json:"required"`
 
-	// metadata is the metadata of a variable.
+	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
 	//
-	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
+	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
 
 	// schema defines the schema of the variable.
 	// +required

@@ -412,14 +412,16 @@ generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy g
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/bootstrap/kubeadm/... \
-		paths=./bootstrap/kubeadm/types/...
+		paths=./bootstrap/kubeadm/types/... \
+		paths=./internal/apis/bootstrap/kubeadm/...
 
 .PHONY: generate-go-deepcopy-kubeadm-control-plane
 generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm control plane
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/controlplane/kubeadm"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/controlplane/kubeadm/...
+		paths=./api/controlplane/kubeadm/... \
+		paths=./internal/apis/controlplane/kubeadm/...
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider

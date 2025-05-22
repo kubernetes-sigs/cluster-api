@@ -20,12 +20,14 @@ import (
 	"context"
 	"time"
 
+	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/controllers"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 )
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
@@ -54,4 +56,9 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		WatchFilterValue:            r.WatchFilterValue,
 		RemoteConditionsGracePeriod: r.RemoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, options)
+}
+
+// SetEtcdLogger allows to redefine ETCD client logger.
+func SetEtcdLogger(logger *zap.Logger) {
+	etcd.SetLogger(logger)
 }

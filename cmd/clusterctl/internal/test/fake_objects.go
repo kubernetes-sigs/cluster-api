@@ -38,7 +38,6 @@ import (
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
 	fakeexternal "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/external"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	contractutil "sigs.k8s.io/cluster-api/util/contract"
@@ -495,10 +494,10 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 		bootstrapConfig = NewBootstrapConfigTemplate(machinePoolBootstrap)
 	}
 
-	machinePool := &expv1.MachinePool{
+	machinePool := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
-			APIVersion: expv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -515,7 +514,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 				clusterv1.ClusterNameLabel: cluster.Name, // Added by the machinePool controller (mirrors machinePoolt.spec.ClusterName) -- RECONCILED
 			},
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -904,7 +903,7 @@ func (f *FakeMachine) WithStaticBootstrapConfig() *FakeMachine {
 	return f
 }
 
-func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, machinePool *expv1.MachinePool, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
+func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, machinePool *clusterv1.MachinePool, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
 	machineInfrastructure := &fakeinfrastructure.GenericInfrastructureMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),
@@ -1473,7 +1472,7 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
-		FakeNamespacedCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
+		FakeNamespacedCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachinePool", version),
 		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSet", version),
 		FakeNamespacedCustomResourceDefinition(addonsv1.GroupVersion.Group, "ClusterResourceSetBinding", version),
 		FakeNamespacedCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "GenericControlPlane", version),

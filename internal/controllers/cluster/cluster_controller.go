@@ -46,7 +46,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
@@ -113,7 +112,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		)
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&expv1.MachinePool{},
+			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		)
@@ -532,7 +531,7 @@ type clusterDescendants struct {
 	workerMachines         collections.Machines
 	machinesToBeRemediated collections.Machines
 	unhealthyMachines      collections.Machines
-	machinePools           expv1.MachinePoolList
+	machinePools           clusterv1.MachinePoolList
 }
 
 // objectsPendingDeleteCount returns the number of descendants pending delete.
@@ -790,7 +789,7 @@ func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Obje
 // machinePoolToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when one of its own MachinePools gets updated.
 func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []ctrl.Request {
-	mp, ok := o.(*expv1.MachinePool)
+	mp, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}

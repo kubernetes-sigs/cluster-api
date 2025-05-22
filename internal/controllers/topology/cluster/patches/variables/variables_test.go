@@ -29,7 +29,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -1013,7 +1012,7 @@ func TestMachinePool(t *testing.T) {
 		name                        string
 		mpTopology                  *clusterv1.MachinePoolTopology
 		variableDefinitionsForPatch map[string]bool
-		mp                          *expv1.MachinePool
+		mp                          *clusterv1.MachinePool
 		mpBootstrapConfig           *unstructured.Unstructured
 		mpInfrastructureMachinePool *unstructured.Unstructured
 		want                        []runtimehooksv1.Variable

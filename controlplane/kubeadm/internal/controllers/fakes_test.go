@@ -28,7 +28,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -36,7 +35,7 @@ type fakeManagementCluster struct {
 	// TODO: once all client interactions are moved to the Management cluster this can go away
 	Management   *internal.Management
 	Machines     collections.Machines
-	MachinePools *expv1.MachinePoolList
+	MachinePools *clusterv1.MachinePoolList
 	Workload     *fakeWorkloadCluster
 	WorkloadErr  error
 	Reader       client.Reader
@@ -61,7 +60,7 @@ func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, cluster
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, cluster *clusterv1.Cluster) (*expv1.MachinePoolList, error) {
+func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, cluster *clusterv1.Cluster) (*clusterv1.MachinePoolList, error) {
 	if f.Management != nil {
 		return f.Management.GetMachinePoolsForCluster(c, cluster)
 	}

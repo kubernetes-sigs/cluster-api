@@ -99,10 +99,17 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus":               schema_cluster_api_api_core_v1beta2_MachineInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineList":                               schema_cluster_api_api_core_v1beta2_MachineList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy":                     schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePool":                               schema_cluster_api_api_core_v1beta2_MachinePool(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClass":                          schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy":            schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate":                  schema_cluster_api_api_core_v1beta2_MachinePoolClassTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus":               schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus":           schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolList":                           schema_cluster_api_api_core_v1beta2_MachinePoolList(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec":                           schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus":                         schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology":                       schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus":        schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables":                      schema_cluster_api_api_core_v1beta2_MachinePoolVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate":                      schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineRollingUpdateDeployment":            schema_cluster_api_api_core_v1beta2_MachineRollingUpdateDeployment(ref),
@@ -3652,6 +3659,56 @@ func schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref common.Refere
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachinePool(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePool is the Schema for the machinepools API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec is the desired state of MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status is the observed state of MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3786,6 +3843,280 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassTemplate(ref common.Ref
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"v1beta1": {
+						SchemaProps: spec.SchemaProps{
+							Description: "v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolInitializationStatus provides observations of the MachinePool initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"infrastructureProvisioned": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureProvisioned is true when the infrastructure provider reports that MachinePool's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"bootstrapDataSecretCreated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap secret is created. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolList contains a list of MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "items is the list of MachinePools.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePool"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePool"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolSpec defines the desired state of MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clusterName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterName is the name of the Cluster this object belongs to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "replicas is the number of desired machines. Defaults to 1. This is a pointer to distinguish between explicit zero and not specified.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template describes the machines that will be created.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"),
+						},
+					},
+					"providerIDList": {
+						SchemaProps: spec.SchemaProps{
+							Description: "providerIDList are the identification IDs of machine instances provided by the provider. This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"failureDomains": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureDomains is the list of failure domains this MachinePool should be attached to.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"clusterName", "template"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolStatus defines the observed state of MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represents the observations of a MachinePool's current state. Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"initialization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "initialization provides observations of the MachinePool initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus"),
+						},
+					},
+					"nodeRefs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeRefs will point to the corresponding Nodes if it they exist.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/core/v1.ObjectReference"),
+									},
+								},
+							},
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "replicas is the most recently observed number of replicas.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"availableReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"upToDateReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "phase represents the current phase of cluster actuation.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the latest generation observed by the controller.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"deprecated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3875,6 +4206,70 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions define the current service state of the MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"failureReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureReason indicates that there is a problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"failureMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failureMessage indicates that there is a problem reconciling the state, and will be set to a descriptive error message.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is \"Ready\".\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"availableReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"unavailableReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool. This is the total number of machine instances that are still required for the machine pool to have 100% available capacity. They may either be machine instances that are running but not yet available or machine instances that still have not been created.\n\nDeprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Condition"},
 	}
 }
 

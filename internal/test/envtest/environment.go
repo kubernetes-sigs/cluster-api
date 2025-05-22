@@ -67,7 +67,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
@@ -119,7 +118,6 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
-	utilruntime.Must(expv1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
 }

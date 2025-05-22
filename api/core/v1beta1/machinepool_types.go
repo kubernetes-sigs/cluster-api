@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -28,6 +27,42 @@ const (
 	// MachinePoolFinalizer is used to ensure deletion of dependencies (nodes, infra).
 	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
 )
+
+/*
+NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
+However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
+counters at cluster level is already implemented.
+
+// Conditions that will be used for the MachinePool object in v1Beta2 API version.
+const (
+	// MachinePoolAvailableV1Beta2Condition is true when InfrastructureReady and available replicas >= desired replicas.
+	MachinePoolAvailableV1Beta2Condition = clusterv1beta1.AvailableV1Beta2Condition
+
+	// MachinePoolBootstrapConfigReadyV1Beta2Condition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
+	MachinePoolBootstrapConfigReadyV1Beta2Condition = clusterv1beta1.BootstrapConfigReadyV1Beta2Condition
+
+	// MachinePoolInfrastructureReadyV1Beta2Condition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
+	MachinePoolInfrastructureReadyV1Beta2Condition = clusterv1beta1.InfrastructureReadyV1Beta2Condition
+
+	// MachinePoolMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	MachinePoolMachinesReadyV1Beta2Condition = clusterv1beta1.MachinesReadyV1Beta2Condition
+
+	// MachinePoolMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	MachinePoolMachinesUpToDateV1Beta2Condition = clusterv1beta1.MachinesUpToDateV1Beta2Condition
+
+	// MachinePoolScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	MachinePoolScalingUpV1Beta2Condition = clusterv1beta1.ScalingUpV1Beta2Condition
+
+	// MachinePoolScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	MachinePoolScalingDownV1Beta2Condition = clusterv1beta1.ScalingDownV1Beta2Condition
+
+	// MachinePoolRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachinePoolRemediatingV1Beta2Condition = clusterv1beta1.RemediatingV1Beta2Condition
+
+	// MachinePoolDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
+	MachinePoolDeletingV1Beta2Condition = clusterv1beta1.DeletingV1Beta2Condition
+).
+*/
 
 // ANCHOR: MachinePoolSpec
 
@@ -46,7 +81,7 @@ type MachinePoolSpec struct {
 
 	// template describes the machines that will be created.
 	// +required
-	Template clusterv1beta1.MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine instances should
 	// be ready.
@@ -142,7 +177,7 @@ type MachinePoolStatus struct {
 
 	// conditions define the current service state of the MachinePool.
 	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in MachinePool's status with the V1Beta2 version.
 	// +optional
@@ -286,12 +321,12 @@ type MachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *MachinePool) GetConditions() clusterv1beta1.Conditions {
+func (m *MachinePool) GetConditions() Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *MachinePool) SetConditions(conditions clusterv1beta1.Conditions) {
+func (m *MachinePool) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
 }
 

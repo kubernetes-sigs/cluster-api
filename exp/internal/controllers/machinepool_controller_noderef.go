@@ -32,7 +32,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -71,7 +70,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
 	}
 	if ptr.Deref(mp.Status.Replicas, 0) == readyReplicas && len(mp.Status.NodeRefs) == int(readyReplicas) {
-		v1beta1conditions.MarkTrue(mp, expv1.ReplicasReadyV1Beta1Condition)
+		v1beta1conditions.MarkTrue(mp, clusterv1.ReplicasReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
 
@@ -107,10 +106,10 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 	}
 
 	if mp.Status.Deprecated == nil {
-		mp.Status.Deprecated = &expv1.MachinePoolDeprecatedStatus{}
+		mp.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 	}
 	if mp.Status.Deprecated.V1Beta1 == nil {
-		mp.Status.Deprecated.V1Beta1 = &expv1.MachinePoolV1Beta1DeprecatedStatus{}
+		mp.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 	}
 	mp.Status.Deprecated.V1Beta1.ReadyReplicas = int32(nodeRefsResult.ready)
 	mp.Status.Deprecated.V1Beta1.AvailableReplicas = int32(nodeRefsResult.available)
@@ -128,12 +127,12 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	if ptr.Deref(mp.Status.Replicas, 0) != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
 		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", ptr.Deref(mp.Status.Replicas, 0))
-		v1beta1conditions.MarkFalse(mp, expv1.ReplicasReadyV1Beta1Condition, expv1.WaitingForReplicasReadyV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(mp, clusterv1.ReplicasReadyV1Beta1Condition, clusterv1.WaitingForReplicasReadyV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// At this point, the required number of replicas are ready
-	v1beta1conditions.MarkTrue(mp, expv1.ReplicasReadyV1Beta1Condition)
+	v1beta1conditions.MarkTrue(mp, clusterv1.ReplicasReadyV1Beta1Condition)
 	return ctrl.Result{}, nil
 }
 
@@ -206,7 +205,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerI
 }
 
 // patchNodes patches the nodes with the cluster name and cluster namespace annotations.
-func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *expv1.MachinePool) error {
+func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *clusterv1.MachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 	for _, nodeRef := range references {
 		node := &corev1.Node{}

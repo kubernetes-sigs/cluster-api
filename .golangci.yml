@@ -132,15 +132,6 @@ linters:
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
-        # CAPI exp
-        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3
-          alias: expv1alpha3
-        - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4
-          alias: expv1alpha4
-        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-          alias: expv1beta1
-        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta2
-          alias: expv1
         # CAPI exp addons
         - pkg: sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3
           alias: addonsv1alpha3

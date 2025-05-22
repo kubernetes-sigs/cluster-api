@@ -36,7 +36,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:
@@ -56,9 +55,6 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 
 	// Add the core CAPI scheme.
 	_ = clusterv1.AddToScheme(scheme)
-
-	// Add the CAPI experiments scheme.
-	_ = expv1.AddToScheme(scheme)
 
 	// ADD the addons scheme.
 	_ = addonsv1.AddToScheme(scheme)

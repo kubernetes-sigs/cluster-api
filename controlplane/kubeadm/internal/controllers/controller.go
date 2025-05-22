@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -621,7 +620,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		return ctrl.Result{}, err
 	}
 
-	allMachinePools := &expv1.MachinePoolList{}
+	allMachinePools := &clusterv1.MachinePoolList{}
 	// Get all machine pools.
 	if feature.Gates.Enabled(feature.MachinePool) {
 		allMachinePools, err = r.managementCluster.GetMachinePoolsForCluster(ctx, controlPlane.Cluster)
@@ -708,7 +707,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 }
 
 // objectsPendingDeleteNames return the names of worker Machines and MachinePools pending delete.
-func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools *expv1.MachinePoolList, cluster *clusterv1.Cluster) []string {
+func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools *clusterv1.MachinePoolList, cluster *clusterv1.Cluster) []string {
 	controlPlaneMachines := allMachines.Filter(collections.ControlPlaneMachines(cluster.Name))
 	workerMachines := allMachines.Difference(controlPlaneMachines)
 

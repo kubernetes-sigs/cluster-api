@@ -66,6 +66,11 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:       &MachineHealthCheck{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineHealthCheckFuzzFunc},
 	}))
+	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &clusterv1.MachinePool{},
+		Spoke:       &MachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
+	}))
 }
 
 func MachineFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
@@ -253,5 +258,35 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
+	}
+}
+
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubMachinePoolStatus,
+	}
+}
+
+func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &clusterv1.MachinePoolInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
+
+	// nil becomes &0 after hub => spoke => hub conversion
+	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
+	if in.Replicas == nil {
+		in.Replicas = ptr.To(int32(0))
 	}
 }

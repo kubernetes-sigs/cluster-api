@@ -41,7 +41,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/builder"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -735,7 +734,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 	useCases := []struct {
 		name          string
-		machinePool   *expv1.MachinePool
+		machinePool   *clusterv1.MachinePool
 		configName    string
 		configBuilder func(string, string) *bootstrapv1.KubeadmConfig
 	}{
@@ -1283,7 +1282,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
-	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &clusterv1.MachinePool{}).Build()
 	remoteClient := fake.NewClientBuilder().Build()
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
@@ -1367,7 +1366,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	workerMachinePool.Status.Initialization = &expv1.MachinePoolInitializationStatus{InfrastructureProvisioned: true}
+	workerMachinePool.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{InfrastructureProvisioned: true}
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	result, err = k.Reconcile(ctx, request)
@@ -1550,7 +1549,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		}
 
 		objects = append(objects, createSecrets(t, cluster, initConfig)...)
-		myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
+		myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &clusterv1.MachinePool{}).Build()
 		remoteClient := fake.NewClientBuilder().Build()
 		k := &KubeadmConfigReconciler{
 			Client:              myclient,
@@ -2604,7 +2603,7 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 }
 
 // newMachinePool return a MachinePool object with the passed Cluster information and a basic bootstrap template.
-func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool {
+func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachinePool {
 	m := builder.MachinePool(cluster.Namespace, name).
 		WithClusterName(cluster.Name).
 		WithLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}).
@@ -2615,7 +2614,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool 
 }
 
 // newWorkerMachinePoolForCluster returns a MachinePool with the passed Cluster's information and a pre-configured name.
-func newWorkerMachinePoolForCluster(cluster *clusterv1.Cluster) *expv1.MachinePool {
+func newWorkerMachinePoolForCluster(cluster *clusterv1.Cluster) *clusterv1.MachinePool {
 	return newMachinePool(cluster, "worker-machinepool")
 }
 
@@ -2674,14 +2673,14 @@ func addKubeadmConfigToMachine(config *bootstrapv1.KubeadmConfig, machine *clust
 }
 
 // addKubeadmConfigToMachine adds the config details to the passed MachinePool and adds the Machine to the KubeadmConfig as an ownerReference.
-func addKubeadmConfigToMachinePool(config *bootstrapv1.KubeadmConfig, machinePool *expv1.MachinePool) {
+func addKubeadmConfigToMachinePool(config *bootstrapv1.KubeadmConfig, machinePool *clusterv1.MachinePool) {
 	if machinePool == nil {
 		panic("no machinePool passed to function")
 	}
 	config.OwnerReferences = []metav1.OwnerReference{
 		{
 			Kind:       "MachinePool",
-			APIVersion: expv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Name:       machinePool.Name,
 			UID:        types.UID(fmt.Sprintf("%s uid", machinePool.Name)),
 		},

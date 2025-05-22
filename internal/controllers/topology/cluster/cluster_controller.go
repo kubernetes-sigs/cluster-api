@@ -49,7 +49,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -136,7 +135,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			)),
 		).
 		Watches(
-			&expv1.MachinePool{},
+			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned, the resource is changed.
 			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
@@ -519,7 +518,7 @@ func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Obje
 // machinePoolToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when one of its own MachinePools gets updated.
 func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []ctrl.Request {
-	mp, ok := o.(*expv1.MachinePool)
+	mp, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}

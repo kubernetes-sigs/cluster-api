@@ -37,7 +37,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -1125,16 +1124,16 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 		return nil, errors.Wrap(err, "failed to generate name for MachinePool")
 	}
 
-	desiredMachinePoolObj := &expv1.MachinePool{
+	desiredMachinePoolObj := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: expv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "MachinePool",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName:    s.Current.Cluster.Name,
 			FailureDomains: failureDomains,
 			Template: clusterv1.MachineTemplateSpec{

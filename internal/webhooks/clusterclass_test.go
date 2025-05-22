@@ -36,7 +36,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -49,7 +48,6 @@ var (
 
 func init() {
 	_ = clusterv1.AddToScheme(fakeScheme)
-	_ = expv1.AddToScheme(fakeScheme)
 }
 
 func TestClusterClassDefaultNamespaces(t *testing.T) {

@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -28,6 +27,42 @@ const (
 	// MachinePoolFinalizer is used to ensure deletion of dependencies (nodes, infra).
 	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
 )
+
+/*
+NOTE: we are commenting const for MachinePool's V1Beta2 conditions and reasons because not yet implemented for the 1.9 CAPI release.
+However, we are keeping the v1beta2 struct in the MachinePool struct because the code that will collect conditions and replica
+counters at cluster level is already implemented.
+
+// Conditions that will be used for the MachinePool object in v1Beta2 API version.
+const (
+	// MachinePoolAvailableCondition is true when InfrastructureReady and available replicas >= desired replicas.
+	MachinePoolAvailableCondition = clusterv1.AvailableCondition
+
+	// MachinePoolBootstrapConfigReadyCondition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
+	MachinePoolBootstrapConfigReadyCondition = clusterv1.BootstrapConfigReadyCondition
+
+	// MachinePoolInfrastructureReadyCondition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
+	MachinePoolInfrastructureReadyCondition = clusterv1.InfrastructureReadyCondition
+
+	// MachinePoolMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	MachinePoolMachinesReadyCondition = clusterv1.MachinesReadyCondition
+
+	// MachinePoolMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
+	MachinePoolMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
+
+	// MachinePoolScalingUpCondition is true if available replicas < desired replicas.
+	MachinePoolScalingUpCondition = clusterv1.ScalingUpCondition
+
+	// MachinePoolScalingDownCondition is true if replicas > desired replicas.
+	MachinePoolScalingDownCondition = clusterv1.ScalingDownCondition
+
+	// MachinePoolRemediatingCondition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachinePoolRemediatingCondition = clusterv1.RemediatingCondition
+
+	// MachinePoolDeletingCondition surfaces details about ongoing deletion of the controlled machines.
+	MachinePoolDeletingCondition = clusterv1.DeletingCondition
+).
+*/
 
 // ANCHOR: MachinePoolSpec
 
@@ -46,7 +81,7 @@ type MachinePoolSpec struct {
 
 	// template describes the machines that will be created.
 	// +required
-	Template clusterv1.MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template"`
 
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
@@ -151,7 +186,7 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 
 	// failureReason indicates that there is a problem reconciling the state, and
 	// will be set to a token value suitable for programmatic interpretation.
@@ -314,7 +349,7 @@ type MachinePool struct {
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
-func (m *MachinePool) GetV1Beta1Conditions() clusterv1.Conditions {
+func (m *MachinePool) GetV1Beta1Conditions() Conditions {
 	if m.Status.Deprecated == nil || m.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
@@ -322,7 +357,7 @@ func (m *MachinePool) GetV1Beta1Conditions() clusterv1.Conditions {
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
-func (m *MachinePool) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+func (m *MachinePool) SetV1Beta1Conditions(conditions Conditions) {
 	if m.Status.Deprecated == nil {
 		m.Status.Deprecated = &MachinePoolDeprecatedStatus{}
 	}

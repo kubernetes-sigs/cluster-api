@@ -59,7 +59,6 @@ TRACE ?= 0
 #
 # Full directory of where the Makefile resides
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-EXP_DIR := exp
 BIN_DIR := bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
@@ -290,11 +289,10 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./internal/apis/addons/... \
-		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/internal/controllers/... \
-		paths=./$(EXP_DIR)/internal/webhooks/... \
-		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
-		paths=./$(EXP_DIR)/runtime/internal/controllers/... \
+		paths=./exp/internal/controllers/... \
+		paths=./exp/internal/webhooks/... \
+		paths=./exp/ipam/internal/webhooks/... \
+		paths=./exp/runtime/internal/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
@@ -368,9 +366,9 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
-		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/internal/controllers/... \
-		paths=./$(EXP_DIR)/internal/webhooks/... \
+		paths=./exp/api/... \
+		paths=./exp/internal/controllers/... \
+		paths=./exp/internal/webhooks/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		crd:crdVersions=v1 \
@@ -392,7 +390,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./$(EXP_DIR)/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./exp/runtime/hooks/api"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/addons/... \
@@ -401,8 +399,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./api/runtime/... \
 		paths=./internal/apis/addons/... \
 		paths=./internal/apis/core/... \
-		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/runtime/hooks/api/... \
+		paths=./exp/runtime/hooks/api/... \
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./util/test/builder/... \
@@ -426,11 +423,11 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api,$(CAPD_DIR)/$(EXP_DIR)/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api,$(CAPD_DIR)/exp/api"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
-		paths=./$(EXP_DIR)/api/...
+		paths=./exp/api/...
 
 .PHONY: generate-go-deepcopy-in-memory-infrastructure
 generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory cloud resources
@@ -450,7 +447,6 @@ generate-go-conversions: ## Run all generate-go-conversions-* targets
 generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 	$(MAKE) generate-go-conversions-core-api
 	$(MAKE) generate-go-conversions-addons-api
-	$(MAKE) generate-go-conversions-core-exp
 	$(MAKE) generate-go-conversions-core-ipam
 	$(MAKE) generate-go-conversions-core-runtime
 
@@ -473,16 +469,6 @@ generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go
 		./internal/apis/addons/v1alpha3 \
 		./internal/apis/addons/v1alpha4 \
 		./api/addons/v1beta1
-
-.PHONY: generate-go-conversions-core-exp
-generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go code for core exp
-	$(MAKE) clean-generated-conversions SRC_DIRS="./exp/api/v1beta1,./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/v1alpha4"
-	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/apis/core/exp/v1alpha3 \
-		./internal/apis/core/exp/v1alpha4 \
-		./$(EXP_DIR)/api/v1beta1
 
 .PHONY: generate-go-conversions-core-ipam
 generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
@@ -542,8 +528,8 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1alpha3 \
 		./api/v1alpha4 \
-		./$(EXP_DIR)/api/v1alpha3 \
-		./$(EXP_DIR)/api/v1alpha4
+		./exp/api/v1alpha3 \
+		./exp/api/v1alpha4
 
 .PHONY: generate-go-conversions-test-extension
 generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for test runtime extension provider
@@ -552,7 +538,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
-	for pkg in "api/core/v1beta2" "api/core/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
+	for pkg in "api/core/v1beta2" "api/core/v1beta1" "exp/runtime/hooks/api/v1alpha1"; do \
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \

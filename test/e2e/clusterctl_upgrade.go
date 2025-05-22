@@ -49,7 +49,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -528,7 +527,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			); err == nil {
 				for _, m := range machinePoolList.Items {
 					phase, found, err := unstructured.NestedString(m.Object, "status", "phase")
-					if err != nil || !found || phase != string(expv1.MachinePoolPhaseRunning) {
+					if err != nil || !found || phase != string(clusterv1.MachinePoolPhaseRunning) {
 						continue
 					}
 

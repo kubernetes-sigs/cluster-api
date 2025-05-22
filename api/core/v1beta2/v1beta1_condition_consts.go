@@ -358,3 +358,14 @@ const (
 	// if the references are up-to-date.
 	ClusterClassRefVersionsUpToDateInternalErrorV1Beta1Reason = "InternalError"
 )
+
+// Conditions and condition Reasons for the MachinePool object.
+
+const (
+	// ReplicasReadyV1Beta1Condition reports an aggregate of current status of the replicas controlled by the MachinePool.
+	ReplicasReadyV1Beta1Condition ConditionType = "ReplicasReady"
+
+	// WaitingForReplicasReadyV1Beta1Reason (Severity=Info) documents a machinepool waiting for the required replicas
+	// to be ready.
+	WaitingForReplicasReadyV1Beta1Reason = "WaitingForReplicasReady"
+)

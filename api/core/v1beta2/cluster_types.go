@@ -548,14 +548,6 @@ type Topology struct {
 	// +kubebuilder:validation:MaxLength=256
 	Version string `json:"version"`
 
-	// rolloutAfter performs a rollout of the entire cluster one component at a time,
-	// control plane first and then machine deployments.
-	//
-	// Deprecated: This field has no function and is going to be removed in the next apiVersion.
-	//
-	// +optional
-	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
-
 	// controlPlane describes the cluster control plane.
 	// +optional
 	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty"`

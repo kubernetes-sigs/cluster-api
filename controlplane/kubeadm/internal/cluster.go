@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
@@ -51,6 +52,7 @@ type Management struct {
 	ClusterCache        clustercache.ClusterCache
 	EtcdDialTimeout     time.Duration
 	EtcdCallTimeout     time.Duration
+	EtcdLogger          *zap.Logger
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -152,7 +154,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		restConfig:          restConfig,
 		Client:              c,
 		CoreDNSMigrator:     &CoreDNSMigrator{},
-		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout, m.EtcdCallTimeout),
+		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout, m.EtcdCallTimeout, m.EtcdLogger),
 	}, nil
 }
 

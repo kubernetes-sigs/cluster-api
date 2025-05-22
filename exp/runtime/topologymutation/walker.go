@@ -42,6 +42,7 @@ type WalkTemplatesOptions struct {
 	failForUnknownTypes bool
 	patchFormat         runtimehooksv1.PatchType
 	// TODO: add the possibility to set patchFormat for single patches only, eg. via a func(requestItem) format.
+	KeepEmptyFields bool
 }
 
 // newWalkTemplatesOptions returns a WalkTemplatesOptions with default values.
@@ -59,6 +60,14 @@ type FailForUnknownTypes struct{}
 // ApplyToWalkTemplates applies this configuration to the given WalkTemplatesOptions.
 func (f FailForUnknownTypes) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
 	in.failForUnknownTypes = true
+}
+
+// KeepEmptyFields defines if WalkTemplates should keep empty fields which is old behavior
+type KeepEmptyFields struct{}
+
+// ApplyToWalkTemplates applies this configuration to the given WalkTemplatesOptions.
+func (f KeepEmptyFields) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
+	in.KeepEmptyFields = true
 }
 
 // PatchFormat defines the patch format that WalkTemplates should generate.
@@ -147,14 +156,22 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 		var patch []byte
 		switch options.patchFormat {
 		case runtimehooksv1.JSONPatchType:
-			patch, err = createJSONPatch(requestItem.Object.Raw, modified)
+			if options.KeepEmptyFields {
+				patch, err = createJSONPatchKeepEmptyFields(original, modified)
+			} else {
+				patch, err = createJSONPatch(requestItem.Object.Raw, modified)
+			}
 			if err != nil {
 				resp.Status = runtimehooksv1.ResponseStatusFailure
 				resp.Message = err.Error()
 				return
 			}
 		case runtimehooksv1.JSONMergePatchType:
-			patch, err = createJSONMergePatch(requestItem.Object.Raw, modified)
+			if options.KeepEmptyFields {
+				patch, err = createJSONMergePatchKeepEmptyFields(original, modified)
+			} else {
+				patch, err = createJSONMergePatch(requestItem.Object.Raw, modified)
+			}
 			if err != nil {
 				resp.Status = runtimehooksv1.ResponseStatusFailure
 				resp.Message = err.Error()
@@ -195,6 +212,51 @@ func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte
 
 // createJSONMergePatch creates a RFC 7396 JSON merge patch from the original and the modified object.
 func createJSONMergePatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
+	marshalledModified, err := json.Marshal(modified)
+	if err != nil {
+		return nil, errors.Errorf("failed to marshal modified object: %v", err)
+	}
+
+	patch, err := mergepatch.CreateMergePatch(marshalledOriginal, marshalledModified)
+	if err != nil {
+		return nil, errors.Errorf("failed to create patch: %v", err)
+	}
+
+	return patch, nil
+}
+
+// createJSONPatchKeepEmptyFields creates a RFC 6902 JSON patch from the original and the modified object.
+func createJSONPatchKeepEmptyFields(original, modified runtime.Object) ([]byte, error) {
+	marshalledOriginal, err := json.Marshal(original)
+	if err != nil {
+		return nil, errors.Errorf("failed to marshal original object: %v", err)
+	}
+
+	marshalledModified, err := json.Marshal(modified)
+	if err != nil {
+		return nil, errors.Errorf("failed to marshal modified object: %v", err)
+	}
+
+	patch, err := jsonpatch.CreatePatch(marshalledOriginal, marshalledModified)
+	if err != nil {
+		return nil, errors.Errorf("failed to create patch: %v", err)
+	}
+
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return nil, errors.Errorf("failed to marshal patch: %v", err)
+	}
+
+	return patchBytes, nil
+}
+
+// createJSONMergePatchKeepEmptyFields creates a RFC 7396 JSON merge patch from the original and the modified object.
+func createJSONMergePatchKeepEmptyFields(original, modified runtime.Object) ([]byte, error) {
+	marshalledOriginal, err := json.Marshal(original)
+	if err != nil {
+		return nil, errors.Errorf("failed to marshal original object: %v", err)
+	}
+
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
 		return nil, errors.Errorf("failed to marshal modified object: %v", err)

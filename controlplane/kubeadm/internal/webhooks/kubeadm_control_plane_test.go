@@ -491,7 +491,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	apiServer := before.DeepCopy()
 	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = bootstrapv1.APIServer{
 		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-			ExtraArgs:    map[string]string{"foo": "bar"},
+			ExtraArgs: []bootstrapv1.Arg{
+				{
+					Name:  "foo",
+					Value: "bar",
+				},
+			},
 			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
 		},
 		TimeoutForControlPlane: &metav1.Duration{Duration: 5 * time.Minute},
@@ -500,13 +505,23 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	controllerManager := before.DeepCopy()
 	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = bootstrapv1.ControlPlaneComponent{
-		ExtraArgs:    map[string]string{"controller manager field": "controller manager value"},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "controller manager field",
+				Value: "controller manager value",
+			},
+		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: true, PathType: "File"}},
 	}
 
 	scheduler := before.DeepCopy()
 	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = bootstrapv1.ControlPlaneComponent{
-		ExtraArgs:    map[string]string{"scheduler field": "scheduler value"},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "scheduler field",
+				Value: "scheduler value",
+			},
+		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: true, PathType: "File"}},
 	}
 
@@ -611,7 +626,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	localExtraArgs := before.DeepCopy()
 	localExtraArgs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
-		ExtraArgs: map[string]string{"an arg": "a value"},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "an arg",
+				Value: "a value",
+			},
+		},
 	}
 
 	beforeExternalEtcdCluster := before.DeepCopy()

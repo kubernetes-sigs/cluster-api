@@ -130,7 +130,7 @@ func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, 
 	}
 
 	if nodeRegistration.KubeletExtraArgs == nil {
-		nodeRegistration.KubeletExtraArgs = map[string]string{}
+		nodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
 	}
 
 	// Disable disk resource management by default.
@@ -152,14 +152,21 @@ func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, 
 	if version.Compare(kindMapping.KubernetesVersion, cgroupDriverPatchVersionCeiling) == -1 {
 		// kubeadm for Kubernetes version <= 1.23 defaults to cgroup-driver=cgroupfs; following settings makes kubelet
 		// to run consistently with what kubeadm expects.
-		nodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+		defaultExtraArg(nodeRegistration, "cgroup-driver", cgroupDriverCgroupfs)
 	}
 }
 
 // defautExtraArg sets a default value for an extra arg if it is not already set.
 func defaultExtraArg(nodeRegistration *bootstrapv1.NodeRegistrationOptions, arg, value string) {
-	if _, ok := nodeRegistration.KubeletExtraArgs[arg]; !ok {
-		nodeRegistration.KubeletExtraArgs[arg] = value
+	found := false
+	for i := range nodeRegistration.KubeletExtraArgs {
+		if nodeRegistration.KubeletExtraArgs[i].Name == arg {
+			nodeRegistration.KubeletExtraArgs[i].Value = value
+			found = true
+		}
+	}
+	if !found {
+		nodeRegistration.KubeletExtraArgs = append(nodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: arg, Value: value})
 	}
 }
 

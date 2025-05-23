@@ -20,11 +20,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -197,18 +200,17 @@ func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 // made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
 // Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
 func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (bool, string, error) {
-	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
-	if !ok {
+	if _, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]; !ok {
 		// We don't have enough information to make a decision; don't' trigger a roll out.
 		return true, "", nil
 	}
 
-	machineClusterConfig := &bootstrapv1.ClusterConfiguration{}
-	// ClusterConfiguration annotation is not correct, only solution is to rollout.
-	// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
-	// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
-	// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
-	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
+	machineClusterConfig, err := ClusterConfigurationFromMachine(machine)
+	if err != nil {
+		// ClusterConfiguration annotation is not correct, only solution is to rollout.
+		// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
+		// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
+		// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
 		return false, "", nil //nolint:nilerr // Intentionally not returning the error here
 	}
 
@@ -231,6 +233,69 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 		return false, "", errors.Wrapf(err, "failed to match ClusterConfiguration")
 	}
 	return match, diff, nil
+}
+
+type versionedClusterConfiguration struct {
+	MarshalVersion string `json:"marshalVersion,omitempty"`
+	*bootstrapv1.ClusterConfiguration
+}
+
+// ClusterConfigurationAnnotationFromMachineIsOutdated return true if the annotation is outdated.
+// Note: this is intentionally implemented with a string check to prevent an additional json.Unmarshal operation.
+func ClusterConfigurationAnnotationFromMachineIsOutdated(annotation string) bool {
+	return !strings.Contains(annotation, fmt.Sprintf("\"marshalVersion\":%q", bootstrapv1.GroupVersion.Version))
+}
+
+// ClusterConfigurationToMachineAnnotationValue returns an annotation valued to add on machines for
+// tracking the ClusterConfiguration value at the time the machine was created.
+func ClusterConfigurationToMachineAnnotationValue(clusterConfiguration *bootstrapv1.ClusterConfiguration) (string, error) {
+	machineClusterConfig := &versionedClusterConfiguration{
+		MarshalVersion:       bootstrapv1.GroupVersion.Version,
+		ClusterConfiguration: clusterConfiguration,
+	}
+
+	annotationBytes, err := json.Marshal(machineClusterConfig)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal cluster configuration")
+	}
+	return string(annotationBytes), nil
+}
+
+// ClusterConfigurationFromMachine returns the ClusterConfiguration value at the time the machine was created.
+// Note: In case the annotation was created with an older version of the KCP API, the value is converted to the current API version.
+func ClusterConfigurationFromMachine(machine *clusterv1.Machine) (*bootstrapv1.ClusterConfiguration, error) {
+	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
+	if !ok {
+		return nil, nil
+	}
+
+	if ClusterConfigurationAnnotationFromMachineIsOutdated(machineClusterConfigStr) {
+		// Note: Only conversion from v1beta1 is supported as of today.
+		machineClusterConfigV1Beta1 := &bootstrapv1beta1.ClusterConfiguration{}
+		if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfigV1Beta1); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal ClusterConfiguration from Machine %s", klog.KObj(machine))
+		}
+
+		kubeadmConfigV1Beta1 := &bootstrapv1beta1.KubeadmConfig{
+			Spec: bootstrapv1beta1.KubeadmConfigSpec{
+				ClusterConfiguration: machineClusterConfigV1Beta1,
+			},
+		}
+		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
+		err := kubeadmConfigV1Beta1.ConvertTo(kubeadmConfig)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to convert ClusterConfiguration from Machine %s", klog.KObj(machine))
+		}
+
+		machineClusterConfig := kubeadmConfig.Spec.ClusterConfiguration
+		return machineClusterConfig, nil
+	}
+
+	machineClusterConfig := &versionedClusterConfiguration{}
+	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal ClusterConfiguration from Machine %s", klog.KObj(machine))
+	}
+	return machineClusterConfig.ClusterConfiguration, nil
 }
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.

@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -75,15 +76,38 @@ func Convert_upstreamv1beta1_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, s
 	return autoConvert_upstreamv1beta1_DNS_To_v1beta2_DNS(in, out, s)
 }
 
+func Convert_upstreamv1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_upstreamv1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_upstreamv1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_upstreamv1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
+}
+
+func Convert_upstreamv1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	out.KubeletExtraArgs = utilconversion.ConvertToArgs(in.KubeletExtraArgs)
+	return autoConvert_upstreamv1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
+}
+
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta1.
 
 func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneComponent(in, out, s)
 }
 
 func Convert_v1beta2_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
 	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in, out, s)
 }
 
@@ -99,6 +123,10 @@ func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *
 
 func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	// NodeRegistrationOptions.IgnorePreflightErrors, ImagePullPolicy and ImagePullSerial do not exist in kubeadm v1beta1, dropping those info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.KubeletExtraArgs = utilconversion.ConvertFromArgs(in.KubeletExtraArgs)
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in, out, s)
 }
 

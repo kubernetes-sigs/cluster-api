@@ -17,8 +17,6 @@ limitations under the License.
 package upstreamv1beta4
 
 import (
-	"sort"
-
 	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -67,20 +65,6 @@ func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguratio
 	return autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }
 
-func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	// Following fields exists in CABPK v1beta1 but they need a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
-	out.ExtraArgs = convertFromArgs(in.ExtraArgs)
-	return autoConvert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
-}
-
-func Convert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
-	// Following fields require a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
-	out.ExtraArgs = convertFromArgs(in.ExtraArgs)
-	return autoConvert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
-}
-
 func Convert_upstreamv1beta4_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - Disabled (Not supported yet)
@@ -109,13 +93,6 @@ func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(in *
 	return err
 }
 
-func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// Following fields require a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
-	out.KubeletExtraArgs = convertFromArgs(in.KubeletExtraArgs)
-	return autoConvert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
-}
-
 func Convert_upstreamv1beta4_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinControlPlane, out *bootstrapv1.JoinControlPlane, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - CertificateKey (CABPK does not use automatic copy certs)
@@ -124,22 +101,10 @@ func Convert_upstreamv1beta4_JoinControlPlane_To_v1beta2_JoinControlPlane(in *Jo
 
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta4.
 
-func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	// Following fields require a custom conversions.
-	out.ExtraArgs = convertToArgs(in.ExtraArgs)
-	return autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneComponent(in, out, s)
-}
-
 func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - TimeoutForControlPlane (this field has been migrated to Init/JoinConfiguration; migration is handled by ConvertFromClusterConfiguration custom converters.
 	return autoConvert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in, out, s)
-}
-
-func Convert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
-	// Following fields require a custom conversions.
-	out.ExtraArgs = convertToArgs(in.ExtraArgs)
-	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in, out, s)
 }
 
 func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
@@ -155,12 +120,6 @@ func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in *
 	return err
 }
 
-func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// Following fields exists in kubeadm v1beta4 types and can be converted to CAPBK v1beta1.
-	out.KubeletExtraArgs = convertToArgs(in.KubeletExtraArgs)
-	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistrationOptions(in, out, s)
-}
-
 func Convert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - Timeout (this field has been migrated to JoinConfiguration.Timeouts.TLSBootstrap, the conversion is handled in Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration)
@@ -170,38 +129,6 @@ func Convert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Disc
 func Convert_v1beta2_FileDiscovery_To_upstreamv1beta4_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
 	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
 	return autoConvert_v1beta2_FileDiscovery_To_upstreamv1beta4_FileDiscovery(in, out, s)
-}
-
-// convertToArgs takes a argument map and converts it to a slice of arguments.
-// Te resulting argument slice is sorted alpha-numerically.
-func convertToArgs(in map[string]string) []Arg {
-	if in == nil {
-		return nil
-	}
-	args := make([]Arg, 0, len(in))
-	for k, v := range in {
-		args = append(args, Arg{Name: k, Value: v})
-	}
-	sort.Slice(args, func(i, j int) bool {
-		if args[i].Name == args[j].Name {
-			return args[i].Value < args[j].Value
-		}
-		return args[i].Name < args[j].Name
-	})
-	return args
-}
-
-// convertFromArgs takes a slice of arguments and returns an argument map.
-// Duplicate argument keys will be de-duped, where later keys will take precedence.
-func convertFromArgs(in []Arg) map[string]string {
-	if in == nil {
-		return nil
-	}
-	args := make(map[string]string, len(in))
-	for _, arg := range in {
-		args[arg.Name] = arg.Value
-	}
-	return args
 }
 
 // Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.

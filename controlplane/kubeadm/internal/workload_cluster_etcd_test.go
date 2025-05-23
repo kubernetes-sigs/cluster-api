@@ -132,12 +132,14 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string
+		version                  semver.Version
 		clusterConfigurationData string
 		localEtcd                *bootstrapv1.LocalEtcd
 		wantClusterConfiguration string
 	}{
 		{
-			name: "it should set local etcd configuration with local etcd",
+			name:    "it should set local etcd configuration with local etcd (<1.31)",
+			version: semver.MustParse("1.19.1"),
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
 				kind: ClusterConfiguration
@@ -149,8 +151,11 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 					ImageRepository: "example.com/k8s",
 					ImageTag:        "v1.6.0",
 				},
-				ExtraArgs: map[string]string{
-					"foo": "bar",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "foo",
+						Value: "bar",
+					},
 				},
 			},
 			wantClusterConfiguration: utilyaml.Raw(`
@@ -170,7 +175,8 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				`),
 		},
 		{
-			name: "no op when external etcd configuration already exists",
+			name:    "no op when external etcd configuration already exists (<1.31)",
+			version: semver.MustParse("1.19.1"),
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
 				kind: ClusterConfiguration
@@ -182,12 +188,83 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 					ImageRepository: "example.com/k8s",
 					ImageTag:        "v1.6.0",
 				},
-				ExtraArgs: map[string]string{
-					"foo": "bar",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "foo",
+						Value: "bar",
+					},
 				},
 			},
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
+				kind: ClusterConfiguration
+				etcd:
+				  external: {}
+				`),
+		},
+		{
+			name:    "it should set local etcd configuration with local etcd (>=1.31)",
+			version: semver.MustParse("1.31.1"),
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration
+				etcd:
+				  local: {}
+				`),
+			localEtcd: &bootstrapv1.LocalEtcd{
+				ImageMeta: bootstrapv1.ImageMeta{
+					ImageRepository: "example.com/k8s",
+					ImageTag:        "v1.6.0",
+				},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "foo",
+						Value: "bar",
+					},
+				},
+			},
+			wantClusterConfiguration: utilyaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta4
+				controllerManager: {}
+				dns: {}
+				etcd:
+				  local:
+				    dataDir: ""
+				    extraArgs:
+				    - name: foo
+				      value: bar
+				    imageRepository: example.com/k8s
+				    imageTag: v1.6.0
+				kind: ClusterConfiguration
+				networking: {}
+				proxy: {}
+				scheduler: {}
+				`),
+		},
+		{
+			name:    "no op when external etcd configuration already exists (>=1.31)",
+			version: semver.MustParse("1.31.1"),
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration
+				etcd:
+				  external: {}
+				`),
+			localEtcd: &bootstrapv1.LocalEtcd{
+				ImageMeta: bootstrapv1.ImageMeta{
+					ImageRepository: "example.com/k8s",
+					ImageTag:        "v1.6.0",
+				},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "foo",
+						Value: "bar",
+					},
+				},
+			},
+			wantClusterConfiguration: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
 				etcd:
 				  external: {}
@@ -211,7 +288,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.19.1"), w.UpdateEtcdLocalInKubeadmConfigMap(tt.localEtcd))
+			err := w.UpdateClusterConfiguration(ctx, tt.version, w.UpdateEtcdLocalInKubeadmConfigMap(tt.localEtcd))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap

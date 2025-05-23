@@ -24,6 +24,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
@@ -82,9 +83,42 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 	return nil
 }
 
+func Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
+	return autoConvert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
+	return autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in, out, s)
+}
+
+func Convert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	out.KubeletExtraArgs = utilconversion.ConvertFromArgs(in.KubeletExtraArgs)
+	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in, out, s)
+}
+
 func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apimachineryconversion.Scope) error {
 	// NOTE: v1beta2 KubeadmConfigSpec does not have UseExperimentalRetryJoin anymore, so it's fine to just lose this field.
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
+}
+
+func Convert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	out.KubeletExtraArgs = utilconversion.ConvertToArgs(in.KubeletExtraArgs)
+	return autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
 func Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apimachineryconversion.Scope) error {

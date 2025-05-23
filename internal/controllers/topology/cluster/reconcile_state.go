@@ -396,7 +396,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// If a current MachineHealthCheck doesn't exist but there is a desired MachineHealthCheck attempt to create.
 	if current == nil && desired != nil {
 		log.Info("Creating MachineHealthCheck", "MachineHealthCheck", klog.KObj(desired))
-		helper, err := r.patchHelperFactory(ctx, nil, desired)
+		helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, desired, r.Client, r.ssaCache)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create patch helper for MachineHealthCheck %s", klog.KObj(desired))
 		}
@@ -426,7 +426,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// Check differences between current and desired MachineHealthChecks, and patch if required.
 	// NOTE: we want to be authoritative on the entire spec because the users are
 	// expected to change MHC fields from the ClusterClass only.
-	patchHelper, err := r.patchHelperFactory(ctx, current, desired)
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, current, desired, r.Client, r.ssaCache)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for MachineHealthCheck %s", klog.KObj(current))
 	}
@@ -451,7 +451,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(ctx, s.Current.Cluster, s.Desired.Cluster)
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, s.Current.Cluster, s.Desired.Cluster, r.Client, r.ssaCache)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for Cluster %s", klog.KObj(s.Current.Cluster))
 	}
@@ -633,7 +633,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	log.Info("Creating MachineDeployment")
-	helper, err := r.patchHelperFactory(ctx, nil, md.Object)
+	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, md.Object, r.Client, r.ssaCache)
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate & BootstrapTemplate (only on creation).
 		infrastructureMachineCleanupFunc()
@@ -753,7 +753,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(ctx, currentMD.Object, desiredMD.Object)
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, currentMD.Object, desiredMD.Object, r.Client, r.ssaCache)
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate & BootstrapTemplate (only on template rotation).
 		infrastructureMachineCleanupFunc()
@@ -975,7 +975,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	}
 
 	log.Info("Creating MachinePool")
-	helper, err := r.patchHelperFactory(ctx, nil, mp.Object)
+	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, mp.Object, r.Client, r.ssaCache)
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachinePool & BootstrapConfig (only on creation).
 		infrastructureMachineMachinePoolCleanupFunc()
@@ -1042,7 +1042,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	}
 
 	// Check differences between current and desired MachinePool, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(ctx, currentMP.Object, desiredMP.Object)
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, currentMP.Object, desiredMP.Object, r.Client, r.ssaCache)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for MachinePool %s", klog.KObj(currentMP.Object))
 	}
@@ -1177,7 +1177,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	// If there is no current object, create it.
 	if in.current == nil {
 		log.Info(fmt.Sprintf("Creating %s", in.desired.GetKind()), in.desired.GetKind(), klog.KObj(in.desired))
-		helper, err := r.patchHelperFactory(ctx, nil, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
+		helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache, structuredmerge.IgnorePaths(in.ignorePaths))
 		if err != nil {
 			return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
 		}
@@ -1197,7 +1197,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, in.current, in.desired, r.Client, r.ssaCache, structuredmerge.IgnorePaths(in.ignorePaths))
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to create patch helper for %s %s", in.current.GetKind(), klog.KObj(in.current))
 	}
@@ -1263,7 +1263,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there is no current object, create the desired object.
 	if in.current == nil {
 		log.Info(fmt.Sprintf("Creating %s", in.desired.GetKind()), in.desired.GetKind(), klog.KObj(in.desired))
-		helper, err := r.patchHelperFactory(ctx, nil, in.desired)
+		helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
 		if err != nil {
 			return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
 		}
@@ -1287,7 +1287,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
-	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired)
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, in.current, in.desired, r.Client, r.ssaCache)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to create patch helper for %s %s", in.current.GetKind(), klog.KObj(in.current))
 	}
@@ -1328,7 +1328,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 		log.Info(fmt.Sprintf("Rotating %s, new name %s", in.current.GetKind(), newName), "diff", string(changes))
 	}
 	log.Info(fmt.Sprintf("Creating %s", in.current.GetKind()))
-	helper, err := r.patchHelperFactory(ctx, nil, in.desired)
+	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
 	if err != nil {
 		return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
 	}

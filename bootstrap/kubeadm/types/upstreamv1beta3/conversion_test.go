@@ -21,11 +21,11 @@ package upstreamv1beta3
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -82,35 +82,35 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // NOTES:
 // - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 
-func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func initConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.CertificateKey = ""
 	obj.SkipPhases = nil
 }
 
-func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func joinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.SkipPhases = nil
 }
 
-func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	if obj.Discovery.File != nil {
 		obj.Discovery.File.KubeConfig = nil
 	}
 }
 
-func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.IgnorePreflightErrors = nil
 }
 
-func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func joinControlPlanesFuzzer(obj *JoinControlPlane, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.CertificateKey = ""
 }
@@ -119,20 +119,20 @@ func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 
-func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	obj.ImagePullSerial = nil
 }

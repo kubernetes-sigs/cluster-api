@@ -22,11 +22,11 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -77,8 +77,8 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 	}
 }
 
-func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &controlplanev1.KubeadmControlPlaneDeprecatedStatus{}
@@ -101,8 +101,8 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	}
 }
 
-func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
 	in.Ready = in.ReadyReplicas > 0
@@ -127,18 +127,18 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 	}
 }
 
-func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ fuzz.Continue) {
+func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Fields have been dropped in KCPTemplate.
 	in.Spec.Replicas = nil
@@ -147,8 +147,8 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 }
 
-func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false

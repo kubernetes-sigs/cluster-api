@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
@@ -68,8 +68,8 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Always create struct with at least one mandatory fields.
 	if in.Deprecated == nil {
 		in.Deprecated = &bootstrapv1.KubeadmConfigDeprecatedStatus{}
@@ -107,40 +107,40 @@ func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfac
 	}
 }
 
-func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
 }
 
-func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.BootstrapData = nil
 }
 
-func spokeDNS(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func spokeDNS(obj *upstreamv1beta1.DNS, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func spokeClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func spokeClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
 }
 
-func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
+func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func hubKubeadmBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
+func hubKubeadmBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }

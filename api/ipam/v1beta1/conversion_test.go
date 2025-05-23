@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -51,8 +51,8 @@ func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &ipamv1.IPAddressClaimV1Beta1DeprecatedStatus{}) {
@@ -61,8 +61,8 @@ func hubIPAddressClaimStatus(in *ipamv1.IPAddressClaimStatus, c fuzz.Continue) {
 	}
 }
 
-func spokeIPAddressClaimStatus(in *IPAddressClaimStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func spokeIPAddressClaimStatus(in *IPAddressClaimStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &IPAddressClaimV1Beta2Status{}) {

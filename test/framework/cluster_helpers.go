@@ -403,6 +403,19 @@ func DescribeAllCluster(ctx context.Context, input DescribeAllClusterInput) {
 	Expect(input.LogFolder).ToNot(BeEmpty(), "Invalid argument. input.LogFolder can't be empty when calling DescribeAllCluster")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be nil when calling DescribeAllCluster")
 
+	types := getClusterAPITypes(ctx, input.Lister)
+	clusterAPIVersion := ""
+	for t := range types {
+		if t.Kind == "Cluster" {
+			clusterAPIVersion = t.APIVersion
+			break
+		}
+	}
+	if clusterAPIVersion != clusterv1.GroupVersion.String() {
+		log.Logf("Skipping DescribeCluster because detected Cluster CR in APIVersion %q but require %q", clusterAPIVersion, clusterv1.GroupVersion.String())
+		return
+	}
+
 	clusters := &clusterv1.ClusterList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, clusters, client.InNamespace(input.Namespace))

@@ -3481,9 +3481,9 @@ spec:
                           maxLength: 512
                           minLength: 1
                           type: string
-                        generateExtension:
-                          description: generateExtension references an extension which
-                            is called to generate patches.
+                        generatePatchesExtension:
+                          description: generatePatchesExtension references an extension
+                            which is called to generate patches.
                           maxLength: 512
                           minLength: 1
                           type: string
@@ -3495,9 +3495,9 @@ spec:
                             Values defined here take precedence over the values defined in the
                             corresponding ExtensionConfig.
                           type: object
-                        validateExtension:
-                          description: validateExtension references an extension which
-                            is called to validate the topology.
+                        validateTopologyExtension:
+                          description: validateTopologyExtension references an extension
+                            which is called to validate the topology.
                           maxLength: 512
                           minLength: 1
                           type: string

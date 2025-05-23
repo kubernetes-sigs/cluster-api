@@ -1566,19 +1566,19 @@ func schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref common.Refe
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ExternalPatchDefinition defines an external patch. Note: At least one of GenerateExtension or ValidateExtension must be set.",
+				Description: "ExternalPatchDefinition defines an external patch. Note: At least one of GeneratePatchesExtension or ValidateTopologyExtension must be set.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"generateExtension": {
+					"generatePatchesExtension": {
 						SchemaProps: spec.SchemaProps{
-							Description: "generateExtension references an extension which is called to generate patches.",
+							Description: "generatePatchesExtension references an extension which is called to generate patches.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"validateExtension": {
+					"validateTopologyExtension": {
 						SchemaProps: spec.SchemaProps{
-							Description: "validateExtension references an extension which is called to validate the topology.",
+							Description: "validateTopologyExtension references an extension which is called to validate the topology.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

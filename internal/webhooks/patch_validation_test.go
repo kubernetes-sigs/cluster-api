@@ -1370,7 +1370,7 @@ func TestValidatePatches(t *testing.T) {
 
 		// Patch with External
 		{
-			name: "pass if patch defines both external.generateExtension and external.validateExtension",
+			name: "pass if patch defines both external.generatePatchesExtension and external.validateTopologyExtension",
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
@@ -1386,8 +1386,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GenerateExtension: ptr.To("generate-extension"),
-								ValidateExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  ptr.To("generate-extension"),
+								ValidateTopologyExtension: ptr.To("generate-extension"),
 							},
 						},
 					},
@@ -1413,8 +1413,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GenerateExtension: ptr.To("generate-extension"),
-								ValidateExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  ptr.To("generate-extension"),
+								ValidateTopologyExtension: ptr.To("generate-extension"),
 							},
 						},
 					},
@@ -1424,7 +1424,7 @@ func TestValidatePatches(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name: "error if patch defines neither external.generateExtension nor external.validateExtension",
+			name: "error if patch defines neither external.generatePatchesExtension nor external.validateTopologyExtension",
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
@@ -1464,8 +1464,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GenerateExtension: ptr.To("generate-extension"),
-								ValidateExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  ptr.To("generate-extension"),
+								ValidateTopologyExtension: ptr.To("generate-extension"),
 							},
 							Definitions: []clusterv1.PatchDefinition{},
 						},

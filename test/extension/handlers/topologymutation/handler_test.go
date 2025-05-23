@@ -131,12 +131,22 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 							KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 								InitConfiguration: &bootstrapv1.InitConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+										KubeletExtraArgs: []bootstrapv1.Arg{
+											{
+												Name:  "cgroup-driver",
+												Value: "cgroupfs",
+											},
+										},
 									},
 								},
 								JoinConfiguration: &bootstrapv1.JoinConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+										KubeletExtraArgs: []bootstrapv1.Arg{
+											{
+												Name:  "cgroup-driver",
+												Value: "cgroupfs",
+											},
+										},
 									},
 								},
 							},
@@ -253,7 +263,12 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 						Spec: bootstrapv1.KubeadmConfigSpec{
 							JoinConfiguration: &bootstrapv1.JoinConfiguration{
 								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-									KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+									KubeletExtraArgs: []bootstrapv1.Arg{
+										{
+											Name:  "cgroup-driver",
+											Value: "cgroupfs",
+										},
+									},
 								},
 							},
 						},
@@ -316,7 +331,12 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 						Spec: bootstrapv1.KubeadmConfigSpec{
 							JoinConfiguration: &bootstrapv1.JoinConfiguration{
 								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-									KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+									KubeletExtraArgs: []bootstrapv1.Arg{
+										{
+											Name:  "cgroup-driver",
+											Value: "cgroupfs",
+										},
+									},
 								},
 							},
 						},

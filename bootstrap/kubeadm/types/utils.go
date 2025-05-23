@@ -86,7 +86,7 @@ func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion,
 		// NOTE: All the Kubernetes version >= v1.22 and < v1.31 should use the kubeadm API version v1beta3
 		return upstreamv1beta3.GroupVersion, nil
 	default:
-		// NOTE: All the Kubernetes version greater or equal to v1.31 (not yet released at the time of writing this code)
+		// NOTE: All the Kubernetes version greater or equal to v1.31
 		// are assumed to use the kubeadm API version v1beta4 or to work with Cluster API using it.
 		// This should be reconsidered whenever kubeadm introduces a new API version.
 		return upstreamv1beta4.GroupVersion, nil

@@ -225,8 +225,9 @@ func Convert_v1beta2_User_To_v1alpha4_User(in *bootstrapv1.User, out *User, s ap
 }
 
 func Convert_v1beta2_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// NodeRegistrationOptions.ImagePullPolicy does not exit in
-	// kubeadm v1alpha4 API.
+	// NodeRegistrationOptions.ImagePullPolicy does not exit in kubeadm v1alpha4 API.
+	// Following fields require a custom conversions.
+	out.KubeletExtraArgs = utilconversion.ConvertFromArgs(in.KubeletExtraArgs)
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions(in, out, s)
 }
 
@@ -242,21 +243,40 @@ func Convert_v1beta2_FileDiscovery_To_v1alpha4_FileDiscovery(in *bootstrapv1.Fil
 
 func Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// ControlPlaneComponent.ExtraEnvs does not exist in v1alpha4 APIs.
+	// Following fields require a custom conversions.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in, out, s)
 }
 
 func Convert_v1beta2_LocalEtcd_To_v1alpha4_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
 	// LocalEtcd.ExtraEnvs does not exist in v1alpha4 APIs.
+	// Following fields require a custom conversions.
+	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_LocalEtcd_To_v1alpha4_LocalEtcd(in, out, s)
 }
 
 func Convert_v1beta2_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apimachineryconversion.Scope) error {
-	// V1Beta2 was added in v1beta1.
+	// V1Beta2 was added in v1alpha4.
 	return autoConvert_v1beta2_KubeadmConfigStatus_To_v1alpha4_KubeadmConfigStatus(in, out, s)
 }
 
 func Convert_v1alpha4_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *bootstrapv1.KubeadmConfigStatus, s apimachineryconversion.Scope) error {
 	return autoConvert_v1alpha4_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)
+}
+
+func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
+}
+
+func Convert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	out.KubeletExtraArgs = utilconversion.ConvertToArgs(in.KubeletExtraArgs)
+	return autoConvert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

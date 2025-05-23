@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -385,11 +384,11 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 		// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
 		// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
 		// Nb. This annotation is read when comparing the KubeadmConfig to check if a machine needs to be rolled out.
-		clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		clusterConfigurationAnnotation, err := internal.ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to marshal cluster configuration")
+			return nil, err
 		}
-		annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = string(clusterConfig)
+		annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfigurationAnnotation
 
 		// In case this machine is being created as a consequence of a remediation, then add an annotation
 		// tracking remediating data.
@@ -406,8 +405,20 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 		// For existing machine only set the ClusterConfiguration annotation if the machine already has it.
 		// We should not add the annotation if it was missing in the first place because we do not have enough
 		// information.
-		if clusterConfig, ok := existingMachine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation]; ok {
-			annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfig
+		if clusterConfigurationAnnotation, ok := existingMachine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation]; ok {
+			// In case the annotation is outdated, update it.
+			if internal.ClusterConfigurationAnnotationFromMachineIsOutdated(clusterConfigurationAnnotation) {
+				clusterConfiguration, err := internal.ClusterConfigurationFromMachine(existingMachine)
+				if err != nil {
+					return nil, err
+				}
+
+				clusterConfigurationAnnotation, err = internal.ClusterConfigurationToMachineAnnotationValue(clusterConfiguration)
+				if err != nil {
+					return nil, err
+				}
+			}
+			annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfigurationAnnotation
 		}
 
 		// If the machine already has remediation data then preserve it.

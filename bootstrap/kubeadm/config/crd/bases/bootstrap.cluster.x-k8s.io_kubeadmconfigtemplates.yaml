@@ -4015,11 +4015,35 @@ spec:
                                 maxItems: 100
                                 type: array
                               extraArgs:
-                                additionalProperties:
-                                  type: string
-                                description: extraArgs is an extra set of flags to
-                                  pass to the control plane component.
-                                type: object
+                                description: |-
+                                  extraArgs is a list of args to pass to the control plane component.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: extraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               extraEnvs:
                                 description: |-
                                   extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -4235,11 +4259,35 @@ spec:
                               for the controller manager control plane component
                             properties:
                               extraArgs:
-                                additionalProperties:
-                                  type: string
-                                description: extraArgs is an extra set of flags to
-                                  pass to the control plane component.
-                                type: object
+                                description: |-
+                                  extraArgs is a list of args to pass to the control plane component.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: extraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               extraEnvs:
                                 description: |-
                                   extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -4488,15 +4536,38 @@ spec:
                                     minLength: 1
                                     type: string
                                   extraArgs:
-                                    additionalProperties:
-                                      type: string
                                     description: |-
-                                      extraArgs are extra arguments provided to the etcd binary
-                                      when run inside a static pod.
-                                    type: object
+                                      extraArgs is a list of args to pass to etcd.
+                                      The arg name must match be the command line flag name except without leading dash(es).
+                                      Extra arguments will override existing default arguments set by kubeadm.
+                                    items:
+                                      description: Arg represents an argument with
+                                        a name and a value.
+                                      properties:
+                                        name:
+                                          description: name is the Name of the extraArg.
+                                          maxLength: 256
+                                          minLength: 1
+                                          type: string
+                                        value:
+                                          description: value is the Value of the extraArg.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      required:
+                                      - name
+                                      - value
+                                      type: object
+                                    maxItems: 100
+                                    minItems: 1
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                    x-kubernetes-validations:
+                                    - message: extraArgs name must be unique
+                                      rule: self.all(x, self.exists_one(y, x == y))
                                   extraEnvs:
                                     description: |-
-                                      extraEnvs is an extra set of environment variables to pass to the control plane component.
+                                      extraEnvs is an extra set of environment variables to pass to etcd.
                                       Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
                                       This option takes effect only on Kubernetes >=1.31.0.
                                     items:
@@ -4728,11 +4799,35 @@ spec:
                               scheduler control plane component
                             properties:
                               extraArgs:
-                                additionalProperties:
-                                  type: string
-                                description: extraArgs is an extra set of flags to
-                                  pass to the control plane component.
-                                type: object
+                                description: |-
+                                  extraArgs is a list of args to pass to the control plane component.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: extraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               extraEnvs:
                                 description: |-
                                   extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -5221,9 +5316,10 @@ spec:
                                 minLength: 1
                                 type: string
                               ignorePreflightErrors:
-                                description: ignorePreflightErrors provides a slice
+                                description: "ignorePreflightErrors provides a slice
                                   of pre-flight errors to be ignored when the current
-                                  node is registered.
+                                  node is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t//
+                                  Value 'all' ignores errors from all checks."
                                 items:
                                   maxLength: 512
                                   minLength: 1
@@ -5249,13 +5345,35 @@ spec:
                                   Default: true (defaulted in kubeadm)
                                 type: boolean
                               kubeletExtraArgs:
-                                additionalProperties:
-                                  type: string
                                 description: |-
-                                  kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
-                                type: object
+                                  kubeletExtraArgs is a list of args to pass to kubelet.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: kubeletExtraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               name:
                                 description: |-
                                   name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -5348,7 +5466,7 @@ spec:
                           caCertPath:
                             description: |-
                               caCertPath is the path to the SSL certificate authority used to
-                              secure comunications between node and control-plane.
+                              secure communications between node and control-plane.
                               Defaults to "/etc/kubernetes/pki/ca.crt".
                             maxLength: 512
                             minLength: 1
@@ -5630,9 +5748,10 @@ spec:
                                 minLength: 1
                                 type: string
                               ignorePreflightErrors:
-                                description: ignorePreflightErrors provides a slice
+                                description: "ignorePreflightErrors provides a slice
                                   of pre-flight errors to be ignored when the current
-                                  node is registered.
+                                  node is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t//
+                                  Value 'all' ignores errors from all checks."
                                 items:
                                   maxLength: 512
                                   minLength: 1
@@ -5658,13 +5777,35 @@ spec:
                                   Default: true (defaulted in kubeadm)
                                 type: boolean
                               kubeletExtraArgs:
-                                additionalProperties:
-                                  type: string
                                 description: |-
-                                  kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
-                                type: object
+                                  kubeletExtraArgs is a list of args to pass to kubelet.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: kubeletExtraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               name:
                                 description: |-
                                   name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.

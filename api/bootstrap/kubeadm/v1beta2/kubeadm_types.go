@@ -207,10 +207,15 @@ type ClusterConfiguration struct {
 
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
 type ControlPlaneComponent struct {
-	// extraArgs is an extra set of flags to pass to the control plane component.
-	// TODO: This is temporary and ideally we would like to switch all components to use ComponentConfig + ConfigMaps.
+	// extraArgs is a list of args to pass to the control plane component.
+	// The arg name must match be the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
@@ -322,13 +327,18 @@ type NodeRegistrationOptions struct {
 	// +kubebuilder:validation:MaxItems=100
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
-	// kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-	// kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-	// Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
+	// kubeletExtraArgs is a list of args to pass to kubelet.
+	// The arg name must match be the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="kubeletExtraArgs name must be unique"
+	KubeletExtraArgs []Arg `json:"kubeletExtraArgs,omitempty"`
 
-	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
+	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
+	//	// Value 'all' ignores errors from all checks.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
@@ -364,13 +374,13 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 	// Marshal an empty Taints slice array without omitempty so it's preserved.
 	if n.Taints != nil && len(n.Taints) == 0 {
 		return json.Marshal(struct {
-			Name                  string            `json:"name,omitempty"`
-			CRISocket             string            `json:"criSocket,omitempty"`
-			Taints                []corev1.Taint    `json:"taints"`
-			KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
-			IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
-			ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
-			ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
+			Name                  string         `json:"name,omitempty"`
+			CRISocket             string         `json:"criSocket,omitempty"`
+			Taints                []corev1.Taint `json:"taints"`
+			KubeletExtraArgs      []Arg          `json:"kubeletExtraArgs,omitempty"`
+			IgnorePreflightErrors []string       `json:"ignorePreflightErrors,omitempty"`
+			ImagePullPolicy       string         `json:"imagePullPolicy,omitempty"`
+			ImagePullSerial       *bool          `json:"imagePullSerial,omitempty"`
 		}{
 			Name:                  n.Name,
 			CRISocket:             n.CRISocket,
@@ -384,13 +394,13 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 
 	// If Taints is nil or not empty we can use omitempty.
 	return json.Marshal(struct {
-		Name                  string            `json:"name,omitempty"`
-		CRISocket             string            `json:"criSocket,omitempty"`
-		Taints                []corev1.Taint    `json:"taints,omitempty"`
-		KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
-		IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
-		ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
-		ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
+		Name                  string         `json:"name,omitempty"`
+		CRISocket             string         `json:"criSocket,omitempty"`
+		Taints                []corev1.Taint `json:"taints,omitempty"`
+		KubeletExtraArgs      []Arg          `json:"kubeletExtraArgs,omitempty"`
+		IgnorePreflightErrors []string       `json:"ignorePreflightErrors,omitempty"`
+		ImagePullPolicy       string         `json:"imagePullPolicy,omitempty"`
+		ImagePullSerial       *bool          `json:"imagePullSerial,omitempty"`
 	}{
 		Name:                  n.Name,
 		CRISocket:             n.CRISocket,
@@ -487,12 +497,17 @@ type LocalEtcd struct {
 	// +kubebuilder:validation:MaxLength=512
 	DataDir string `json:"dataDir,omitempty"`
 
-	// extraArgs are extra arguments provided to the etcd binary
-	// when run inside a static pod.
+	// extraArgs is a list of args to pass to etcd.
+	// The arg name must match be the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
-	// extraEnvs is an extra set of environment variables to pass to the control plane component.
+	// extraEnvs is an extra set of environment variables to pass to etcd.
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
@@ -559,7 +574,7 @@ type JoinConfiguration struct {
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// caCertPath is the path to the SSL certificate authority used to
-	// secure comunications between node and control-plane.
+	// secure communications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
@@ -929,6 +944,21 @@ type Patches struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Directory string `json:"directory,omitempty"`
+}
+
+// Arg represents an argument with a name and a value.
+type Arg struct {
+	// name is the Name of the extraArg.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Name string `json:"name"`
+
+	// value is the Value of the extraArg.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Value string `json:"value"`
 }
 
 // EnvVar represents an environment variable present in a Container.

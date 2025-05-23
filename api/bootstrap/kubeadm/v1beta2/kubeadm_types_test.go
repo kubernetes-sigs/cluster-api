@@ -38,10 +38,10 @@ func TestNodeRegistrationOptionsMarshalJSON(t *testing.T) {
 				Name:                  "node-1",
 				CRISocket:             "unix:///var/run/containerd/containerd.sock",
 				Taints:                nil,
-				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
 				IgnorePreflightErrors: []string{"ignore-1"},
 			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
 		},
 		{
 			name: "marshal empty taints",
@@ -49,10 +49,10 @@ func TestNodeRegistrationOptionsMarshalJSON(t *testing.T) {
 				Name:                  "node-1",
 				CRISocket:             "unix:///var/run/containerd/containerd.sock",
 				Taints:                []corev1.Taint{},
-				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
 				IgnorePreflightErrors: []string{"ignore-1"},
 			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[],"kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[],"kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
 		},
 		{
 			name: "marshal regular taints",
@@ -66,10 +66,10 @@ func TestNodeRegistrationOptionsMarshalJSON(t *testing.T) {
 						Effect: "effect",
 					},
 				},
-				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
 				IgnorePreflightErrors: []string{"ignore-1"},
 			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[{"key":"key","value":"value","effect":"effect"}],"kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[{"key":"key","value":"value","effect":"effect"}],"kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
 		},
 	}
 	for _, tt := range tests {

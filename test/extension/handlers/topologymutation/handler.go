@@ -178,18 +178,18 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 		}
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
 		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
 
 		// Set the cgroupDriver in the JoinConfiguration.
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
 			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
 		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
 	}
 
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
@@ -268,10 +268,9 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 			}
 			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
 			}
-
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
 		}
 	}
 
@@ -302,14 +301,30 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 			}
 			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
 			}
 
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
 		}
 	}
 
 	return nil
+}
+
+func appendOrReplaceArg(args []bootstrapv1.Arg, name, value string) []bootstrapv1.Arg {
+	ret := make([]bootstrapv1.Arg, len(args))
+	found := false
+	for i := range args {
+		ret[i] = args[i]
+		if args[i].Name == name {
+			ret[i].Value = value
+			found = true
+		}
+	}
+	if !found {
+		ret = append(ret, bootstrapv1.Arg{Name: name, Value: value})
+	}
+	return ret
 }
 
 // patchDockerMachineTemplate patches the DockerMachineTemplate.

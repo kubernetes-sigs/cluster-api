@@ -108,7 +108,7 @@ func validateClusterClassVariable(ctx context.Context, oldVariable, variable *cl
 	allErrs = append(allErrs, validateClusterClassVariableName(variable.Name, fldPath.Child("name"))...)
 
 	// Validate variable metadata.
-	allErrs = append(allErrs, validateClusterClassVariableMetadata(variable.Metadata, fldPath.Child("metadata"))...)
+	allErrs = append(allErrs, validateClusterClassVariableMetadata(variable.DeprecatedV1Beta1Metadata, fldPath.Child("deprecatedV1Beta1Metadata"))...)
 
 	// Validate variable XMetadata.
 	allErrs = append(allErrs, validateClusterClassXVariableMetadata(&variable.Schema.OpenAPIV3Schema, fldPath.Child("schema", "openAPIV3Schema"))...)

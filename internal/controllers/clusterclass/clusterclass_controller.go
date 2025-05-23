@@ -401,10 +401,10 @@ func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) 
 		DefinitionsConflict: false,
 		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 			{
-				From:     from,
-				Required: variable.Required,
-				Metadata: variable.Metadata,
-				Schema:   variable.Schema,
+				From:                      from,
+				Required:                  variable.Required,
+				DeprecatedV1Beta1Metadata: variable.DeprecatedV1Beta1Metadata,
+				Schema:                    variable.Schema,
 			},
 		}}
 }
@@ -412,10 +412,10 @@ func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) 
 func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariable, from string, existingVariable *clusterv1.ClusterClassStatusVariable) *clusterv1.ClusterClassStatusVariable {
 	combinedVariable := existingVariable.DeepCopy()
 	newVariableDefinition := clusterv1.ClusterClassStatusVariableDefinition{
-		From:     from,
-		Required: variable.Required,
-		Metadata: variable.Metadata,
-		Schema:   variable.Schema,
+		From:                      from,
+		Required:                  variable.Required,
+		DeprecatedV1Beta1Metadata: variable.DeprecatedV1Beta1Metadata,
+		Schema:                    variable.Schema,
 	}
 	combinedVariable.Definitions = append(existingVariable.Definitions, newVariableDefinition)
 
@@ -423,7 +423,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 	// If definitions already conflict, no need to check.
 	if !combinedVariable.DefinitionsConflict {
 		currentDefinition := combinedVariable.Definitions[0]
-		if currentDefinition.Required != newVariableDefinition.Required || !reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) || !reflect.DeepEqual(currentDefinition.Metadata, newVariableDefinition.Metadata) {
+		if currentDefinition.Required != newVariableDefinition.Required || !reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) || !reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
 			combinedVariable.DefinitionsConflict = true
 		}
 	}

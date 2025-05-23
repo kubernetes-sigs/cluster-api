@@ -707,9 +707,9 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(re
 							Format:      "",
 						},
 					},
-					"metadata": {
+					"deprecatedV1Beta1Metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion.",
+							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata"),
 						},
@@ -782,9 +782,9 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassVariable(ref common.Referen
 							Format:      "",
 						},
 					},
-					"metadata": {
+					"deprecatedV1Beta1Metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.",
+							Description: "deprecatedV1Beta1Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata"),
 						},

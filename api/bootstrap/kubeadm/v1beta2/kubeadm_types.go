@@ -352,7 +352,7 @@ type NodeRegistrationOptions struct {
 	// with Kubernetes version equal to 1.22 and later.
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +optional
-	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// imagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
 	// This option takes effect only on Kubernetes >=1.31.0.
@@ -374,13 +374,13 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 	// Marshal an empty Taints slice array without omitempty so it's preserved.
 	if n.Taints != nil && len(n.Taints) == 0 {
 		return json.Marshal(struct {
-			Name                  string         `json:"name,omitempty"`
-			CRISocket             string         `json:"criSocket,omitempty"`
-			Taints                []corev1.Taint `json:"taints"`
-			KubeletExtraArgs      []Arg          `json:"kubeletExtraArgs,omitempty"`
-			IgnorePreflightErrors []string       `json:"ignorePreflightErrors,omitempty"`
-			ImagePullPolicy       string         `json:"imagePullPolicy,omitempty"`
-			ImagePullSerial       *bool          `json:"imagePullSerial,omitempty"`
+			Name                  string            `json:"name,omitempty"`
+			CRISocket             string            `json:"criSocket,omitempty"`
+			Taints                []corev1.Taint    `json:"taints"`
+			KubeletExtraArgs      []Arg             `json:"kubeletExtraArgs,omitempty"`
+			IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
+			ImagePullPolicy       corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+			ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 		}{
 			Name:                  n.Name,
 			CRISocket:             n.CRISocket,
@@ -394,13 +394,13 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 
 	// If Taints is nil or not empty we can use omitempty.
 	return json.Marshal(struct {
-		Name                  string         `json:"name,omitempty"`
-		CRISocket             string         `json:"criSocket,omitempty"`
-		Taints                []corev1.Taint `json:"taints,omitempty"`
-		KubeletExtraArgs      []Arg          `json:"kubeletExtraArgs,omitempty"`
-		IgnorePreflightErrors []string       `json:"ignorePreflightErrors,omitempty"`
-		ImagePullPolicy       string         `json:"imagePullPolicy,omitempty"`
-		ImagePullSerial       *bool          `json:"imagePullSerial,omitempty"`
+		Name                  string            `json:"name,omitempty"`
+		CRISocket             string            `json:"criSocket,omitempty"`
+		Taints                []corev1.Taint    `json:"taints,omitempty"`
+		KubeletExtraArgs      []Arg             `json:"kubeletExtraArgs,omitempty"`
+		IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
+		ImagePullPolicy       corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+		ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 	}{
 		Name:                  n.Name,
 		CRISocket:             n.CRISocket,

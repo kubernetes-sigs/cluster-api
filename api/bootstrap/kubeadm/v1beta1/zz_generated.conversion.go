@@ -1787,7 +1787,7 @@ func autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOpti
 	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
-	out.ImagePullPolicy = in.ImagePullPolicy
+	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
 	out.ImagePullSerial = (*bool)(unsafe.Pointer(in.ImagePullSerial))
 	return nil
 }
@@ -1798,7 +1798,7 @@ func autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOpti
 	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
-	out.ImagePullPolicy = in.ImagePullPolicy
+	out.ImagePullPolicy = string(in.ImagePullPolicy)
 	out.ImagePullSerial = (*bool)(unsafe.Pointer(in.ImagePullSerial))
 	return nil
 }

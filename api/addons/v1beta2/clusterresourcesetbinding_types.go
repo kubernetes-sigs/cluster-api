@@ -200,11 +200,10 @@ type ClusterResourceSetBindingSpec struct {
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 
 	// clusterName is the name of the Cluster this binding applies to.
-	// Note: this field mandatory in v1beta2.
-	// +optional
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	ClusterName string `json:"clusterName,omitempty"`
+	ClusterName string `json:"clusterName"`
 }
 
 // ANCHOR_END: ClusterResourceSetBindingSpec

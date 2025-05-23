@@ -30,7 +30,6 @@ var alphaCmd = &cobra.Command{
 func init() {
 	// Alpha commands should be added here.
 	alphaCmd.AddCommand(rolloutCmd)
-	alphaCmd.AddCommand(topologyCmd)
 
 	RootCmd.AddCommand(alphaCmd)
 }

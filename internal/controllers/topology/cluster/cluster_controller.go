@@ -30,16 +30,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -49,13 +46,11 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
@@ -94,7 +89,7 @@ type Reconciler struct {
 	// desiredStateGenerator is used to generate the desired state.
 	desiredStateGenerator desiredstate.Generator
 
-	patchHelperFactory structuredmerge.PatchHelperFactoryFunc
+	ssaCache ssa.Cache
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -159,9 +154,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
-	if r.patchHelperFactory == nil {
-		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache("topology/cluster"))
-	}
+	r.ssaCache = ssa.NewCache("topology/cluster")
 	return nil
 }
 
@@ -254,19 +247,6 @@ func machineDeploymentChangeIsRelevant(scheme *runtime.Scheme, logger logr.Logge
 		DeleteFunc:  func(event.DeleteEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
-}
-
-// SetupForDryRun prepares the Reconciler for a dry run execution.
-func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
-	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
-	r.recorder = recorder
-	r.externalTracker = external.ObjectTracker{
-		Controller:      externalfake.Controller{},
-		Cache:           &informertest.FakeInformers{},
-		Scheme:          r.Client.Scheme(),
-		PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
-	}
-	r.patchHelperFactory = dryRunPatchHelperFactory(r.Client)
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -564,18 +544,4 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-// serverSideApplyPatchHelperFactory makes use of managed fields provided by server side apply and is used by the controller.
-func serverSideApplyPatchHelperFactory(c client.Client, ssaCache ssa.Cache) structuredmerge.PatchHelperFactoryFunc {
-	return func(ctx context.Context, original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
-		return structuredmerge.NewServerSidePatchHelper(ctx, original, modified, c, ssaCache, opts...)
-	}
-}
-
-// dryRunPatchHelperFactory makes use of a two-ways patch and is used in situations where we cannot rely on managed fields.
-func dryRunPatchHelperFactory(c client.Client) structuredmerge.PatchHelperFactoryFunc {
-	return func(_ context.Context, original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
-		return structuredmerge.NewTwoWaysPatchHelper(original, modified, c, opts...)
-	}
 }

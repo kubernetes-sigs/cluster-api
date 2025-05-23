@@ -128,16 +128,6 @@ For a full example ClusterClass for CAPD you can take a look at
 
 </aside>
 
-<aside class="note">
-
-<h1>Tip: clusterctl alpha topology plan</h1>
-
-The `clusterctl alpha topology plan` command can be used to test ClusterClasses; the output will show
-you how the resulting Cluster will look like, but without actually creating it.
-For more details please see: [clusterctl alpha topology plan].
-
-</aside>
-
 ## ClusterClass with MachinePools
 
 ClusterClass also supports MachinePool workers. They work very similar to MachineDeployments. MachinePools
@@ -1065,5 +1055,4 @@ spec:
 
 <!-- links -->
 [Changing a ClusterClass]: ./change-clusterclass.md
-[clusterctl alpha topology plan]: ../../../clusterctl/commands/alpha-topology-plan.md
 [RFC6902]: https://datatracker.ietf.org/doc/html/rfc6902#appendix-A.12

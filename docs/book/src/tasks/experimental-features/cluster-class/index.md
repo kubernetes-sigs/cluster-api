@@ -23,9 +23,7 @@ Additional documentation:
     * Creating a Cluster: [Quick Start guide]
         Please note that the experience for creating a Cluster using ClusterClass is very similar to the one for creating a standalone Cluster. Infrastructure providers supporting ClusterClass provide Cluster templates leveraging this feature (e.g the Docker infrastructure provider has a development-topology template).
     * [Operating a managed Cluster](./operate-cluster.md)
-    * Planning topology rollouts: [clusterctl alpha topology plan]
 
 <!-- links -->
 [Quick Start guide]: ../../../user/quick-start.md
 [clusterctl Provider contract]: ../../../developer/providers/contracts/clusterctl.md
-[clusterctl alpha topology plan]: ../../../clusterctl/commands/alpha-topology-plan.md

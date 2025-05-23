@@ -119,14 +119,7 @@ defined in the ClusterClass proposal.
 
 ## Planning ClusterClass changes
 
-It is highly recommended to always generate a plan for ClusterClass changes before applying them,
-no matter if you are creating a new ClusterClass and rebasing Clusters or if you are changing
-your ClusterClass in place.
-
-The clusterctl tool provides a new alpha command for this operation, [clusterctl alpha topology plan](../../../clusterctl/commands/alpha-topology-plan.md).
-
-The output of this command will provide you all the details about how those changes would impact
-Clusters, but the following notes can help you to understand what you should
+Some general notes that can help you to understand what you should
 expect when planning your ClusterClass changes:
 
 - Users should expect the resources in a Cluster (e.g. MachineDeployments) to behave consistently
@@ -137,7 +130,7 @@ expect when planning your ClusterClass changes:
 
 - User should expect the Cluster topology to change consistently irrespective of how the change has been
   implemented inside the ClusterClass or applied to the ClusterClass. In other words,
-  if you change a template field "in place", or if you  rotate the template referenced in the
+  if you change a template field "in place", or if you rotate the template referenced in the
   ClusterClass by pointing to a new template with the same field changed, or if you change the
   same field via a patch, the effects on the Cluster are the same.
 

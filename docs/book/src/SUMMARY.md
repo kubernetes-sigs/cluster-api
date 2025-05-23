@@ -60,7 +60,6 @@
         - [delete](clusterctl/commands/delete.md)
         - [completion](clusterctl/commands/completion.md)
         - [alpha rollout](clusterctl/commands/alpha-rollout.md)
-        - [alpha topology plan](clusterctl/commands/alpha-topology-plan.md)
         - [additional commands](clusterctl/commands/additional-commands.md)
     - [clusterctl Configuration](clusterctl/configuration.md)
     - [clusterctl for Developers](clusterctl/developers.md)

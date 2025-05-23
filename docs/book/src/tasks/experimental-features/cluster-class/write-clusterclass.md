@@ -985,7 +985,7 @@ A workaround in this particular case is to create the array in the patch instead
 When creating the slice, existing values would be overwritten so this should only be used when it does not exist.
 
 The following example shows both cases to consider while writing a patch for adding a value to a slice.
-This patch targets to add a file to the `files` slice of a `KubeadmConfigTemplate` which has [omitempty](https://github.com/kubernetes-sigs/cluster-api/blob/main/bootstrap/kubeadm/api/v1beta2/kubeadmconfig_types.go#L54) set.
+This patch targets to add a file to the `files` slice of a `KubeadmConfigTemplate` which has [omitempty](https://github.com/kubernetes-sigs/cluster-api/blob/main/api/bootstrap/kubeadm/v1beta2/kubeadmconfig_types.go#L54) set.
 
 {{#tabs name:"tab-configuration-patches" tabs:"Add to existing slice,Create slice"}}
 {{#tab Add to existing slice}}

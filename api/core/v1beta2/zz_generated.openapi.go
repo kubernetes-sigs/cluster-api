@@ -132,6 +132,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachinePoolClass":        schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy":                       schema_cluster_api_api_core_v1beta2_RemediationStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                  schema_cluster_api_api_core_v1beta2_Topology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                 schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                    schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule":                            schema_cluster_api_api_core_v1beta2_ValidationRule(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchema":                            schema_cluster_api_api_core_v1beta2_VariableSchema(ref),
@@ -3346,6 +3347,20 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckSpec(ref common.Refer
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.",
@@ -3376,7 +3391,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckSpec(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -5321,6 +5336,44 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassRef", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UnhealthyMachineCondition represents a Node condition type and value with a timeout specified as a duration.  When the named condition has been in the given status for at least the timeout value, a node is considered unhealthy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of Node condition",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the condition, one of True, False, Unknown.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"timeout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "timeout is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+				},
+				Required: []string{"type", "status", "timeout"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 

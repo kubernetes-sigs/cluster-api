@@ -89,17 +89,17 @@ func TestNewClusterClient(t *testing.T) {
 		gs := NewWithT(t)
 
 		client := fake.NewClientBuilder().WithObjects(validSecret).Build()
-		c, err := NewClusterClient(ctx, "test-source", client, clusterWithValidKubeConfig)
+		c, err := NewClusterClient(t.Context(), "test-source", client, clusterWithValidKubeConfig)
 		gs.Expect(err).ToNot(HaveOccurred())
 
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
 		// Note: The error occurs here and not in `NewClusterClient` as with the lazy
 		// restmapper only the List call actually communicates with the server.
-		err = c.List(ctx, &corev1.NodeList{})
+		err = c.List(t.Context(), &corev1.NodeList{})
 		gs.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
-		restConfig, err := RESTConfig(ctx, "test-source", client, clusterWithValidKubeConfig)
+		restConfig, err := RESTConfig(t.Context(), "test-source", client, clusterWithValidKubeConfig)
 		gs.Expect(err).ToNot(HaveOccurred())
 		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api.nodomain.example.com:6443"))
 		gs.Expect(restConfig.UserAgent).To(MatchRegexp("remote.test/unknown test-source (.*) cluster.x-k8s.io/unknown"))
@@ -110,7 +110,7 @@ func TestNewClusterClient(t *testing.T) {
 		gs := NewWithT(t)
 
 		client := fake.NewClientBuilder().Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithNoKubeConfig)
+		_, err := NewClusterClient(t.Context(), "test-source", client, clusterWithNoKubeConfig)
 		gs.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
 
@@ -118,7 +118,7 @@ func TestNewClusterClient(t *testing.T) {
 		gs := NewWithT(t)
 
 		client := fake.NewClientBuilder().WithObjects(invalidSecret).Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithInvalidKubeConfig)
+		_, err := NewClusterClient(t.Context(), "test-source", client, clusterWithInvalidKubeConfig)
 		gs.Expect(err).To(HaveOccurred())
 		gs.Expect(apierrors.IsNotFound(err)).To(BeFalse())
 	})

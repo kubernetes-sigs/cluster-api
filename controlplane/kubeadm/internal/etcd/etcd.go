@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -172,6 +173,11 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		return nil, kerrors.NewAggregate([]error{err, closeErr})
 	}
 	return client, nil
+}
+
+// SetLogger allows to redefine ETCD client logger.
+func SetLogger(logger *zap.Logger) {
+	etcdClientLogger = logger
 }
 
 func newEtcdClient(ctx context.Context, etcdClient etcd, callTimeout time.Duration) (*Client, error) {

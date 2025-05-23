@@ -22,7 +22,7 @@ package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/api/v1beta2"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 

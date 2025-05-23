@@ -26,8 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -75,7 +74,7 @@ func TestMDUpgrading(t *testing.T) {
 func TestMPUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	ctx := context.Background()
@@ -84,7 +83,7 @@ func TestMPUpgrading(t *testing.T) {
 		stableMP := builder.MachinePool("ns", "stableMP").
 			WithClusterName("cluster1").
 			WithVersion("v1.2.3").
-			WithStatus(expv1.MachinePoolStatus{
+			WithStatus(clusterv1.MachinePoolStatus{
 				NodeRefs: []corev1.ObjectReference{
 					{
 						Name: "stableMP-node1",
@@ -103,7 +102,7 @@ func TestMPUpgrading(t *testing.T) {
 		upgradingMP := builder.MachinePool("ns", "upgradingMP").
 			WithClusterName("cluster2").
 			WithVersion("v1.2.3").
-			WithStatus(expv1.MachinePoolStatus{
+			WithStatus(clusterv1.MachinePoolStatus{
 				NodeRefs: []corev1.ObjectReference{
 					{
 						Name: "upgradingMP-node1",

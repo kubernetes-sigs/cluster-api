@@ -25,8 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // ClusterBuilder holds the variables and objects required to build a clusterv1.Cluster.
@@ -1594,7 +1593,7 @@ type MachinePoolBuilder struct {
 	replicas        *int32
 	labels          map[string]string
 	annotations     map[string]string
-	status          *expv1.MachinePoolStatus
+	status          *clusterv1.MachinePoolStatus
 	minReadySeconds *int32
 }
 
@@ -1649,7 +1648,7 @@ func (m *MachinePoolBuilder) WithReplicas(replicas int32) *MachinePoolBuilder {
 }
 
 // WithStatus sets the passed status object as the status of the MachinePool object.
-func (m *MachinePoolBuilder) WithStatus(status expv1.MachinePoolStatus) *MachinePoolBuilder {
+func (m *MachinePoolBuilder) WithStatus(status clusterv1.MachinePoolStatus) *MachinePoolBuilder {
 	m.status = &status
 	return m
 }
@@ -1661,11 +1660,11 @@ func (m *MachinePoolBuilder) WithMinReadySeconds(minReadySeconds int32) *Machine
 }
 
 // Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
-func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
-	obj := &expv1.MachinePool{
+func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
+	obj := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
-			APIVersion: expv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        m.name,
@@ -1673,7 +1672,7 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			Labels:      m.labels,
 			Annotations: m.annotations,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: m.clusterName,
 			Replicas:    m.replicas,
 			Template: clusterv1.MachineTemplateSpec{

@@ -30,9 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -704,7 +703,7 @@ func (b *machineBuilder) build() clusterv1.Machine {
 }
 
 type machinePoolBuilder struct {
-	mp expv1.MachinePool
+	mp clusterv1.MachinePool
 }
 
 func newMachinePoolBuilder() *machinePoolBuilder {
@@ -725,7 +724,7 @@ func (b *machinePoolBuilder) ownedBy(c *clusterv1.Cluster) *machinePoolBuilder {
 	return b
 }
 
-func (b *machinePoolBuilder) build() expv1.MachinePool {
+func (b *machinePoolBuilder) build() clusterv1.MachinePool {
 	return b.mp
 }
 
@@ -795,8 +794,8 @@ func TestFilterOwnedDescendants(t *testing.T) {
 				m5OwnedByCluster,
 			},
 		}),
-		machinePools: expv1.MachinePoolList{
-			Items: []expv1.MachinePool{
+		machinePools: clusterv1.MachinePoolList{
+			Items: []clusterv1.MachinePool{
 				mp1NotOwnedByCluster,
 				mp2OwnedByCluster,
 				mp3NotOwnedByCluster,
@@ -883,8 +882,8 @@ func TestObjectsPendingDelete(t *testing.T) {
 				newMachineBuilder().named("w7").build(),
 			},
 		}),
-		machinePools: expv1.MachinePoolList{
-			Items: []expv1.MachinePool{
+		machinePools: clusterv1.MachinePoolList{
+			Items: []clusterv1.MachinePool{
 				newMachinePoolBuilder().named("mp2").build(),
 				newMachinePoolBuilder().named("mp1").build(),
 			},

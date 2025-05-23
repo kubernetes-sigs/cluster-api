@@ -36,11 +36,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -62,7 +61,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(fakeScheme)
 	_ = clusterv1.AddToScheme(fakeScheme)
 	_ = apiextensionsv1.AddToScheme(fakeScheme)
-	_ = expv1.AddToScheme(fakeScheme)
 	_ = corev1.AddToScheme(fakeScheme)
 }
 
@@ -2095,11 +2093,11 @@ func TestComputeMachinePool(t *testing.T) {
 		s.Blueprint = blueprint
 
 		currentReplicas := int32(3)
-		currentMp := &expv1.MachinePool{
+		currentMp := &clusterv1.MachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "existing-pool-1",
 			},
-			Spec: expv1.MachinePoolSpec{
+			Spec: clusterv1.MachinePoolSpec{
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
@@ -2254,11 +2252,11 @@ func TestComputeMachinePool(t *testing.T) {
 					mp := builder.MachinePool("test-namespace", "big-pool-of-machines").
 						WithReplicas(2).
 						WithVersion(*tt.currentMPVersion).
-						WithStatus(expv1.MachinePoolStatus{
+						WithStatus(clusterv1.MachinePoolStatus{
 							ObservedGeneration: 2,
 							Replicas:           ptr.To(int32(2)),
-							Deprecated: &expv1.MachinePoolDeprecatedStatus{
-								V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+							Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+								V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 									ReadyReplicas:     2,
 									AvailableReplicas: 2,
 								},

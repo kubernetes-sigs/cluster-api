@@ -59,16 +59,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
@@ -119,7 +118,6 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(bootstrapv1.AddToScheme(s))
 	utilruntime.Must(clusterv1.AddToScheme(s))
 	utilruntime.Must(controlplanev1.AddToScheme(s))
-	utilruntime.Must(expv1.AddToScheme(s))
 	utilruntime.Must(ipamv1.AddToScheme(s))
 	utilruntime.Must(runtimev1.AddToScheme(s))
 }

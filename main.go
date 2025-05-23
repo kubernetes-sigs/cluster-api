@@ -55,32 +55,28 @@ import (
 
 	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	"sigs.k8s.io/cluster-api/api/v1beta2/index"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
+	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expv1beta1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
-	ipamv1alpha1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
-	ipamv1beta1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta2"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
-	runtimev1alpha1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	expwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/addons/v1alpha4"
-	expv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3"
-	expv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha4"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
@@ -153,11 +149,6 @@ func init() {
 	_ = addonsv1alpha4.AddToScheme(scheme)
 	_ = addonsv1beta1.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
-
-	_ = expv1alpha3.AddToScheme(scheme)
-	_ = expv1alpha4.AddToScheme(scheme)
-	_ = expv1beta1.AddToScheme(scheme)
-	_ = expv1.AddToScheme(scheme)
 
 	_ = runtimev1alpha1.AddToScheme(scheme)
 	_ = runtimev1.AddToScheme(scheme)
@@ -521,7 +512,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		crdMigratorConfig[&expv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+		crdMigratorConfig[&clusterv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 	}
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {

@@ -19,6 +19,6 @@ limitations under the License.
 // IMPORTANT: Do not change these files!
 // IMPORTANT: only for KubeadmConfig serialization/deserialization, and should not be used for other purposes.
 //
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
 // +k8s:deepcopy-gen=package
 package upstreamv1beta2 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"

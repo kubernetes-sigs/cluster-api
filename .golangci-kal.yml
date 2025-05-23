@@ -60,53 +60,53 @@ linters:
     - path-except: "api//*"
       linters:
         - kubeapilinter
-    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+    - path: "api/addons/v1beta2/*|api/bootstrap/kubeadm/v1beta2/*|api/controlplane/kubeadm/v1beta2/*|api/core/v1beta2/*|api/ipam/v1beta2/*|api/runtime/v1beta2/*|api/addons/v1beta1/*|api/bootstrap/kubeadm/v1beta1/*|api/controlplane/kubeadm/v1beta1/*|api/core/v1beta1/*|api/ipam/v1beta1/*|api/ipam/v1alpha1/*|api/runtime/v1alpha1/*"
       text: "Conditions field must be a slice of metav1.Condition"
       linters:
         - kubeapilinter
-    - path: "api/v1beta1/*"
+    - path: "api/core/v1beta1/*"
       text: "type ClusterIPFamily should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
       linters:
         - kubeapilinter
-    - path: "exp/ipam/api/v1beta2/*|exp/ipam/api/v1alpha1/*|exp/ipam/api/v1beta1/*"
+    - path: "api/ipam/v1beta2/*|api/ipam/v1alpha1/*|api/ipam/v1beta1/*"
       text: "field Prefix should not use an int, int8 or int16. Use int32 or int64 depending on bounding requirements"
       linters:
         - kubeapilinter
     # clusterctl and Runtime Hooks can be fixed once we bump their apiVersion.
-    - path: "cmd/clusterctl/api/v1alpha3|exp/runtime/hooks/api/v1alpha1"
+    - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1"
       text: "maxlength"
       linters:
         - kubeapilinter
     # controller-gen does not allow to add MaxItems to Schemaless fields
-    - path: "api/v1beta2/*|api/v1beta1/*"
+    - path: "api/core/v1beta2/*|api/core/v1beta1/*"
       text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
       linters:
         - kubeapilinter
     # It does not make sense to add a maxItems marker on the *List structs as they are not used to generate CRD YAMLs.
     # This exclude will  be removed once https://github.com/JoelSpeed/kubeapilinter/issues/38 is resolved.
-    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
+    - path: "api/core/v1beta2/*|api/addons/v1beta2/*|api/core/v1beta1/*|api/v1alpha1/*|api/addons/v1beta1/*"
       text: "maxlength: field Items must have a maximum items, add kubebuilder:validation:MaxItems marker"
       linters:
         - kubeapilinter
-    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/addons/v1beta1/*"
+    - path: "api/bootstrap/kubeadm/v1beta2/*|api/controlplane/kubeadm/v1beta2/*|api/core/v1beta2/*|api/addons/v1beta2/*|api/bootstrap/kubeadm/v1beta1/*|api/controlplane/kubeadm/v1beta1/*|api/v1alpha1/*|api/core/v1beta1/*|api/addons/v1beta1/*"
       text: "nobools"
       linters:
         - kubeapilinter
     # We follow the current CustomResourceDefinition field's json tag pattern.
-    - path: "api/v1beta2/*|api/v1beta1/*"
+    - path: "api/core/v1beta2/*|api/core/v1beta1/*"
       text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"
       linters:
         - kubeapilinter
     # The following rules are disabled until we migrate to the new API.
-    - path: "bootstrap/kubeadm/api/v1beta2/kubeadm_types.go|bootstrap/kubeadm/api/v1beta1/kubeadm_types.go"
+    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go|api/bootstrap/kubeadm/v1beta1/kubeadm_types.go"
       text: "field Token is marked as required, should not be a pointer"
       linters:
         - kubeapilinter
-    - path: "api/v1beta2/clusterclass_types.go|api/v1beta1/clusterclass_types.go"
+    - path: "api/core/v1beta2/clusterclass_types.go|api/core/v1beta1/clusterclass_types.go"
       text: "field Ref is marked as required, should not be a pointer"
       linters:
         - kubeapilinter
-    - path: "api/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*"
+    - path: "api/core/v1beta2/*|api/addons/v1beta2/*|api/v1alpha1/*|api/core/v1beta1/*|api/v1alpha3/*|api/addons/v1beta1/*|api/runtime/v1beta2/*|api/runtime/v1alpha1/*|api/runtime/hooks/v1alpha1/*"
       text: "field Items must be marked as optional or required"
       linters:
         - kubeapilinter

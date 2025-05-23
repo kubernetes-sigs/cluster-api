@@ -26,8 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
@@ -50,13 +49,13 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 				clusterv1.MachinePoolNameLabel: "test-pool",
 			},
 			machinePools: []client.Object{
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pool",
 						Namespace: "default",
 					},
 				},
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "other-pool",
 						Namespace: "default",
@@ -72,7 +71,7 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 				clusterv1.ClusterNameLabel:     "test-cluster",
 			},
 			machinePools: []client.Object{
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pool",
 						Namespace: "default",
@@ -81,7 +80,7 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 						},
 					},
 				},
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "other-pool",
 						Namespace: "default",
@@ -99,13 +98,13 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 				clusterv1.MachinePoolNameLabel: format.MustFormatValue(longMachinePoolName),
 			},
 			machinePools: []client.Object{
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      longMachinePoolName,
 						Namespace: "default",
 					},
 				},
-				&expv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "other-pool",
 						Namespace: "default",

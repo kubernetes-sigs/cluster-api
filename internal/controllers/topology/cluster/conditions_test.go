@@ -30,9 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -44,7 +43,6 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 
 	deletionTime := metav1.Unix(0, 0)
 	tests := []struct {
@@ -323,10 +321,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 						"mp0": &scope.MachinePoolState{
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(1)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
 											AvailableReplicas:   int32(1),
 											UnavailableReplicas: int32(0),
@@ -422,10 +420,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 						"mp0": &scope.MachinePoolState{
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
 											AvailableReplicas:   int32(2),
 											UnavailableReplicas: int32(0),
@@ -620,11 +618,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									// mp is not ready because we don't have 2 updated, ready and available replicas.
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
 											AvailableReplicas:   int32(1),
 											UnavailableReplicas: int32(0),
@@ -637,10 +635,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.21.2").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
 											AvailableReplicas:   int32(2),
 											UnavailableReplicas: int32(0),
@@ -760,10 +758,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
 											AvailableReplicas:   int32(2),
 											UnavailableReplicas: int32(0),
@@ -776,10 +774,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.21.2").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
 											AvailableReplicas:   int32(2),
 											UnavailableReplicas: int32(0),
@@ -854,10 +852,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(1)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(1),
 											AvailableReplicas:   int32(1),
 											UnavailableReplicas: int32(0),
@@ -870,10 +868,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas: ptr.To(int32(2)),
-									Deprecated: &expv1.MachinePoolDeprecatedStatus{
-										V1Beta1: &expv1.MachinePoolV1Beta1DeprecatedStatus{
+									Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+										V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 											ReadyReplicas:       int32(2),
 											AvailableReplicas:   int32(2),
 											UnavailableReplicas: int32(0),

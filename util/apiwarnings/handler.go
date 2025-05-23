@@ -22,7 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/rest"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // DiscardMatchingHandler is a handler that discards API server warnings

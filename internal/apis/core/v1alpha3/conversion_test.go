@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -65,6 +65,12 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:         &clusterv1.MachineHealthCheck{},
 		Spoke:       &MachineHealthCheck{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineHealthCheckFuzzFunc},
+	}))
+
+	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &clusterv1.MachinePool{},
+		Spoke:       &MachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
 	}))
 }
 
@@ -242,4 +248,45 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c fuzz.
 			in.Deprecated = nil
 		}
 	}
+}
+
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeBootstrap,
+		spokeObjectMeta,
+		spokeMachinePoolSpec,
+		hubMachinePoolStatus,
+	}
+}
+
+func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+	// Always create struct with at least one mandatory fields.
+	if in.Deprecated == nil {
+		in.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
+	}
+	if in.Deprecated.V1Beta1 == nil {
+		in.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
+	}
+
+	// Drop empty structs with only omit empty fields.
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &clusterv1.MachinePoolInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
+
+	// nil becomes &0 after hub => spoke => hub conversion
+	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
+	if in.Replicas == nil {
+		in.Replicas = ptr.To(int32(0))
+	}
+}
+
+func spokeMachinePoolSpec(in *MachinePoolSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// These fields have been removed in v1beta1
+	// data is going to be lost, so we're forcing zero values here.
+	in.Strategy = nil
 }

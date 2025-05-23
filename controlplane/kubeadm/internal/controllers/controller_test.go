@@ -47,14 +47,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -3596,7 +3595,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
 		for i := range 10 {
-			initObjs = append(initObjs, &expv1.MachinePool{
+			initObjs = append(initObjs, &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("mp-%d", i),
 					Namespace: cluster.Namespace,
@@ -3709,8 +3708,8 @@ func TestObjectsPendingDelete(t *testing.T) {
 			*machine("w8", withLabels(workerMachineLabels)),
 		},
 	})
-	machinePools := &expv1.MachinePoolList{
-		Items: []expv1.MachinePool{
+	machinePools := &clusterv1.MachinePoolList{
+		Items: []clusterv1.MachinePool{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mp1",

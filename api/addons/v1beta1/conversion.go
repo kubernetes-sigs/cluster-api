@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {

@@ -18,7 +18,7 @@ limitations under the License.
 //
 // The implementation of the handlers is specifically designed for Cluster API E2E tests use cases.
 // When implementing custom RuntimeExtension, it is only required to expose HandlerFunc with the
-// signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+// signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 package lifecycle
 
 import (
@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
 
 const (
@@ -47,7 +47,7 @@ const (
 // because in Cluster API's E2E tests all of them are using a controller runtime client and the same set of func
 // to work with the config map where preloaded answers for lifecycle hooks are stored.
 // NOTE: it is not mandatory to use a ExtensionHandlers in custom RuntimeExtension, what is important
-// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 type ExtensionHandlers struct {
 	client client.Client
 }

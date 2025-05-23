@@ -29,9 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
@@ -148,7 +147,7 @@ func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, get
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		allowedGKs = append(allowedGKs, schema.GroupKind{
-			Group: expv1.GroupVersion.Group,
+			Group: clusterv1.GroupVersion.Group,
 			Kind:  "MachinePool",
 		})
 	}

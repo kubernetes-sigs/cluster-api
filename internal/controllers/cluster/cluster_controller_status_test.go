@@ -26,8 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -240,7 +239,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 	tests := []struct {
 		name                    string
 		cluster                 *clusterv1.Cluster
-		machinePools            expv1.MachinePoolList
+		machinePools            clusterv1.MachinePoolList
 		machineDeployments      clusterv1.MachineDeploymentList
 		machineSets             clusterv1.MachineSetList
 		workerMachines          collections.Machines
@@ -264,7 +263,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 		{
 			name:    "counter should be nil if descendants are not reporting counters",
 			cluster: fakeCluster("c", controlPlaneRef{}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -283,7 +282,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 		{
 			name:    "should count workers from different objects",
 			cluster: fakeCluster("c", controlPlaneRef{}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), readyReplicas(3), availableReplicas(4), upToDateReplicas(5)),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -795,7 +794,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 	tests := []struct {
 		name                    string
 		cluster                 *clusterv1.Cluster
-		machinePools            expv1.MachinePoolList
+		machinePools            clusterv1.MachinePoolList
 		machineDeployments      clusterv1.MachineDeploymentList
 		getDescendantsSucceeded bool
 		expectCondition         metav1.Condition
@@ -824,7 +823,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 		{
 			name:    "descendants do not report available",
 			cluster: fakeCluster("c", controlPlaneRef{}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -842,7 +841,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 		{
 			name:    "descendants report available",
 			cluster: fakeCluster("c", controlPlaneRef{}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.MachineDeploymentAvailableCondition,
 					Status:  metav1.ConditionFalse,
@@ -1440,7 +1439,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		cluster                 *clusterv1.Cluster
 		controlPlane            *unstructured.Unstructured
 		controlPlaneIsNotFound  bool
-		machinePools            expv1.MachinePoolList
+		machinePools            clusterv1.MachinePoolList
 		machineDeployments      clusterv1.MachineDeploymentList
 		getDescendantsSucceeded bool
 		expectCondition         metav1.Condition
@@ -1486,7 +1485,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane & descendants do not report rolling out",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -1510,7 +1509,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 				Reason:  clusterv1.RollingOutReason,
 				Message: "Rolling out 3 not up-to-date replicas",
 			}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
@@ -1540,7 +1539,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report rolling out",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
@@ -1590,7 +1589,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		{
 			name:    "cluster without controlplane, descendants report rolling out",
 			cluster: fakeCluster("c"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.RollingOutCondition,
 					Status:  metav1.ConditionTrue,
@@ -1635,7 +1634,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		cluster                 *clusterv1.Cluster
 		controlPlane            *unstructured.Unstructured
 		controlPlaneIsNotFound  bool
-		machinePools            expv1.MachinePoolList
+		machinePools            clusterv1.MachinePoolList
 		machineDeployments      clusterv1.MachineDeploymentList
 		machineSets             clusterv1.MachineSetList
 		getDescendantsSucceeded bool
@@ -1682,7 +1681,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane & descendants do not report scaling up",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -1716,7 +1715,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 				Reason:  clusterv1.ScalingUpReason,
 				Message: "Scaling up from 0 to 3 replicas",
 			}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
@@ -1761,7 +1760,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report scaling up",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
@@ -1826,7 +1825,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		{
 			name:    "cluster without controlplane, descendants report scaling up",
 			cluster: fakeCluster("c"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ScalingUpCondition,
 					Status:  metav1.ConditionTrue,
@@ -1886,7 +1885,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		cluster                 *clusterv1.Cluster
 		controlPlane            *unstructured.Unstructured
 		controlPlaneIsNotFound  bool
-		machinePools            expv1.MachinePoolList
+		machinePools            clusterv1.MachinePoolList
 		machineDeployments      clusterv1.MachineDeploymentList
 		machineSets             clusterv1.MachineSetList
 		getDescendantsSucceeded bool
@@ -1933,7 +1932,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane & descendants do not report scaling down",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
 			machineDeployments: clusterv1.MachineDeploymentList{Items: []clusterv1.MachineDeployment{
@@ -1967,7 +1966,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 				Reason:  "Foo",
 				Message: "Scaling down from 0 to 3 replicas",
 			}),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ClusterScalingDownCondition,
 					Status:  metav1.ConditionTrue,
@@ -2012,7 +2011,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report scaling down",
 			cluster:      fakeCluster("c", controlPlaneRef{}),
 			controlPlane: fakeControlPlane("cp1"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ClusterScalingDownCondition,
 					Status:  metav1.ConditionTrue,
@@ -2077,7 +2076,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		{
 			name:    "cluster without controlplane, descendants report scaling down",
 			cluster: fakeCluster("c"),
-			machinePools: expv1.MachinePoolList{Items: []expv1.MachinePool{
+			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.ClusterScalingDownCondition,
 					Status:  metav1.ConditionTrue,
@@ -2959,11 +2958,11 @@ func fakeInfraCluster(name string, options ...fakeInfraClusterOption) *unstructu
 }
 
 type fakeMachinePoolOption interface {
-	ApplyToMachinePool(mp *expv1.MachinePool)
+	ApplyToMachinePool(mp *clusterv1.MachinePool)
 }
 
-func fakeMachinePool(name string, options ...fakeMachinePoolOption) *expv1.MachinePool {
-	mp := &expv1.MachinePool{
+func fakeMachinePool(name string, options ...fakeMachinePoolOption) *clusterv1.MachinePool {
+	mp := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -3058,7 +3057,7 @@ func (r desiredReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().Replicas().Set(cp, int32(r))
 }
 
-func (r desiredReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r desiredReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	mp.Spec.Replicas = ptr.To(int32(r))
 }
 
@@ -3076,7 +3075,7 @@ func (r currentReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().StatusReplicas().Set(cp, int32(r))
 }
 
-func (r currentReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r currentReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	mp.Status.Replicas = ptr.To(int32(r))
 }
 
@@ -3094,7 +3093,7 @@ func (r readyReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().ReadyReplicas().Set(cp, int32(r))
 }
 
-func (r readyReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r readyReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	mp.Status.ReadyReplicas = ptr.To(int32(r))
 }
 
@@ -3112,7 +3111,7 @@ func (r availableReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().AvailableReplicas().Set(cp, int32(r))
 }
 
-func (r availableReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r availableReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	mp.Status.AvailableReplicas = ptr.To(int32(r))
 }
 
@@ -3130,7 +3129,7 @@ func (r upToDateReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 	_ = contract.ControlPlane().UpToDateReplicas(contract.Version).Set(cp, int32(r))
 }
 
-func (r upToDateReplicas) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (r upToDateReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	mp.Status.UpToDateReplicas = ptr.To(int32(r))
 }
 
@@ -3158,7 +3157,7 @@ func (c condition) ApplyToCluster(cluster *clusterv1.Cluster) {
 	conditions.Set(cluster, metav1.Condition(c))
 }
 
-func (c condition) ApplyToMachinePool(mp *expv1.MachinePool) {
+func (c condition) ApplyToMachinePool(mp *clusterv1.MachinePool) {
 	conditions.Set(mp, metav1.Condition(c))
 }
 

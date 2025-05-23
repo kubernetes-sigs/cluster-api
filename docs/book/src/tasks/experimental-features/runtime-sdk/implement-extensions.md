@@ -50,8 +50,8 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
 )
 
@@ -195,7 +195,7 @@ Developers are fully responsible for all other elements of the design of a Runti
 When using Golang the Runtime Extension developer can benefit from the following packages (provided by the
 `sigs.k8s.io/cluster-api` module) as shown in the example above:
 
-- `exp/runtime/hooks/api/v1alpha1` contains the Runtime Hook Golang API types, which are also used to generate the
+- `api/runtime/hooks/v1alpha1` contains the Runtime Hook Golang API types, which are also used to generate the
   OpenAPI specification.
 - `exp/runtime/catalog` provides the `Catalog` object to register Runtime Hook definitions. The `Catalog` is then
   used by the `server` package to handle requests. `Catalog` is similar to the `runtime.Scheme` of the

@@ -381,11 +381,11 @@ The process of implementing the new Runtime Hooks is intentionally designed in o
 used to define API types, thus providing a familiar experience to the maintainers/the people used to look at the
 Cluster API codebase. Most specifically:
 
-- Runtime Hooks versions must be defined under the `/exp/runtime/hooks/api` folder.
+- Runtime Hooks versions must be defined under the `/api/runtime/hooks` folder.
 - There must be one folder per apiVersion, e.g. `/v1alpha1`, `/v1alpha2` etc.
 
 ```
-/exp/runtime/hooks/api
+/api/runtime/hooks
 ├── v1alpha1
 └── v1alpha2
 ```
@@ -396,7 +396,7 @@ Each version folder must
 - Provide type definitions for the Runtime Hook and its request and response parameters.
 
 ```
-/exp/runtime/hooks/api/v1alpha1
+/api/runtime/hooks/v1alpha1
 ├── groupversion_info.go
 └── lifecyclehooks_types.go
 ```

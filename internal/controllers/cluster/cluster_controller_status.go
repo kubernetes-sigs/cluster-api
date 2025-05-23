@@ -31,8 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -71,20 +70,20 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	// replica counters
 	setControlPlaneReplicas(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setWorkersReplicas(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
+	setWorkersReplicas(ctx, s.cluster, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
 
 	// conditions
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
 	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
-	setWorkersAvailableCondition(ctx, s.cluster, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
+	setWorkersAvailableCondition(ctx, s.cluster, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
 	setControlPlaneMachinesReadyCondition(ctx, s.cluster, controlPlaneMachines, s.getDescendantsSucceeded)
 	setWorkerMachinesReadyCondition(ctx, s.cluster, workerMachines, s.getDescendantsSucceeded)
 	setControlPlaneMachinesUpToDateCondition(ctx, s.cluster, controlPlaneMachines, s.getDescendantsSucceeded)
 	setWorkerMachinesUpToDateCondition(ctx, s.cluster, workerMachines, s.getDescendantsSucceeded)
-	setRollingOutCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setScalingUpCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
-	setScalingDownCondition(ctx, s.cluster, s.controlPlane, expv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setRollingOutCondition(ctx, s.cluster, s.controlPlane, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setScalingUpCondition(ctx, s.cluster, s.controlPlane, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
+	setScalingDownCondition(ctx, s.cluster, s.controlPlane, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
 	setDeletingCondition(ctx, s.cluster, s.deletingReason, s.deletingMessage)
 	setAvailableCondition(ctx, s.cluster, s.clusterClass)
@@ -196,7 +195,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	cluster.Status.ControlPlane.DesiredReplicas = replicas
 }
 
-func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, workerMachines collections.Machines, getDescendantsSucceeded bool) {
+func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePools clusterv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, workerMachines collections.Machines, getDescendantsSucceeded bool) {
 	if cluster.Status.Workers == nil {
 		cluster.Status.Workers = &clusterv1.WorkersStatus{}
 	}
@@ -602,7 +601,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	})
 }
 
-func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, getDescendantsSucceeded bool) {
+func setWorkersAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, machinePools clusterv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in listing descendants (this should never happen), surface it.
@@ -833,7 +832,7 @@ func setRemediatingCondition(ctx context.Context, cluster *clusterv1.Cluster, ma
 	})
 }
 
-func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools clusterv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
@@ -904,7 +903,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 	conditions.Set(cluster, *rollingOutCondition)
 }
 
-func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools clusterv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
@@ -981,7 +980,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	conditions.Set(cluster, *scalingUpCondition)
 }
 
-func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools expv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
+func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, machinePools clusterv1.MachinePoolList, machineDeployments clusterv1.MachineDeploymentList, machineSets clusterv1.MachineSetList, controlPlaneIsNotFound bool, getDescendantsSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
@@ -1219,7 +1218,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 
 type aggregationWrapper struct {
 	cp *unstructured.Unstructured
-	mp *expv1.MachinePool
+	mp *clusterv1.MachinePool
 	md *clusterv1.MachineDeployment
 	ms *clusterv1.MachineSet
 }

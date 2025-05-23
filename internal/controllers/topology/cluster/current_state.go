@@ -28,8 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/labels"
@@ -298,7 +297,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 	// Note: This is a cached list call. We ensure in reconcile_state that the cache is up-to-date
 	// after we create/update a MachinePool and we double-check if an MP already exists before
 	// we create it.
-	mp := &expv1.MachinePoolList{}
+	mp := &clusterv1.MachinePoolList{}
 	err := r.Client.List(ctx, mp,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          cluster.Name,

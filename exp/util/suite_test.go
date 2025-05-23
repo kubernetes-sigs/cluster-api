@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var (
@@ -29,5 +29,5 @@ var (
 )
 
 func init() {
-	_ = expv1.AddToScheme(fakeScheme)
+	_ = clusterv1.AddToScheme(fakeScheme)
 }

@@ -1639,7 +1639,9 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API.
+        description: |-
+          MachinePool is the Schema for the machinepools API.
+          NOTE: This CRD can only be used if the MachinePool feature gate is enabled.
         properties:
           apiVersion:
             description: |-

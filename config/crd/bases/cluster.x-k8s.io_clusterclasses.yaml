@@ -2824,8 +2824,9 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: ClusterClass is a template which can be used to create managed
-          topologies.
+        description: |-
+          ClusterClass is a template which can be used to create managed topologies.
+          NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.
         properties:
           apiVersion:
             description: |-

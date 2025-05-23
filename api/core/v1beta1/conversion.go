@@ -912,3 +912,23 @@ func Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in *cl
 	}
 	return autoConvert_v1beta2_ClusterClassVariableMetadata_To_v1beta1_ClusterClassVariableMetadata(&in.DeprecatedV1Beta1Metadata, &out.Metadata, s)
 }
+
+func Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(in *ExternalPatchDefinition, out *clusterv1.ExternalPatchDefinition, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(in, out, s); err != nil {
+		return err
+	}
+
+	out.GeneratePatchesExtension = in.GenerateExtension
+	out.ValidateTopologyExtension = in.ValidateExtension
+	return nil
+}
+
+func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(in *clusterv1.ExternalPatchDefinition, out *ExternalPatchDefinition, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(in, out, s); err != nil {
+		return err
+	}
+
+	out.GenerateExtension = in.GeneratePatchesExtension
+	out.ValidateExtension = in.ValidateTopologyExtension
+	return nil
+}

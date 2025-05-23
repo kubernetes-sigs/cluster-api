@@ -128,12 +128,12 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 					"patch.external can be used only if the RuntimeSDK feature flag is enabled",
 				))
 		}
-		if patch.External.ValidateExtension == nil && patch.External.GenerateExtension == nil {
+		if patch.External.ValidateTopologyExtension == nil && patch.External.GeneratePatchesExtension == nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path.Child("external"),
 					patch.External,
-					"one of validateExtension and generateExtension must be defined",
+					"one of validateTopologyExtension and generatePatchesExtension must be defined",
 				))
 		}
 	}

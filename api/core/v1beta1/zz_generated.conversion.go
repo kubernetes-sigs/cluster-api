@@ -225,16 +225,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ExternalPatchDefinition)(nil), (*v1beta2.ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(a.(*ExternalPatchDefinition), b.(*v1beta2.ExternalPatchDefinition), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ExternalPatchDefinition)(nil), (*ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(a.(*v1beta2.ExternalPatchDefinition), b.(*ExternalPatchDefinition), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*FailureDomainSpec)(nil), (*v1beta2.FailureDomainSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_FailureDomainSpec_To_v1beta2_FailureDomainSpec(a.(*FailureDomainSpec), b.(*v1beta2.FailureDomainSpec), scope)
 	}); err != nil {
@@ -825,6 +815,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ExternalPatchDefinition)(nil), (*v1beta2.ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(a.(*ExternalPatchDefinition), b.(*v1beta2.ExternalPatchDefinition), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.InfrastructureClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(a.(*LocalObjectTemplate), b.(*v1beta2.InfrastructureClass), scope)
 	}); err != nil {
@@ -907,6 +902,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(a.(*v1beta2.ClusterStatus), b.(*ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ExternalPatchDefinition)(nil), (*ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(a.(*v1beta2.ExternalPatchDefinition), b.(*ExternalPatchDefinition), scope)
 	}); err != nil {
 		return err
 	}
@@ -1140,7 +1140,15 @@ func autoConvert_v1beta1_ClusterClassPatch_To_v1beta2_ClusterClassPatch(in *Clus
 	out.Description = in.Description
 	out.EnabledIf = (*string)(unsafe.Pointer(in.EnabledIf))
 	out.Definitions = *(*[]v1beta2.PatchDefinition)(unsafe.Pointer(&in.Definitions))
-	out.External = (*v1beta2.ExternalPatchDefinition)(unsafe.Pointer(in.External))
+	if in.External != nil {
+		in, out := &in.External, &out.External
+		*out = new(v1beta2.ExternalPatchDefinition)
+		if err := Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.External = nil
+	}
 	return nil
 }
 
@@ -1154,7 +1162,15 @@ func autoConvert_v1beta2_ClusterClassPatch_To_v1beta1_ClusterClassPatch(in *v1be
 	out.Description = in.Description
 	out.EnabledIf = (*string)(unsafe.Pointer(in.EnabledIf))
 	out.Definitions = *(*[]PatchDefinition)(unsafe.Pointer(&in.Definitions))
-	out.External = (*ExternalPatchDefinition)(unsafe.Pointer(in.External))
+	if in.External != nil {
+		in, out := &in.External, &out.External
+		*out = new(ExternalPatchDefinition)
+		if err := Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.External = nil
+	}
 	return nil
 }
 
@@ -1186,7 +1202,17 @@ func autoConvert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *Cluste
 	} else {
 		out.Variables = nil
 	}
-	out.Patches = *(*[]v1beta2.ClusterClassPatch)(unsafe.Pointer(&in.Patches))
+	if in.Patches != nil {
+		in, out := &in.Patches, &out.Patches
+		*out = make([]v1beta2.ClusterClassPatch, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_ClusterClassPatch_To_v1beta2_ClusterClassPatch(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Patches = nil
+	}
 	return nil
 }
 
@@ -1212,7 +1238,17 @@ func autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta
 	} else {
 		out.Variables = nil
 	}
-	out.Patches = *(*[]ClusterClassPatch)(unsafe.Pointer(&in.Patches))
+	if in.Patches != nil {
+		in, out := &in.Patches, &out.Patches
+		*out = make([]ClusterClassPatch, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ClusterClassPatch_To_v1beta1_ClusterClassPatch(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Patches = nil
+	}
 	return nil
 }
 
@@ -1810,29 +1846,19 @@ func Convert_v1beta2_ControlPlaneVariables_To_v1beta1_ControlPlaneVariables(in *
 }
 
 func autoConvert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(in *ExternalPatchDefinition, out *v1beta2.ExternalPatchDefinition, s conversion.Scope) error {
-	out.GenerateExtension = (*string)(unsafe.Pointer(in.GenerateExtension))
-	out.ValidateExtension = (*string)(unsafe.Pointer(in.ValidateExtension))
+	// WARNING: in.GenerateExtension requires manual conversion: does not exist in peer-type
+	// WARNING: in.ValidateExtension requires manual conversion: does not exist in peer-type
 	out.DiscoverVariablesExtension = (*string)(unsafe.Pointer(in.DiscoverVariablesExtension))
 	out.Settings = *(*map[string]string)(unsafe.Pointer(&in.Settings))
 	return nil
-}
-
-// Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition is an autogenerated conversion function.
-func Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(in *ExternalPatchDefinition, out *v1beta2.ExternalPatchDefinition, s conversion.Scope) error {
-	return autoConvert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(in, out, s)
 }
 
 func autoConvert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(in *v1beta2.ExternalPatchDefinition, out *ExternalPatchDefinition, s conversion.Scope) error {
-	out.GenerateExtension = (*string)(unsafe.Pointer(in.GenerateExtension))
-	out.ValidateExtension = (*string)(unsafe.Pointer(in.ValidateExtension))
+	// WARNING: in.GeneratePatchesExtension requires manual conversion: does not exist in peer-type
+	// WARNING: in.ValidateTopologyExtension requires manual conversion: does not exist in peer-type
 	out.DiscoverVariablesExtension = (*string)(unsafe.Pointer(in.DiscoverVariablesExtension))
 	out.Settings = *(*map[string]string)(unsafe.Pointer(&in.Settings))
 	return nil
-}
-
-// Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition is an autogenerated conversion function.
-func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(in *v1beta2.ExternalPatchDefinition, out *ExternalPatchDefinition, s conversion.Scope) error {
-	return autoConvert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(in, out, s)
 }
 
 func autoConvert_v1beta1_FailureDomainSpec_To_v1beta2_FailureDomainSpec(in *FailureDomainSpec, out *v1beta2.FailureDomainSpec, s conversion.Scope) error {

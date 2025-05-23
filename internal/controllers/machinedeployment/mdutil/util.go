@@ -149,7 +149,7 @@ func Revision(obj runtime.Object) (int64, error) {
 var annotationsToSkip = map[string]bool{
 	corev1.LastAppliedConfigAnnotation:  true,
 	clusterv1.RevisionAnnotation:        true,
-	clusterv1.RevisionHistoryAnnotation: true,
+	revisionHistoryAnnotation:           true,
 	clusterv1.DesiredReplicasAnnotation: true,
 	clusterv1.MaxReplicasAnnotation:     true,
 
@@ -188,6 +188,11 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	return int32(intValue), true
 }
 
+// revisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
+//
+// Deprecated: This annotation is deprecated and is going to be removed in the next release.
+const revisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
+
 // ComputeMachineSetAnnotations computes the annotations that should be set on the MachineSet.
 // Note: The passed in newMS is nil if the new MachineSet doesn't exist in the apiserver yet.
 func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
@@ -221,18 +226,18 @@ func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.Mac
 
 		// Ensure we preserve the revision history annotation in any case if it already exists.
 		// Note: With Server-Side-Apply not setting the annotation would drop it.
-		revisionHistory, revisionHistoryExists := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
+		revisionHistory, revisionHistoryExists := newMS.Annotations[revisionHistoryAnnotation]
 		if revisionHistoryExists {
-			annotations[clusterv1.RevisionHistoryAnnotation] = revisionHistory
+			annotations[revisionHistoryAnnotation] = revisionHistory
 		}
 
 		// If the revision changes then add the old revision to the revision history annotation
 		if currentRevisionExists && currentRevision != newRevision {
 			oldRevisions := strings.Split(revisionHistory, ",")
 			if oldRevisions[0] == "" {
-				annotations[clusterv1.RevisionHistoryAnnotation] = currentRevision
+				annotations[revisionHistoryAnnotation] = currentRevision
 			} else {
-				annotations[clusterv1.RevisionHistoryAnnotation] = strings.Join(append(oldRevisions, currentRevision), ",")
+				annotations[revisionHistoryAnnotation] = strings.Join(append(oldRevisions, currentRevision), ",")
 			}
 		}
 	}

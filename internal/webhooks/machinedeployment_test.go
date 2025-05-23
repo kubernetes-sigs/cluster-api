@@ -68,7 +68,6 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Labels[clusterv1.ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
 
 	g.Expect(md.Spec.Replicas).To(Equal(ptr.To[int32](1)))
-	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(ptr.To[int32](1)))
 	g.Expect(md.Spec.Strategy).ToNot(BeNil())
 
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))

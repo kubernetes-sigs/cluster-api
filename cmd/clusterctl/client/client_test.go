@@ -145,10 +145,6 @@ func (f fakeClient) RolloutResume(ctx context.Context, options RolloutResumeOpti
 	return f.internalClient.RolloutResume(ctx, options)
 }
 
-func (f fakeClient) RolloutUndo(ctx context.Context, options RolloutUndoOptions) error {
-	return f.internalClient.RolloutUndo(ctx, options)
-}
-
 func (f fakeClient) TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*cluster.TopologyPlanOutput, error) {
 	return f.internalClient.TopologyPlan(ctx, options)
 }

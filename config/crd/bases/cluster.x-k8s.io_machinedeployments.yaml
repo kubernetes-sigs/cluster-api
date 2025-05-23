@@ -1933,15 +1933,6 @@ spec:
                     should be later controlled by the autoscaler
                 format: int32
                 type: integer
-              revisionHistoryLimit:
-                description: |-
-                  revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
-                  This is a pointer to distinguish between explicit zero and not specified.
-                  Defaults to 1.
-
-                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.
-                format: int32
-                type: integer
               rolloutAfter:
                 description: |-
                   rolloutAfter is a field to indicate a rollout should be performed

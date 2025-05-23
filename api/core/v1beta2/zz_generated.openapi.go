@@ -2509,13 +2509,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
 						},
 					},
-					"revisionHistoryLimit": {
-						SchemaProps: spec.SchemaProps{
-							Description: "revisionHistoryLimit is the number of old MachineSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"paused": {
 						SchemaProps: spec.SchemaProps{
 							Description: "paused indicates that the deployment is paused.",

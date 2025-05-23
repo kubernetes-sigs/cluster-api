@@ -813,7 +813,7 @@ func autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec
 		out.Strategy = nil
 	}
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
-	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
+	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
 	out.Paused = in.Paused
 	// WARNING: in.ProgressDeadlineSeconds requires manual conversion: does not exist in peer-type
 	return nil
@@ -837,7 +837,6 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec
 		out.Strategy = nil
 	}
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
-	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
 	out.Paused = in.Paused
 	return nil
 }

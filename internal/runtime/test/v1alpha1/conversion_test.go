@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -41,7 +40,7 @@ func TestConversion(t *testing.T) {
 		}}}
 		requestLocal := &FakeRequest{}
 
-		g.Expect(c.Convert(request, requestLocal, context.Background())).To(Succeed())
+		g.Expect(c.Convert(request, requestLocal, t.Context())).To(Succeed())
 		g.Expect(requestLocal.Cluster.GetName()).To(Equal(request.Cluster.Name))
 	})
 
@@ -51,7 +50,7 @@ func TestConversion(t *testing.T) {
 			Second: "foo",
 		}
 		response := &v1alpha2.FakeResponse{}
-		g.Expect(c.Convert(responseLocal, response, context.Background())).To(Succeed())
+		g.Expect(c.Convert(responseLocal, response, t.Context())).To(Succeed())
 
 		g.Expect(response.First).To(Equal(responseLocal.First))
 		g.Expect(response.Second).To(Equal(responseLocal.Second))

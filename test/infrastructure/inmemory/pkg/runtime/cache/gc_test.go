@@ -31,7 +31,7 @@ import (
 
 func Test_cache_gc(t *testing.T) {
 	g := NewWithT(t)
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	c := NewCache(scheme).(*cache)

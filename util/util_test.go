@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -225,7 +224,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			referenceObject.SetAPIVersion(tc.request.Spec.InfrastructureRef.APIVersion)
 			referenceObject.SetKind(tc.request.Spec.InfrastructureRef.Kind)
 
-			fn := ClusterToInfrastructureMapFunc(context.Background(), tc.input, clientBuilder.Build(), referenceObject)
+			fn := ClusterToInfrastructureMapFunc(t.Context(), tc.input, clientBuilder.Build(), referenceObject)
 			out := fn(ctx, tc.request)
 			g.Expect(out).To(BeComparableTo(tc.output))
 		})

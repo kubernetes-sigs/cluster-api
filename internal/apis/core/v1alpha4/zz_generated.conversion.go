@@ -2034,7 +2034,7 @@ func Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(in *v1beta2.ObjectMeta, o
 func autoConvert_v1alpha4_Topology_To_v1beta2_Topology(in *Topology, out *v1beta2.Topology, s conversion.Scope) error {
 	// WARNING: in.Class requires manual conversion: does not exist in peer-type
 	out.Version = in.Version
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
+	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha4_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}
@@ -2053,7 +2053,6 @@ func autoConvert_v1alpha4_Topology_To_v1beta2_Topology(in *Topology, out *v1beta
 func autoConvert_v1beta2_Topology_To_v1alpha4_Topology(in *v1beta2.Topology, out *Topology, s conversion.Scope) error {
 	// WARNING: in.ClassRef requires manual conversion: does not exist in peer-type
 	out.Version = in.Version
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
 	if err := Convert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}

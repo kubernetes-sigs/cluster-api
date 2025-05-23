@@ -76,6 +76,7 @@ func TestFuzzyConversion(t *testing.T) {
 func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterStatus,
+		spokeClusterTopology,
 		spokeClusterStatus,
 		spokeClusterVariable,
 	}
@@ -96,6 +97,13 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c fuzz.Continue) {
 			in.Initialization = nil
 		}
 	}
+}
+
+func spokeClusterTopology(in *Topology, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// RolloutAfter was unused and has been removed in v1beta2.
+	in.RolloutAfter = nil
 }
 
 func spokeClusterStatus(in *ClusterStatus, c fuzz.Continue) {

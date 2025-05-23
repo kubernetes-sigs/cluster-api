@@ -2690,14 +2690,6 @@ spec:
                             x-kubernetes-list-type: map
                         type: object
                     type: object
-                  rolloutAfter:
-                    description: |-
-                      rolloutAfter performs a rollout of the entire cluster one component at a time,
-                      control plane first and then machine deployments.
-
-                      Deprecated: This field has no function and is going to be removed in the next apiVersion.
-                    format: date-time
-                    type: string
                   variables:
                     description: |-
                       variables can be used to customize the Cluster through

@@ -109,6 +109,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterVariable,
 		hubClusterStatus,
+		spokeClusterTopology,
 	}
 }
 
@@ -134,6 +135,13 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c fuzz.Continue) {
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
+}
+
+func spokeClusterTopology(in *Topology, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// RolloutAfter was unused and has been removed in v1beta2.
+	in.RolloutAfter = nil
 }
 
 func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

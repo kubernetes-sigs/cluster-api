@@ -5280,12 +5280,6 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
-					"rolloutAfter": {
-						SchemaProps: spec.SchemaProps{
-							Description: "rolloutAfter performs a rollout of the entire cluster one component at a time, control plane first and then machine deployments.\n\nDeprecated: This field has no function and is going to be removed in the next apiVersion.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
 					"controlPlane": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlane describes the cluster control plane.",
@@ -5326,7 +5320,7 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassRef", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassRef", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology"},
 	}
 }
 

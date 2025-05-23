@@ -3097,10 +3097,6 @@ func (in *RemediationStrategy) DeepCopy() *RemediationStrategy {
 func (in *Topology) DeepCopyInto(out *Topology) {
 	*out = *in
 	out.ClassRef = in.ClassRef
-	if in.RolloutAfter != nil {
-		in, out := &in.RolloutAfter, &out.RolloutAfter
-		*out = (*in).DeepCopy()
-	}
 	in.ControlPlane.DeepCopyInto(&out.ControlPlane)
 	if in.Workers != nil {
 		in, out := &in.Workers, &out.Workers

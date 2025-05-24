@@ -44,6 +44,7 @@ source of inspiration and ideas for others.
 - [CoxEdge](https://github.com/coxedge/cluster-api-provider-coxedge)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Google Cloud Platform (GCP)](https://cluster-api-gcp.sigs.k8s.io/)
+- [Harvester](https://github.com/rancher-sandbox/cluster-api-provider-harvester)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [Hivelocity](https://github.com/hivelocity/cluster-api-provider-hivelocity)
 - [Huawei Cloud](https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei)

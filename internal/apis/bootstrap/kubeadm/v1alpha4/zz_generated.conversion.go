@@ -49,11 +49,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*APIServer)(nil), (*v1beta2.APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_APIServer_To_v1beta2_APIServer(a.(*APIServer), b.(*v1beta2.APIServer), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.APIServer)(nil), (*APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_APIServer_To_v1alpha4_APIServer(a.(*v1beta2.APIServer), b.(*APIServer), scope)
 	}); err != nil {
@@ -116,11 +111,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DNS)(nil), (*DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DNS_To_v1alpha4_DNS(a.(*v1beta2.DNS), b.(*DNS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
 	}); err != nil {
 		return err
 	}
@@ -334,6 +324,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*APIServer)(nil), (*v1beta2.APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_APIServer_To_v1beta2_APIServer(a.(*APIServer), b.(*v1beta2.APIServer), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1alpha4.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_Condition_To_v1_Condition(a.(*corev1alpha4.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
@@ -341,6 +336,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(a.(*ControlPlaneComponent), b.(*v1beta2.ControlPlaneComponent), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
 	}); err != nil {
 		return err
 	}

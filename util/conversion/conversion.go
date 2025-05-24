@@ -20,10 +20,12 @@ package conversion
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
@@ -38,6 +40,7 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
@@ -243,7 +246,10 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 					input.SpokeAfterMutation(spokeAfter)
 				}
 
-				g.Expect(apiequality.Semantic.DeepEqual(spokeBefore, spokeAfter)).To(gomega.BeTrue(), cmp.Diff(spokeBefore, spokeAfter))
+				if !apiequality.Semantic.DeepEqual(spokeBefore, spokeAfter) {
+					diff := cmp.Diff(spokeBefore, spokeAfter)
+					g.Expect(false).To(gomega.BeTrue(), diff)
+				}
 			}
 		})
 		t.Run("hub-spoke-hub", func(t *testing.T) {
@@ -267,7 +273,10 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 					input.HubAfterMutation(hubAfter)
 				}
 
-				g.Expect(apiequality.Semantic.DeepEqual(hubBefore, hubAfter)).To(gomega.BeTrue(), cmp.Diff(hubBefore, hubAfter))
+				if !apiequality.Semantic.DeepEqual(hubBefore, hubAfter) {
+					diff := cmp.Diff(hubBefore, hubAfter)
+					g.Expect(false).To(gomega.BeTrue(), diff)
+				}
 			}
 		})
 	}
@@ -303,4 +312,26 @@ func ConvertFromArgs(in []bootstrapv1.Arg) map[string]string {
 		args[arg.Name] = arg.Value
 	}
 	return args
+}
+
+// ConvertToSeconds takes *metav1.Duration and returns a *int32.
+// Durations longer than MaxInt32 are capped.
+func ConvertToSeconds(in *metav1.Duration) *int32 {
+	if in == nil {
+		return nil
+	}
+	seconds := math.Trunc(in.Seconds())
+	if seconds > math.MaxInt32 {
+		return ptr.To[int32](math.MaxInt32)
+	}
+	return ptr.To(int32(seconds))
+}
+
+// ConvertFromSeconds takes *int32 and returns a *metav1.Duration.
+// Durations longer than MaxInt32 are capped.
+func ConvertFromSeconds(in *int32) *metav1.Duration {
+	if in == nil {
+		return nil
+	}
+	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Second})
 }

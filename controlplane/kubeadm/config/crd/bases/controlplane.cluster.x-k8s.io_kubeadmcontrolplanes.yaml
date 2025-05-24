@@ -5069,11 +5069,35 @@ spec:
                             maxItems: 100
                             type: array
                           extraArgs:
-                            additionalProperties:
-                              type: string
-                            description: extraArgs is an extra set of flags to pass
-                              to the control plane component.
-                            type: object
+                            description: |-
+                              extraArgs is a list of args to pass to the control plane component.
+                              The arg name must match be the command line flag name except without leading dash(es).
+                              Extra arguments will override existing default arguments set by kubeadm.
+                            items:
+                              description: Arg represents an argument with a name
+                                and a value.
+                              properties:
+                                name:
+                                  description: name is the Name of the extraArg.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: value is the Value of the extraArg.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            maxItems: 100
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
+                            x-kubernetes-validations:
+                            - message: extraArgs name must be unique
+                              rule: self.all(x, self.exists_one(y, x == y))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -5239,10 +5263,6 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
-                          timeoutForControlPlane:
-                            description: timeoutForControlPlane controls the timeout
-                              that we use for API server to appear
-                            type: string
                         type: object
                       apiVersion:
                         description: |-
@@ -5285,11 +5305,35 @@ spec:
                           the controller manager control plane component
                         properties:
                           extraArgs:
-                            additionalProperties:
-                              type: string
-                            description: extraArgs is an extra set of flags to pass
-                              to the control plane component.
-                            type: object
+                            description: |-
+                              extraArgs is a list of args to pass to the control plane component.
+                              The arg name must match be the command line flag name except without leading dash(es).
+                              Extra arguments will override existing default arguments set by kubeadm.
+                            items:
+                              description: Arg represents an argument with a name
+                                and a value.
+                              properties:
+                                name:
+                                  description: name is the Name of the extraArg.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: value is the Value of the extraArg.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            maxItems: 100
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
+                            x-kubernetes-validations:
+                            - message: extraArgs name must be unique
+                              rule: self.all(x, self.exists_one(y, x == y))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -5534,15 +5578,38 @@ spec:
                                 minLength: 1
                                 type: string
                               extraArgs:
-                                additionalProperties:
-                                  type: string
                                 description: |-
-                                  extraArgs are extra arguments provided to the etcd binary
-                                  when run inside a static pod.
-                                type: object
+                                  extraArgs is a list of args to pass to etcd.
+                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  Extra arguments will override existing default arguments set by kubeadm.
+                                items:
+                                  description: Arg represents an argument with a name
+                                    and a value.
+                                  properties:
+                                    name:
+                                      description: name is the Name of the extraArg.
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    value:
+                                      description: value is the Value of the extraArg.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - name
+                                  - value
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                                x-kubernetes-validations:
+                                - message: extraArgs name must be unique
+                                  rule: self.all(x, self.exists_one(y, x == y))
                               extraEnvs:
                                 description: |-
-                                  extraEnvs is an extra set of environment variables to pass to the control plane component.
+                                  extraEnvs is an extra set of environment variables to pass to etcd.
                                   Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
                                   This option takes effect only on Kubernetes >=1.31.0.
                                 items:
@@ -5771,11 +5838,35 @@ spec:
                           control plane component
                         properties:
                           extraArgs:
-                            additionalProperties:
-                              type: string
-                            description: extraArgs is an extra set of flags to pass
-                              to the control plane component.
-                            type: object
+                            description: |-
+                              extraArgs is a list of args to pass to the control plane component.
+                              The arg name must match be the command line flag name except without leading dash(es).
+                              Extra arguments will override existing default arguments set by kubeadm.
+                            items:
+                              description: Arg represents an argument with a name
+                                and a value.
+                              properties:
+                                name:
+                                  description: name is the Name of the extraArg.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: value is the Value of the extraArg.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            maxItems: 100
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
+                            x-kubernetes-validations:
+                            - message: extraArgs name must be unique
+                              rule: self.all(x, self.exists_one(y, x == y))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -6256,9 +6347,10 @@ spec:
                             minLength: 1
                             type: string
                           ignorePreflightErrors:
-                            description: ignorePreflightErrors provides a slice of
+                            description: "ignorePreflightErrors provides a slice of
                               pre-flight errors to be ignored when the current node
-                              is registered.
+                              is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t// Value
+                              'all' ignores errors from all checks."
                             items:
                               maxLength: 512
                               minLength: 1
@@ -6284,13 +6376,35 @@ spec:
                               Default: true (defaulted in kubeadm)
                             type: boolean
                           kubeletExtraArgs:
-                            additionalProperties:
-                              type: string
                             description: |-
-                              kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-                              kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-                              Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
-                            type: object
+                              kubeletExtraArgs is a list of args to pass to kubelet.
+                              The arg name must match be the command line flag name except without leading dash(es).
+                              Extra arguments will override existing default arguments set by kubeadm.
+                            items:
+                              description: Arg represents an argument with a name
+                                and a value.
+                              properties:
+                                name:
+                                  description: name is the Name of the extraArg.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: value is the Value of the extraArg.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            maxItems: 100
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
+                            x-kubernetes-validations:
+                            - message: kubeletExtraArgs name must be unique
+                              rule: self.all(x, self.exists_one(y, x == y))
                           name:
                             description: |-
                               name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -6368,6 +6482,53 @@ spec:
                           type: string
                         maxItems: 50
                         type: array
+                      timeouts:
+                        description: timeouts holds various timeouts that apply to
+                          kubeadm commands.
+                        properties:
+                          controlPlaneComponentHealthCheckSeconds:
+                            description: |-
+                              controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+                              component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+                              Default: 4m
+                            format: int32
+                            type: integer
+                          discoverySeconds:
+                            description: |-
+                              discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+                              for a joining node.
+                              Default: 5m
+                            format: int32
+                            type: integer
+                          etcdAPICallSeconds:
+                            description: |-
+                              etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+                              the etcd cluster.
+                              Default: 2m
+                            format: int32
+                            type: integer
+                          kubeletHealthCheckSeconds:
+                            description: |-
+                              kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+                              during "kubeadm init" and "kubeadm join".
+                              Default: 4m
+                            format: int32
+                            type: integer
+                          kubernetesAPICallSeconds:
+                            description: |-
+                              kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+                              the API server. This applies to all types of methods (GET, POST, etc).
+                              Default: 1m
+                            format: int32
+                            type: integer
+                          tlsBootstrapSeconds:
+                            description: |-
+                              tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+                              for a joining node.
+                              Default: 5m
+                            format: int32
+                            type: integer
+                        type: object
                     type: object
                   joinConfiguration:
                     description: joinConfiguration is the kubeadm configuration for
@@ -6383,7 +6544,7 @@ spec:
                       caCertPath:
                         description: |-
                           caCertPath is the path to the SSL certificate authority used to
-                          secure comunications between node and control-plane.
+                          secure communications between node and control-plane.
                           Defaults to "/etc/kubernetes/pki/ca.crt".
                         maxLength: 512
                         minLength: 1
@@ -6627,9 +6788,6 @@ spec:
                             required:
                             - kubeConfigPath
                             type: object
-                          timeout:
-                            description: timeout modifies the discovery timeout
-                            type: string
                           tlsBootstrapToken:
                             description: |-
                               tlsBootstrapToken is a token used for TLS bootstrapping.
@@ -6661,9 +6819,10 @@ spec:
                             minLength: 1
                             type: string
                           ignorePreflightErrors:
-                            description: ignorePreflightErrors provides a slice of
+                            description: "ignorePreflightErrors provides a slice of
                               pre-flight errors to be ignored when the current node
-                              is registered.
+                              is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t// Value
+                              'all' ignores errors from all checks."
                             items:
                               maxLength: 512
                               minLength: 1
@@ -6689,13 +6848,35 @@ spec:
                               Default: true (defaulted in kubeadm)
                             type: boolean
                           kubeletExtraArgs:
-                            additionalProperties:
-                              type: string
                             description: |-
-                              kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-                              kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-                              Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
-                            type: object
+                              kubeletExtraArgs is a list of args to pass to kubelet.
+                              The arg name must match be the command line flag name except without leading dash(es).
+                              Extra arguments will override existing default arguments set by kubeadm.
+                            items:
+                              description: Arg represents an argument with a name
+                                and a value.
+                              properties:
+                                name:
+                                  description: name is the Name of the extraArg.
+                                  maxLength: 256
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: value is the Value of the extraArg.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            maxItems: 100
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: atomic
+                            x-kubernetes-validations:
+                            - message: kubeletExtraArgs name must be unique
+                              rule: self.all(x, self.exists_one(y, x == y))
                           name:
                             description: |-
                               name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -6773,6 +6954,53 @@ spec:
                           type: string
                         maxItems: 50
                         type: array
+                      timeouts:
+                        description: timeouts holds various timeouts that apply to
+                          kubeadm commands.
+                        properties:
+                          controlPlaneComponentHealthCheckSeconds:
+                            description: |-
+                              controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+                              component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+                              Default: 4m
+                            format: int32
+                            type: integer
+                          discoverySeconds:
+                            description: |-
+                              discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+                              for a joining node.
+                              Default: 5m
+                            format: int32
+                            type: integer
+                          etcdAPICallSeconds:
+                            description: |-
+                              etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+                              the etcd cluster.
+                              Default: 2m
+                            format: int32
+                            type: integer
+                          kubeletHealthCheckSeconds:
+                            description: |-
+                              kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+                              during "kubeadm init" and "kubeadm join".
+                              Default: 4m
+                            format: int32
+                            type: integer
+                          kubernetesAPICallSeconds:
+                            description: |-
+                              kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+                              the API server. This applies to all types of methods (GET, POST, etc).
+                              Default: 1m
+                            format: int32
+                            type: integer
+                          tlsBootstrapSeconds:
+                            description: |-
+                              tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+                              for a joining node.
+                              Default: 5m
+                            format: int32
+                            type: integer
+                        type: object
                     type: object
                   mounts:
                     description: mounts specifies a list of mount points to be setup.

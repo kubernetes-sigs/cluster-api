@@ -20,9 +20,12 @@ package upstreamv1beta1
 
 import (
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -64,13 +67,15 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		clusterConfigurationFuzzer,
-		dnsFuzzer,
-		bootstrapv1ControlPlaneComponentFuzzer,
-		bootstrapv1LocalEtcdFuzzer,
-		bootstrapv1InitConfigurationFuzzer,
-		bootstrapv1JoinConfigurationFuzzer,
-		bootstrapv1NodeRegistrationOptionsFuzzer,
+		spokeJoinConfigurationFuzzer,
+		spokeClusterConfigurationFuzzer,
+		spokeControlPlaneComponentFuzzer,
+		spokeDNSFuzzer,
+		spokeAPIServerFuzzer,
+		hubLocalEtcdFuzzer,
+		hubInitConfigurationFuzzer,
+		hubJoinConfigurationFuzzer,
+		hubNodeRegistrationOptionsFuzzer,
 	}
 }
 
@@ -78,42 +83,57 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // NOTES:
 // - When fields do does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta1 --> cabpk v1beta1 --> kubeadm v1beta1 round trip errors.
 
-func clusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Continue) {
+func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.UseHyperKubeImage = false
 }
 
-func dnsFuzzer(obj *DNS, c randfill.Continue) {
+func spokeDNSFuzzer(obj *DNS, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.Type = ""
+}
+
+func spokeAPIServerFuzzer(obj *APIServer, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.TimeoutForControlPlane = nil
 }
 
 // Custom fuzzers for CABPK v1beta1 types.
 // NOTES:
 // - When fields do not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 
-func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
+func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	if obj.Discovery.Timeout != nil {
+		obj.Discovery.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
+func hubLocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
+func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.Patches = nil
 	obj.SkipPhases = nil
+	obj.Timeouts = nil
 }
 
-func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
+func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.Patches = nil
@@ -122,9 +142,16 @@ func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c ra
 	if obj.Discovery.File != nil {
 		obj.Discovery.File.KubeConfig = nil
 	}
+	if obj.Timeouts != nil {
+		if obj.Timeouts.TLSBootstrapSeconds != nil {
+			obj.Timeouts = &bootstrapv1.Timeouts{TLSBootstrapSeconds: obj.Timeouts.TLSBootstrapSeconds}
+		} else {
+			obj.Timeouts = nil
+		}
+	}
 }
 
-func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.IgnorePreflightErrors = nil

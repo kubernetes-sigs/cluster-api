@@ -26,30 +26,75 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlane)
+	if err := Convert_v1beta1_KubeadmControlPlane_To_v1beta2_KubeadmControlPlane(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta1_KubeadmControlPlane_To_v1beta2_KubeadmControlPlane(src, dst, nil)
+	// Manually restore data.
+	restored := &controlplanev1.KubeadmControlPlane{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+	if ok {
+		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
+	}
+
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.KubeadmConfigSpec)
+	return nil
 }
 
 func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlane)
+	if err := Convert_v1beta2_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta2_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil)
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)
+
+	// Preserve Hub data on down-conversion except for metadata.
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
+	if err := Convert_v1beta1_KubeadmControlPlaneTemplate_To_v1beta2_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta1_KubeadmControlPlaneTemplate_To_v1beta2_KubeadmControlPlaneTemplate(src, dst, nil)
+	// Manually restore data.
+	restored := &controlplanev1.KubeadmControlPlaneTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+	if ok {
+		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
+	}
+
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.Template.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.Template.Spec.KubeadmConfigSpec)
+	return nil
 }
 
 func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
+	if err := Convert_v1beta2_KubeadmControlPlaneTemplate_To_v1beta1_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta2_KubeadmControlPlaneTemplate_To_v1beta1_KubeadmControlPlaneTemplate(src, dst, nil)
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.Template.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.Template.Spec.KubeadmConfigSpec)
+
+	// Preserve Hub data on down-conversion except for metadata.
+	return utilconversion.MarshalData(src, dst)
 }
 
 func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apimachineryconversion.Scope) error {

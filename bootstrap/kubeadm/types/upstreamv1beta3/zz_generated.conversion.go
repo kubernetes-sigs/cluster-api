@@ -48,11 +48,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*APIServer)(nil), (*v1beta2.APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(a.(*APIServer), b.(*v1beta2.APIServer), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.APIServer)(nil), (*APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(a.(*v1beta2.APIServer), b.(*APIServer), scope)
 	}); err != nil {
@@ -98,11 +93,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(a.(*ControlPlaneComponent), b.(*v1beta2.ControlPlaneComponent), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DNS)(nil), (*v1beta2.DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_DNS_To_v1beta2_DNS(a.(*DNS), b.(*v1beta2.DNS), scope)
 	}); err != nil {
@@ -110,11 +100,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DNS)(nil), (*DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DNS_To_upstreamv1beta3_DNS(a.(*v1beta2.DNS), b.(*DNS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
 	}); err != nil {
 		return err
 	}
@@ -168,28 +153,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.InitConfiguration)(nil), (*InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(a.(*v1beta2.InitConfiguration), b.(*InitConfiguration), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*JoinConfiguration)(nil), (*v1beta2.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(a.(*JoinConfiguration), b.(*v1beta2.JoinConfiguration), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.JoinConfiguration)(nil), (*JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(a.(*v1beta2.JoinConfiguration), b.(*JoinConfiguration), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.JoinControlPlane)(nil), (*JoinControlPlane)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_JoinControlPlane_To_upstreamv1beta3_JoinControlPlane(a.(*v1beta2.JoinControlPlane), b.(*JoinControlPlane), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*LocalEtcd)(nil), (*v1beta2.LocalEtcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(a.(*LocalEtcd), b.(*v1beta2.LocalEtcd), scope)
 	}); err != nil {
 		return err
 	}
@@ -203,11 +168,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*NodeRegistrationOptions)(nil), (*v1beta2.NodeRegistrationOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(a.(*NodeRegistrationOptions), b.(*v1beta2.NodeRegistrationOptions), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Patches)(nil), (*v1beta2.Patches)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_Patches_To_v1beta2_Patches(a.(*Patches), b.(*v1beta2.Patches), scope)
 	}); err != nil {
@@ -218,13 +178,43 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*APIServer)(nil), (*v1beta2.APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(a.(*APIServer), b.(*v1beta2.APIServer), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(a.(*ControlPlaneComponent), b.(*v1beta2.ControlPlaneComponent), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*InitConfiguration)(nil), (*v1beta2.InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(a.(*InitConfiguration), b.(*v1beta2.InitConfiguration), scope)
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*JoinConfiguration)(nil), (*v1beta2.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(a.(*JoinConfiguration), b.(*v1beta2.JoinConfiguration), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*JoinControlPlane)(nil), (*v1beta2.JoinControlPlane)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_JoinControlPlane_To_v1beta2_JoinControlPlane(a.(*JoinControlPlane), b.(*v1beta2.JoinControlPlane), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalEtcd)(nil), (*v1beta2.LocalEtcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(a.(*LocalEtcd), b.(*v1beta2.LocalEtcd), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*NodeRegistrationOptions)(nil), (*v1beta2.NodeRegistrationOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(a.(*NodeRegistrationOptions), b.(*v1beta2.NodeRegistrationOptions), scope)
 	}); err != nil {
 		return err
 	}
@@ -235,6 +225,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.FileDiscovery)(nil), (*FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(a.(*v1beta2.FileDiscovery), b.(*FileDiscovery), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.InitConfiguration)(nil), (*InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(a.(*v1beta2.InitConfiguration), b.(*InitConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.JoinConfiguration)(nil), (*JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(a.(*v1beta2.JoinConfiguration), b.(*JoinConfiguration), scope)
 	}); err != nil {
 		return err
 	}
@@ -278,13 +278,8 @@ func autoConvert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in *APIServer, o
 		return err
 	}
 	out.CertSANs = *(*[]string)(unsafe.Pointer(&in.CertSANs))
-	out.TimeoutForControlPlane = (*v1.Duration)(unsafe.Pointer(in.TimeoutForControlPlane))
+	// WARNING: in.TimeoutForControlPlane requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer is an autogenerated conversion function.
-func Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in *APIServer, out *v1beta2.APIServer, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in, out, s)
 }
 
 func autoConvert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(in *v1beta2.APIServer, out *APIServer, s conversion.Scope) error {
@@ -292,7 +287,6 @@ func autoConvert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(in *v1beta2.APIS
 		return err
 	}
 	out.CertSANs = *(*[]string)(unsafe.Pointer(&in.CertSANs))
-	out.TimeoutForControlPlane = (*v1.Duration)(unsafe.Pointer(in.TimeoutForControlPlane))
 	return nil
 }
 
@@ -446,18 +440,13 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguratio
 }
 
 func autoConvert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *v1beta2.ControlPlaneComponent, s conversion.Scope) error {
-	out.ExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.ExtraArgs))
+	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.ExtraVolumes = *(*[]v1beta2.HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
 	return nil
 }
 
-// Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent is an autogenerated conversion function.
-func Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *v1beta2.ControlPlaneComponent, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
-}
-
 func autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in *v1beta2.ControlPlaneComponent, out *ControlPlaneComponent, s conversion.Scope) error {
-	out.ExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.ExtraArgs))
+	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	out.ExtraVolumes = *(*[]HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
 	// WARNING: in.ExtraEnvs requires manual conversion: does not exist in peer-type
 	return nil
@@ -499,13 +488,8 @@ func autoConvert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in *Discovery, o
 		out.File = nil
 	}
 	out.TLSBootstrapToken = in.TLSBootstrapToken
-	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
+	// WARNING: in.Timeout requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery is an autogenerated conversion function.
-func Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1beta2.Discovery, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in, out, s)
 }
 
 func autoConvert_v1beta2_Discovery_To_upstreamv1beta3_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
@@ -520,7 +504,6 @@ func autoConvert_v1beta2_Discovery_To_upstreamv1beta3_Discovery(in *v1beta2.Disc
 		out.File = nil
 	}
 	out.TLSBootstrapToken = in.TLSBootstrapToken
-	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
 	return nil
 }
 
@@ -683,12 +666,8 @@ func autoConvert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(
 	}
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Timeouts requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration is an autogenerated conversion function.
-func Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in *v1beta2.InitConfiguration, out *InitConfiguration, s conversion.Scope) error {
-	return autoConvert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in, out, s)
 }
 
 func autoConvert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *v1beta2.JoinConfiguration, s conversion.Scope) error {
@@ -713,11 +692,6 @@ func autoConvert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(
 	return nil
 }
 
-// Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration is an autogenerated conversion function.
-func Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *v1beta2.JoinConfiguration, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
-}
-
 func autoConvert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in *v1beta2.JoinConfiguration, out *JoinConfiguration, s conversion.Scope) error {
 	if err := Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(&in.NodeRegistration, &out.NodeRegistration, s); err != nil {
 		return err
@@ -737,12 +711,8 @@ func autoConvert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(
 	}
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Timeouts requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration is an autogenerated conversion function.
-func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in *v1beta2.JoinConfiguration, out *JoinConfiguration, s conversion.Scope) error {
-	return autoConvert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in, out, s)
 }
 
 func autoConvert_upstreamv1beta3_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinControlPlane, out *v1beta2.JoinControlPlane, s conversion.Scope) error {
@@ -770,15 +740,10 @@ func autoConvert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, o
 		return err
 	}
 	out.DataDir = in.DataDir
-	out.ExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.ExtraArgs))
+	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
 	return nil
-}
-
-// Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd is an autogenerated conversion function.
-func Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1beta2.LocalEtcd, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
 func autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *v1beta2.LocalEtcd, out *LocalEtcd, s conversion.Scope) error {
@@ -786,7 +751,7 @@ func autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *v1beta2.Loca
 		return err
 	}
 	out.DataDir = in.DataDir
-	out.ExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.ExtraArgs))
+	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	// WARNING: in.ExtraEnvs requires manual conversion: does not exist in peer-type
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
@@ -821,24 +786,19 @@ func autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistra
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
 	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
-	out.KubeletExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.KubeletExtraArgs))
+	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
-	out.ImagePullPolicy = in.ImagePullPolicy
+	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
 	return nil
-}
-
-// Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions is an autogenerated conversion function.
-func Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *v1beta2.NodeRegistrationOptions, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
 func autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in *v1beta2.NodeRegistrationOptions, out *NodeRegistrationOptions, s conversion.Scope) error {
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
 	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
-	out.KubeletExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.KubeletExtraArgs))
+	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
-	out.ImagePullPolicy = in.ImagePullPolicy
+	out.ImagePullPolicy = string(in.ImagePullPolicy)
 	// WARNING: in.ImagePullSerial requires manual conversion: does not exist in peer-type
 	return nil
 }

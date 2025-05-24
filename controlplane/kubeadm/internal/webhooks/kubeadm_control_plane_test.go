@@ -333,11 +333,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					},
 				},
 				JoinConfiguration: &bootstrapv1.JoinConfiguration{
-					Discovery: bootstrapv1.Discovery{
-						Timeout: &metav1.Duration{
-							Duration: 10 * time.Minute,
-						},
-					},
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						Name: "test",
 					},
@@ -499,8 +494,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			},
 			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
 		},
-		TimeoutForControlPlane: &metav1.Duration{Duration: 5 * time.Minute},
-		CertSANs:               []string{"foo", "bar"},
+		CertSANs: []string{"foo", "bar"},
 	}
 
 	controllerManager := before.DeepCopy()

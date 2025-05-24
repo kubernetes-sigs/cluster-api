@@ -113,6 +113,10 @@ type InitConfiguration struct {
 	// "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
 	Patches *Patches `json:"patches,omitempty"`
+
+	// timeouts holds various timeouts that apply to kubeadm commands.
+	// +optional
+	Timeouts *Timeouts `json:"timeouts,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -240,10 +244,6 @@ type APIServer struct {
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
 	CertSANs []string `json:"certSANs,omitempty"`
-
-	// timeoutForControlPlane controls the timeout that we use for API server to appear
-	// +optional
-	TimeoutForControlPlane *metav1.Duration `json:"timeoutForControlPlane,omitempty"`
 }
 
 // DNS defines the DNS addon that should be used in the cluster.
@@ -605,6 +605,10 @@ type JoinConfiguration struct {
 	// "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
 	Patches *Patches `json:"patches,omitempty"`
+
+	// timeouts holds various timeouts that apply to kubeadm commands.
+	// +optional
+	Timeouts *Timeouts `json:"timeouts,omitempty"`
 }
 
 // JoinControlPlane contains elements describing an additional control plane instance to be deployed on the joining node.
@@ -633,10 +637,6 @@ type Discovery struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	TLSBootstrapToken string `json:"tlsBootstrapToken,omitempty"`
-
-	// timeout modifies the discovery timeout
-	// +optional
-	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 // BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery.
@@ -964,4 +964,43 @@ type Arg struct {
 // EnvVar represents an environment variable present in a Container.
 type EnvVar struct {
 	corev1.EnvVar `json:",inline"`
+}
+
+// Timeouts holds various timeouts that apply to kubeadm commands.
+type Timeouts struct {
+	// controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+	// component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+	// Default: 4m
+	// +optional
+	ControlPlaneComponentHealthCheckSeconds *int32 `json:"controlPlaneComponentHealthCheckSeconds,omitempty"`
+
+	// kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+	// during "kubeadm init" and "kubeadm join".
+	// Default: 4m
+	// +optional
+	KubeletHealthCheckSeconds *int32 `json:"kubeletHealthCheckSeconds,omitempty"`
+
+	// kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+	// the API server. This applies to all types of methods (GET, POST, etc).
+	// Default: 1m
+	// +optional
+	KubernetesAPICallSeconds *int32 `json:"kubernetesAPICallSeconds,omitempty"`
+
+	// etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+	// the etcd cluster.
+	// Default: 2m
+	// +optional
+	EtcdAPICallSeconds *int32 `json:"etcdAPICallSeconds,omitempty"`
+
+	// tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+	// for a joining node.
+	// Default: 5m
+	// +optional
+	TLSBootstrapSeconds *int32 `json:"tlsBootstrapSeconds,omitempty"`
+
+	// discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+	// for a joining node.
+	// Default: 5m
+	// +optional
+	DiscoverySeconds *int32 `json:"discoverySeconds,omitempty"`
 }

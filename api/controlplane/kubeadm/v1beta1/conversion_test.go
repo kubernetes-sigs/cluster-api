@@ -21,15 +21,23 @@ package v1beta1
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
@@ -52,7 +60,31 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmConfigSpec,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
 	}
+}
+
+func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
+	}
+}
+
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func spokeBootstrapTokenString(in *bootstrapv1beta1.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
@@ -92,9 +124,19 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Co
 	in.Ready = in.ReadyReplicas > 0
 }
 
-func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		spokeKubeadmConfigSpec,
+func spokeAPIServer(in *bootstrapv1beta1.APIServer, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutForControlPlane != nil {
+		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeDiscovery(in *bootstrapv1beta1.Discovery, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Timeout != nil {
+		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

@@ -378,7 +378,8 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
 		}
 
-		currentObj, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData)
+		initConfiguration := &bootstrapv1.InitConfiguration{}
+		currentObj, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData, initConfiguration)
 		if err != nil {
 			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
 		}
@@ -389,7 +390,7 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 		}
 
 		if !reflect.DeepEqual(currentObj, updatedObj) {
-			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version)
+			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(initConfiguration, updatedObj, version)
 			if err != nil {
 				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
 			}

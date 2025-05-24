@@ -654,7 +654,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
-      Patches:          nil,
+      ... // 2 identical fields
     },
     JoinConfiguration: nil,
     Files:             nil,
@@ -779,7 +779,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
       },
       CACertPath: "",
       Discovery:  {},
-      ... // 3 identical fields
+      ... // 4 identical fields
     },
     Files:     nil,
     DiskSetup: nil,
@@ -1026,7 +1026,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
-      Patches:          nil,
+      ... // 2 identical fields
     },
     JoinConfiguration: nil,
     Files:             nil,
@@ -1151,7 +1151,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
       },
       CACertPath: "",
       Discovery:  {},
-      ... // 3 identical fields
+      ... // 4 identical fields
     },
     Files:     nil,
     DiskSetup: nil,

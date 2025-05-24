@@ -3630,10 +3630,6 @@ spec:
                                       type: object
                                     maxItems: 100
                                     type: array
-                                  timeoutForControlPlane:
-                                    description: timeoutForControlPlane controls the
-                                      timeout that we use for API server to appear
-                                    type: string
                                 type: object
                               apiVersion:
                                 description: |-
@@ -4885,6 +4881,53 @@ spec:
                                   type: string
                                 maxItems: 50
                                 type: array
+                              timeouts:
+                                description: timeouts holds various timeouts that
+                                  apply to kubeadm commands.
+                                properties:
+                                  controlPlaneComponentHealthCheckSeconds:
+                                    description: |-
+                                      controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+                                      component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+                                      Default: 4m
+                                    format: int32
+                                    type: integer
+                                  discoverySeconds:
+                                    description: |-
+                                      discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+                                      for a joining node.
+                                      Default: 5m
+                                    format: int32
+                                    type: integer
+                                  etcdAPICallSeconds:
+                                    description: |-
+                                      etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+                                      the etcd cluster.
+                                      Default: 2m
+                                    format: int32
+                                    type: integer
+                                  kubeletHealthCheckSeconds:
+                                    description: |-
+                                      kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+                                      during "kubeadm init" and "kubeadm join".
+                                      Default: 4m
+                                    format: int32
+                                    type: integer
+                                  kubernetesAPICallSeconds:
+                                    description: |-
+                                      kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+                                      the API server. This applies to all types of methods (GET, POST, etc).
+                                      Default: 1m
+                                    format: int32
+                                    type: integer
+                                  tlsBootstrapSeconds:
+                                    description: |-
+                                      tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+                                      for a joining node.
+                                      Default: 5m
+                                    format: int32
+                                    type: integer
+                                type: object
                             type: object
                           joinConfiguration:
                             description: joinConfiguration is the kubeadm configuration
@@ -5149,9 +5192,6 @@ spec:
                                     required:
                                     - kubeConfigPath
                                     type: object
-                                  timeout:
-                                    description: timeout modifies the discovery timeout
-                                    type: string
                                   tlsBootstrapToken:
                                     description: |-
                                       tlsBootstrapToken is a token used for TLS bootstrapping.
@@ -5318,6 +5358,53 @@ spec:
                                   type: string
                                 maxItems: 50
                                 type: array
+                              timeouts:
+                                description: timeouts holds various timeouts that
+                                  apply to kubeadm commands.
+                                properties:
+                                  controlPlaneComponentHealthCheckSeconds:
+                                    description: |-
+                                      controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+                                      component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+                                      Default: 4m
+                                    format: int32
+                                    type: integer
+                                  discoverySeconds:
+                                    description: |-
+                                      discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+                                      for a joining node.
+                                      Default: 5m
+                                    format: int32
+                                    type: integer
+                                  etcdAPICallSeconds:
+                                    description: |-
+                                      etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+                                      the etcd cluster.
+                                      Default: 2m
+                                    format: int32
+                                    type: integer
+                                  kubeletHealthCheckSeconds:
+                                    description: |-
+                                      kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+                                      during "kubeadm init" and "kubeadm join".
+                                      Default: 4m
+                                    format: int32
+                                    type: integer
+                                  kubernetesAPICallSeconds:
+                                    description: |-
+                                      kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+                                      the API server. This applies to all types of methods (GET, POST, etc).
+                                      Default: 1m
+                                    format: int32
+                                    type: integer
+                                  tlsBootstrapSeconds:
+                                    description: |-
+                                      tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+                                      for a joining node.
+                                      Default: 5m
+                                    format: int32
+                                    type: integer
+                                type: object
                             type: object
                           mounts:
                             description: mounts specifies a list of mount points to

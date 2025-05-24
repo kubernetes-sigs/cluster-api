@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -56,16 +58,21 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &bootstrapv1.KubeadmConfig{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
-	MergeRestoredKubeadmConfigSpec(&dst.Spec, &restored.Spec)
-	dst.Status.Conditions = restored.Status.Conditions
+	if ok {
+		RestoreKubeadmConfigSpec(&dst.Spec, &restored.Spec)
+		dst.Status.Conditions = restored.Status.Conditions
+	}
 
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.ConvertTo(&dst.Spec)
 	return nil
 }
 
-func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *bootstrapv1.KubeadmConfigSpec) {
+func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *bootstrapv1.KubeadmConfigSpec) {
 	dst.Files = restored.Files
 
 	dst.Users = restored.Users
@@ -100,6 +107,7 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 		if dst.InitConfiguration == nil {
 			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
 		}
+		dst.InitConfiguration.Timeouts = restored.InitConfiguration.Timeouts
 		dst.InitConfiguration.Patches = restored.InitConfiguration.Patches
 		dst.InitConfiguration.SkipPhases = restored.InitConfiguration.SkipPhases
 
@@ -114,6 +122,7 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 		if dst.JoinConfiguration == nil {
 			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
+		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 		dst.JoinConfiguration.Patches = restored.JoinConfiguration.Patches
 		dst.JoinConfiguration.SkipPhases = restored.JoinConfiguration.SkipPhases
 
@@ -129,6 +138,32 @@ func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored
 
 		dst.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.JoinConfiguration.NodeRegistration.ImagePullPolicy
 		dst.JoinConfiguration.NodeRegistration.ImagePullSerial = restored.JoinConfiguration.NodeRegistration.ImagePullSerial
+	}
+}
+
+func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
+	// Override with timeouts values already existing in v1beta1.
+	if src.ClusterConfiguration != nil && src.ClusterConfiguration.APIServer.TimeoutForControlPlane != nil {
+		if dst.InitConfiguration == nil {
+			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
+		if dst.InitConfiguration.Timeouts == nil {
+			dst.InitConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = utilconversion.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
+	}
+	if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
+		if dst.JoinConfiguration == nil {
+			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		if dst.JoinConfiguration.Timeouts == nil {
+			dst.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = utilconversion.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
+	}
+
+	if reflect.DeepEqual(dst.ClusterConfiguration, &bootstrapv1.ClusterConfiguration{}) {
+		dst.ClusterConfiguration = nil
 	}
 }
 
@@ -159,8 +194,33 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.Ready = src.Status.Initialization.DataSecretCreated
 	}
 
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.ConvertFrom(&src.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata.
 	return utilconversion.MarshalData(src, dst)
+}
+
+func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
+	// Convert timeouts moved from one struct to another.
+	if src.InitConfiguration != nil && src.InitConfiguration.Timeouts != nil && src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+		if dst.ClusterConfiguration == nil {
+			dst.ClusterConfiguration = &ClusterConfiguration{}
+		}
+		dst.ClusterConfiguration.APIServer.TimeoutForControlPlane = utilconversion.ConvertFromSeconds(src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	}
+	if reflect.DeepEqual(dst.InitConfiguration, &InitConfiguration{}) {
+		dst.InitConfiguration = nil
+	}
+	if src.JoinConfiguration != nil && src.JoinConfiguration.Timeouts != nil && src.JoinConfiguration.Timeouts.TLSBootstrapSeconds != nil {
+		if dst.JoinConfiguration == nil {
+			dst.JoinConfiguration = &JoinConfiguration{}
+		}
+		dst.JoinConfiguration.Discovery.Timeout = utilconversion.ConvertFromSeconds(src.JoinConfiguration.Timeouts.TLSBootstrapSeconds)
+	}
+	if reflect.DeepEqual(dst.JoinConfiguration, &JoinConfiguration{}) {
+		dst.JoinConfiguration = nil
+	}
 }
 
 func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -172,14 +232,17 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &bootstrapv1.KubeadmConfigTemplate{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
+	if ok {
+		RestoreKubeadmConfigSpec(&dst.Spec.Template.Spec, &restored.Spec.Template.Spec)
+		dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	}
 
-	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-
-	MergeRestoredKubeadmConfigSpec(&dst.Spec.Template.Spec, &restored.Spec.Template.Spec)
-
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.Template.Spec.ConvertTo(&dst.Spec.Template.Spec)
 	return nil
 }
 
@@ -189,6 +252,10 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1beta2_KubeadmConfigTemplate_To_v1alpha4_KubeadmConfigTemplate(src, dst, nil); err != nil {
 		return err
 	}
+
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.Template.Spec.ConvertFrom(&src.Spec.Template.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata.
 	return utilconversion.MarshalData(src, dst)
 }
@@ -277,6 +344,16 @@ func Convert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstr
 func Convert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	out.KubeletExtraArgs = utilconversion.ConvertToArgs(in.KubeletExtraArgs)
 	return autoConvert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
+}
+
+func Convert_v1alpha4_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
+	// TimeoutForControlPlane has been removed in v1beta2
+	return autoConvert_v1alpha4_APIServer_To_v1beta2_APIServer(in, out, s)
+}
+
+func Convert_v1alpha4_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
+	// Timeout has been removed in v1beta2
+	return autoConvert_v1alpha4_Discovery_To_v1beta2_Discovery(in, out, s)
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

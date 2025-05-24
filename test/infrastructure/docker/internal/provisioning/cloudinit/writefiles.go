@@ -85,15 +85,14 @@ func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) 
 			if len(contentSplit) != 3 {
 				return errors.Errorf("invalid kubeadm config file, unable to parse it")
 			}
-			clusterConfiguration := &bootstrapv1.ClusterConfiguration{}
-			initConfiguration, err := kubeadmtypes.UnmarshalInitConfiguration(contentSplit[2], clusterConfiguration)
+			initConfiguration, err := kubeadmtypes.UnmarshalInitConfiguration(contentSplit[2])
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse init configuration")
 			}
 
 			fixNodeRegistration(&initConfiguration.NodeRegistration, kindMapping)
 
-			contentSplit[2], err = kubeadmtypes.MarshalInitConfigurationForVersion(clusterConfiguration, initConfiguration, kindMapping.KubernetesVersion)
+			contentSplit[2], err = kubeadmtypes.MarshalInitConfigurationForVersion(initConfiguration, kindMapping.KubernetesVersion)
 			if err != nil {
 				return errors.Wrapf(err, "failed to marshal init configuration")
 			}
@@ -101,15 +100,14 @@ func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) 
 		}
 		if f.Path == kubeadmJoinPath {
 			// NOTE: in case of join the kubeadmConfigFile contains only the join Configuration
-			clusterConfiguration := &bootstrapv1.ClusterConfiguration{}
-			joinConfiguration, err := kubeadmtypes.UnmarshalJoinConfiguration(f.Content, clusterConfiguration)
+			joinConfiguration, err := kubeadmtypes.UnmarshalJoinConfiguration(f.Content)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse join configuration")
 			}
 
 			fixNodeRegistration(&joinConfiguration.NodeRegistration, kindMapping)
 
-			a.Files[i].Content, err = kubeadmtypes.MarshalJoinConfigurationForVersion(clusterConfiguration, joinConfiguration, kindMapping.KubernetesVersion)
+			a.Files[i].Content, err = kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, kindMapping.KubernetesVersion)
 			if err != nil {
 				return errors.Wrapf(err, "failed to marshal join configuration")
 			}

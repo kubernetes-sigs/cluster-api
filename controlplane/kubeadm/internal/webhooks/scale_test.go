@@ -91,11 +91,6 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 					},
 				},
 				JoinConfiguration: &bootstrapv1.JoinConfiguration{
-					Discovery: bootstrapv1.Discovery{
-						Timeout: &metav1.Duration{
-							Duration: 10 * time.Minute,
-						},
-					},
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						Name: "kcp-managed-etcd",
 					},

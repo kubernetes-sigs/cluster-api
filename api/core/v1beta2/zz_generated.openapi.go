@@ -3206,6 +3206,20 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckClass(ref common.Refe
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.",
@@ -3235,7 +3249,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckClass(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3512,6 +3526,20 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckTopology(ref common.R
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 					"maxUnhealthy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "maxUnhealthy specifies the maximum number of unhealthy machines allowed. Any further remediation is only allowed if at most \"maxUnhealthy\" machines selected by \"selector\" are not healthy.",
@@ -3541,7 +3569,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckTopology(ref common.R
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 

@@ -523,11 +523,12 @@ func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *cl
 			Namespace: namepace,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			NodeStartupTimeout:      m.NodeStartupTimeout,
-			MaxUnhealthy:            m.MaxUnhealthy,
-			UnhealthyNodeConditions: m.UnhealthyNodeConditions,
-			UnhealthyRange:          m.UnhealthyRange,
-			RemediationTemplate:     m.RemediationTemplate,
+			NodeStartupTimeout:         m.NodeStartupTimeout,
+			MaxUnhealthy:               m.MaxUnhealthy,
+			UnhealthyNodeConditions:    m.UnhealthyNodeConditions,
+			UnhealthyMachineConditions: m.UnhealthyMachineConditions,
+			UnhealthyRange:             m.UnhealthyRange,
+			RemediationTemplate:        m.RemediationTemplate,
 		}}
 
 	return (&MachineHealthCheck{}).validateCommonFields(&mhc, fldPath)

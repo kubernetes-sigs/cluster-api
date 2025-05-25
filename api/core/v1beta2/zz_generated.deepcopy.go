@@ -1891,6 +1891,11 @@ func (in *MachineHealthCheckClass) DeepCopyInto(out *MachineHealthCheckClass) {
 		*out = make([]UnhealthyNodeCondition, len(*in))
 		copy(*out, *in)
 	}
+	if in.UnhealthyMachineConditions != nil {
+		in, out := &in.UnhealthyMachineConditions, &out.UnhealthyMachineConditions
+		*out = make([]UnhealthyMachineCondition, len(*in))
+		copy(*out, *in)
+	}
 	if in.MaxUnhealthy != nil {
 		in, out := &in.MaxUnhealthy, &out.MaxUnhealthy
 		*out = new(intstr.IntOrString)

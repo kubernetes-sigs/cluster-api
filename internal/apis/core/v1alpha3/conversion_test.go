@@ -236,12 +236,23 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
 
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubMachineHealthCheckSpec,
 		hubMachineHealthCheckStatus,
+	}
+}
+
+func hubMachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.UnhealthyMachineConditions != nil {
+		in.UnhealthyMachineConditions = nil
 	}
 }
 
 func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
+
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {

@@ -75,6 +75,7 @@ func TestFuzzyConversion(t *testing.T) {
 
 func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubClusterSpec,
 		hubClusterStatus,
 		spokeClusterTopology,
 		spokeClusterStatus,
@@ -95,6 +96,21 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 	if in.Initialization != nil {
 		if reflect.DeepEqual(in.Initialization, &clusterv1.ClusterInitializationStatus{}) {
 			in.Initialization = nil
+		}
+	}
+}
+
+func hubClusterSpec(in *clusterv1.ClusterSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// remove MachineHealthCheck.UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.Topology != nil && in.Topology.ControlPlane.MachineHealthCheck != nil {
+		in.Topology.ControlPlane.MachineHealthCheck.UnhealthyMachineConditions = nil
+	}
+
+	if in.Topology != nil && in.Topology.Workers != nil && len(in.Topology.Workers.MachineDeployments) > 0 {
+		for i := range in.Topology.Workers.MachineDeployments {
+			in.Topology.Workers.MachineDeployments[i].MachineHealthCheck = nil
 		}
 	}
 }
@@ -129,6 +145,22 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubJSONSchemaProps,
 		spokeClusterClassStatus,
 		spokeJSONSchemaProps,
+		hubClusterClassSpec,
+	}
+}
+
+func hubClusterClassSpec(in *clusterv1.ClusterClassSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// remove MachineHealthCheck.UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.ControlPlane.MachineHealthCheck != nil && in.ControlPlane.MachineHealthCheck.UnhealthyMachineConditions != nil {
+		in.ControlPlane.MachineHealthCheck.UnhealthyMachineConditions = nil
+	}
+
+	if len(in.Workers.MachineDeployments) > 0 {
+		for i := range in.Workers.MachineDeployments {
+			in.Workers.MachineDeployments[i].MachineHealthCheck = nil
+		}
 	}
 }
 
@@ -348,13 +380,24 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubMachineHealthCheckSpec,
 		hubMachineHealthCheckStatus,
 		spokeMachineHealthCheckStatus,
 	}
 }
 
+func hubMachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.UnhealthyMachineConditions != nil {
+		in.UnhealthyMachineConditions = nil
+	}
+}
+
 func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
+
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {

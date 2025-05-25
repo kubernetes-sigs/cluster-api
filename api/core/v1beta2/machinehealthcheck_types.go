@@ -165,13 +165,13 @@ type UnhealthyMachineCondition struct {
 	// type of Node condition
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=316
 	// +required
 	Type string `json:"type"`
 
 	// status of the condition, one of True, False, Unknown.
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:Enum=True;False;Unknown
 	Status metav1.ConditionStatus `json:"status"`
 
 	// timeout is the duration that a node must be in a given status for,

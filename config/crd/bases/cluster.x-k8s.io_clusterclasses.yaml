@@ -2984,7 +2984,10 @@ spec:
                             status:
                               description: status of the condition, one of True, False,
                                 Unknown.
-                              minLength: 1
+                              enum:
+                              - "True"
+                              - "False"
+                              - Unknown
                               type: string
                             timeout:
                               description: |-
@@ -2995,6 +2998,7 @@ spec:
                               type: string
                             type:
                               description: type of Node condition
+                              maxLength: 316
                               minLength: 1
                               type: string
                           required:
@@ -4080,7 +4084,10 @@ spec:
                                   status:
                                     description: status of the condition, one of True,
                                       False, Unknown.
-                                    minLength: 1
+                                    enum:
+                                    - "True"
+                                    - "False"
+                                    - Unknown
                                     type: string
                                   timeout:
                                     description: |-
@@ -4091,6 +4098,7 @@ spec:
                                     type: string
                                   type:
                                     description: type of Node condition
+                                    maxLength: 316
                                     minLength: 1
                                     type: string
                                 required:

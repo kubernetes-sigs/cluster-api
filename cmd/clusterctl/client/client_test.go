@@ -145,10 +145,6 @@ func (f fakeClient) RolloutResume(ctx context.Context, options RolloutResumeOpti
 	return f.internalClient.RolloutResume(ctx, options)
 }
 
-func (f fakeClient) TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*cluster.TopologyPlanOutput, error) {
-	return f.internalClient.TopologyPlan(ctx, options)
-}
-
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(ctx context.Context, configClient config.Client) *fakeClient {
@@ -320,10 +316,6 @@ func (f *fakeClusterClient) Template() cluster.TemplateClient {
 
 func (f *fakeClusterClient) WorkloadCluster() cluster.WorkloadCluster {
 	return f.internalclient.WorkloadCluster()
-}
-
-func (f *fakeClusterClient) Topology() cluster.TopologyClient {
-	return f.internalclient.Topology()
 }
 
 func (f *fakeClusterClient) WithObjs(objs ...client.Object) *fakeClusterClient {

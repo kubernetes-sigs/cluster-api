@@ -41,7 +41,6 @@ import (
 
 const (
 	namespaceKind                      = "Namespace"
-	clusterRoleKind                    = "ClusterRole"
 	clusterRoleBindingKind             = "ClusterRoleBinding"
 	roleBindingKind                    = "RoleBinding"
 	certificateKind                    = "Certificate"

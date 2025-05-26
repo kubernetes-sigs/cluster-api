@@ -231,7 +231,7 @@ linters:
     # should be removed as the referenced deprecated item is removed from the project.
       - linters:
           - staticcheck
-        text: 'SA1019: (bootstrapv1.ClusterStatus|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|dockerMachine.Spec.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition|out).DeprecatedV1Beta1Metadata) is deprecated'
+        text: 'SA1019: (bootstrapv1.ClusterStatus|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|dockerMachine.Spec.Backend.Docker.Bootstrapped|dockerMachine.Spec.Bootstrapped|devMachine.Spec.Backend.Docker.Bootstrapped|clusterv1.ClusterClassVariableMetadata|clusterv1beta1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition|out).DeprecatedV1Beta1Metadata) is deprecated'
         # Deprecations for MHC MaxUnhealthy, UnhealthyRange
       - linters:
           - staticcheck

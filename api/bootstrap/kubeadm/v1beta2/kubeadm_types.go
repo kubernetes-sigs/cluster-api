@@ -215,10 +215,12 @@ type ControlPlaneComponent struct {
 	// The arg name must match be the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="extraArgs name must be unique"
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
 	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
@@ -331,14 +333,16 @@ type NodeRegistrationOptions struct {
 	// The arg name must match be the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="kubeletExtraArgs name must be unique"
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="kubeletExtraArgs name must be unique"
 	KubeletExtraArgs []Arg `json:"kubeletExtraArgs,omitempty"`
 
 	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
-	//	// Value 'all' ignores errors from all checks.
+	// Value 'all' ignores errors from all checks.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
@@ -956,7 +960,7 @@ type Arg struct {
 
 	// value is the Value of the extraArg.
 	// +required
-	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=1024
 	Value string `json:"value"`
 }

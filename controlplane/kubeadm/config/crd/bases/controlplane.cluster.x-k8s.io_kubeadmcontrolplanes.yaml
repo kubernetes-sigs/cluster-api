@@ -5085,7 +5085,7 @@ spec:
                                 value:
                                   description: value is the Value of the extraArg.
                                   maxLength: 1024
-                                  minLength: 1
+                                  minLength: 0
                                   type: string
                               required:
                               - name
@@ -5094,10 +5094,13 @@ spec:
                             maxItems: 100
                             minItems: 1
                             type: array
-                            x-kubernetes-list-type: atomic
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - value
+                            x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: extraArgs name must be unique
-                              rule: self.all(x, self.exists_one(y, x == y))
+                              rule: self.all(x, self.exists_one(y, x.name == y.name))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -5321,7 +5324,7 @@ spec:
                                 value:
                                   description: value is the Value of the extraArg.
                                   maxLength: 1024
-                                  minLength: 1
+                                  minLength: 0
                                   type: string
                               required:
                               - name
@@ -5330,10 +5333,13 @@ spec:
                             maxItems: 100
                             minItems: 1
                             type: array
-                            x-kubernetes-list-type: atomic
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - value
+                            x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: extraArgs name must be unique
-                              rule: self.all(x, self.exists_one(y, x == y))
+                              rule: self.all(x, self.exists_one(y, x.name == y.name))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -5594,7 +5600,7 @@ spec:
                                     value:
                                       description: value is the Value of the extraArg.
                                       maxLength: 1024
-                                      minLength: 1
+                                      minLength: 0
                                       type: string
                                   required:
                                   - name
@@ -5854,7 +5860,7 @@ spec:
                                 value:
                                   description: value is the Value of the extraArg.
                                   maxLength: 1024
-                                  minLength: 1
+                                  minLength: 0
                                   type: string
                               required:
                               - name
@@ -5863,10 +5869,13 @@ spec:
                             maxItems: 100
                             minItems: 1
                             type: array
-                            x-kubernetes-list-type: atomic
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - value
+                            x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: extraArgs name must be unique
-                              rule: self.all(x, self.exists_one(y, x == y))
+                              rule: self.all(x, self.exists_one(y, x.name == y.name))
                           extraEnvs:
                             description: |-
                               extraEnvs is an extra set of environment variables to pass to the control plane component.
@@ -6347,10 +6356,9 @@ spec:
                             minLength: 1
                             type: string
                           ignorePreflightErrors:
-                            description: "ignorePreflightErrors provides a slice of
-                              pre-flight errors to be ignored when the current node
-                              is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t// Value
-                              'all' ignores errors from all checks."
+                            description: |-
+                              ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
+                              Value 'all' ignores errors from all checks.
                             items:
                               maxLength: 512
                               minLength: 1
@@ -6392,7 +6400,7 @@ spec:
                                 value:
                                   description: value is the Value of the extraArg.
                                   maxLength: 1024
-                                  minLength: 1
+                                  minLength: 0
                                   type: string
                               required:
                               - name
@@ -6401,10 +6409,13 @@ spec:
                             maxItems: 100
                             minItems: 1
                             type: array
-                            x-kubernetes-list-type: atomic
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - value
+                            x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: kubeletExtraArgs name must be unique
-                              rule: self.all(x, self.exists_one(y, x == y))
+                              rule: self.all(x, self.exists_one(y, x.name == y.name))
                           name:
                             description: |-
                               name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -6819,10 +6830,9 @@ spec:
                             minLength: 1
                             type: string
                           ignorePreflightErrors:
-                            description: "ignorePreflightErrors provides a slice of
-                              pre-flight errors to be ignored when the current node
-                              is registered, e.g. 'IsPrivilegedUser,Swap'.\n\t// Value
-                              'all' ignores errors from all checks."
+                            description: |-
+                              ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
+                              Value 'all' ignores errors from all checks.
                             items:
                               maxLength: 512
                               minLength: 1
@@ -6864,7 +6874,7 @@ spec:
                                 value:
                                   description: value is the Value of the extraArg.
                                   maxLength: 1024
-                                  minLength: 1
+                                  minLength: 0
                                   type: string
                               required:
                               - name
@@ -6873,10 +6883,13 @@ spec:
                             maxItems: 100
                             minItems: 1
                             type: array
-                            x-kubernetes-list-type: atomic
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - value
+                            x-kubernetes-list-type: map
                             x-kubernetes-validations:
                             - message: kubeletExtraArgs name must be unique
-                              rule: self.all(x, self.exists_one(y, x == y))
+                              rule: self.all(x, self.exists_one(y, x.name == y.name))
                           name:
                             description: |-
                               name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.

@@ -126,7 +126,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	if src.Status.Initialization != nil {
 		dst.Status.Initialized = src.Status.Initialization.ControlPlaneInitialized
 	}
-	dst.Status.Ready = src.Status.Deprecated.V1Beta1.ReadyReplicas > 0
+	dst.Status.Ready = dst.Status.ReadyReplicas > 0
 
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {

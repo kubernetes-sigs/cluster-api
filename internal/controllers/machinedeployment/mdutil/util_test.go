@@ -1019,7 +1019,7 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 			want: map[string]string{
 				"key1":                              "value1",
 				clusterv1.RevisionAnnotation:        "3",
-				clusterv1.RevisionHistoryAnnotation: "1",
+				revisionHistoryAnnotation:           "1",
 				clusterv1.DesiredReplicasAnnotation: "3",
 				clusterv1.MaxReplicasAnnotation:     "4",
 			},
@@ -1052,7 +1052,7 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 			want: map[string]string{
 				"key1":                              "value1",
 				clusterv1.RevisionAnnotation:        "5",
-				clusterv1.RevisionHistoryAnnotation: "1,2",
+				revisionHistoryAnnotation:           "1,2",
 				clusterv1.DesiredReplicasAnnotation: "3",
 				clusterv1.MaxReplicasAnnotation:     "4",
 			},
@@ -1083,7 +1083,7 @@ func machineSetWithRevisionAndHistory(revision string, revisionHistory string) *
 		},
 	}
 	if revisionHistory != "" {
-		ms.Annotations[clusterv1.RevisionHistoryAnnotation] = revisionHistory
+		ms.Annotations[revisionHistoryAnnotation] = revisionHistory
 	}
 	return ms
 }

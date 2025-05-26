@@ -100,10 +100,6 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	}
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.RevisionHistoryLimit == nil {
-		m.Spec.RevisionHistoryLimit = ptr.To[int32](1)
-	}
-
 	if m.Spec.Selector.MatchLabels == nil {
 		m.Spec.Selector.MatchLabels = make(map[string]string)
 	}

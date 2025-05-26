@@ -251,6 +251,9 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 
 	// Drop ProgressDeadlineSeconds as we intentionally don't preserve it.
 	in.ProgressDeadlineSeconds = nil
+
+	// Drop RevisionHistoryLimit as we intentionally don't preserve it.
+	in.RevisionHistoryLimit = nil
 }
 
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

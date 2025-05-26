@@ -81,7 +81,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 	if in.Initialization != nil {
 		out.Initialized = in.Initialization.ControlPlaneInitialized
 	}
-	out.Ready = in.Deprecated.V1Beta1.ReadyReplicas > 0
+	out.Ready = out.ReadyReplicas > 0
 
 	// Move new conditions (v1beta2) and replica counter to the v1beta2 field.
 	if in.Conditions == nil && in.ReadyReplicas == nil && in.AvailableReplicas == nil && in.UpToDateReplicas == nil {

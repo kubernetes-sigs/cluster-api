@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
@@ -43,8 +43,9 @@ var (
 
 func init() {
 	_ = infrav1.AddToScheme(testScheme)
-	_ = controlplanev1.AddToScheme(testScheme)
-	_ = bootstrapv1.AddToScheme(testScheme)
+	_ = infraexpv1.AddToScheme(testScheme)
+	_ = controlplanev1beta1.AddToScheme(testScheme)
+	_ = bootstrapv1beta1.AddToScheme(testScheme)
 }
 
 func Test_patchDockerClusterTemplate(t *testing.T) {
@@ -102,21 +103,21 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *controlplanev1.KubeadmControlPlaneTemplate
+		template         *controlplanev1beta1.KubeadmControlPlaneTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *controlplanev1.KubeadmControlPlaneTemplate
+		expectedTemplate *controlplanev1beta1.KubeadmControlPlaneTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "fails if builtin.controlPlane.version is not set",
-			template:         &controlplanev1.KubeadmControlPlaneTemplate{},
+			template:         &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 			variables:        nil,
-			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{},
+			expectedTemplate: &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "sets KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24",
-			template: &controlplanev1.KubeadmControlPlaneTemplate{},
+			template: &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -124,28 +125,22 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
-				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
-					Template: controlplanev1.KubeadmControlPlaneTemplateResource{
-						Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-							KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-								InitConfiguration: &bootstrapv1.InitConfiguration{
-									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{
-											{
-												Name:  "cgroup-driver",
-												Value: "cgroupfs",
-											},
+			expectedTemplate: &controlplanev1beta1.KubeadmControlPlaneTemplate{
+				Spec: controlplanev1beta1.KubeadmControlPlaneTemplateSpec{
+					Template: controlplanev1beta1.KubeadmControlPlaneTemplateResource{
+						Spec: controlplanev1beta1.KubeadmControlPlaneTemplateResourceSpec{
+							KubeadmConfigSpec: bootstrapv1beta1.KubeadmConfigSpec{
+								InitConfiguration: &bootstrapv1beta1.InitConfiguration{
+									NodeRegistration: bootstrapv1beta1.NodeRegistrationOptions{
+										KubeletExtraArgs: map[string]string{
+											"cgroup-driver": "cgroupfs",
 										},
 									},
 								},
-								JoinConfiguration: &bootstrapv1.JoinConfiguration{
-									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{
-											{
-												Name:  "cgroup-driver",
-												Value: "cgroupfs",
-											},
+								JoinConfiguration: &bootstrapv1beta1.JoinConfiguration{
+									NodeRegistration: bootstrapv1beta1.NodeRegistrationOptions{
+										KubeletExtraArgs: map[string]string{
+											"cgroup-driver": "cgroupfs",
 										},
 									},
 								},
@@ -157,7 +152,7 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		},
 		{
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24",
-			template: &controlplanev1.KubeadmControlPlaneTemplate{},
+			template: &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -165,11 +160,11 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{},
+			expectedTemplate: &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 		},
 		{
 			name:     "sets RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided",
-			template: &controlplanev1.KubeadmControlPlaneTemplate{},
+			template: &controlplanev1beta1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -178,12 +173,12 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 				})},
 				"kubeadmControlPlaneMaxSurge": {Raw: toJSON("1")},
 			},
-			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
-				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
-					Template: controlplanev1.KubeadmControlPlaneTemplateResource{
-						Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-							RolloutStrategy: &controlplanev1.RolloutStrategy{
-								RollingUpdate: &controlplanev1.RollingUpdate{MaxSurge: &intstr.IntOrString{IntVal: 1}},
+			expectedTemplate: &controlplanev1beta1.KubeadmControlPlaneTemplate{
+				Spec: controlplanev1beta1.KubeadmControlPlaneTemplateSpec{
+					Template: controlplanev1beta1.KubeadmControlPlaneTemplateResource{
+						Spec: controlplanev1beta1.KubeadmControlPlaneTemplateResourceSpec{
+							RolloutStrategy: &controlplanev1beta1.RolloutStrategy{
+								RollingUpdate: &controlplanev1beta1.RollingUpdate{MaxSurge: &intstr.IntOrString{IntVal: 1}},
 							},
 						},
 					},
@@ -209,21 +204,21 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *bootstrapv1.KubeadmConfigTemplate
+		template         *bootstrapv1beta1.KubeadmConfigTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *bootstrapv1.KubeadmConfigTemplate
+		expectedTemplate *bootstrapv1beta1.KubeadmConfigTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "fails if builtin variable is not set",
-			template:         &bootstrapv1.KubeadmConfigTemplate{},
+			template:         &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables:        nil,
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "no op for MachineDeployment class != default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
@@ -231,11 +226,11 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 		},
 		{
 			name:     "fails if builtin.machineDeployment.version is not set for MachineDeployment class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
@@ -243,12 +238,12 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachineDeployment class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
@@ -257,17 +252,14 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{
-				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
-					Template: bootstrapv1.KubeadmConfigTemplateResource{
-						Spec: bootstrapv1.KubeadmConfigSpec{
-							JoinConfiguration: &bootstrapv1.JoinConfiguration{
-								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-									KubeletExtraArgs: []bootstrapv1.Arg{
-										{
-											Name:  "cgroup-driver",
-											Value: "cgroupfs",
-										},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{
+				Spec: bootstrapv1beta1.KubeadmConfigTemplateSpec{
+					Template: bootstrapv1beta1.KubeadmConfigTemplateResource{
+						Spec: bootstrapv1beta1.KubeadmConfigSpec{
+							JoinConfiguration: &bootstrapv1beta1.JoinConfiguration{
+								NodeRegistration: bootstrapv1beta1.NodeRegistrationOptions{
+									KubeletExtraArgs: map[string]string{
+										"cgroup-driver": "cgroupfs",
 									},
 								},
 							},
@@ -278,7 +270,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		},
 		{
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachineDeployment class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
@@ -287,11 +279,11 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 		},
 		{
 			name:     "no op for MachinePool class != default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
@@ -299,11 +291,11 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 		},
 		{
 			name:     "fails if builtin.machinePool.version is not set for MachinePool class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
@@ -311,12 +303,12 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachinePool class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
@@ -325,17 +317,14 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{
-				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
-					Template: bootstrapv1.KubeadmConfigTemplateResource{
-						Spec: bootstrapv1.KubeadmConfigSpec{
-							JoinConfiguration: &bootstrapv1.JoinConfiguration{
-								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-									KubeletExtraArgs: []bootstrapv1.Arg{
-										{
-											Name:  "cgroup-driver",
-											Value: "cgroupfs",
-										},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{
+				Spec: bootstrapv1beta1.KubeadmConfigTemplateSpec{
+					Template: bootstrapv1beta1.KubeadmConfigTemplateResource{
+						Spec: bootstrapv1beta1.KubeadmConfigSpec{
+							JoinConfiguration: &bootstrapv1beta1.JoinConfiguration{
+								NodeRegistration: bootstrapv1beta1.NodeRegistrationOptions{
+									KubeletExtraArgs: map[string]string{
+										"cgroup-driver": "cgroupfs",
 									},
 								},
 							},
@@ -346,7 +335,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		},
 		{
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachinePool class == default-worker",
-			template: &bootstrapv1.KubeadmConfigTemplate{},
+			template: &bootstrapv1beta1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
@@ -355,7 +344,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedTemplate: &bootstrapv1beta1.KubeadmConfigTemplate{},
 		},
 	}
 	for _, tt := range tests {
@@ -504,7 +493,7 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 // NOTE: custom RuntimeExtension must test specif logic added to GeneratePatches, if any.
 func TestHandler_GeneratePatches(t *testing.T) {
 	g := NewWithT(t)
-	h := NewExtensionHandlers(testScheme)
+	h := NewExtensionHandlers()
 	controlPlaneVarsV123WithMaxSurge := []runtimehooksv1.Variable{
 		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
 			ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -532,10 +521,10 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			},
 		}),
 	}
-	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
+	kubeadmControlPlaneTemplate := controlplanev1beta1.KubeadmControlPlaneTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlaneTemplate",
-			APIVersion: controlplanev1.GroupVersion.String(),
+			APIVersion: controlplanev1beta1.GroupVersion.String(),
 		},
 	}
 	dockerMachineTemplate := infrav1.DockerMachineTemplate{
@@ -556,10 +545,10 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 	}
-	kubeadmConfigTemplate := bootstrapv1.KubeadmConfigTemplate{
+	kubeadmConfigTemplate := bootstrapv1beta1.KubeadmConfigTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmConfigTemplate",
-			APIVersion: bootstrapv1.GroupVersion.String(),
+			APIVersion: bootstrapv1beta1.GroupVersion.String(),
 		},
 	}
 	tests := []struct {
@@ -583,8 +572,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":[{"name":"cgroup-driver", "value":"cgroupfs"}]}}},
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":[{"name":"cgroup-driver", "value":"cgroupfs"}]}}},
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
 {"op":"add","path":"/spec/template/spec/rolloutStrategy","value":{"rollingUpdate":{"maxSurge":3}}}
 ]`),
 					responseItem("2", `[
@@ -598,10 +587,10 @@ func TestHandler_GeneratePatches(t *testing.T) {
 {"op":"add","path":"/spec/template/spec/loadBalancer/imageRepository","value":"docker.io"}
 ]`),
 					responseItem("5", `[
-{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":[{"name":"cgroup-driver", "value":"cgroupfs"}]}}}
+{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
 ]`),
 					responseItem("6", `[
-{"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
+{"op":"add","path":"/spec/template/spec/template/customImage","value":"kindest/node:v1.23.0"}
 ]`),
 				},
 			},

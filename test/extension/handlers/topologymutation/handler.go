@@ -33,8 +33,8 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
@@ -61,13 +61,18 @@ type ExtensionHandlers struct {
 }
 
 // NewExtensionHandlers returns a new ExtensionHandlers for the topology mutation hook handlers.
-func NewExtensionHandlers(scheme *runtime.Scheme) *ExtensionHandlers {
+func NewExtensionHandlers() *ExtensionHandlers {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = infraexpv1.AddToScheme(scheme)
+	_ = bootstrapv1beta1.AddToScheme(scheme)
+	_ = controlplanev1beta1.AddToScheme(scheme)
 	return &ExtensionHandlers{
 		// Add the apiGroups being handled to the decoder
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
 			infrav1.GroupVersion,
-			controlplanev1.GroupVersion,
-			bootstrapv1.GroupVersion,
+			bootstrapv1beta1.GroupVersion,
+			controlplanev1beta1.GroupVersion,
 		),
 	}
 }
@@ -93,13 +98,13 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching DockerClusterTemplate")
 				return errors.Wrap(err, "error patching DockerClusterTemplate")
 			}
-		case *controlplanev1.KubeadmControlPlaneTemplate:
+		case *controlplanev1beta1.KubeadmControlPlaneTemplate:
 			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables)
 			if err != nil {
 				log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 				return errors.Wrapf(err, "error patching KubeadmControlPlaneTemplate")
 			}
-		case *bootstrapv1.KubeadmConfigTemplate:
+		case *bootstrapv1beta1.KubeadmConfigTemplate:
 			// NOTE: KubeadmConfigTemplate could be linked to one or more of the existing MachineDeployment class;
 			// the patchKubeadmConfigTemplate func shows how to implement patches only for KubeadmConfigTemplates
 			// linked to a specific MachineDeployment class; another option is to check the holderRef value and call
@@ -124,7 +129,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			}
 		}
 		return nil
-	})
+	}, topologymutation.FailForUnknownTypes{})
 }
 
 // patchDockerClusterTemplate patches the DockerClusterTemplate.
@@ -151,7 +156,7 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
 // NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
 // as example of version aware patches.
-func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1beta1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// 1) If the Kubernetes version from builtin.controlPlane.version is below 1.24.0 set "cgroup-driver": "cgroupfs" to
@@ -175,21 +180,21 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 		log.Info(fmt.Sprintf("Setting KubeadmControlPlaneTemplate cgroup-driver to %q", cgroupDriverCgroupfs))
 		// Set the cgroupDriver in the InitConfiguration.
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1beta1.InitConfiguration{}
 		}
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
+		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
 
 		// Set the cgroupDriver in the JoinConfiguration.
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
 		}
 		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
+		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
 	}
 
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
@@ -206,10 +211,10 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 	kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
 	log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
 	if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1.RolloutStrategy{}
+		kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1beta1.RolloutStrategy{}
 	}
 	if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
+		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1beta1.RollingUpdate{}
 	}
 	kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
 	return nil
@@ -220,7 +225,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 // to cgroupfs for Kubernetes < 1.24; this patch is required for tests to work with older kind images.
 // NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
 // as example of version aware patches.
-func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1beta1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Only patch the customImage if this DockerMachineTemplate belongs to a MachineDeployment or MachinePool with class "default-class"
@@ -265,12 +270,13 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 
 			// Set the cgroupDriver in the JoinConfiguration.
 			if k.Spec.Template.Spec.JoinConfiguration == nil {
-				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
 			}
 			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
+				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 			}
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
+
+			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
 		}
 	}
 
@@ -298,33 +304,17 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 
 			// Set the cgroupDriver in the JoinConfiguration.
 			if k.Spec.Template.Spec.JoinConfiguration == nil {
-				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
 			}
 			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = []bootstrapv1.Arg{}
+				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 			}
 
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = appendOrReplaceArg(k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, "cgroup-driver", cgroupDriverCgroupfs)
+			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
 		}
 	}
 
 	return nil
-}
-
-func appendOrReplaceArg(args []bootstrapv1.Arg, name, value string) []bootstrapv1.Arg {
-	ret := make([]bootstrapv1.Arg, len(args))
-	found := false
-	for i := range args {
-		ret[i] = args[i]
-		if args[i].Name == name {
-			ret[i].Value = value
-			found = true
-		}
-	}
-	if !found {
-		ret = append(ret, bootstrapv1.Arg{Name: name, Value: value})
-	}
-	return ret
 }
 
 // patchDockerMachineTemplate patches the DockerMachineTemplate.

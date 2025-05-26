@@ -143,6 +143,7 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 
 func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 	// Override with timeouts values already existing in v1beta1.
+	var initControlPlaneComponentHealthCheckSeconds *int32
 	if src.ClusterConfiguration != nil && src.ClusterConfiguration.APIServer.TimeoutForControlPlane != nil {
 		if dst.InitConfiguration == nil {
 			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
@@ -151,15 +152,19 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 			dst.InitConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 		}
 		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = utilconversion.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
+		initControlPlaneComponentHealthCheckSeconds = dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
 	}
-	if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
+	if (src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
 		if dst.JoinConfiguration == nil {
 			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		if dst.JoinConfiguration.Timeouts == nil {
 			dst.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = utilconversion.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
+		dst.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
+		if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
+			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = utilconversion.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
+		}
 	}
 
 	if reflect.DeepEqual(dst.ClusterConfiguration, &bootstrapv1.ClusterConfiguration{}) {

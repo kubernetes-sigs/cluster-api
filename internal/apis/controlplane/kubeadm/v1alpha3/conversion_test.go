@@ -63,6 +63,26 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		spokeKubeadmConfigSpec,
 		spokeAPIServer,
 		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
+	var initControlPlaneComponentHealthCheckSeconds *int32
+	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
+		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	}
+	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
+		if in.JoinConfiguration == nil {
+			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		if in.JoinConfiguration.Timeouts == nil {
+			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 }
 

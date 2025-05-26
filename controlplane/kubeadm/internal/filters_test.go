@@ -71,7 +71,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeTrue())
 
 		// up to date annotation (marshalVersion equal to current version)
-		annotation = fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", clusterv1.GroupVersion.Version)
+		annotation = fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", bootstrapv1.GroupVersion.Version)
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeFalse())
 
 		// marshalVersion not equal to the current version (this should not happen because marshalVersion has been introduced with the v1beta2 API)
@@ -106,7 +106,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		}))
 
 		// up to date annotation (marshalVersion equal to current version)
-		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", clusterv1.GroupVersion.Version)})
+		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", bootstrapv1.GroupVersion.Version)})
 		clusterConfiguration, err = ClusterConfigurationFromMachine(m1)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(clusterConfiguration).To(Equal(&bootstrapv1.ClusterConfiguration{

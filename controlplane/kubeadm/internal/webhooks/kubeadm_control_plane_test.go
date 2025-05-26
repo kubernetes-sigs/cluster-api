@@ -171,6 +171,13 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		"/invalid-key": "foo",
 	}
 
+	invalidControlPlaneComponentHealthCheckSeconds := valid.DeepCopy()
+	invalidControlPlaneComponentHealthCheckSeconds.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{Timeouts: &bootstrapv1.Timeouts{ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10)}}
+
+	validControlPlaneComponentHealthCheckSeconds := valid.DeepCopy()
+	validControlPlaneComponentHealthCheckSeconds.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{Timeouts: &bootstrapv1.Timeouts{ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10)}}
+	validControlPlaneComponentHealthCheckSeconds.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{Timeouts: &bootstrapv1.Timeouts{ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10)}}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -261,6 +268,15 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			expectErr:             true,
 			kcp:                   invalidMetadata,
 		},
+		{
+			name:      "should return error for invalid Timeouts.ControlPlaneComponentHealthCheckSeconds",
+			expectErr: true,
+			kcp:       invalidControlPlaneComponentHealthCheckSeconds,
+		},
+		{
+			name: "should pass for valid Timeouts.ControlPlaneComponentHealthCheckSeconds",
+			kcp:  validControlPlaneComponentHealthCheckSeconds,
+		},
 	}
 
 	for _, tt := range tests {
@@ -322,6 +338,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						Name: "test",
 					},
+					Timeouts: &bootstrapv1.Timeouts{
+						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						KubeletHealthCheckSeconds:               ptr.To[int32](40),
+					},
 				},
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 					ClusterName: "test",
@@ -335,6 +355,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				JoinConfiguration: &bootstrapv1.JoinConfiguration{
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						Name: "test",
+					},
+					Timeouts: &bootstrapv1.Timeouts{
+						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						KubeletHealthCheckSeconds:               ptr.To[int32](40),
 					},
 				},
 				PreKubeadmCommands: []string{
@@ -732,6 +756,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		"/invalid-key": "foo",
 	}
 
+	changeTimeouts := before.DeepCopy()
+	changeTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = ptr.To[int32](20) // before 10
+	changeTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts.KubeletHealthCheckSeconds = nil                             // before set
+	changeTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts.EtcdAPICallSeconds = ptr.To[int32](20)                      // before not set
+	changeTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = ptr.To[int32](20) // before 10
+	changeTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts.KubeletHealthCheckSeconds = nil                             // before set
+	changeTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts.EtcdAPICallSeconds = ptr.To[int32](20)                      // before not set
+
+	unsetTimeouts := before.DeepCopy()
+	unsetTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts = nil
+	unsetTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts = nil
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1094,6 +1130,24 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr:             true,
 			before:                before,
 			kcp:                   invalidMetadata,
+		},
+		{
+			name:      "should succeed when changing timeouts",
+			expectErr: false,
+			before:    before,
+			kcp:       changeTimeouts,
+		},
+		{
+			name:      "should succeed when unsetting timeouts",
+			expectErr: false,
+			before:    before,
+			kcp:       unsetTimeouts,
+		},
+		{
+			name:      "should succeed when setting timeouts",
+			expectErr: false,
+			before:    unsetTimeouts,
+			kcp:       changeTimeouts,
 		},
 	}
 

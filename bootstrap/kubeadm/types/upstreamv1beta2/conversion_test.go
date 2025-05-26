@@ -77,7 +77,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubLocalEtcdFuzzer,
 		hubInitConfigurationFuzzer,
 		hubJoinConfigurationFuzzer,
-		hubBootstrapv1NodeRegistrationOptionsFuzzer,
+		hubNodeRegistrationOptionsFuzzer,
 	}
 }
 
@@ -165,7 +165,7 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 	}
 }
 
-func hubBootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ImagePullPolicy = ""

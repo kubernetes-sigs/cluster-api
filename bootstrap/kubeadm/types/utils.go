@@ -62,15 +62,15 @@ var (
 	}
 )
 
-// ConvertibleFroIniConfiguration defines capabilities of a type that during conversions gets values from initConfiguration.
+// ConvertibleFromInitConfiguration defines capabilities of a type that during conversions gets values from initConfiguration.
 // NOTE: this interface is specifically designed to handle fields migrated from ClusterConfiguration to InitConfiguration in the kubeadm v1beta4 API version.
-type ConvertibleFroIniConfiguration interface {
+type ConvertibleFromInitConfiguration interface {
 	ConvertFromInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error
 }
 
-// ConvertibleToIniConfiguration defines capabilities of a type that during conversions sets values to initConfiguration.
+// ConvertibleToInitConfiguration defines capabilities of a type that during conversions sets values to initConfiguration.
 // NOTE: this interface is specifically designed to handle fields migrated from ClusterConfiguration to InitConfiguration in the kubeadm v1beta4 API version.
-type ConvertibleToIniConfiguration interface {
+type ConvertibleToInitConfiguration interface {
 	ConvertToInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error
 }
 
@@ -137,7 +137,7 @@ func marshalForVersion(initConfiguration *bootstrapv1.InitConfiguration, obj con
 		return "", errors.Wrapf(err, "failed to convert to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
 	}
 
-	if convertibleFromInitConfigurationObj, ok := targetKubeadmObj.(ConvertibleFroIniConfiguration); ok {
+	if convertibleFromInitConfigurationObj, ok := targetKubeadmObj.(ConvertibleFromInitConfiguration); ok {
 		if err := convertibleFromInitConfigurationObj.ConvertFromInitConfiguration(initConfiguration); err != nil {
 			return "", errors.Wrapf(err, "failed to convert from InitConfiguration to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
 		}
@@ -228,7 +228,7 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 
 		_, _, err = codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
 		if err == nil {
-			if convertibleToInitConfigurationObj, ok := kubeadmObj.(ConvertibleToIniConfiguration); ok {
+			if convertibleToInitConfigurationObj, ok := kubeadmObj.(ConvertibleToInitConfiguration); ok {
 				if err := convertibleToInitConfigurationObj.ConvertToInitConfiguration(initConfiguration); err != nil {
 					return errors.Wrapf(err, "failed to convert to InitConfiguration from KubeadmAPI type for version %s", gvk)
 				}

@@ -5071,7 +5071,7 @@ spec:
                           extraArgs:
                             description: |-
                               extraArgs is a list of args to pass to the control plane component.
-                              The arg name must match be the command line flag name except without leading dash(es).
+                              The arg name must match the command line flag name except without leading dash(es).
                               Extra arguments will override existing default arguments set by kubeadm.
                             items:
                               description: Arg represents an argument with a name
@@ -5310,7 +5310,7 @@ spec:
                           extraArgs:
                             description: |-
                               extraArgs is a list of args to pass to the control plane component.
-                              The arg name must match be the command line flag name except without leading dash(es).
+                              The arg name must match the command line flag name except without leading dash(es).
                               Extra arguments will override existing default arguments set by kubeadm.
                             items:
                               description: Arg represents an argument with a name
@@ -5586,7 +5586,7 @@ spec:
                               extraArgs:
                                 description: |-
                                   extraArgs is a list of args to pass to etcd.
-                                  The arg name must match be the command line flag name except without leading dash(es).
+                                  The arg name must match the command line flag name except without leading dash(es).
                                   Extra arguments will override existing default arguments set by kubeadm.
                                 items:
                                   description: Arg represents an argument with a name
@@ -5609,10 +5609,13 @@ spec:
                                 maxItems: 100
                                 minItems: 1
                                 type: array
-                                x-kubernetes-list-type: atomic
+                                x-kubernetes-list-map-keys:
+                                - name
+                                - value
+                                x-kubernetes-list-type: map
                                 x-kubernetes-validations:
                                 - message: extraArgs name must be unique
-                                  rule: self.all(x, self.exists_one(y, x == y))
+                                  rule: self.all(x, self.exists_one(y, x.name == y.name))
                               extraEnvs:
                                 description: |-
                                   extraEnvs is an extra set of environment variables to pass to etcd.
@@ -5846,7 +5849,7 @@ spec:
                           extraArgs:
                             description: |-
                               extraArgs is a list of args to pass to the control plane component.
-                              The arg name must match be the command line flag name except without leading dash(es).
+                              The arg name must match the command line flag name except without leading dash(es).
                               Extra arguments will override existing default arguments set by kubeadm.
                             items:
                               description: Arg represents an argument with a name
@@ -6386,7 +6389,7 @@ spec:
                           kubeletExtraArgs:
                             description: |-
                               kubeletExtraArgs is a list of args to pass to kubelet.
-                              The arg name must match be the command line flag name except without leading dash(es).
+                              The arg name must match the command line flag name except without leading dash(es).
                               Extra arguments will override existing default arguments set by kubeadm.
                             items:
                               description: Arg represents an argument with a name
@@ -6860,7 +6863,7 @@ spec:
                           kubeletExtraArgs:
                             description: |-
                               kubeletExtraArgs is a list of args to pass to kubelet.
-                              The arg name must match be the command line flag name except without leading dash(es).
+                              The arg name must match the command line flag name except without leading dash(es).
                               Extra arguments will override existing default arguments set by kubeadm.
                             items:
                               description: Arg represents an argument with a name

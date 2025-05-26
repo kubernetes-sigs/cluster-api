@@ -283,7 +283,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 }
 
 // ConvertToArgs takes a argument map and converts it to a slice of arguments.
-// Te resulting argument slice is sorted alpha-numerically.
+// The resulting argument slice is sorted alpha-numerically.
 func ConvertToArgs(in map[string]string) []bootstrapv1.Arg {
 	if in == nil {
 		return nil

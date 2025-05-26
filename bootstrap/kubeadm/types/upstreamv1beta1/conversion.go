@@ -121,7 +121,7 @@ func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneCompon
 	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
 
 	// Following fields require a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
 	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneComponent(in, out, s)
 }
@@ -130,7 +130,7 @@ func Convert_v1beta2_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in *bootstrapv1.Loca
 	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
 
 	// Following fields require a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
 	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in, out, s)
 }
@@ -156,7 +156,7 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistration
 	// NodeRegistrationOptions.IgnorePreflightErrors, ImagePullPolicy and ImagePullSerial do not exist in kubeadm v1beta1, dropping those info.
 
 	// Following fields require a custom conversions.
-	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
 	out.KubeletExtraArgs = utilconversion.ConvertFromArgs(in.KubeletExtraArgs)
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in, out, s)
 }

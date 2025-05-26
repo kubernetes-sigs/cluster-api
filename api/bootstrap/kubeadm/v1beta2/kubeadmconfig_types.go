@@ -184,6 +184,31 @@ func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 		}
 	}
 
+	// Validate timeouts
+	// Note: When v1beta1 will be removed, we can drop this limitation.
+	tInit := "unset"
+	if c.InitConfiguration != nil && c.InitConfiguration.Timeouts != nil && c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+		tInit = fmt.Sprintf("%d", *c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	}
+	tJoin := "unset"
+	if c.JoinConfiguration != nil && c.JoinConfiguration.Timeouts != nil && c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+		tJoin = fmt.Sprintf("%d", *c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	}
+	if tInit != tJoin {
+		allErrs = append(allErrs,
+			field.Invalid(
+				pathPrefix.Child("initConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
+				tInit,
+				fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
+			),
+			field.Invalid(
+				pathPrefix.Child("joinConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
+				tJoin,
+				fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
+			),
+		)
+	}
+
 	return allErrs
 }
 

@@ -212,7 +212,7 @@ type ClusterConfiguration struct {
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
 type ControlPlaneComponent struct {
 	// extraArgs is a list of args to pass to the control plane component.
-	// The arg name must match be the command line flag name except without leading dash(es).
+	// The arg name must match the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
 	// +listType=map
@@ -330,7 +330,7 @@ type NodeRegistrationOptions struct {
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
 	// kubeletExtraArgs is a list of args to pass to kubelet.
-	// The arg name must match be the command line flag name except without leading dash(es).
+	// The arg name must match the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
 	// +listType=map
@@ -502,13 +502,15 @@ type LocalEtcd struct {
 	DataDir string `json:"dataDir,omitempty"`
 
 	// extraArgs is a list of args to pass to etcd.
-	// The arg name must match be the command line flag name except without leading dash(es).
+	// The arg name must match the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="extraArgs name must be unique"
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
 	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
 	// extraEnvs is an extra set of environment variables to pass to etcd.

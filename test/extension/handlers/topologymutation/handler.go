@@ -394,7 +394,7 @@ func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTempla
 		return errors.Wrap(err, "could not set customImage to MachinePool DockerMachinePoolTemplate")
 	}
 
-	semVer, err := version.ParseMajorMinorPatchTolerant(mpVersion)
+	semVer, err := semver.ParseTolerant(mpVersion)
 	if err != nil {
 		return errors.Wrap(err, "could not parse MachinePool version")
 	}

@@ -1104,19 +1104,19 @@ type JSONPatchValue struct {
 }
 
 // ExternalPatchDefinition defines an external patch.
-// Note: At least one of GenerateExtension or ValidateExtension must be set.
+// Note: At least one of GeneratePatchesExtension or ValidateTopologyExtension must be set.
 type ExternalPatchDefinition struct {
-	// generateExtension references an extension which is called to generate patches.
+	// generatePatchesExtension references an extension which is called to generate patches.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	GenerateExtension *string `json:"generateExtension,omitempty"`
+	GeneratePatchesExtension *string `json:"generatePatchesExtension,omitempty"`
 
-	// validateExtension references an extension which is called to validate the topology.
+	// validateTopologyExtension references an extension which is called to validate the topology.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ValidateExtension *string `json:"validateExtension,omitempty"`
+	ValidateTopologyExtension *string `json:"validateTopologyExtension,omitempty"`
 
 	// discoverVariablesExtension references an extension which is called to discover variables.
 	// +optional

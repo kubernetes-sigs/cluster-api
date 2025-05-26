@@ -407,8 +407,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: ptr.To("patch-infrastructureCluster"),
-						ValidateExtension: ptr.To("validate-infrastructureCluster"),
+						GeneratePatchesExtension:  ptr.To("patch-infrastructureCluster"),
+						ValidateTopologyExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -444,8 +444,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: ptr.To("patch-infrastructureCluster"),
-						ValidateExtension: ptr.To("validate-infrastructureCluster"),
+						GeneratePatchesExtension:  ptr.To("patch-infrastructureCluster"),
+						ValidateTopologyExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -478,13 +478,13 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: ptr.To("patch-infrastructureCluster"),
+						GeneratePatchesExtension: ptr.To("patch-infrastructureCluster"),
 					},
 				},
 				{
 					Name: "fake-patch2",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: ptr.To("patch-controlPlane"),
+						GeneratePatchesExtension: ptr.To("patch-controlPlane"),
 					},
 				},
 			},

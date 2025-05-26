@@ -124,7 +124,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	for i := range blueprint.ClusterClass.Spec.Patches {
 		clusterClassPatch := blueprint.ClusterClass.Spec.Patches[i]
 
-		if clusterClassPatch.External == nil || clusterClassPatch.External.ValidateExtension == nil {
+		if clusterClassPatch.External == nil || clusterClassPatch.External.ValidateTopologyExtension == nil {
 			continue
 		}
 
@@ -408,7 +408,7 @@ func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.C
 		return inline.NewGenerator(patch), nil
 	}
 	// Return an externalPatchGenerator if there is an external configuration in the patch.
-	if patch.External != nil && patch.External.GenerateExtension != nil {
+	if patch.External != nil && patch.External.GeneratePatchesExtension != nil {
 		if !feature.Gates.Enabled(feature.RuntimeSDK) {
 			return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
 		}

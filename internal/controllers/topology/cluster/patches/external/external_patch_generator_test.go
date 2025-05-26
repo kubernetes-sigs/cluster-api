@@ -53,8 +53,8 @@ func TestExternalPatchGenerator_Generate(t *testing.T) {
 				EnabledIf:   nil,
 				Definitions: nil,
 				External: &clusterv1.ExternalPatchDefinition{
-					GenerateExtension: ptr.To("test-generate-extension"),
-					Settings:          nil,
+					GeneratePatchesExtension: ptr.To("test-generate-extension"),
+					Settings:                 nil,
 				},
 			},
 			request: &runtimehooksv1.GeneratePatchesRequest{},
@@ -72,7 +72,7 @@ func TestExternalPatchGenerator_Generate(t *testing.T) {
 				EnabledIf:   nil,
 				Definitions: nil,
 				External: &clusterv1.ExternalPatchDefinition{
-					GenerateExtension: ptr.To("test-generate-extension"),
+					GeneratePatchesExtension: ptr.To("test-generate-extension"),
 					Settings: map[string]string{
 						"key1": "value1",
 					},

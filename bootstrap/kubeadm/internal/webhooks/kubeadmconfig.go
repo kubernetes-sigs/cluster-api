@@ -33,7 +33,7 @@ import (
 func (webhook *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
-		WithDefaulter(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }

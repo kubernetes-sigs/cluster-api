@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -392,6 +393,9 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 			clusterClass.Spec.ControlPlane.Metadata.Annotations,
 			ccControlPlaneTemplateTemplateMetadata.Annotations,
 		),
+		// Note: ignoring utilconversion.DataAnnotation so we accept both control plane objects using the latest API version and
+		// control plane objects using older releases (with conversion data).
+		utilconversion.DataAnnotation,
 	)
 
 	// ControlPlane.spec.machineTemplate.metadata
@@ -515,6 +519,9 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 				bootstrapConfigMetadata.Annotations,
 			).without(g, clusterv1.MachineCertificatesExpiryDateAnnotation),
 			controlPlaneMachineTemplateMetadata.Annotations,
+			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
+			// control bootstrap config objects using older releases (with conversion data).
+			utilconversion.DataAnnotation,
 		)
 
 		// ControlPlane Machine Node.metadata
@@ -642,6 +649,9 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 				},
 				ccBootstrapConfigTemplate.GetAnnotations(),
 			),
+			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config template objects using the latest API version and
+			// bootstrap config template objects using older releases (with conversion data).
+			utilconversion.DataAnnotation,
 		)
 		// MachineDeployment BootstrapConfigTemplate.spec.template.metadata
 		expectMapsToBeEquivalent(g, bootstrapConfigTemplateTemplateMetadata.Labels,
@@ -742,6 +752,9 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 				},
 				ccBootstrapConfigTemplateTemplateMetadata.Annotations,
 			),
+			// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
+			// bootstrap config objects using older releases (with conversion data).
+			utilconversion.DataAnnotation,
 		)
 	}
 }
@@ -889,6 +902,9 @@ func assertMachineSetsMachines(g Gomega, clusterObjects clusterObjects, cluster 
 						machineSet.Spec.Template.Annotations,
 						bootstrapConfigTemplateTemplateMetadata.Annotations,
 					),
+					// Note: ignoring utilconversion.DataAnnotation so we accept both bootstrap config objects using the latest API version and
+					// bootstrap config objects using older releases (with conversion data).
+					utilconversion.DataAnnotation,
 				)
 
 				// MachineDeployment MachineSet Machine Node.metadata
@@ -1351,12 +1367,16 @@ func modifyMachinePoolViaClusterAndWait(ctx context.Context, input modifyMachine
 	}
 }
 
-func expectMapsToBeEquivalent(g Gomega, m1, m2 map[string]string) {
+func expectMapsToBeEquivalent(g Gomega, m1, m2 map[string]string, ignoreKeys ...string) {
 	if m1 == nil {
 		m1 = map[string]string{}
 	}
 	if m2 == nil {
 		m2 = map[string]string{}
+	}
+	for _, key := range ignoreKeys {
+		delete(m1, key)
+		delete(m2, key)
 	}
 	g.ExpectWithOffset(1, m1).To(BeEquivalentTo(m2))
 }

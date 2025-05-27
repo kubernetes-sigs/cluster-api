@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/feature"
@@ -897,6 +898,13 @@ func TestClusterClassValidation(t *testing.T) {
 							Timeout: metav1.Duration{Duration: 5 * time.Minute},
 						},
 					},
+					UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+						{
+							Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+							Status:  metav1.ConditionFalse,
+							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+						},
+					},
 					NodeStartupTimeout: &metav1.Duration{
 						Duration: time.Duration(6000000000000),
 					},
@@ -921,7 +929,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create does not fail if ControlPlane MachineHealthCheck does not define UnhealthyNodeConditions",
+			name: "create does not fail if ControlPlane MachineHealthCheck does not define UnhealthyNodeConditions or UnhealthyMachineConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -961,6 +969,13 @@ func TestClusterClassValidation(t *testing.T) {
 									Timeout: metav1.Duration{Duration: 5 * time.Minute},
 								},
 							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:  metav1.ConditionFalse,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
 							NodeStartupTimeout: &metav1.Duration{
 								Duration: time.Duration(6000000000000),
 							},
@@ -990,6 +1005,13 @@ func TestClusterClassValidation(t *testing.T) {
 									Timeout: metav1.Duration{Duration: 5 * time.Minute},
 								},
 							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:  metav1.ConditionFalse,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
 							NodeStartupTimeout: &metav1.Duration{
 								// nodeStartupTimeout is too short here - 600ns.
 								Duration: time.Duration(600),
@@ -1000,7 +1022,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create does not fail if MachineDeployment MachineHealthCheck does not define UnhealthyNodeConditions",
+			name: "create does not fail if MachineDeployment MachineHealthCheck does not define UnhealthyNodeConditions or UnhealthyMachineConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -2303,6 +2325,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							Timeout: metav1.Duration{Duration: 5 * time.Minute},
 						},
 					},
+					UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+						{
+							Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+							Status:  metav1.ConditionFalse,
+							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+						},
+					},
 				}).
 				Build(),
 			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
@@ -2353,6 +2382,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:    corev1.NodeReady,
 										Status:  corev1.ConditionUnknown,
+										Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									},
+								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:  metav1.ConditionFalse,
 										Timeout: metav1.Duration{Duration: 5 * time.Minute},
 									},
 								},
@@ -2486,6 +2522,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 										{
 											Type:    corev1.NodeReady,
 											Status:  corev1.ConditionUnknown,
+											Timeout: metav1.Duration{Duration: 5 * time.Minute},
+										},
+									},
+									UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+										{
+											Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+											Status:  metav1.ConditionFalse,
 											Timeout: metav1.Duration{Duration: 5 * time.Minute},
 										},
 									},

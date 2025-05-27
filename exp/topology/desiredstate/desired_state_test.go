@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -1430,6 +1431,15 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Timeout: metav1.Duration{Duration: 5 * time.Minute},
 		},
 	}
+	unhealthyMachineConditions :=
+		[]clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		}
+
 	nodeTimeoutDuration := &metav1.Duration{Duration: time.Duration(1)}
 
 	clusterClassFailureDomain := "A"
@@ -1450,8 +1460,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
 		WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-			UnhealthyNodeConditions: unhealthyNodeConditions,
-			NodeStartupTimeout:      nodeTimeoutDuration,
+			UnhealthyNodeConditions:    unhealthyNodeConditions,
+			UnhealthyMachineConditions: unhealthyMachineConditions,
+			NodeStartupTimeout:         nodeTimeoutDuration,
 		}).
 		WithReadinessGates(clusterClassReadinessGates).
 		WithFailureDomain(&clusterClassFailureDomain).
@@ -1491,7 +1502,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-					UnhealthyNodeConditions: unhealthyNodeConditions,
+					UnhealthyNodeConditions:    unhealthyNodeConditions,
+					UnhealthyMachineConditions: unhealthyMachineConditions,
 					NodeStartupTimeout: &metav1.Duration{
 						Duration: time.Duration(1),
 					},
@@ -1651,7 +1663,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 					BootstrapTemplate:             workerBootstrapTemplate,
 					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 					MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-						UnhealthyNodeConditions: unhealthyNodeConditions,
+						UnhealthyNodeConditions:    unhealthyNodeConditions,
+						UnhealthyMachineConditions: unhealthyMachineConditions,
 						NodeStartupTimeout: &metav1.Duration{
 							Duration: time.Duration(1),
 						},
@@ -1913,6 +1926,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// Check that UnhealthyNodeConditions are set as expected.
 		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyNodeConditions).To(BeComparableTo(unhealthyNodeConditions))
+
+		// Check that UnhealthyMachineConditions are set as expected.
+		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyMachineConditions).To(BeComparableTo(unhealthyMachineConditions))
 	})
 }
 
@@ -3055,6 +3071,13 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				Timeout: metav1.Duration{Duration: 5 * time.Minute},
 			},
 		},
+		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		},
 		NodeStartupTimeout: &metav1.Duration{
 			Duration: time.Duration(1),
 		},
@@ -3097,6 +3120,13 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionFalse,
+					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				},
+			},
+			UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:  metav1.ConditionFalse,
 					Timeout: metav1.Duration{Duration: 5 * time.Minute},
 				},
 			},

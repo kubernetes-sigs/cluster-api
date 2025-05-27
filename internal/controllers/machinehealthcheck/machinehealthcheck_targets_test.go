@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -212,6 +213,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	timeoutForMachineToHaveNode := 10 * time.Minute
 	disabledTimeoutForMachineToHaveNode := time.Duration(0)
 	timeoutForUnhealthyNodeConditions := 5 * time.Minute
+	timeoutForUnhealthyMachineConditions := 5 * time.Minute
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -234,6 +236,13 @@ func TestHealthCheckTargets(t *testing.T) {
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionFalse,
 					Timeout: metav1.Duration{Duration: timeoutForUnhealthyNodeConditions},
+				},
+			},
+			UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:  metav1.ConditionFalse,
+					Timeout: metav1.Duration{Duration: timeoutForUnhealthyMachineConditions},
 				},
 			},
 		},
@@ -392,6 +401,18 @@ func TestHealthCheckTargets(t *testing.T) {
 	machineAnnotationRemediationCondition := newFailedHealthCheckV1Beta1Condition(clusterv1.HasRemediateMachineAnnotationV1Beta1Reason, annotationRemediationMsg)
 	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckHasRemediateAnnotationReason, annotationRemediationV1Beta2Msg)
 
+	// when the machine has been in an unhealthy state for longer than the timeout
+	testMachineUnhealthy400 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, 400*time.Second)
+	machineUnhealthy400 := healthCheckTarget{
+		Cluster:     cluster,
+		MHC:         testMHC,
+		Node:        testNodeHealthy,
+		Machine:     testMachineUnhealthy400,
+		nodeMissing: false,
+	}
+	machineUnhealthy400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyMachineConditionV1Beta1Reason, "Condition EtcdPodHealthy on the machine is reporting status False for more than %s", timeoutForUnhealthyNodeConditions)
+	machineUnhealthy400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyMachineReason, "Health check failed: Condition EtcdPodHealthy on Machine is reporting status False for more than %s", timeoutForUnhealthyNodeConditions)
+
 	testCases := []struct {
 		desc                                     string
 		targets                                  []healthCheckTarget
@@ -499,6 +520,15 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediation:          []healthCheckTarget{},
 			expectedNeedsRemediationCondition: []clusterv1.Condition{},
 			expectedNextCheckTimes:            []time.Duration{},
+		},
+		{
+			desc:                                     "when the machine has been in an unhealthy state for longer than the timeout",
+			targets:                                  []healthCheckTarget{machineUnhealthy400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{machineUnhealthy400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 	}
 
@@ -630,6 +660,51 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 					Status:             status,
 					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
 				},
+			},
+		},
+	}
+}
+
+func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, unhealthyDuration time.Duration) *clusterv1.Machine {
+	// Copy the labels so that the map is unique to each test Machine
+	l := make(map[string]string)
+	for k, v := range labels {
+		l[k] = v
+	}
+	l[clusterv1.ClusterNameLabel] = clusterName
+
+	bootstrap := "bootstrap"
+	return &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    l,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: &bootstrap,
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               condition,
+					Status:             status,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
+				},
+			},
+			Initialization: &clusterv1.MachineInitializationStatus{
+				InfrastructureProvisioned:  true,
+				BootstrapDataSecretCreated: true,
+			},
+			Phase: string(clusterv1.MachinePhaseRunning),
+			NodeRef: &corev1.ObjectReference{
+				Name: nodeName,
 			},
 		},
 	}

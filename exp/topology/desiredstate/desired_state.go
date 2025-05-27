@@ -1424,13 +1424,14 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName:             cluster.Name,
-			Selector:                *selector,
-			UnhealthyNodeConditions: check.UnhealthyNodeConditions,
-			MaxUnhealthy:            check.MaxUnhealthy,
-			UnhealthyRange:          check.UnhealthyRange,
-			NodeStartupTimeout:      check.NodeStartupTimeout,
-			RemediationTemplate:     check.RemediationTemplate,
+			ClusterName:                cluster.Name,
+			Selector:                   *selector,
+			UnhealthyNodeConditions:    check.UnhealthyNodeConditions,
+			UnhealthyMachineConditions: check.UnhealthyMachineConditions,
+			MaxUnhealthy:               check.MaxUnhealthy,
+			UnhealthyRange:             check.UnhealthyRange,
+			NodeStartupTimeout:         check.NodeStartupTimeout,
+			RemediationTemplate:        check.RemediationTemplate,
 		},
 	}
 

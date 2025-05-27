@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -119,6 +120,13 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 									Timeout: metav1.Duration{Duration: 5 * time.Minute},
 								},
 							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:  metav1.ConditionFalse,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
 						},
 					}).
 					Build(),
@@ -143,6 +151,13 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 									Timeout: metav1.Duration{Duration: 5 * time.Minute},
 								},
 							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:  metav1.ConditionFalse,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
 						},
 					}).
 					Build(),
@@ -164,6 +179,13 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:    corev1.NodeReady,
 									Status:  corev1.ConditionUnknown,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
+							UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+								{
+									Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+									Status:  metav1.ConditionFalse,
 									Timeout: metav1.Duration{Duration: 5 * time.Minute},
 								},
 							},
@@ -192,6 +214,13 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 				Timeout: metav1.Duration{Duration: 10 * time.Minute},
 			},
 		},
+		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 10 * time.Minute},
+			},
+		},
 	}
 
 	percent50 := intstr.FromString("50%")
@@ -200,6 +229,13 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 20 * time.Minute},
+			},
+		},
+		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
 				Timeout: metav1.Duration{Duration: 20 * time.Minute},
 			},
 		},
@@ -332,6 +368,13 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 								Timeout: metav1.Duration{Duration: 5 * time.Minute},
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:  metav1.ConditionFalse,
+								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+							},
+						},
 					},
 				},
 			},
@@ -353,6 +396,13 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 							{
 								Type:    corev1.NodeReady,
 								Status:  corev1.ConditionUnknown,
+								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+							},
+						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:  metav1.ConditionFalse,
 								Timeout: metav1.Duration{Duration: 5 * time.Minute},
 							},
 						},
@@ -380,6 +430,13 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 								Timeout: metav1.Duration{Duration: 5 * time.Minute},
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:  metav1.ConditionFalse,
+								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+							},
+						},
 					},
 				},
 			},
@@ -404,6 +461,13 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 				Timeout: metav1.Duration{Duration: 10 * time.Minute},
 			},
 		},
+		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 10 * time.Minute},
+			},
+		},
 	}
 
 	percent50 := intstr.FromString("50%")
@@ -412,6 +476,13 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 			{
 				Type:    corev1.NodeReady,
 				Status:  corev1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 20 * time.Minute},
+			},
+		},
+		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:  metav1.ConditionFalse,
 				Timeout: metav1.Duration{Duration: 20 * time.Minute},
 			},
 		},

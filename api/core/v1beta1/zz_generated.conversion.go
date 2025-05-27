@@ -2719,6 +2719,7 @@ func autoConvert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckCl
 
 func autoConvert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(in *v1beta2.MachineHealthCheckClass, out *MachineHealthCheckClass, s conversion.Scope) error {
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.UnhealthyMachineConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
@@ -2783,6 +2784,7 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpe
 	out.ClusterName = in.ClusterName
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.UnhealthyMachineConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))

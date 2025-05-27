@@ -32,6 +32,7 @@ sub_packages=(
   "controlplane/kubeadm/api"
   "api/ipam"
   "api/runtime"
+  "test/extension"
   "test/infrastructure/docker/api"
   "test/infrastructure/docker/exp/api"
   "test/infrastructure/inmemory/api"
@@ -43,7 +44,7 @@ visit() {
   for file in "$1"/* ; do
     if [ -d "$file" ]; then
       visit "$file"
-    elif [ -f "$file" ]; then
+    elif [ -f "$file" ] && [[ "$file" = *.go ]]; then
       ((count += 1))
     fi
   done

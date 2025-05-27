@@ -182,6 +182,7 @@ spec:
                     description: |-
                       Standard object's metadata.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    minProperties: 1
                     properties:
                       annotations:
                         additionalProperties:

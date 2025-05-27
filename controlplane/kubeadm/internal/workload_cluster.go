@@ -92,8 +92,8 @@ type WorkloadCluster interface {
 	UpdateEtcdLocalInKubeadmConfigMap(localEtcd *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
 	UpdateEtcdExternalInKubeadmConfigMap(externalEtcd *bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration)
 	UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APIServer) func(*bootstrapv1.ClusterConfiguration)
-	UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration)
-	UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration)
+	UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControllerManager) func(*bootstrapv1.ClusterConfiguration)
+	UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Scheduler) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
@@ -206,14 +206,14 @@ func (w *Workload) UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APISe
 }
 
 // UpdateControllerManagerInKubeadmConfigMap updates controller manager configuration in kubeadm config map.
-func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControllerManager) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.ControllerManager = controllerManager
 	}
 }
 
 // UpdateSchedulerInKubeadmConfigMap updates scheduler configuration in kubeadm config map.
-func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Scheduler) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.Scheduler = scheduler
 	}

@@ -41,6 +41,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/yaml"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -48,7 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util/yaml"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -524,7 +526,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 }
 
 func extractClusterClassAndClusterFromTemplate(rawYAML []byte) ([]byte, []byte) {
-	objs, err := yaml.ToUnstructured(rawYAML)
+	objs, err := utilyaml.ToUnstructured(rawYAML)
 	Expect(err).ToNot(HaveOccurred())
 	clusterObj := unstructured.Unstructured{}
 	clusterClassAndTemplates := []unstructured.Unstructured{}
@@ -535,9 +537,9 @@ func extractClusterClassAndClusterFromTemplate(rawYAML []byte) ([]byte, []byte) 
 			clusterClassAndTemplates = append(clusterClassAndTemplates, obj)
 		}
 	}
-	clusterYAML, err := yaml.FromUnstructured([]unstructured.Unstructured{clusterObj})
+	clusterYAML, err := utilyaml.FromUnstructured([]unstructured.Unstructured{clusterObj})
 	Expect(err).ToNot(HaveOccurred())
-	clusterClassYAML, err := yaml.FromUnstructured(clusterClassAndTemplates)
+	clusterClassYAML, err := utilyaml.FromUnstructured(clusterClassAndTemplates)
 	Expect(err).ToNot(HaveOccurred())
 	return clusterClassYAML, clusterYAML
 }
@@ -940,7 +942,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	Expect(baseClusterTemplateYAML).NotTo(BeEmpty(), "Invalid argument. baseClusterTemplateYAML cannot be empty when calling modifyMachineDeployments")
 	Expect(count).To(BeNumerically(">=", 0), "Invalid argument. count cannot be less than 0 when calling modifyMachineDeployments")
 
-	objs, err := yaml.ToUnstructured(baseClusterTemplateYAML)
+	objs, err := utilyaml.ToUnstructured(baseClusterTemplateYAML)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(objs).To(HaveLen(1), "Unexpected number of objects found in baseClusterTemplateYAML")
 
@@ -970,9 +972,11 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 		allMDs[i-1] = *md
 	}
 	cluster.Spec.Topology.Workers.MachineDeployments = allMDs
-	u := &unstructured.Unstructured{}
-	Expect(scheme.Convert(cluster, u, nil)).To(Succeed())
-	modifiedClusterYAML, err := yaml.FromUnstructured([]unstructured.Unstructured{*u})
+	// Note: We have to set GVK here explicitly otherwise apiVersion + kind won't be set in the YAML.
+	gvk, err := apiutil.GVKForObject(cluster, scheme)
+	Expect(err).ToNot(HaveOccurred())
+	cluster.SetGroupVersionKind(gvk)
+	modifiedClusterYAML, err := yaml.Marshal(cluster)
 	Expect(err).ToNot(HaveOccurred())
 
 	return modifiedClusterYAML

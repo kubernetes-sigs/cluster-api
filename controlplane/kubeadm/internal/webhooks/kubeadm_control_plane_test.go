@@ -501,25 +501,29 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 
 	controllerManager := before.DeepCopy()
-	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = bootstrapv1.ControlPlaneComponent{
-		ExtraArgs: []bootstrapv1.Arg{
-			{
-				Name:  "controller manager field",
-				Value: "controller manager value",
+	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = bootstrapv1.ControllerManager{
+		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+			ExtraArgs: []bootstrapv1.Arg{
+				{
+					Name:  "controller manager field",
+					Value: "controller manager value",
+				},
 			},
+			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	scheduler := before.DeepCopy()
-	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = bootstrapv1.ControlPlaneComponent{
-		ExtraArgs: []bootstrapv1.Arg{
-			{
-				Name:  "scheduler field",
-				Value: "scheduler value",
+	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = bootstrapv1.Scheduler{
+		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+			ExtraArgs: []bootstrapv1.Arg{
+				{
+					Name:  "scheduler field",
+					Value: "scheduler value",
+				},
 			},
+			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	dns := before.DeepCopy()

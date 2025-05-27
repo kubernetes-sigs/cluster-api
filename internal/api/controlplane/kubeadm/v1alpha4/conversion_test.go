@@ -87,6 +87,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		hubNodeRegistrationOptions,
 		spokeBootstrapToken,
 	}
 }
@@ -102,6 +103,7 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		hubNodeRegistrationOptions,
 		spokeBootstrapToken,
 	}
 }
@@ -122,6 +124,14 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 		}
 		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
+	}
+}
+
+func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Taints != nil && *in.Taints == nil {
+		in.Taints = nil
 	}
 }
 

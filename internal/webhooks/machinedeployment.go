@@ -196,6 +196,17 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 	specPath := field.NewPath("spec")
+
+	if newMD.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newMD.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+		allErrs = append(
+			allErrs,
+			field.Required(
+				specPath.Child("template", "spec", "bootstrap"),
+				"expected either spec.template.spec.bootstrap.dataSecretName or spec.template.spec.bootstrap.configRef to be populated",
+			),
+		)
+	}
+
 	selector, err := metav1.LabelSelectorAsSelector(&newMD.Spec.Selector)
 	if err != nil {
 		allErrs = append(

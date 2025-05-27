@@ -3964,6 +3964,7 @@ spec:
                     description: |-
                       metadata is the standard object's metadata.
                       More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    minProperties: 1
                     properties:
                       annotations:
                         additionalProperties:
@@ -4006,6 +4007,7 @@ spec:
                           apiServer:
                             description: apiServer contains extra settings for the
                               API server control plane component
+                            minProperties: 1
                             properties:
                               certSANs:
                                 description: certSANs sets extra Subject Alternative
@@ -4246,6 +4248,7 @@ spec:
                           controllerManager:
                             description: controllerManager contains extra settings
                               for the controller manager control plane component
+                            minProperties: 1
                             properties:
                               extraArgs:
                                 description: |-
@@ -4453,6 +4456,7 @@ spec:
                           dns:
                             description: dns defines the options for the DNS add-on
                               installed in the cluster.
+                            minProperties: 1
                             properties:
                               imageRepository:
                                 description: |-
@@ -4473,6 +4477,7 @@ spec:
                             description: |-
                               etcd holds configuration for etcd.
                               NB: This value defaults to a Local (stacked) etcd
+                            minProperties: 1
                             properties:
                               external:
                                 description: |-
@@ -4751,6 +4756,7 @@ spec:
                           scheduler:
                             description: scheduler contains extra settings for the
                               scheduler control plane component
+                            minProperties: 1
                             properties:
                               extraArgs:
                                 description: |-
@@ -5232,6 +5238,7 @@ spec:
                               configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
                               on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                               fails you may set the desired value here.
+                            minProperties: 1
                             properties:
                               advertiseAddress:
                                 description: advertiseAddress sets the IP address
@@ -5252,6 +5259,7 @@ spec:
                               nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
                               When used in the context of control plane nodes, NodeRegistration should remain consistent
                               across both InitConfiguration and JoinConfiguration
+                            minProperties: 1
                             properties:
                               criSocket:
                                 description: criSocket is used to retrieve container
@@ -5275,8 +5283,7 @@ spec:
                                   imagePullPolicy specifies the policy for image pulling
                                   during kubeadm "init" and "join" operations. The value of
                                   this field must be one of "Always", "IfNotPresent" or
-                                  "Never". Defaults to "IfNotPresent". This can be used only
-                                  with Kubernetes version equal to 1.22 and later.
+                                  "Never". Defaults to "IfNotPresent".
                                 enum:
                                 - Always
                                 - IfNotPresent
@@ -5364,6 +5371,7 @@ spec:
                                   - key
                                   type: object
                                 maxItems: 100
+                                minItems: 0
                                 type: array
                             type: object
                           patches:
@@ -5473,6 +5481,7 @@ spec:
                                 description: localAPIEndpoint represents the endpoint
                                   of the API server instance to be deployed on this
                                   node.
+                                minProperties: 1
                                 properties:
                                   advertiseAddress:
                                     description: advertiseAddress sets the IP address
@@ -5492,6 +5501,7 @@ spec:
                           discovery:
                             description: discovery specifies the options for the kubelet
                               to use during the TLS Bootstrap process
+                            minProperties: 1
                             properties:
                               bootstrapToken:
                                 description: |-
@@ -5722,6 +5732,7 @@ spec:
                               nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
                               When used in the context of control plane nodes, NodeRegistration should remain consistent
                               across both InitConfiguration and JoinConfiguration
+                            minProperties: 1
                             properties:
                               criSocket:
                                 description: criSocket is used to retrieve container
@@ -5745,8 +5756,7 @@ spec:
                                   imagePullPolicy specifies the policy for image pulling
                                   during kubeadm "init" and "join" operations. The value of
                                   this field must be one of "Always", "IfNotPresent" or
-                                  "Never". Defaults to "IfNotPresent". This can be used only
-                                  with Kubernetes version equal to 1.22 and later.
+                                  "Never". Defaults to "IfNotPresent".
                                 enum:
                                 - Always
                                 - IfNotPresent
@@ -5834,6 +5844,7 @@ spec:
                                   - key
                                   type: object
                                 maxItems: 100
+                                minItems: 0
                                 type: array
                             type: object
                           patches:

@@ -87,6 +87,7 @@ spec:
 
                       In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
                       types. When that happens, this hack should be revisited.
+                    minProperties: 1
                     properties:
                       annotations:
                         additionalProperties:
@@ -213,6 +214,7 @@ spec:
 
                       In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
                       types. When that happens, this hack should be revisited.
+                    minProperties: 1
                     properties:
                       annotations:
                         additionalProperties:

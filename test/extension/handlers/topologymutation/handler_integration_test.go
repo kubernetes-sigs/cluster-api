@@ -263,7 +263,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 
 	// Get ClusterClass and referenced templates.
 	// ClusterClass
-	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, &clusterv1.ClusterClassTemplateReference{
+	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, clusterv1.ClusterClassTemplateReference{
 		Kind: "ClusterClass",
 	}))
 	// Set paused condition for ClusterClass
@@ -274,12 +274,12 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 		ObservedGeneration: s.Blueprint.ClusterClass.GetGeneration(),
 	})
 	// InfrastructureClusterTemplate
-	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.Infrastructure.Ref))
+	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.Infrastructure.TemplateRef))
 
 	// ControlPlane
-	s.Blueprint.ControlPlane.Template = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.Ref))
+	s.Blueprint.ControlPlane.Template = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef))
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref))
+		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef))
 	}
 	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
 		s.Blueprint.ControlPlane.MachineHealthCheck = s.Blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck
@@ -289,8 +289,8 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	for _, machineDeploymentClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
 		machineDeploymentBlueprint := &scope.MachineDeploymentBlueprint{}
 		machineDeploymentClass.Template.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
-		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Infrastructure.Ref))
-		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Bootstrap.Ref))
+		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Infrastructure.TemplateRef))
+		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Bootstrap.TemplateRef))
 		if machineDeploymentClass.MachineHealthCheck != nil {
 			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
 		}
@@ -301,8 +301,8 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	for _, machinePoolClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
 		machinePoolBlueprint := &scope.MachinePoolBlueprint{}
 		machinePoolClass.Template.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
-		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Infrastructure.Ref))
-		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Bootstrap.Ref))
+		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Infrastructure.TemplateRef))
+		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Bootstrap.TemplateRef))
 		s.Blueprint.MachinePools[machinePoolClass.Class] = machinePoolBlueprint
 	}
 
@@ -374,7 +374,7 @@ func mustFind[K runtime.Object](obj K, err error) K {
 }
 
 // findObject looks up an object with the given groupVersionKindName in the given objects map.
-func findObject[K runtime.Object](objects map[clusterv1.ClusterClassTemplateReference]runtime.Object, groupVersionKindName *clusterv1.ClusterClassTemplateReference) (K, error) {
+func findObject[K runtime.Object](objects map[clusterv1.ClusterClassTemplateReference]runtime.Object, groupVersionKindName clusterv1.ClusterClassTemplateReference) (K, error) {
 	var res K
 	var alreadyFound bool
 	for gvkn, obj := range objects {

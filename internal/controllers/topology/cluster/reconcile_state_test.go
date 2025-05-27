@@ -1543,8 +1543,8 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ClusterClassTemplate{
-					Ref: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
 			if tt.upgradeTracker != nil {
@@ -1736,8 +1736,8 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 			ClusterClass: &clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						MachineInfrastructure: &clusterv1.ClusterClassTemplate{
-							Ref: objToClusterClassTemplateRef(infrastructureMachineTemplate),
+						MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+							TemplateRef: objToClusterClassTemplateRef(infrastructureMachineTemplate),
 						},
 					},
 				},
@@ -1892,8 +1892,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ClusterClassTemplate{
-					Ref: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
 
@@ -4075,9 +4075,9 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 	}
 }
 
-func objToClusterClassTemplateRef(obj *unstructured.Unstructured) *clusterv1.ClusterClassTemplateReference {
+func objToClusterClassTemplateRef(obj *unstructured.Unstructured) clusterv1.ClusterClassTemplateReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
-	return &clusterv1.ClusterClassTemplateReference{
+	return clusterv1.ClusterClassTemplateReference{
 		Kind:       gvk.Kind,
 		APIVersion: gvk.GroupVersion().String(),
 		Name:       obj.GetName(),

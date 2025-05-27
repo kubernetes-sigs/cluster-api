@@ -755,13 +755,33 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.ClusterClassTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.ClusterClassTemplate), scope)
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.ControlPlaneClassMachineInfrastructureTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.ControlPlaneClassMachineInfrastructureTemplate), scope)
 	}); err != nil {
 		return err
 	}
 	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.InfrastructureClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(a.(*LocalObjectTemplate), b.(*v1beta2.InfrastructureClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.MachineDeploymentClassBootstrapTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassBootstrapTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.MachineDeploymentClassBootstrapTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.MachineDeploymentClassInfrastructureTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassInfrastructureTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.MachineDeploymentClassInfrastructureTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.MachinePoolClassBootstrapTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachinePoolClassBootstrapTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.MachinePoolClassBootstrapTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.MachinePoolClassInfrastructureTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachinePoolClassInfrastructureTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.MachinePoolClassInfrastructureTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -860,11 +880,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta2.ClusterClassTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.ClusterClassTemplate), b.(*LocalObjectTemplate), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterClassVariable)(nil), (*ClusterClassVariable)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(a.(*v1beta2.ClusterClassVariable), b.(*ClusterClassVariable), scope)
 	}); err != nil {
@@ -885,6 +900,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ControlPlaneClassMachineInfrastructureTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.ControlPlaneClassMachineInfrastructureTemplate), b.(*LocalObjectTemplate), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.ControlPlaneClass)(nil), (*ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(a.(*v1beta2.ControlPlaneClass), b.(*ControlPlaneClass), scope)
 	}); err != nil {
@@ -902,6 +922,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.InfrastructureClass)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_InfrastructureClass_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.InfrastructureClass), b.(*LocalObjectTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentClassBootstrapTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentClassBootstrapTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.MachineDeploymentClassBootstrapTemplate), b.(*LocalObjectTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentClassInfrastructureTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.MachineDeploymentClassInfrastructureTemplate), b.(*LocalObjectTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -942,6 +972,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineNodeReference)(nil), (*corev1.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(a.(*v1beta2.MachineNodeReference), b.(*corev1.ObjectReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolClassBootstrapTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolClassBootstrapTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.MachinePoolClassBootstrapTemplate), b.(*LocalObjectTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolClassInfrastructureTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(a.(*v1beta2.MachinePoolClassInfrastructureTemplate), b.(*LocalObjectTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -1757,8 +1797,8 @@ func autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Cont
 	// WARNING: in.LocalObjectTemplate requires manual conversion: does not exist in peer-type
 	if in.MachineInfrastructure != nil {
 		in, out := &in.MachineInfrastructure, &out.MachineInfrastructure
-		*out = new(v1beta2.ClusterClassTemplate)
-		if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(*in, *out, s); err != nil {
+		*out = new(v1beta2.ControlPlaneClassMachineInfrastructureTemplate)
+		if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1793,11 +1833,11 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
-	// WARNING: in.ClusterClassTemplate requires manual conversion: does not exist in peer-type
+	// WARNING: in.TemplateRef requires manual conversion: does not exist in peer-type
 	if in.MachineInfrastructure != nil {
 		in, out := &in.MachineInfrastructure, &out.MachineInfrastructure
 		*out = new(LocalObjectTemplate)
-		if err := Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(*in, *out, s); err != nil {
+		if err := Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -2475,10 +2515,10 @@ func autoConvert_v1beta1_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploy
 	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
+	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassBootstrapTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassInfrastructureTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
 	return nil
@@ -2493,10 +2533,10 @@ func autoConvert_v1beta2_MachineDeploymentClassTemplate_To_v1beta1_MachineDeploy
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
+	if err := Convert_v1beta2_MachineDeploymentClassBootstrapTemplate_To_v1beta1_LocalObjectTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta2_MachineDeploymentClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
 	return nil
@@ -3328,10 +3368,10 @@ func autoConvert_v1beta1_MachinePoolClassTemplate_To_v1beta2_MachinePoolClassTem
 	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
+	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachinePoolClassBootstrapTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachinePoolClassInfrastructureTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
 	return nil
@@ -3346,10 +3386,10 @@ func autoConvert_v1beta2_MachinePoolClassTemplate_To_v1beta1_MachinePoolClassTem
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
+	if err := Convert_v1beta2_MachinePoolClassBootstrapTemplate_To_v1beta1_LocalObjectTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
+	if err := Convert_v1beta2_MachinePoolClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
 	return nil

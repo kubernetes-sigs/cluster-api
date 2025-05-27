@@ -480,7 +480,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.

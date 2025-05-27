@@ -813,6 +813,9 @@ func TestPatchHelper(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
+						Bootstrap: clusterv1.Bootstrap{
+							DataSecretName: ptr.To("data-secret"),
+						},
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.InfrastructureGroupVersion.Group,
 							Kind:     builder.TestInfrastructureMachineTemplateKind,
@@ -978,6 +981,9 @@ func TestPatchHelper(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
+						Bootstrap: clusterv1.Bootstrap{
+							DataSecretName: ptr.To("data-secret"),
+						},
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.InfrastructureGroupVersion.Group,
 							Kind:     builder.TestInfrastructureMachineTemplateKind,

@@ -44,6 +44,9 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Version: "1.19.10",
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data-secret"),
+					},
 				},
 			},
 		},
@@ -80,6 +83,65 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 
 	g.Expect(md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+}
+
+func TestMachineDeploymentBootstrapValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		bootstrap clusterv1.Bootstrap
+		expectErr bool
+	}{
+		{
+			name:      "should return error if configref and data are nil",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			expectErr: true,
+		},
+		{
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("")},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error if config ref is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			m := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{Bootstrap: tt.bootstrap},
+					},
+				},
+			}
+			webhook := &MachineDeployment{}
+
+			if tt.expectErr {
+				warnings, err := webhook.ValidateCreate(ctx, m)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, m, m)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := webhook.ValidateCreate(ctx, m)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, m, m)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
 }
 
 func TestMachineDeploymentReferenceDefault(t *testing.T) {
@@ -488,6 +550,11 @@ func TestMachineDeploymentValidation(t *testing.T) {
 						ObjectMeta: clusterv1.ObjectMeta{
 							Labels: tt.labels,
 						},
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
 					},
 					MachineNamingStrategy: &tt.machineNamingStrategy,
 				},
@@ -560,6 +627,9 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Version: tt.version,
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
 						},
 					},
 				},
@@ -618,12 +688,26 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 			newMD := &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: tt.newClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
 				},
 			}
 
 			oldMD := &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: tt.oldClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
 				},
 			}
 

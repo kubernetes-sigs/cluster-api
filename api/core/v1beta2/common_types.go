@@ -326,6 +326,7 @@ type MachineAddresses []MachineAddress
 //
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
+// +kubebuilder:validation:MinProperties=1
 type ObjectMeta struct {
 	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers

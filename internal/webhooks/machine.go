@@ -116,7 +116,7 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 			allErrs = append(
 				allErrs,
 				field.Required(
-					specPath.Child("bootstrap", "data"),
+					specPath.Child("bootstrap"),
 					"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
 				),
 			)

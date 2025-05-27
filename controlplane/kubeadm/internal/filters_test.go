@@ -61,7 +61,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 
 		annotations, err := ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(annotations).To(Equal("{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}"))
+		g.Expect(annotations).To(Equal("{\"marshalVersion\":\"v1beta2\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"certificatesDir\":\"foo\"}"))
 	})
 	t.Run("ClusterConfigurationFromMachineIsOutdated", func(t *testing.T) {
 		g := NewWithT(t)
@@ -294,19 +294,23 @@ func TestMatchClusterConfiguration(t *testing.T) {
 								},
 							},
 						},
-						ControllerManager: bootstrapv1.ControlPlaneComponent{
-							ExtraArgs: []bootstrapv1.Arg{
-								{
-									Name:  "foo",
-									Value: "bar",
+						ControllerManager: bootstrapv1.ControllerManager{
+							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+								ExtraArgs: []bootstrapv1.Arg{
+									{
+										Name:  "foo",
+										Value: "bar",
+									},
 								},
 							},
 						},
-						Scheduler: bootstrapv1.ControlPlaneComponent{
-							ExtraArgs: []bootstrapv1.Arg{
-								{
-									Name:  "foo",
-									Value: "bar",
+						Scheduler: bootstrapv1.Scheduler{
+							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+								ExtraArgs: []bootstrapv1.Arg{
+									{
+										Name:  "foo",
+										Value: "bar",
+									},
 								},
 							},
 						},
@@ -324,7 +328,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		// This is a point in time snapshot of how a serialized ClusterConfiguration looks like;
 		// we are hardcoding this in the test so we can detect if a change in the API impacts serialization.
 		// NOTE: changes in the json representation do not always trigger a rollout in KCP, but they are an heads up that should be investigated.
-		annotationsCheckPoint := "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"scheduler\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}"
+		annotationsCheckPoint := "{\"marshalVersion\":\"v1beta2\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"scheduler\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}"
 
 		// compute how a serialized ClusterConfiguration looks like now
 		annotations, err := ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
@@ -1875,15 +1879,19 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 					},
 					CertSANs: []string{},
 				},
-				ControllerManager: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs:    []bootstrapv1.Arg{},
-					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    []bootstrapv1.EnvVar{},
+				ControllerManager: bootstrapv1.ControllerManager{
+					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+						ExtraArgs:    []bootstrapv1.Arg{},
+						ExtraVolumes: []bootstrapv1.HostPathMount{},
+						ExtraEnvs:    []bootstrapv1.EnvVar{},
+					},
 				},
-				Scheduler: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs:    []bootstrapv1.Arg{},
-					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    []bootstrapv1.EnvVar{},
+				Scheduler: bootstrapv1.Scheduler{
+					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+						ExtraArgs:    []bootstrapv1.Arg{},
+						ExtraVolumes: []bootstrapv1.HostPathMount{},
+						ExtraEnvs:    []bootstrapv1.EnvVar{},
+					},
 				},
 				FeatureGates: map[string]bool{},
 			},
@@ -1909,15 +1917,19 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 					},
 					CertSANs: nil,
 				},
-				ControllerManager: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs:    nil,
-					ExtraVolumes: nil,
-					ExtraEnvs:    nil,
+				ControllerManager: bootstrapv1.ControllerManager{
+					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+						ExtraArgs:    nil,
+						ExtraVolumes: nil,
+						ExtraEnvs:    nil,
+					},
 				},
-				Scheduler: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs:    nil,
-					ExtraVolumes: nil,
-					ExtraEnvs:    nil,
+				Scheduler: bootstrapv1.Scheduler{
+					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+						ExtraArgs:    nil,
+						ExtraVolumes: nil,
+						ExtraEnvs:    nil,
+					},
 				},
 				FeatureGates: nil,
 			},
@@ -1953,7 +1965,7 @@ func TestOmittableFieldsInitConfiguration(t *testing.T) {
 			A: &bootstrapv1.InitConfiguration{
 				BootstrapTokens: []bootstrapv1.BootstrapToken{},
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                []corev1.Taint{},
+					Taints:                ptr.To([]corev1.Taint{}),
 					KubeletExtraArgs:      []bootstrapv1.Arg{},
 					IgnorePreflightErrors: []string{},
 				},
@@ -1962,7 +1974,7 @@ func TestOmittableFieldsInitConfiguration(t *testing.T) {
 			B: &bootstrapv1.InitConfiguration{
 				BootstrapTokens: nil,
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                []corev1.Taint{}, // Special serialization
+					Taints:                ptr.To([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
 					KubeletExtraArgs:      nil,
 					IgnorePreflightErrors: nil,
 				},
@@ -2018,7 +2030,7 @@ func TestOmittableFieldsJoinConfiguration(t *testing.T) {
 			name: "Test omittable fields",
 			A: &bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                []corev1.Taint{},
+					Taints:                ptr.To([]corev1.Taint{}),
 					KubeletExtraArgs:      []bootstrapv1.Arg{},
 					IgnorePreflightErrors: []string{},
 				},
@@ -2047,7 +2059,7 @@ func TestOmittableFieldsJoinConfiguration(t *testing.T) {
 			},
 			B: &bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                []corev1.Taint{},
+					Taints:                ptr.To([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
 					KubeletExtraArgs:      nil,
 					IgnorePreflightErrors: nil,
 				},

@@ -43,11 +43,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -130,11 +128,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -183,11 +179,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -270,11 +264,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -293,11 +285,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -316,11 +306,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -358,11 +346,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -398,11 +384,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -450,11 +434,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -503,11 +485,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -556,11 +536,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -609,11 +587,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -664,11 +640,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -704,11 +678,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -759,11 +731,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -798,11 +768,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -840,11 +808,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -881,11 +847,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -926,11 +890,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -965,11 +927,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1020,11 +980,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1072,11 +1030,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1127,11 +1083,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1179,11 +1133,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1231,11 +1183,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1288,11 +1238,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
@@ -1329,11 +1277,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -1373,11 +1319,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -1400,11 +1344,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -1427,11 +1369,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -1451,11 +1391,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 
@@ -1479,11 +1417,9 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
-							Ref: &clusterv1.ClusterClassTemplateReference{
-								APIVersion: clusterv1.GroupVersionControlPlane.String(),
-								Kind:       "ControlPlaneTemplate",
-							},
+						TemplateRef: clusterv1.ClusterClassTemplateReference{
+							APIVersion: clusterv1.GroupVersionControlPlane.String(),
+							Kind:       "ControlPlaneTemplate",
 						},
 					},
 

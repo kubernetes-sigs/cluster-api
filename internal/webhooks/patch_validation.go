@@ -178,7 +178,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 	}
 
 	if ptr.Deref(selector.MatchResources.InfrastructureCluster, false) {
-		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.Ref) {
+		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.TemplateRef) {
 			allErrs = append(allErrs, field.Invalid(
 				path.Child("matchResources", "infrastructureCluster"),
 				selector.MatchResources.InfrastructureCluster,
@@ -189,11 +189,11 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 
 	if ptr.Deref(selector.MatchResources.ControlPlane, false) {
 		match := false
-		if selectorMatchTemplate(selector, class.Spec.ControlPlane.Ref) {
+		if selectorMatchTemplate(selector, class.Spec.ControlPlane.TemplateRef) {
 			match = true
 		}
 		if class.Spec.ControlPlane.MachineInfrastructure != nil &&
-			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.Ref) {
+			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.TemplateRef) {
 			match = true
 		}
 		if !match {
@@ -224,8 +224,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, md.Template.Infrastructure.Ref) ||
-						selectorMatchTemplate(selector, md.Template.Bootstrap.Ref) {
+					if selectorMatchTemplate(selector, md.Template.Infrastructure.TemplateRef) ||
+						selectorMatchTemplate(selector, md.Template.Bootstrap.TemplateRef) {
 						match = true
 						break
 					}
@@ -260,8 +260,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, mp.Template.Infrastructure.Ref) ||
-						selectorMatchTemplate(selector, mp.Template.Bootstrap.Ref) {
+					if selectorMatchTemplate(selector, mp.Template.Infrastructure.TemplateRef) ||
+						selectorMatchTemplate(selector, mp.Template.Bootstrap.TemplateRef) {
 						match = true
 						break
 					}
@@ -311,10 +311,7 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 }
 
 // selectorMatchTemplate returns true if APIVersion and Kind for the given selector match the reference.
-func selectorMatchTemplate(selector clusterv1.PatchSelector, reference *clusterv1.ClusterClassTemplateReference) bool {
-	if reference == nil {
-		return false
-	}
+func selectorMatchTemplate(selector clusterv1.PatchSelector, reference clusterv1.ClusterClassTemplateReference) bool {
 	return selector.Kind == reference.Kind && selector.APIVersion == reference.APIVersion
 }
 

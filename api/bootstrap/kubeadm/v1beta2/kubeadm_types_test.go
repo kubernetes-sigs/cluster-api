@@ -23,65 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 )
-
-func TestNodeRegistrationOptionsMarshalJSON(t *testing.T) {
-	var tests = []struct {
-		name     string
-		opts     NodeRegistrationOptions
-		expected string
-	}{
-		{
-			name: "marshal nil taints",
-			opts: NodeRegistrationOptions{
-				Name:                  "node-1",
-				CRISocket:             "unix:///var/run/containerd/containerd.sock",
-				Taints:                nil,
-				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
-				IgnorePreflightErrors: []string{"ignore-1"},
-			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
-		},
-		{
-			name: "marshal empty taints",
-			opts: NodeRegistrationOptions{
-				Name:                  "node-1",
-				CRISocket:             "unix:///var/run/containerd/containerd.sock",
-				Taints:                []corev1.Taint{},
-				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
-				IgnorePreflightErrors: []string{"ignore-1"},
-			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[],"kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
-		},
-		{
-			name: "marshal regular taints",
-			opts: NodeRegistrationOptions{
-				Name:      "node-1",
-				CRISocket: "unix:///var/run/containerd/containerd.sock",
-				Taints: []corev1.Taint{
-					{
-						Key:    "key",
-						Value:  "value",
-						Effect: "effect",
-					},
-				},
-				KubeletExtraArgs:      []Arg{{Name: "abc", Value: "def"}},
-				IgnorePreflightErrors: []string{"ignore-1"},
-			},
-			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[{"key":"key","value":"value","effect":"effect"}],"kubeletExtraArgs":[{"name":"abc","value":"def"}],"ignorePreflightErrors":["ignore-1"]}`,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			b, err := tt.opts.MarshalJSON()
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(string(b)).To(Equal(tt.expected))
-		})
-	}
-}
 
 func TestBootstrapTokenStringMarshalJSON(t *testing.T) {
 	var tests = []struct {

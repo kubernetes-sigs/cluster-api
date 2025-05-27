@@ -104,18 +104,18 @@ type ClusterClassSpec struct {
 	// infrastructure is a reference to a local struct that holds the details
 	// for provisioning the infrastructure cluster for the Cluster.
 	// +optional
-	Infrastructure InfrastructureClass `json:"infrastructure,omitempty"`
+	Infrastructure InfrastructureClass `json:"infrastructure,omitempty,omitzero"`
 
 	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
 	// +optional
-	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
+	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty,omitzero"`
 
 	// workers describes the worker nodes for the cluster.
 	// It is a collection of node types which can be used to create
 	// the worker nodes of the cluster.
 	// +optional
-	Workers WorkersClass `json:"workers,omitempty"`
+	Workers WorkersClass `json:"workers,omitempty,omitzero"`
 
 	// variables defines the variables which can be configured
 	// in the Cluster topology and are then used in patches.
@@ -133,8 +133,9 @@ type ClusterClassSpec struct {
 
 // InfrastructureClass defines the class for the infrastructure cluster.
 type InfrastructureClass struct {
-	// LocalObjectTemplate contains the reference to a provider-specific infrastructure cluster template.
-	ClusterClassTemplate `json:",inline"`
+	// templateRef contains the reference to a provider-specific infrastructure cluster template.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 
 	// namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.
 	// +optional
@@ -151,10 +152,11 @@ type ControlPlaneClass struct {
 	// This field is supported if and only if the control plane provider template
 	// referenced is Machine based.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
-	// LocalObjectTemplate contains the reference to a provider-specific control plane template.
-	ClusterClassTemplate `json:",inline"`
+	// templateRef contains the reference to a provider-specific control plane template.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 
 	// machineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
@@ -163,7 +165,7 @@ type ControlPlaneClass struct {
 	// referenced above is Machine based and supports setting replicas.
 	//
 	// +optional
-	MachineInfrastructure *ClusterClassTemplate `json:"machineInfrastructure,omitempty"`
+	MachineInfrastructure *ControlPlaneClassMachineInfrastructureTemplate `json:"machineInfrastructure,omitempty"`
 
 	// machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
@@ -246,6 +248,7 @@ type InfrastructureClassNamingStrategy struct {
 }
 
 // WorkersClass is a collection of deployment classes.
+// +kubebuilder:validation:MinProperties=1
 type WorkersClass struct {
 	// machineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
@@ -354,17 +357,17 @@ type MachineDeploymentClassTemplate struct {
 	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Bootstrap ClusterClassTemplate `json:"bootstrap"`
+	Bootstrap MachineDeploymentClassBootstrapTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Infrastructure ClusterClassTemplate `json:"infrastructure"`
+	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure"`
 }
 
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
@@ -504,17 +507,17 @@ type MachinePoolClassTemplate struct {
 	// metadata is the metadata applied to the MachinePool.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
 	// +required
-	Bootstrap ClusterClassTemplate `json:"bootstrap"`
+	Bootstrap MachinePoolClassBootstrapTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of the MachinePool.
 	// +required
-	Infrastructure ClusterClassTemplate `json:"infrastructure"`
+	Infrastructure MachinePoolClassInfrastructureTemplate `json:"infrastructure"`
 }
 
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.
@@ -561,7 +564,7 @@ type ClusterClassVariable struct {
 	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"`
 
 	// schema defines the schema of the variable.
 	// +required
@@ -573,6 +576,7 @@ type ClusterClassVariable struct {
 // a ClusterClassVariable.
 //
 // Deprecated: This struct is deprecated and is going to be removed in the next apiVersion.
+// +kubebuilder:validation:MinProperties=1
 type ClusterClassVariableMetadata struct {
 	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.
@@ -1147,12 +1151,39 @@ type ExternalPatchDefinition struct {
 	Settings map[string]string `json:"settings,omitempty"`
 }
 
-// ClusterClassTemplate defines a template referenced by a ClusterClass.
-type ClusterClassTemplate struct {
-	// ref is a required reference to a custom resource
-	// offered by a provider.
+// ControlPlaneClassMachineInfrastructureTemplate defines the template for a MachineInfrastructure of a ControlPlane.
+type ControlPlaneClassMachineInfrastructureTemplate struct {
+	// templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane.
 	// +required
-	Ref *ClusterClassTemplateReference `json:"ref"`
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassBootstrapTemplate defines the BootstrapTemplate for a MachineDeployment.
+type MachineDeploymentClassBootstrapTemplate struct {
+	// templateRef is a required reference to the BootstrapTemplate for a MachineDeployment.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassInfrastructureTemplate defines the InfrastructureTemplate for a MachineDeployment.
+type MachineDeploymentClassInfrastructureTemplate struct {
+	// templateRef is a required reference to the InfrastructureTemplate for a MachineDeployment.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+}
+
+// MachinePoolClassBootstrapTemplate defines the BootstrapTemplate for a MachinePool.
+type MachinePoolClassBootstrapTemplate struct {
+	// templateRef is a required reference to the BootstrapTemplate for a MachinePool.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
+}
+
+// MachinePoolClassInfrastructureTemplate defines the InfrastructureTemplate for a MachinePool.
+type MachinePoolClassInfrastructureTemplate struct {
+	// templateRef is a required reference to the InfrastructureTemplate for a MachinePool.
+	// +required
+	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // ClusterClassTemplateReference is a reference to a ClusterClass template.
@@ -1289,7 +1320,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"`
 
 	// schema defines the schema of the variable.
 	// +required

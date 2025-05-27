@@ -163,6 +163,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		// metadata
 		{"metadata", "*"},
 		// spec.kubeadmConfigSpec.clusterConfiguration
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "*"},

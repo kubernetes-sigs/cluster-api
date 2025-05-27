@@ -108,6 +108,15 @@ func Convert_upstreamv1beta4_Timeouts_To_v1beta2_Timeouts(in *Timeouts, out *boo
 	return nil
 }
 
+func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = ptr.To(in.Taints)
+	}
+	return autoConvert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
+}
+
 func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *bootstrapv1.BootstrapToken, s apimachineryconversion.Scope) error {
 	if err := autoConvert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in, out, s); err != nil {
 		return err
@@ -116,12 +125,28 @@ func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *Bootst
 	return nil
 }
 
+func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
+	return Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
+func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
+	return Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta4.
 
 func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - TimeoutForControlPlane (this field has been migrated to Init/JoinConfiguration; migration is handled by ConvertFromClusterConfiguration custom converters.
 	return autoConvert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in, out, s)
+}
+
+func Convert_v1beta2_ControllerManager_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
+func Convert_v1beta2_Scheduler_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
 }
 
 func Convert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
@@ -147,6 +172,15 @@ func Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(in *bootstrapv1.Timeou
 	out.TLSBootstrap = clusterv1.ConvertFromSeconds(in.TLSBootstrapSeconds)
 	out.Discovery = clusterv1.ConvertFromSeconds(in.DiscoverySeconds)
 	return nil
+}
+
+func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = *in.Taints
+	}
+	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistrationOptions(in, out, s)
 }
 
 func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {

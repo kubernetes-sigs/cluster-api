@@ -645,7 +645,7 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
-		newControllerManager     bootstrapv1.ControlPlaneComponent
+		newControllerManager     bootstrapv1.ControllerManager
 		wantClusterConfiguration string
 	}{
 		{
@@ -654,22 +654,24 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
 				`),
-			newControllerManager: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: []bootstrapv1.Arg{
-					{
-						Name:  "bar",
-						Value: "baz",
+			newControllerManager: bootstrapv1.ControllerManager{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+					ExtraArgs: []bootstrapv1.Arg{
+						{
+							Name:  "bar",
+							Value: "baz",
+						},
+						{
+							Name:  "someKey",
+							Value: "someVal",
+						},
 					},
-					{
-						Name:  "someKey",
-						Value: "someVal",
-					},
-				},
-				ExtraVolumes: []bootstrapv1.HostPathMount{
-					{
-						Name:      "mount2",
-						HostPath:  "/bar/baz",
-						MountPath: "/foo/bar",
+					ExtraVolumes: []bootstrapv1.HostPathMount{
+						{
+							Name:      "mount2",
+							HostPath:  "/bar/baz",
+							MountPath: "/foo/bar",
+						},
 					},
 				},
 			},
@@ -728,7 +730,7 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
-		newScheduler             bootstrapv1.ControlPlaneComponent
+		newScheduler             bootstrapv1.Scheduler
 		wantClusterConfiguration string
 	}{
 		{
@@ -737,22 +739,24 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
 				`),
-			newScheduler: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: []bootstrapv1.Arg{
-					{
-						Name:  "bar",
-						Value: "baz",
+			newScheduler: bootstrapv1.Scheduler{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+					ExtraArgs: []bootstrapv1.Arg{
+						{
+							Name:  "bar",
+							Value: "baz",
+						},
+						{
+							Name:  "someKey",
+							Value: "someVal",
+						},
 					},
-					{
-						Name:  "someKey",
-						Value: "someVal",
-					},
-				},
-				ExtraVolumes: []bootstrapv1.HostPathMount{
-					{
-						Name:      "mount2",
-						HostPath:  "/bar/baz",
-						MountPath: "/foo/bar",
+					ExtraVolumes: []bootstrapv1.HostPathMount{
+						{
+							Name:      "mount2",
+							HostPath:  "/bar/baz",
+							MountPath: "/foo/bar",
+						},
 					},
 				},
 			},

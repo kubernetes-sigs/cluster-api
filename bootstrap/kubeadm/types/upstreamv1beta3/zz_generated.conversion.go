@@ -173,6 +173,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.ControllerManager)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControllerManager(a.(*ControlPlaneComponent), b.(*v1beta2.ControllerManager), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.Scheduler)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_Scheduler(a.(*ControlPlaneComponent), b.(*v1beta2.Scheduler), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
 	}); err != nil {
@@ -213,6 +223,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ControllerManager)(nil), (*ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControllerManager_To_upstreamv1beta3_ControlPlaneComponent(a.(*v1beta2.ControllerManager), b.(*ControlPlaneComponent), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.FileDiscovery)(nil), (*FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(a.(*v1beta2.FileDiscovery), b.(*FileDiscovery), scope)
 	}); err != nil {
@@ -235,6 +250,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.NodeRegistrationOptions)(nil), (*NodeRegistrationOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(a.(*v1beta2.NodeRegistrationOptions), b.(*NodeRegistrationOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Scheduler)(nil), (*ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Scheduler_To_upstreamv1beta3_ControlPlaneComponent(a.(*v1beta2.Scheduler), b.(*ControlPlaneComponent), scope)
 	}); err != nil {
 		return err
 	}
@@ -368,10 +388,10 @@ func autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfigur
 	if err := Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
-	if err := Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
+	if err := Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControllerManager(&in.ControllerManager, &out.ControllerManager, s); err != nil {
 		return err
 	}
-	if err := Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
+	if err := Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_Scheduler(&in.Scheduler, &out.Scheduler, s); err != nil {
 		return err
 	}
 	if err := Convert_upstreamv1beta3_DNS_To_v1beta2_DNS(&in.DNS, &out.DNS, s); err != nil {
@@ -392,10 +412,10 @@ func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfigur
 	if err := Convert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
+	if err := Convert_v1beta2_ControllerManager_To_upstreamv1beta3_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
+	if err := Convert_v1beta2_Scheduler_To_upstreamv1beta3_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
 		return err
 	}
 	if err := Convert_v1beta2_DNS_To_upstreamv1beta3_DNS(&in.DNS, &out.DNS, s); err != nil {
@@ -796,7 +816,7 @@ func autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *v1beta2.Loca
 func autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *v1beta2.NodeRegistrationOptions, s conversion.Scope) error {
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
-	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
+	// WARNING: in.Taints requires manual conversion: inconvertible types ([]k8s.io/api/core/v1.Taint vs *[]k8s.io/api/core/v1.Taint)
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
@@ -806,7 +826,7 @@ func autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistra
 func autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in *v1beta2.NodeRegistrationOptions, out *NodeRegistrationOptions, s conversion.Scope) error {
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
-	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
+	// WARNING: in.Taints requires manual conversion: inconvertible types (*[]k8s.io/api/core/v1.Taint vs []k8s.io/api/core/v1.Taint)
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = string(in.ImagePullPolicy)

@@ -357,8 +357,8 @@ func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjec
 	expectMapsToBeEquivalent(g, clusterObjects.InfrastructureCluster.GetAnnotations(),
 		union(
 			map[string]string{
-				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.Infrastructure.Ref.GroupVersionKind().GroupKind().String(),
-				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.Infrastructure.Ref.Name,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
+				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.Infrastructure.TemplateRef.Name,
 			},
 			ccInfrastructureClusterTemplateTemplateMetadata.Annotations,
 		),
@@ -387,8 +387,8 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	expectMapsToBeEquivalent(g, clusterObjects.ControlPlane.GetAnnotations(),
 		union(
 			map[string]string{
-				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.Ref.GroupVersionKind().GroupKind().String(),
-				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.Ref.Name,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.TemplateRef.GroupVersionKind().GroupKind().String(),
+				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.TemplateRef.Name,
 			},
 			cluster.Spec.Topology.ControlPlane.Metadata.Annotations,
 			clusterClass.Spec.ControlPlane.Metadata.Annotations,
@@ -432,8 +432,8 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	expectMapsToBeEquivalent(g, clusterObjects.ControlPlaneInfrastructureMachineTemplate.GetAnnotations(),
 		union(
 			map[string]string{
-				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.GroupVersionKind().GroupKind().String(),
-				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.Name,
+				clusterv1.TemplateClonedFromGroupKindAnnotation: clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
+				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.Name,
 			},
 			clusterClassObjects.ControlPlaneInfrastructureMachineTemplate.GetAnnotations(),
 		),
@@ -623,8 +623,8 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 		expectMapsToBeEquivalent(g, infrastructureMachineTemplate.GetAnnotations(),
 			union(
 				map[string]string{
-					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Template.Infrastructure.Ref.GroupVersionKind().GroupKind().String(),
-					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Infrastructure.Ref.Name,
+					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Template.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
+					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Infrastructure.TemplateRef.Name,
 				},
 				ccInfrastructureMachineTemplate.GetAnnotations(),
 			),
@@ -655,8 +655,8 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 		expectMapsToBeEquivalent(g, bootstrapConfigTemplate.GetAnnotations(),
 			union(
 				map[string]string{
-					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Template.Bootstrap.Ref.GroupVersionKind().GroupKind().String(),
-					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Bootstrap.Ref.Name,
+					clusterv1.TemplateClonedFromGroupKindAnnotation: mdClass.Template.Bootstrap.TemplateRef.GroupVersionKind().GroupKind().String(),
+					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Bootstrap.TemplateRef.Name,
 				},
 				ccBootstrapConfigTemplate.GetAnnotations(),
 			),
@@ -734,8 +734,8 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 		expectMapsToBeEquivalent(g, infrastructureMachinePool.GetAnnotations(),
 			union(
 				map[string]string{
-					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Template.Infrastructure.Ref.GroupVersionKind().GroupKind().String(),
-					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Infrastructure.Ref.Name,
+					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Template.Infrastructure.TemplateRef.GroupVersionKind().GroupKind().String(),
+					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Infrastructure.TemplateRef.Name,
 				},
 				ccInfrastructureMachinePoolTemplateTemplateMetadata.Annotations,
 			),
@@ -758,8 +758,8 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 		expectMapsToBeEquivalent(g, bootstrapConfig.GetAnnotations(),
 			union(
 				map[string]string{
-					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Template.Bootstrap.Ref.GroupVersionKind().GroupKind().String(),
-					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Bootstrap.Ref.Name,
+					clusterv1.TemplateClonedFromGroupKindAnnotation: mpClass.Template.Bootstrap.TemplateRef.GroupVersionKind().GroupKind().String(),
+					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Bootstrap.TemplateRef.Name,
 				},
 				ccBootstrapConfigTemplateTemplateMetadata.Annotations,
 			),
@@ -1058,31 +1058,31 @@ func getClusterClassObjects(ctx context.Context, g Gomega, clusterProxy framewor
 	}
 	var err error
 
-	res.InfrastructureClusterTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.Infrastructure.Ref.ToObjectReference(clusterClass.Namespace))
+	res.InfrastructureClusterTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	res.ControlPlaneTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.ControlPlane.Ref.ToObjectReference(clusterClass.Namespace))
+	res.ControlPlaneTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.ControlPlane.TemplateRef.ToObjectReference(clusterClass.Namespace))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	res.ControlPlaneInfrastructureMachineTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.ToObjectReference(clusterClass.Namespace))
+	res.ControlPlaneInfrastructureMachineTemplate, err = external.Get(ctx, mgmtClient, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
-		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, mdClass.Template.Infrastructure.Ref.ToObjectReference(clusterClass.Namespace))
+		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, mdClass.Template.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		g.Expect(err).ToNot(HaveOccurred())
 		res.InfrastructureMachineTemplateByMachineDeploymentClass[mdClass.Class] = infrastructureMachineTemplate
 
-		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, mdClass.Template.Bootstrap.Ref.ToObjectReference(clusterClass.Namespace))
+		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, mdClass.Template.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		g.Expect(err).ToNot(HaveOccurred())
 		res.BootstrapConfigTemplateByMachineDeploymentClass[mdClass.Class] = bootstrapConfigTemplate
 	}
 
 	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
-		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Infrastructure.Ref.ToObjectReference(clusterClass.Namespace))
+		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		g.Expect(err).ToNot(HaveOccurred())
 		res.InfrastructureMachinePoolTemplateByMachinePoolClass[mpClass.Class] = infrastructureMachinePoolTemplate
 
-		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Bootstrap.Ref.ToObjectReference(clusterClass.Namespace))
+		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		g.Expect(err).ToNot(HaveOccurred())
 		res.BootstrapConfigTemplateByMachinePoolClass[mpClass.Class] = bootstrapConfigTemplate
 	}

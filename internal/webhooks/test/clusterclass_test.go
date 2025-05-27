@@ -212,7 +212,7 @@ func TestClusterWebhook_Succeed_Update(t *testing.T) {
 		actualClusterClass.Spec.Workers.MachineDeployments[1],
 	}
 	// Change the template used in the ClusterClass to a compatible alternative (Only name is changed).
-	actualClusterClass.Spec.Infrastructure.Ref.Name = infrastructureClusterTemplateName2
+	actualClusterClass.Spec.Infrastructure.TemplateRef.Name = infrastructureClusterTemplateName2
 
 	// Attempt to update the ClusterClass with the above changes.
 	// Expect no error here as the updates are compatible with the current Clusters using the ClusterClass.

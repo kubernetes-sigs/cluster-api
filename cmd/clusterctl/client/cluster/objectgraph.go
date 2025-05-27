@@ -521,27 +521,27 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		}
 
 		errs := []error{}
-		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.Infrastructure.Ref.ToObjectReference(cc.Namespace))
+		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 		errs = append(errs, err)
-		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.Ref.ToObjectReference(cc.Namespace))
+		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.TemplateRef.ToObjectReference(cc.Namespace))
 		errs = append(errs, err)
 
 		if cc.Spec.ControlPlane.MachineInfrastructure != nil {
-			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.Ref.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 
 		for _, mdClass := range cc.Spec.Workers.MachineDeployments {
-			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Infrastructure.Ref.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
-			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Bootstrap.Ref.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 
 		for _, mpClass := range cc.Spec.Workers.MachinePools {
-			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Infrastructure.Ref.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
-			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Bootstrap.Ref.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 

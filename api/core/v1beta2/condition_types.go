@@ -70,7 +70,7 @@ type Condition struct {
 	// understand the current situation and act accordingly.
 	// The Severity field MUST be set only when Status=False.
 	// +optional
-	Severity ConditionSeverity `json:"severity,omitempty"`
+	Severity ConditionSeverity `json:"severity,omitempty"` //nolint:kubeapilinter // the Condition type will be removed when v1beta1 is removed
 
 	// lastTransitionTime is the last time the condition transitioned from one status to another.
 	// This should be when the underlying condition changed. If that is not known, then using the time when

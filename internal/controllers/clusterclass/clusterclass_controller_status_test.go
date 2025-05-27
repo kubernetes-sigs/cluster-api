@@ -81,9 +81,9 @@ func TestSetRefVersionsUpToDateCondition(t *testing.T) {
 				Type:   clusterv1.ClusterClassRefVersionsUpToDateCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.ClusterClassRefVersionsNotUpToDateReason,
-				Message: "* Ref \"controlplane.cluster.x-k8s.io/v1beta2, Kind=KubeadmControlPlaneTemplate default/test-kcp\" should be " +
+				Message: "* templateRef \"controlplane.cluster.x-k8s.io/v1beta2, Kind=KubeadmControlPlaneTemplate default/test-kcp\" should be " +
 					"\"controlplane.cluster.x-k8s.io/v99, Kind=KubeadmControlPlaneTemplate default/test-kcp\"\n" +
-					"* Ref \"infrastructure.cluster.x-k8s.io/v1beta2, Kind=DockerMachineTemplate default/test-dmt\" should be " +
+					"* templateRef \"infrastructure.cluster.x-k8s.io/v1beta2, Kind=DockerMachineTemplate default/test-dmt\" should be " +
 					"\"infrastructure.cluster.x-k8s.io/v99, Kind=DockerMachineTemplate default/test-dmt\"",
 			},
 		},

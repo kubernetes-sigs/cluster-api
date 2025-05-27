@@ -375,6 +375,14 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 	return nil
 }
 
+func Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
+func Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
 func Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
@@ -390,6 +398,11 @@ func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, o
 func Convert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = *in.Taints
+	}
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in, out, s)
 }
 
@@ -404,6 +417,14 @@ func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.Bo
 func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
 	// TimeoutForControlPlane has been removed in v1beta2
 	return autoConvert_v1beta1_APIServer_To_v1beta2_APIServer(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
+	return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
+func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
+	return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
 }
 
 func Convert_v1beta1_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
@@ -432,6 +453,11 @@ func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstra
 
 func Convert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = ptr.To(in.Taints)
+	}
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 

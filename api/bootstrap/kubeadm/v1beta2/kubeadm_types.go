@@ -976,37 +976,43 @@ type EnvVar struct {
 type Timeouts struct {
 	// controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
 	// component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
-	// Default: 4m
+	// If not set, it defaults to 4m (240s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	ControlPlaneComponentHealthCheckSeconds *int32 `json:"controlPlaneComponentHealthCheckSeconds,omitempty"`
 
 	// kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
 	// during "kubeadm init" and "kubeadm join".
-	// Default: 4m
+	// If not set, it defaults to 4m (240s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	KubeletHealthCheckSeconds *int32 `json:"kubeletHealthCheckSeconds,omitempty"`
 
 	// kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
 	// the API server. This applies to all types of methods (GET, POST, etc).
-	// Default: 1m
+	// If not set, it defaults to 1m (60s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	KubernetesAPICallSeconds *int32 `json:"kubernetesAPICallSeconds,omitempty"`
 
 	// etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
 	// the etcd cluster.
-	// Default: 2m
+	// If not set, it defaults to 2m (120s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	EtcdAPICallSeconds *int32 `json:"etcdAPICallSeconds,omitempty"`
 
 	// tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
 	// for a joining node.
-	// Default: 5m
+	// If not set, it defaults to 5m (300s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	TLSBootstrapSeconds *int32 `json:"tlsBootstrapSeconds,omitempty"`
 
 	// discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
 	// for a joining node.
-	// Default: 5m
+	// If not set, it defaults to 5m (300s).
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	DiscoverySeconds *int32 `json:"discoverySeconds,omitempty"`
 }

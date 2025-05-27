@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -80,7 +79,7 @@ func Convert_upstreamv1beta2_JoinConfiguration_To_v1beta2_JoinConfiguration(in *
 		if out.Timeouts == nil {
 			out.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		out.Timeouts.TLSBootstrapSeconds = utilconversion.ConvertToSeconds(in.Discovery.Timeout)
+		out.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(in.Discovery.Timeout)
 	}
 	return nil
 }
@@ -111,17 +110,17 @@ func Convert_upstreamv1beta2_Discovery_To_v1beta2_Discovery(in *Discovery, out *
 }
 
 func Convert_upstreamv1beta2_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
 	return autoConvert_upstreamv1beta2_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
 }
 
 func Convert_upstreamv1beta2_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = utilconversion.ConvertToArgs(in.ExtraArgs)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
 	return autoConvert_upstreamv1beta2_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
 func Convert_upstreamv1beta2_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	out.KubeletExtraArgs = utilconversion.ConvertToArgs(in.KubeletExtraArgs)
+	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
 	return autoConvert_upstreamv1beta2_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
@@ -139,7 +138,7 @@ func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in *
 	}
 
 	if in.Timeouts != nil {
-		out.Discovery.Timeout = utilconversion.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
+		out.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
 	}
 	return nil
 }
@@ -149,7 +148,7 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistration
 
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta2 API does not allow this use case.
-	out.KubeletExtraArgs = utilconversion.ConvertFromArgs(in.KubeletExtraArgs)
+	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in, out, s)
 }
 
@@ -158,7 +157,7 @@ func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta2_ControlPlaneCompon
 
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta2 API does not allow this use case.
-	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta2_ControlPlaneComponent(in, out, s)
 }
 
@@ -167,7 +166,7 @@ func Convert_v1beta2_LocalEtcd_To_upstreamv1beta2_LocalEtcd(in *bootstrapv1.Loca
 
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta2 API does not allow this use case.
-	out.ExtraArgs = utilconversion.ConvertFromArgs(in.ExtraArgs)
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta2_LocalEtcd(in, out, s)
 }
 
@@ -183,7 +182,7 @@ func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration 
 		return nil
 	}
 
-	dst.APIServer.TimeoutForControlPlane = utilconversion.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	dst.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	return nil
 }
 
@@ -198,6 +197,6 @@ func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *b
 	if initConfiguration.Timeouts == nil {
 		initConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 	}
-	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = utilconversion.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
+	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
 	return nil
 }

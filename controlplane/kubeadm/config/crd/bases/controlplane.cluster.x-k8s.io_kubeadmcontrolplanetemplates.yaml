@@ -4907,43 +4907,49 @@ spec:
                                     description: |-
                                       controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
                                       component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
-                                      Default: 4m
+                                      If not set, it defaults to 4m (240s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   discoverySeconds:
                                     description: |-
                                       discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
                                       for a joining node.
-                                      Default: 5m
+                                      If not set, it defaults to 5m (300s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   etcdAPICallSeconds:
                                     description: |-
                                       etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
                                       the etcd cluster.
-                                      Default: 2m
+                                      If not set, it defaults to 2m (120s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   kubeletHealthCheckSeconds:
                                     description: |-
                                       kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
                                       during "kubeadm init" and "kubeadm join".
-                                      Default: 4m
+                                      If not set, it defaults to 4m (240s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   kubernetesAPICallSeconds:
                                     description: |-
                                       kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
                                       the API server. This applies to all types of methods (GET, POST, etc).
-                                      Default: 1m
+                                      If not set, it defaults to 1m (60s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   tlsBootstrapSeconds:
                                     description: |-
                                       tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
                                       for a joining node.
-                                      Default: 5m
+                                      If not set, it defaults to 5m (300s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                 type: object
                             type: object
@@ -5387,43 +5393,49 @@ spec:
                                     description: |-
                                       controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
                                       component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
-                                      Default: 4m
+                                      If not set, it defaults to 4m (240s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   discoverySeconds:
                                     description: |-
                                       discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
                                       for a joining node.
-                                      Default: 5m
+                                      If not set, it defaults to 5m (300s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   etcdAPICallSeconds:
                                     description: |-
                                       etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
                                       the etcd cluster.
-                                      Default: 2m
+                                      If not set, it defaults to 2m (120s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   kubeletHealthCheckSeconds:
                                     description: |-
                                       kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
                                       during "kubeadm init" and "kubeadm join".
-                                      Default: 4m
+                                      If not set, it defaults to 4m (240s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   kubernetesAPICallSeconds:
                                     description: |-
                                       kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
                                       the API server. This applies to all types of methods (GET, POST, etc).
-                                      Default: 1m
+                                      If not set, it defaults to 1m (60s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                   tlsBootstrapSeconds:
                                     description: |-
                                       tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
                                       for a joining node.
-                                      Default: 5m
+                                      If not set, it defaults to 5m (300s).
                                     format: int32
+                                    minimum: 0
                                     type: integer
                                 type: object
                             type: object

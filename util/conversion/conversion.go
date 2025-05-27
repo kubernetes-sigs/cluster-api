@@ -20,12 +20,10 @@ package conversion
 import (
 	"context"
 	"fmt"
-	"math"
 	"math/rand"
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
@@ -40,12 +38,10 @@ import (
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
@@ -280,58 +276,4 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 			}
 		})
 	}
-}
-
-// ConvertToArgs takes a argument map and converts it to a slice of arguments.
-// The resulting argument slice is sorted alpha-numerically.
-func ConvertToArgs(in map[string]string) []bootstrapv1.Arg {
-	if in == nil {
-		return nil
-	}
-	args := make([]bootstrapv1.Arg, 0, len(in))
-	for k, v := range in {
-		args = append(args, bootstrapv1.Arg{Name: k, Value: v})
-	}
-	sort.Slice(args, func(i, j int) bool {
-		if args[i].Name == args[j].Name {
-			return args[i].Value < args[j].Value
-		}
-		return args[i].Name < args[j].Name
-	})
-	return args
-}
-
-// ConvertFromArgs takes a slice of arguments and returns an argument map.
-// Duplicate argument keys will be de-duped, where later keys will take precedence.
-func ConvertFromArgs(in []bootstrapv1.Arg) map[string]string {
-	if in == nil {
-		return nil
-	}
-	args := make(map[string]string, len(in))
-	for _, arg := range in {
-		args[arg.Name] = arg.Value
-	}
-	return args
-}
-
-// ConvertToSeconds takes *metav1.Duration and returns a *int32.
-// Durations longer than MaxInt32 are capped.
-func ConvertToSeconds(in *metav1.Duration) *int32 {
-	if in == nil {
-		return nil
-	}
-	seconds := math.Trunc(in.Seconds())
-	if seconds > math.MaxInt32 {
-		return ptr.To[int32](math.MaxInt32)
-	}
-	return ptr.To(int32(seconds))
-}
-
-// ConvertFromSeconds takes *int32 and returns a *metav1.Duration.
-// Durations longer than MaxInt32 are capped.
-func ConvertFromSeconds(in *int32) *metav1.Duration {
-	if in == nil {
-		return nil
-	}
-	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Second})
 }

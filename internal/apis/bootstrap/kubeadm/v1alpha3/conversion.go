@@ -154,7 +154,7 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 		if dst.InitConfiguration.Timeouts == nil {
 			dst.InitConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = utilconversion.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
+		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
 		initControlPlaneComponentHealthCheckSeconds = dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
 	}
 	if (src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
@@ -166,7 +166,7 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 		}
 		dst.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 		if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
-			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = utilconversion.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
+			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
 		}
 	}
 
@@ -215,7 +215,7 @@ func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 		if dst.ClusterConfiguration == nil {
 			dst.ClusterConfiguration = &upstreamv1beta1.ClusterConfiguration{}
 		}
-		dst.ClusterConfiguration.APIServer.TimeoutForControlPlane = utilconversion.ConvertFromSeconds(src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+		dst.ClusterConfiguration.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	}
 	if reflect.DeepEqual(dst.InitConfiguration, &upstreamv1beta1.InitConfiguration{}) {
 		dst.InitConfiguration = nil
@@ -224,7 +224,7 @@ func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 		if dst.JoinConfiguration == nil {
 			dst.JoinConfiguration = &upstreamv1beta1.JoinConfiguration{}
 		}
-		dst.JoinConfiguration.Discovery.Timeout = utilconversion.ConvertFromSeconds(src.JoinConfiguration.Timeouts.TLSBootstrapSeconds)
+		dst.JoinConfiguration.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(src.JoinConfiguration.Timeouts.TLSBootstrapSeconds)
 	}
 	if reflect.DeepEqual(dst.JoinConfiguration, &upstreamv1beta1.JoinConfiguration{}) {
 		dst.JoinConfiguration = nil

@@ -17,20 +17,16 @@ limitations under the License.
 package conversion
 
 import (
-	"math"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/contract"
 )
@@ -329,52 +325,4 @@ func TestGetLatestAPIVersionFromContract(t *testing.T) {
 			g.Expect(apiVersion).To(Equal(tt.expectedAPIVersion))
 		})
 	}
-}
-
-func TestConvertArgs(t *testing.T) {
-	g := NewWithT(t)
-
-	argList := []bootstrapv1.Arg{
-		{
-			Name:  "foo",
-			Value: "1",
-		},
-		{
-			Name:  "bar",
-			Value: "1",
-		},
-		{
-			Name:  "foo",
-			Value: "2",
-		},
-	}
-	argMap := ConvertFromArgs(argList)
-
-	argList = ConvertToArgs(argMap)
-	g.Expect(argList).To(HaveLen(2))
-	g.Expect(argList).To(ConsistOf(
-		bootstrapv1.Arg{
-			Name:  "bar",
-			Value: "1"},
-		bootstrapv1.Arg{
-			Name:  "foo",
-			Value: "2",
-		},
-	))
-}
-
-func TestConvertSeconds(t *testing.T) {
-	g := NewWithT(t)
-
-	seconds := ptr.To[int32](100)
-	duration := ConvertFromSeconds(seconds)
-	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
-
-	seconds = nil
-	duration = ConvertFromSeconds(seconds)
-	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
-
-	// Durations longer than MaxInt32 are capped.
-	duration = ptr.To(metav1.Duration{Duration: (math.MaxInt32 + 1) * time.Second})
-	g.Expect(ConvertToSeconds(duration)).To(Equal(ptr.To[int32](math.MaxInt32)))
 }

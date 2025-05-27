@@ -1368,15 +1368,16 @@ func modifyMachinePoolViaClusterAndWait(ctx context.Context, input modifyMachine
 }
 
 func expectMapsToBeEquivalent(g Gomega, m1, m2 map[string]string, ignoreKeys ...string) {
-	if m1 == nil {
-		m1 = map[string]string{}
+	m1Copy, m2Copy := map[string]string{}, map[string]string{}
+	for k, v := range m1 {
+		m1Copy[k] = v
 	}
-	if m2 == nil {
-		m2 = map[string]string{}
+	for k, v := range m2 {
+		m2Copy[k] = v
 	}
 	for _, key := range ignoreKeys {
-		delete(m1, key)
-		delete(m2, key)
+		delete(m1Copy, key)
+		delete(m2Copy, key)
 	}
-	g.ExpectWithOffset(1, m1).To(BeEquivalentTo(m2))
+	g.ExpectWithOffset(1, m1Copy).To(BeEquivalentTo(m2Copy))
 }

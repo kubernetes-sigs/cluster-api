@@ -42,13 +42,6 @@ func TestFuzzyConversion(t *testing.T) {
 		SkipSpokeAnnotationCleanup: true,
 		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
-	t.Run("for ClusterStatus", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &bootstrapv1.ClusterStatus{},
-		Spoke: &ClusterStatus{},
-		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
-		SkipSpokeAnnotationCleanup: true,
-		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
-	}))
 	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &bootstrapv1.InitConfiguration{},
 		Spoke: &InitConfiguration{},

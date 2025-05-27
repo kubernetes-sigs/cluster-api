@@ -265,52 +265,6 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 	}
 }
 
-func TestMarshalClusterStatusForVersion(t *testing.T) {
-	type args struct {
-		capiObj *bootstrapv1.ClusterStatus
-		version semver.Version
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Generates a v1beta2 kubeadm status",
-			args: args{
-				capiObj: &bootstrapv1.ClusterStatus{},
-				version: semver.MustParse("1.15.0"),
-			},
-			want: "apiEndpoints: null\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-				"kind: ClusterStatus\n",
-			wantErr: false,
-		},
-		{
-			name: "Fails generating a v1beta3 kubeadm status",
-			args: args{
-				capiObj: &bootstrapv1.ClusterStatus{},
-				version: semver.MustParse("1.22.0"),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got, err := MarshalClusterStatusForVersion(tt.args.capiObj, tt.args.version)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
-		})
-	}
-}
-
 func TestMarshalInitConfigurationForVersion(t *testing.T) {
 	type args struct {
 		initConfiguration *bootstrapv1.InitConfiguration
@@ -605,60 +559,6 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 			g.Expect(gotInitConfiguration).To(BeComparableTo(tt.wantInitConfiguration), cmp.Diff(tt.wantInitConfiguration, gotInitConfiguration))
-		})
-	}
-}
-
-func TestUnmarshalClusterStatus(t *testing.T) {
-	type args struct {
-		yaml string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *bootstrapv1.ClusterStatus
-		wantErr bool
-	}{
-		{
-			name: "Parses a v1beta2 kubeadm configuration",
-			args: args{
-				yaml: "apiEndpoints: null\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-					"kind: ClusterStatus\n",
-			},
-			want:    &bootstrapv1.ClusterStatus{},
-			wantErr: false,
-		},
-		{
-			name: "Fails parsing a v1beta3 kubeadm configuration",
-			args: args{
-				yaml: "apiEndpoints: null\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
-					"kind: ClusterStatus\n",
-			},
-			wantErr: true,
-		},
-		{
-			name: "Fails parsing a v1beta4 kubeadm configuration",
-			args: args{
-				yaml: "apiEndpoints: null\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
-					"kind: ClusterStatus\n",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got, err := UnmarshalClusterStatus(tt.args.yaml)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 		})
 	}
 }

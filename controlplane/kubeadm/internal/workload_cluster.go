@@ -322,45 +322,6 @@ func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Contr
 	}
 }
 
-// updateClusterStatus gets the ClusterStatus kubeadm-config ConfigMap, converts it to the
-// Cluster API representation, and then applies a mutation func; if changes are detected, the
-// data are converted back into the Kubeadm API version in use for the target Kubernetes version and the
-// kubeadm-config ConfigMap updated.
-func (w *Workload) updateClusterStatus(ctx context.Context, mutator func(status *bootstrapv1.ClusterStatus), version semver.Version) error {
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
-		configMap, err := w.getConfigMap(ctx, key)
-		if err != nil {
-			return errors.Wrap(err, "failed to get kubeadmConfigMap")
-		}
-
-		currentData, ok := configMap.Data[clusterStatusKey]
-		if !ok {
-			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterStatusKey)
-		}
-
-		currentClusterStatus, err := kubeadmtypes.UnmarshalClusterStatus(currentData)
-		if err != nil {
-			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterStatusKey)
-		}
-
-		updatedClusterStatus := currentClusterStatus.DeepCopy()
-		mutator(updatedClusterStatus)
-
-		if !reflect.DeepEqual(currentClusterStatus, updatedClusterStatus) {
-			updatedData, err := kubeadmtypes.MarshalClusterStatusForVersion(updatedClusterStatus, version)
-			if err != nil {
-				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterStatusKey)
-			}
-			configMap.Data[clusterStatusKey] = updatedData
-			if err := w.Client.Update(ctx, configMap); err != nil {
-				return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
-			}
-		}
-		return nil
-	})
-}
-
 // UpdateClusterConfiguration gets the ClusterConfiguration kubeadm-config ConfigMap, converts it to the
 // Cluster API representation, and then applies a mutation func; if changes are detected, the
 // data are converted back into the Kubeadm API version in use for the target Kubernetes version and the

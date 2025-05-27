@@ -34,16 +34,6 @@ func (dst *ClusterConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta2_ClusterConfiguration(src, dst, nil)
 }
 
-func (src *ClusterStatus) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.ClusterStatus)
-	return Convert_upstreamv1beta2_ClusterStatus_To_v1beta2_ClusterStatus(src, dst, nil)
-}
-
-func (dst *ClusterStatus) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.ClusterStatus)
-	return Convert_v1beta2_ClusterStatus_To_upstreamv1beta2_ClusterStatus(src, dst, nil)
-}
-
 func (src *InitConfiguration) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.InitConfiguration)
 	return Convert_upstreamv1beta2_InitConfiguration_To_v1beta2_InitConfiguration(src, dst, nil)

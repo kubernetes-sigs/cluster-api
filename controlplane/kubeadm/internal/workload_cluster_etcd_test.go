@@ -630,32 +630,6 @@ func TestForwardEtcdLeadership(t *testing.T) {
 }
 
 func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
-	kubeadmConfig := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeadmConfigKey,
-			Namespace: metav1.NamespaceSystem,
-		},
-		Data: map[string]string{
-			clusterStatusKey: utilyaml.Raw(`
-				apiEndpoints:
-				  ip-10-0-0-1.ec2.internal:
-				    advertiseAddress: 10.0.0.1
-				    bindPort: 6443
-				  ip-10-0-0-2.ec2.internal:
-				    advertiseAddress: 10.0.0.2
-				    bindPort: 6443
-				    someFieldThatIsAddedInTheFuture: bar
-				  ip-10-0-0-3.ec2.internal:
-				    advertiseAddress: 10.0.0.3
-				    bindPort: 6443
-				apiVersion: kubeadm.k8s.io/v1beta2
-				kind: ClusterStatus
-				`),
-		},
-	}
-	kubeadmConfigWithoutClusterStatus := kubeadmConfig.DeepCopy()
-	delete(kubeadmConfigWithoutClusterStatus.Data, clusterStatusKey)
-
 	node1 := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ip-10-0-0-1.ec2.internal",
@@ -690,12 +664,12 @@ func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 		nodes               []string
 		etcdClientGenerator etcdClientFor
 		expectErr           bool
-		assert              func(*WithT, client.Client)
+		assert              func(*WithT)
 	}{
 		{
 			// no op if nodes and members match
 			name: "no op if nodes and members match",
-			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), node3.DeepCopy(), kubeadmConfigWithoutClusterStatus.DeepCopy()},
+			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), node3.DeepCopy()},
 			members: []*etcd.Member{
 				{Name: node1.Name, ID: uint64(1)},
 				{Name: node2.Name, ID: uint64(2)},
@@ -708,24 +682,15 @@ func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 				},
 			},
 			expectErr: false,
-			assert: func(g *WithT, c client.Client) {
+			assert: func(g *WithT) {
 				g.Expect(fakeEtcdClient.RemovedMember).To(Equal(uint64(0))) // no member removed
-
-				var actualConfig corev1.ConfigMap
-				g.Expect(c.Get(
-					ctx,
-					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
-					&actualConfig,
-				)).To(Succeed())
-				// Kubernetes version >= 1.22.0 does not have ClusterStatus
-				g.Expect(actualConfig.Data).ToNot(HaveKey(clusterStatusKey))
 			},
 		},
 		{
 			// the node to be removed is ip-10-0-0-3.ec2.internal since the
 			// other two have nodes
 			name: "successfully removes the etcd member without a node",
-			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy(), kubeadmConfigWithoutClusterStatus.DeepCopy()},
+			objs: []client.Object{node1.DeepCopy(), node2.DeepCopy()},
 			members: []*etcd.Member{
 				{Name: node1.Name, ID: uint64(1)},
 				{Name: node2.Name, ID: uint64(2)},
@@ -738,23 +703,14 @@ func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 				},
 			},
 			expectErr: false,
-			assert: func(g *WithT, c client.Client) {
+			assert: func(g *WithT) {
 				g.Expect(fakeEtcdClient.RemovedMember).To(Equal(uint64(3)))
-
-				var actualConfig corev1.ConfigMap
-				g.Expect(c.Get(
-					ctx,
-					client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
-					&actualConfig,
-				)).To(Succeed())
-				// Kubernetes version >= 1.22.0 does not have ClusterStatus
-				g.Expect(actualConfig.Data).ToNot(HaveKey(clusterStatusKey))
 			},
 		},
 		{
 			// only one node left, no removal should happen
 			name: "return error if there aren't enough control plane nodes",
-			objs: []client.Object{node1.DeepCopy(), kubeadmConfig.DeepCopy()},
+			objs: []client.Object{node1.DeepCopy()},
 			members: []*etcd.Member{
 				{Name: "ip-10-0-0-1.ec2.internal", ID: uint64(1)},
 				{Name: "ip-10-0-0-2.ec2.internal", ID: uint64(2)},
@@ -793,7 +749,7 @@ func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			if tt.assert != nil {
-				tt.assert(g, env.Client)
+				tt.assert(g)
 			}
 		})
 	}

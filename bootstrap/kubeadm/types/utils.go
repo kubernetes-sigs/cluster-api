@@ -44,11 +44,6 @@ var (
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterConfiguration{},
 	}
 
-	clusterStatusVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
-		// ClusterStatus has been removed in v1beta3, so we don't need an entry for v1beta3 & v1beta4
-		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterStatus{},
-	}
-
 	initConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta4.GroupVersion: &upstreamv1beta4.InitConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.InitConfiguration{},
@@ -98,13 +93,6 @@ func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion,
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
 func MarshalClusterConfigurationForVersion(initConfiguration *bootstrapv1.InitConfiguration, clusterConfiguration *bootstrapv1.ClusterConfiguration, version semver.Version) (string, error) {
 	return marshalForVersion(initConfiguration, clusterConfiguration, version, clusterConfigurationVersionTypeMap)
-}
-
-// MarshalClusterStatusForVersion converts a Cluster API ClusterStatus type to the kubeadm API type
-// for the given Kubernetes Version.
-// NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalClusterStatusForVersion(clusterStatus *bootstrapv1.ClusterStatus, version semver.Version) (string, error) {
-	return marshalForVersion(nil, clusterStatus, version, clusterStatusVersionTypeMap)
 }
 
 // MarshalInitConfigurationForVersion converts a Cluster API InitConfiguration type to the kubeadm API type
@@ -180,16 +168,6 @@ func toYaml(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.Cod
 func UnmarshalClusterConfiguration(yaml string, initConfiguration *bootstrapv1.InitConfiguration) (*bootstrapv1.ClusterConfiguration, error) {
 	obj := &bootstrapv1.ClusterConfiguration{}
 	if err := unmarshalFromVersions(yaml, clusterConfigurationVersionTypeMap, initConfiguration, obj); err != nil {
-		return nil, err
-	}
-	return obj, nil
-}
-
-// UnmarshalClusterStatus tries to translate a Kubeadm API yaml back to the Cluster API ClusterStatus type.
-// NOTE: The yaml could be any of the known formats for the kubeadm ClusterStatus type.
-func UnmarshalClusterStatus(yaml string) (*bootstrapv1.ClusterStatus, error) {
-	obj := &bootstrapv1.ClusterStatus{}
-	if err := unmarshalFromVersions(yaml, clusterStatusVersionTypeMap, nil, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil

@@ -337,8 +337,7 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 		includePrereleases = true
 	}
 	rawVersion := strings.TrimPrefix(gomoduleParts[1], "latest-") + ".0"
-	rawVersion = strings.TrimPrefix(rawVersion, "v")
-	semVersion, err := semver.Parse(rawVersion)
+	semVersion, err := semver.ParseTolerant(rawVersion)
 	if err != nil {
 		return "", errors.Wrapf(err, "parsing semver for %s", rawVersion)
 	}

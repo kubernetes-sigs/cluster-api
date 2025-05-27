@@ -35,11 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-const (
-	// KubeadmControlPlaneControllerName defines the controller used when creating clients.
-	KubeadmControlPlaneControllerName = "kubeadm-controlplane-controller"
-)
-
 // ManagementCluster defines all behaviors necessary for something to function as a management cluster.
 type ManagementCluster interface {
 	client.Reader

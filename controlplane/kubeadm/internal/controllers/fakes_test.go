@@ -97,19 +97,7 @@ func (f *fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _
 	return f.APIServerCertificateExpiry, nil
 }
 
-func (f *fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(_ context.Context) error {
-	return nil
-}
-
 func (f *fakeWorkloadCluster) AllowClusterAdminPermissions(_ context.Context, _ semver.Version) error {
-	return nil
-}
-
-func (f *fakeWorkloadCluster) ReconcileKubeletRBACRole(_ context.Context, _ semver.Version) error {
-	return nil
-}
-
-func (f *fakeWorkloadCluster) ReconcileKubeletRBACBinding(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
@@ -118,10 +106,6 @@ func (f *fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(semver.V
 }
 
 func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(*bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
-	return nil
-}
-
-func (f *fakeWorkloadCluster) UpdateKubeletConfigMap(_ context.Context, _ semver.Version) error {
 	return nil
 }
 

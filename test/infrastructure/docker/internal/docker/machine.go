@@ -215,7 +215,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 			return errors.New("cannot create a DockerMachine for a nil version")
 		}
 
-		semVer, err := semver.Parse(strings.TrimPrefix(*version, "v"))
+		semVer, err := semver.ParseTolerant(*version)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse DockerMachine version")
 		}
@@ -343,7 +343,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 		return errors.New("cannot create a DockerMachine for a nil version")
 	}
 
-	semVer, err := semver.Parse(strings.TrimPrefix(*version, "v"))
+	semVer, err := semver.ParseTolerant(*version)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse DockerMachine version")
 	}

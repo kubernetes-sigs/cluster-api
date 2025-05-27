@@ -461,12 +461,12 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) *field.Error {
 	// Nothing to do if the version doesn't change.
-	if version.Compare(inVersion, oldVersion, version.WithBuildTags()) == 0 {
+	if inVersion.String() == oldVersion.String() {
 		return nil
 	}
 
 	// Version could only be increased.
-	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithBuildTags()) == -1 {
+	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithoutPreReleases()) < 0 {
 		return field.Invalid(
 			fldPath,
 			fldValue,
@@ -480,7 +480,7 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 		Minor: oldVersion.Minor + 2,
 		Patch: 0,
 	}
-	if inVersion.GTE(ceilVersion) {
+	if version.Compare(inVersion, ceilVersion, version.WithoutPreReleases()) >= 0 {
 		return field.Invalid(
 			fldPath,
 			fldValue,
@@ -531,7 +531,7 @@ func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.
 		// NOTE: this should never happen. Nevertheless, handling this for extra caution.
 		return errors.Wrapf(err, "failed to check if control plane is upgrading: failed to parse control plane version %s", *cpVersionString)
 	}
-	if cpVersion.NE(oldVersion) {
+	if cpVersion.String() != oldVersion.String() {
 		return fmt.Errorf("Cluster.spec.topology.version %s was not propagated to control plane yet (control plane version %s)", oldVersion, cpVersion) //nolint:staticcheck // capitalization is intentional
 	}
 
@@ -586,7 +586,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 			return errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, *md.Spec.Template.Spec.Version)
 		}
 
-		if mdVersion.NE(oldVersion) {
+		if mdVersion.String() != oldVersion.String() {
 			mdUpgradingNames = append(mdUpgradingNames, md.Name)
 			continue
 		}
@@ -642,7 +642,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 			return errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, *mp.Spec.Template.Spec.Version)
 		}
 
-		if mpVersion.NE(oldVersion) {
+		if mpVersion.String() != oldVersion.String() {
 			mpUpgradingNames = append(mpUpgradingNames, mp.Name)
 			continue
 		}

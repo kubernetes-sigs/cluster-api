@@ -56,8 +56,7 @@ import (
 )
 
 const (
-	nodeRoleOldControlPlane = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
-	nodeRoleControlPlane    = "node-role.kubernetes.io/control-plane"
+	nodeRoleControlPlane = "node-role.kubernetes.io/control-plane"
 )
 
 // WaitForDeploymentsAvailableInput is the input for WaitForDeploymentsAvailable.

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -353,7 +352,7 @@ func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Mach
 	// NOTE: With the current implementation we are checking if the machine is using a kindest/node image for the expected version,
 	// but not checking if the machine has the expected extra.mounts or pre.loaded images.
 
-	semVer, err := semver.Parse(strings.TrimPrefix(*machinePool.Spec.Template.Spec.Version, "v"))
+	semVer, err := semver.ParseTolerant(*machinePool.Spec.Template.Spec.Version)
 	if err != nil {
 		// TODO: consider if to return an error
 		panic(errors.Wrap(err, "failed to parse DockerMachine version").Error())

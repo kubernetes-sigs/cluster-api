@@ -94,12 +94,12 @@ write_files:
     path: /etc/kubernetes/pki/sa.key
     permissions: '0600'
 -   content: "---\napiServer:\n  certSANs:\n  - '10.0.0.223'\n  - test1-apiserver-329764956.us-west-2.elb.amazonaws.com\n\
-        \  extraArgs:\n    cloud-provider: aws\napiVersion: kubeadm.k8s.io/v1beta2\n\
+        \  extraArgs:\n    cloud-provider: aws\napiVersion: kubeadm.k8s.io/v1beta3\n\
         certificatesDir: \"\"\nclusterName: test1\ncontrolPlaneEndpoint: test1-apiserver-329764956.us-west-2.elb.amazonaws.com:6443\n\
         controllerManager:\n  extraArgs:\n    cloud-provider: aws\ndns:\n  type: \"\
         \"\netcd: {}\nimageRepository: \"\"\nkind: ClusterConfiguration\nkubernetesVersion:\
         \ v1.16.0\nnetworking:\n  dnsDomain: cluster.local\n  podSubnet: 192.168.0.0/16\n\
-        \  serviceSubnet: 10.96.0.0/12\nscheduler: {}\n\n---\napiVersion: kubeadm.k8s.io/v1beta2\n\
+        \  serviceSubnet: 10.96.0.0/12\nscheduler: {}\n\n---\napiVersion: kubeadm.k8s.io/v1beta3\n\
         kind: InitConfiguration\nlocalAPIEndpoint:\n  advertiseAddress: \"\"\n  bindPort:\
         \ 0\nnodeRegistration:\n  criSocket: unix:///var/run/containerd/containerd.sock\n\
         \  kubeletExtraArgs:\n    cloud-provider: aws\n  name: 'ip-10-0-0-223.us-west-2.compute.internal'\n"
@@ -143,7 +143,7 @@ write_files:
 		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}},
 	}
 
-	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.16.0")})
+	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.23.0")})
 
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))

@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
@@ -33,7 +32,6 @@ import (
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -48,11 +46,6 @@ conntrack:
 # It is a global variable that affects other namespaces
   maxPerCore: 0
 `
-)
-
-var (
-	cgroupDriverCgroupfs            = "cgroupfs"
-	cgroupDriverPatchVersionCeiling = semver.Version{Major: 1, Minor: 24}
 )
 
 // writeFilesAction defines a list of files that should be written to a node.
@@ -145,12 +138,6 @@ func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, 
 		// following settings are complementary to this change.
 		defaultExtraArg(nodeRegistration, "cgroup-root", "/kubelet")
 		defaultExtraArg(nodeRegistration, "runtime-cgroups", "/system.slice/containerd.service")
-	}
-
-	if version.Compare(kindMapping.KubernetesVersion, cgroupDriverPatchVersionCeiling) == -1 {
-		// kubeadm for Kubernetes version <= 1.23 defaults to cgroup-driver=cgroupfs; following settings makes kubelet
-		// to run consistently with what kubeadm expects.
-		defaultExtraArg(nodeRegistration, "cgroup-driver", cgroupDriverCgroupfs)
 	}
 }
 

@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -134,14 +133,14 @@ func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c randfill.Continue) {
 	obj.BootstrapData = nil
 }
 
-func spokeDNS(obj *upstreamv1beta1.DNS, c randfill.Continue) {
+func spokeDNS(obj *DNS, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func spokeClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c randfill.Continue) {
+func spokeClusterConfiguration(obj *ClusterConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
@@ -153,12 +152,12 @@ func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Co
 	in.Secret = fakeSecret
 }
 
-func spokeBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
+func spokeBootstrapTokenString(in *BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func spokeAPIServer(in *upstreamv1beta1.APIServer, c randfill.Continue) {
+func spokeAPIServer(in *APIServer, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutForControlPlane != nil {
@@ -166,7 +165,7 @@ func spokeAPIServer(in *upstreamv1beta1.APIServer, c randfill.Continue) {
 	}
 }
 
-func spokeDiscovery(in *upstreamv1beta1.Discovery, c randfill.Continue) {
+func spokeDiscovery(in *Discovery, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Timeout != nil {

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -43,13 +43,11 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
 
-	// We intentionally only parse major/minor/patch so that the subsequent code
-	// also already applies to beta versions of new releases.
-	parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
+	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
 	}
-	internal.DefaultFeatureGates(bootstrapSpec, parsedVersionTolerant)
+	internal.DefaultFeatureGates(bootstrapSpec, parsedVersion)
 
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {
@@ -84,13 +82,11 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
 
-	// We intentionally only parse major/minor/patch so that the subsequent code
-	// also already applies to beta versions of new releases.
-	parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
+	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
 	}
-	internal.DefaultFeatureGates(bootstrapSpec, parsedVersionTolerant)
+	internal.DefaultFeatureGates(bootstrapSpec, parsedVersion)
 
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {

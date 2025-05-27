@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,7 +27,6 @@ import (
 	toolscache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 )
 
@@ -42,12 +40,9 @@ type WaitForKubeProxyUpgradeInput struct {
 func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeInput, intervals ...interface{}) {
 	By("Ensuring kube-proxy has the correct image")
 
-	parsedVersion, err := semver.ParseTolerant(input.KubernetesVersion)
-	Expect(err).ToNot(HaveOccurred())
-
 	// Validate the kube-proxy image according to how KCP sets the image in the kube-proxy DaemonSet.
 	// KCP does this based on the default registry of the Kubernetes/kubeadm version.
-	wantKubeProxyImage := kubeadm.GetDefaultRegistry(parsedVersion) + "/kube-proxy:" + containerutil.SemverToOCIImageTag(input.KubernetesVersion)
+	wantKubeProxyImage := "registry.k8s.io/kube-proxy:" + containerutil.SemverToOCIImageTag(input.KubernetesVersion)
 
 	Eventually(func() (bool, error) {
 		ds := &appsv1.DaemonSet{}

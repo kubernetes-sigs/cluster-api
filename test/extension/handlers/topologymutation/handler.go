@@ -41,12 +41,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
-	"sigs.k8s.io/cluster-api/util/version"
-)
-
-var (
-	cgroupDriverCgroupfs            = "cgroupfs"
-	cgroupDriverPatchVersionCeiling = semver.Version{Major: 1, Minor: 24}
 )
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;patch;update;create
@@ -150,54 +144,12 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 }
 
 // patchKubeadmControlPlaneTemplate patches the ControlPlaneTemplate.
-// It sets KubeletExtraArgs["cgroup-driver"] to cgroupfs for Kubernetes < 1.24; this patch is required for tests
-// to work with older kind images.
-// It also sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
+// It sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
-// NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
-// as example of version aware patches.
 func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1beta1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// 1) If the Kubernetes version from builtin.controlPlane.version is below 1.24.0 set "cgroup-driver": "cgroupfs" to
-	//    - kubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs
-	//    - kubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs
-	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
-	if err != nil {
-		// This is a required variable. Return an error if it's not found.
-		// NOTE: this should never happen because it is enforced by the patch engine.
-		if topologymutation.IsNotFoundError(err) {
-			return errors.New("could not set cgroup-driver to control plane template kubeletExtraArgs: variable \"builtin.controlPlane.version\" not found")
-		}
-		return errors.Wrap(err, "could not set cgroup-driver to control plane template kubeletExtraArgs")
-	}
-
-	controlPlaneVersion, err := version.ParseMajorMinorPatchTolerant(cpVersion)
-	if err != nil {
-		return err
-	}
-	if version.Compare(controlPlaneVersion, cgroupDriverPatchVersionCeiling) == -1 {
-		log.Info(fmt.Sprintf("Setting KubeadmControlPlaneTemplate cgroup-driver to %q", cgroupDriverCgroupfs))
-		// Set the cgroupDriver in the InitConfiguration.
-		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1beta1.InitConfiguration{}
-		}
-		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
-		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
-
-		// Set the cgroupDriver in the JoinConfiguration.
-		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
-		}
-		if kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
-		}
-		kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
-	}
-
-	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
+	// 1) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
 	//    If this is unset continue as this variable is not required.
 	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
 	if err != nil {
@@ -221,99 +173,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 }
 
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
-// Only for the templates linked to the default-worker MachineDeployment class, It sets KubeletExtraArgs["cgroup-driver"]
-// to cgroupfs for Kubernetes < 1.24; this patch is required for tests to work with older kind images.
-// NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
-// as example of version aware patches.
-func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1beta1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	// Only patch the customImage if this DockerMachineTemplate belongs to a MachineDeployment or MachinePool with class "default-class"
-	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
-	mdClass, err1 := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
-	if err1 != nil && !topologymutation.IsNotFoundError(err1) {
-		return errors.Wrap(err1, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-	}
-
-	mpClass, err2 := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.class")
-	if err2 != nil && !topologymutation.IsNotFoundError(err2) {
-		return errors.Wrap(err2, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-	}
-
-	// This is a required variable. Return an error if it's not found.
-	// NOTE: this should never happen because it is enforced by the patch engine.
-	if topologymutation.IsNotFoundError(err1) && topologymutation.IsNotFoundError(err2) {
-		return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: could find neither \"builtin.machineDeployment.class\" nor \"builtin.machinePool.class\" variable")
-	}
-
-	if mdClass == "default-worker" {
-		// If the Kubernetes version from builtin.machineDeployment.version is below 1.24.0 set "cgroup-driver": "cgroupDriverCgroupfs" to
-		//    - InitConfiguration.KubeletExtraArgs
-		//    - JoinConfiguration.KubeletExtraArgs
-		// NOTE: MachineDeployment version might be different than Cluster.version or other MachineDeployment's versions;
-		// the builtin variables provides the right version to use.
-		mdVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
-		if err != nil {
-			// This is a required variable. Return an error if it's not found.
-			if topologymutation.IsNotFoundError(err) {
-				return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machineDeployment.version\" not found")
-			}
-			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-		}
-
-		machineDeploymentVersion, err := version.ParseMajorMinorPatchTolerant(mdVersion)
-		if err != nil {
-			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-		}
-		if version.Compare(machineDeploymentVersion, cgroupDriverPatchVersionCeiling) == -1 {
-			log.Info(fmt.Sprintf("Setting KubeadmConfigTemplate cgroup-driver to %q", cgroupDriverCgroupfs))
-
-			// Set the cgroupDriver in the JoinConfiguration.
-			if k.Spec.Template.Spec.JoinConfiguration == nil {
-				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
-			}
-			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
-			}
-
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
-		}
-	}
-
-	if mpClass == "default-worker" {
-		// If the Kubernetes version from builtin.machinePool.version is below 1.24.0 set "cgroup-driver": "cgroupDriverCgroupfs" to
-		//    - InitConfiguration.KubeletExtraArgs
-		//    - JoinConfiguration.KubeletExtraArgs
-		// NOTE: MachinePool version might be different than Cluster.version or other MachinePool's versions;
-		// the builtin variables provides the right version to use.
-		mpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
-		if err != nil {
-			// This is a required variable. Return an error if it's not found.
-			if topologymutation.IsNotFoundError(err) {
-				return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machinePool.version\" not found")
-			}
-			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-		}
-
-		machinePoolVersion, err := version.ParseMajorMinorPatchTolerant(mpVersion)
-		if err != nil {
-			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
-		}
-		if version.Compare(machinePoolVersion, cgroupDriverPatchVersionCeiling) == -1 {
-			log.Info(fmt.Sprintf("Setting KubeadmConfigTemplate cgroup-driver to %q", cgroupDriverCgroupfs))
-
-			// Set the cgroupDriver in the JoinConfiguration.
-			if k.Spec.Template.Spec.JoinConfiguration == nil {
-				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
-			}
-			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
-			}
-
-			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
-		}
-	}
-
+func patchKubeadmConfigTemplate(_ context.Context, _ *bootstrapv1beta1.KubeadmConfigTemplate, _ map[string]apiextensionsv1.JSON) error {
 	return nil
 }
 

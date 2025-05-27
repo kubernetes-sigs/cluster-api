@@ -39,7 +39,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
-	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -515,7 +514,7 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 	}
 
 	if newClusterConfiguration.DNS.ImageTag != "" {
-		if _, err := version.ParseMajorMinorPatchTolerant(newClusterConfiguration.DNS.ImageTag); err != nil {
+		if _, err := semver.ParseTolerant(newClusterConfiguration.DNS.ImageTag); err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					field.NewPath("dns", "imageTag"),
@@ -623,7 +622,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 	}
 	targetDNS := &newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
 
-	fromVersion, err := version.ParseMajorMinorPatchTolerant(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
+	fromVersion, err := semver.ParseTolerant(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
@@ -635,7 +634,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 		return allErrs
 	}
 
-	toVersion, err := version.ParseMajorMinorPatchTolerant(targetDNS.ImageTag)
+	toVersion, err := semver.ParseTolerant(targetDNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
@@ -648,7 +647,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 	}
 	// If the versions are equal return here without error.
 	// This allows an upgrade where the version of CoreDNS in use is not supported by the migration tool.
-	if toVersion.Equals(fromVersion) {
+	if version.Compare(toVersion, fromVersion, version.WithoutPreReleases()) == 0 {
 		return allErrs
 	}
 
@@ -657,7 +656,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 		return allErrs
 	}
 
-	if err := migration.ValidUpMigration(fromVersion.String(), toVersion.String()); err != nil {
+	if err := migration.ValidUpMigration(version.MajorMinorPatch(fromVersion).String(), version.MajorMinorPatch(toVersion).String()); err != nil {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -672,7 +671,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 
 func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.KubeadmControlPlane) (allErrs field.ErrorList) {
 	previousVersion := oldK.Spec.Version
-	fromVersion, err := version.ParseMajorMinorPatch(previousVersion)
+	fromVersion, err := semver.ParseTolerant(previousVersion)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.InternalError(
@@ -683,25 +682,12 @@ func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.K
 		return allErrs
 	}
 
-	toVersion, err := version.ParseMajorMinorPatch(newK.Spec.Version)
+	toVersion, err := semver.ParseTolerant(newK.Spec.Version)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.InternalError(
 				field.NewPath("spec", "version"),
 				errors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", newK.Spec.Version),
-			),
-		)
-		return allErrs
-	}
-
-	// Check if we're trying to upgrade to Kubernetes v1.19.0, which is not supported.
-	//
-	// See https://github.com/kubernetes-sigs/cluster-api/issues/3564
-	if fromVersion.NE(toVersion) && toVersion.Equals(semver.MustParse("1.19.0")) {
-		allErrs = append(allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "version"),
-				"cannot update Kubernetes version to v1.19.0, for more information see https://github.com/kubernetes-sigs/cluster-api/issues/3564",
 			),
 		)
 		return allErrs
@@ -716,36 +702,11 @@ func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.K
 		Minor: fromVersion.Minor + 2,
 		Patch: 0,
 	}
-	if toVersion.GTE(ceilVersion) {
+	if version.Compare(toVersion, ceilVersion, version.WithoutPreReleases()) >= 0 {
 		allErrs = append(allErrs,
 			field.Forbidden(
 				field.NewPath("spec", "version"),
 				fmt.Sprintf("cannot update Kubernetes version from %s to %s", previousVersion, newK.Spec.Version),
-			),
-		)
-	}
-
-	// The Kubernetes ecosystem has been requested to move users to the new registry due to cost issues.
-	// This validation enforces the move to the new registry by forcing users to upgrade to kubeadm versions
-	// with the new registry.
-	// NOTE: This only affects users relying on the community maintained registry.
-	// NOTE: Pinning to the upstream registry is not recommended because it could lead to issues
-	// given how the migration has been implemented in kubeadm.
-	//
-	// Block if imageRepository is not set (i.e. the default registry should be used),
-	if (newK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil ||
-		newK.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository == "") &&
-		// the version changed (i.e. we have an upgrade),
-		toVersion.NE(fromVersion) &&
-		// the version is >= v1.22.0 and < v1.26.0
-		toVersion.GTE(kubeadm.MinKubernetesVersionImageRegistryMigration) &&
-		toVersion.LT(kubeadm.NextKubernetesVersionImageRegistryMigration) &&
-		// and the default registry of the new Kubernetes/kubeadm version is the old default registry.
-		kubeadm.GetDefaultRegistry(toVersion) == kubeadm.OldDefaultImageRepository {
-		allErrs = append(allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "version"),
-				"cannot upgrade to a Kubernetes/kubeadm version which is using the old default registry. Please use a newer Kubernetes patch release which is using the new default registry (>= v1.22.17, >= v1.23.15, >= v1.24.9)",
 			),
 		)
 	}

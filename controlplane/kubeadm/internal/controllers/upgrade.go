@@ -28,7 +28,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
@@ -55,20 +54,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
 	}
 
-	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile the remote kubelet RBAC role")
-	}
-
-	if err := workloadCluster.ReconcileKubeletRBACBinding(ctx, parsedVersion); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
-	}
-
-	// Ensure kubeadm cluster role  & bindings for v1.18+
-	// as per https://github.com/kubernetes/kubernetes/commit/b117a928a6c3f650931bdac02a41fca6680548c4
-	if err := workloadCluster.AllowBootstrapTokensToGetNodes(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to set role and role binding for kubeadm")
-	}
-
 	// Ensure kubeadm clusterRoleBinding for v1.29+ as per https://github.com/kubernetes/kubernetes/pull/121305
 	if err := workloadCluster.AllowClusterAdminPermissions(ctx, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to set cluster-admin ClusterRoleBinding for kubeadm")
@@ -78,19 +63,12 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	kubeadmCMMutators = append(kubeadmCMMutators, workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(parsedVersion))
 
 	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
-		// We intentionally only parse major/minor/patch so that the subsequent code
-		// also already applies to beta versions of new releases.
-		parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-		}
-
 		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.
-		imageRepository := internal.ImageRepositoryFromClusterConfig(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration, parsedVersionTolerant)
+		imageRepository := internal.ImageRepositoryFromClusterConfig(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration)
 
 		kubeadmCMMutators = append(kubeadmCMMutators,
 			workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(imageRepository),
-			workloadCluster.UpdateFeatureGatesInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec, parsedVersionTolerant),
+			workloadCluster.UpdateFeatureGatesInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec, parsedVersion),
 			workloadCluster.UpdateAPIServerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer),
 			workloadCluster.UpdateControllerManagerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager),
 			workloadCluster.UpdateSchedulerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler))
@@ -108,10 +86,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	// collectively update Kubeadm config map
 	if err = workloadCluster.UpdateClusterConfiguration(ctx, parsedVersion, kubeadmCMMutators...); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
 	switch controlPlane.KCP.Spec.RolloutStrategy.Type {

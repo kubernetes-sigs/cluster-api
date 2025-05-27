@@ -507,26 +507,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Ensure kubeadm role bindings for v1.18+
-	if err := workloadCluster.AllowBootstrapTokensToGetNodes(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to set role and role binding for kubeadm")
-	}
-
-	// We intentionally only parse major/minor/patch so that the subsequent code
-	// also already applies to beta versions of new releases.
-	parsedVersion, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-	}
-
 	// Update kube-proxy daemonset.
-	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, controlPlane.KCP, parsedVersion); err != nil {
+	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, controlPlane.KCP); err != nil {
 		log.Error(err, "Failed to update kube-proxy daemonset")
 		return ctrl.Result{}, err
 	}
 
 	// Update CoreDNS deployment.
-	if err := workloadCluster.UpdateCoreDNS(ctx, controlPlane.KCP, parsedVersion); err != nil {
+	if err := workloadCluster.UpdateCoreDNS(ctx, controlPlane.KCP); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
 	}
 

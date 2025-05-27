@@ -53,7 +53,7 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
       # We don't want to invest time to fix new linter findings in old API types.
-      - internal/apis/.*
+      - internal/api/.*
       - ".*_test.go"  # Exclude test files.
     rules:
     # KAL should only run on API folders.

@@ -22,7 +22,7 @@ package v1alpha4
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
+	corev1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 )
 

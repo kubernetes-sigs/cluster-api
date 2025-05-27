@@ -285,10 +285,10 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./api/core/... \
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
-		paths=./internal/apis/core/... \
+		paths=./internal/api/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
-		paths=./internal/apis/addons/... \
+		paths=./internal/api/addons/... \
 		paths=./exp/internal/controllers/... \
 		paths=./exp/internal/webhooks/... \
 		paths=./exp/ipam/internal/webhooks/... \
@@ -336,7 +336,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		paths=./bootstrap/kubeadm/internal/webhooks/... \
-		paths=./internal/apis/bootstrap/kubeadm/... \
+		paths=./internal/api/bootstrap/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -352,7 +352,7 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
-		paths=./internal/apis/controlplane/kubeadm/... \
+		paths=./internal/api/controlplane/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
@@ -390,7 +390,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/apis/addons,./internal/apis/core,./api/runtime/hooks"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/api/addons,./internal/api/core,./api/runtime/hooks"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/addons/... \
@@ -398,8 +398,8 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
 		paths=./api/runtime/hooks/... \
-		paths=./internal/apis/addons/... \
-		paths=./internal/apis/core/... \
+		paths=./internal/api/addons/... \
+		paths=./internal/api/core/... \
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./util/test/builder/... \
@@ -413,7 +413,7 @@ generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy g
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/bootstrap/kubeadm/... \
 		paths=./bootstrap/kubeadm/types/... \
-		paths=./internal/apis/bootstrap/kubeadm/...
+		paths=./internal/api/bootstrap/kubeadm/...
 
 .PHONY: generate-go-deepcopy-kubeadm-control-plane
 generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm control plane
@@ -421,7 +421,7 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/controlplane/kubeadm/... \
-		paths=./internal/apis/controlplane/kubeadm/...
+		paths=./internal/api/controlplane/kubeadm/...
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
@@ -454,22 +454,22 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/api/core/v1alpha3,./internal/api/core/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/apis/core/v1alpha3 \
-		./internal/apis/core/v1alpha4 \
+		./internal/api/core/v1alpha3 \
+		./internal/api/core/v1alpha4 \
 		./api/core/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
 generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1,./internal/apis/addons/v1alpha3,./internal/apis/addons/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1,./internal/api/addons/v1alpha3,./internal/api/addons/v1alpha4"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/apis/addons/v1alpha3 \
-		./internal/apis/addons/v1alpha4 \
+		./internal/api/addons/v1alpha3 \
+		./internal/api/addons/v1alpha4 \
 		./api/addons/v1beta1
 
 .PHONY: generate-go-conversions-core-ipam
@@ -497,12 +497,12 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1,./internal/apis/bootstrap/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1,./internal/api/bootstrap/kubeadm"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/apis/bootstrap/kubeadm/v1alpha3 \
-		./internal/apis/bootstrap/kubeadm/v1alpha4 \
+		./internal/api/bootstrap/kubeadm/v1alpha3 \
+		./internal/api/bootstrap/kubeadm/v1alpha4 \
 		./api/bootstrap/kubeadm/v1beta1
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta1,./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
@@ -515,12 +515,12 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 
 .PHONY: generate-go-conversions-kubeadm-control-plane
 generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm control plane
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/controlplane/kubeadm/v1beta1,./internal/apis/controlplane/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/controlplane/kubeadm/v1beta1,./internal/api/controlplane/kubeadm"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/apis/controlplane/kubeadm/v1alpha3 \
-		./internal/apis/controlplane/kubeadm/v1alpha4 \
+		./internal/api/controlplane/kubeadm/v1alpha3 \
+		./internal/api/controlplane/kubeadm/v1alpha4 \
 		./api/controlplane/kubeadm/v1beta1
 
 .PHONY: generate-go-conversions-docker-infrastructure

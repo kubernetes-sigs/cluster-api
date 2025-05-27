@@ -28,7 +28,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
+	corev1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
 	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 

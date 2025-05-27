@@ -399,7 +399,7 @@ spec:
                 plugins:
                 - name: PodSecurity
                   configuration:
-                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
+                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25-0" .builtin.controlPlane.version }}beta1{{ end }}
                     kind: PodSecurityConfiguration
                     defaults:
                       enforce: "baseline"
@@ -413,7 +413,7 @@ spec:
                       runtimeClasses: []
                       namespaces: [kube-system]
               path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
-    enabledIf: '{{ semverCompare ">= v1.24" .builtin.controlPlane.version }}'
+    enabledIf: '{{ semverCompare ">= v1.24-0" .builtin.controlPlane.version }}'
   - name: controlPlaneLogLevel
     enabledIf: "{{ if .kubeControlPlaneLogLevel }}true{{end}}"
     description: "Configures control plane components and kubelet to run at the log level specified in the variable `kubeControlPlaneLogLevel`."

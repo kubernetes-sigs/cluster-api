@@ -21,14 +21,22 @@ package v1alpha3
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
@@ -53,18 +61,44 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeDNS,
 		spokeClusterConfiguration,
 		hubKubeadmConfigStatus,
-		// This custom functions are needed when ConvertTo/ConvertFrom functions
-		// uses the json package to unmarshal the bootstrap token string.
-		//
-		// The Kubeadm BootstrapTokenString type ships with a custom
-		// json string representation, in particular it supplies a customized
-		// UnmarshalJSON function that can return an error if the string
-		// isn't in the correct form.
-		//
-		// This function effectively disables any fuzzing for the token by setting
-		// the values for ID and Secret to working alphanumeric values.
-		spokeKubeadmBootstrapTokenString,
-		hubKubeadmBootstrapTokenString,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
+		spokeKubeadmConfigStatus,
+		spokeDNS,
+		spokeClusterConfiguration,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
+	var initControlPlaneComponentHealthCheckSeconds *int32
+	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
+		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	}
+	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
+		if in.JoinConfiguration == nil {
+			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		if in.JoinConfiguration.Timeouts == nil {
+			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 }
 
@@ -83,27 +117,6 @@ func hubKubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, c randfill.Cont
 		if reflect.DeepEqual(in.Initialization, &bootstrapv1.KubeadmConfigInitializationStatus{}) {
 			in.Initialization = nil
 		}
-	}
-}
-
-func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		spokeKubeadmConfigSpec,
-		spokeKubeadmConfigStatus,
-		spokeDNS,
-		spokeClusterConfiguration,
-		// This custom functions are needed when ConvertTo/ConvertFrom functions
-		// uses the json package to unmarshal the bootstrap token string.
-		//
-		// The Kubeadm BootstrapTokenString type ships with a custom
-		// json string representation, in particular it supplies a customized
-		// UnmarshalJSON function that can return an error if the string
-		// isn't in the correct form.
-		//
-		// This function effectively disables any fuzzing for the token by setting
-		// the values for ID and Secret to working alphanumeric values.
-		spokeKubeadmBootstrapTokenString,
-		hubKubeadmBootstrapTokenString,
 	}
 }
 
@@ -135,12 +148,28 @@ func spokeClusterConfiguration(obj *upstreamv1beta1.ClusterConfiguration, c rand
 	obj.UseHyperKubeImage = false
 }
 
-func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
-func hubKubeadmBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+func spokeBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func spokeAPIServer(in *upstreamv1beta1.APIServer, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutForControlPlane != nil {
+		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeDiscovery(in *upstreamv1beta1.Discovery, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Timeout != nil {
+		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 }

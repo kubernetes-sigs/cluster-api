@@ -21,8 +21,10 @@ package v1alpha3
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
@@ -31,7 +33,13 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
 )
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
@@ -50,19 +58,31 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		spokeKubeadmControlPlaneStatus,
 		spokeDNS,
 		spokeKubeadmClusterConfiguration,
-		// This custom function is needed when ConvertTo/ConvertFrom functions
-		// uses the json package to unmarshal the bootstrap token string.
-		//
-		// The Kubeadm v1beta1.BootstrapTokenString type ships with a custom
-		// json string representation, in particular it supplies a customized
-		// UnmarshalJSON function that can return an error if the string
-		// isn't in the correct form.
-		//
-		// This function effectively disables any fuzzing for the token by setting
-		// the values for ID and Secret to working alphanumeric values.
 		hubBootstrapTokenString,
-		spokeKubeadmBootstrapTokenString,
+		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
+		spokeAPIServer,
+		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
+	var initControlPlaneComponentHealthCheckSeconds *int32
+	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
+		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	}
+	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
+		if in.JoinConfiguration == nil {
+			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		if in.JoinConfiguration.Timeouts == nil {
+			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 }
 
@@ -98,13 +118,13 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Co
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
-func spokeKubeadmBootstrapTokenString(in *upstreamv1beta1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func spokeDNS(obj *upstreamv1beta1.DNS, c randfill.Continue) {
@@ -126,4 +146,20 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+}
+
+func spokeAPIServer(in *upstreamv1beta1.APIServer, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutForControlPlane != nil {
+		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeDiscovery(in *upstreamv1beta1.Discovery, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Timeout != nil {
+		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 }

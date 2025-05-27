@@ -498,8 +498,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 	}
 	kcpMachineTemplateObjectMetaCopy := kcpMachineTemplateObjectMeta.DeepCopy()
 
-	clusterConfigurationString := "{\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}"
-
 	infraRef := &corev1.ObjectReference{
 		Kind:       "InfraKind",
 		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
@@ -514,11 +512,13 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                      string
-		kcp                       *controlplanev1.KubeadmControlPlane
-		isUpdatingExistingMachine bool
-		want                      []gomegatypes.GomegaMatcher
-		wantErr                   bool
+		name                                   string
+		kcp                                    *controlplanev1.KubeadmControlPlane
+		isUpdatingExistingMachine              bool
+		existingClusterConfigurationAnnotation string
+		want                                   []gomegatypes.GomegaMatcher
+		wantClusterConfigurationAnnotation     string
+		wantErr                                bool
 	}{
 		{
 			name: "should return the correct Machine object when creating a new Machine",
@@ -553,7 +553,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName + namingTemplateKey),
 				Not(HaveSuffix("00000")),
 			},
-			wantErr: false,
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantErr:                            false,
 		},
 		{
 			name: "should return error when creating a new Machine when '.random' is not added in template",
@@ -613,7 +614,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				ContainSubstring(fmt.Sprintf("%053d", 0)),
 				Not(HaveSuffix("00000")),
 			},
-			wantErr: false,
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantErr:                            false,
 		},
 		{
 			name: "should return error when creating a new Machine with invalid template",
@@ -671,6 +673,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName),
 				Not(HaveSuffix("00000")),
 			},
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
 		},
 		{
 			name: "should return the correct Machine object when creating a new Machine with additional kcp readinessGates",
@@ -695,11 +698,45 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					},
 				},
 			},
-			isUpdatingExistingMachine: false,
-			wantErr:                   false,
+			isUpdatingExistingMachine:          false,
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantErr:                            false,
 		},
 		{
-			name: "should return the correct Machine object when updating an existing Machine",
+			name: "should return the correct Machine object when updating an existing Machine (empty ClusterConfiguration annotation)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kcpName,
+					Namespace: cluster.Namespace,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.16.6",
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						ObjectMeta:              kcpMachineTemplateObjectMeta,
+						NodeDrainTimeout:        duration5s,
+						NodeDeletionTimeout:     duration5s,
+						NodeVolumeDetachTimeout: duration5s,
+						ReadinessGates: []clusterv1.MachineReadinessGate{
+							{ConditionType: "Foo"},
+						},
+					},
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							ClusterName: clusterName,
+						},
+					},
+					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
+					},
+				},
+			},
+			isUpdatingExistingMachine:              true,
+			existingClusterConfigurationAnnotation: "",
+			wantClusterConfigurationAnnotation:     "",
+			wantErr:                                false,
+		},
+		{
+			name: "should return the correct Machine object when updating an existing Machine (outdated ClusterConfiguration annotation)",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kcpName,
@@ -727,7 +764,43 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				},
 			},
 			isUpdatingExistingMachine: true,
-			wantErr:                   false,
+
+			existingClusterConfigurationAnnotation: "{\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantErr:                                false,
+		},
+		{
+			name: "should return the correct Machine object when updating an existing Machine (up to date ClusterConfiguration annotation)",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kcpName,
+					Namespace: cluster.Namespace,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.16.6",
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						ObjectMeta:              kcpMachineTemplateObjectMeta,
+						NodeDrainTimeout:        duration5s,
+						NodeDeletionTimeout:     duration5s,
+						NodeVolumeDetachTimeout: duration5s,
+						ReadinessGates: []clusterv1.MachineReadinessGate{
+							{ConditionType: "Foo"},
+						},
+					},
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							ClusterName: clusterName,
+						},
+					},
+					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
+					},
+				},
+			},
+			isUpdatingExistingMachine:              true,
+			existingClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantErr:                                false,
 		},
 	}
 
@@ -745,7 +818,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				machineUID := types.UID("abc-123-existing-machine")
 				// Use different ClusterConfiguration string than the information present in KCP
 				// to verify that for an existing machine we do not override this information.
-				existingClusterConfigurationString := "existing-cluster-configuration-information"
 				remediationData := "remediation-data"
 				machineVersion := ptr.To("v1.25.3")
 				existingMachine := &clusterv1.Machine{
@@ -753,8 +825,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						Name: machineName,
 						UID:  machineUID,
 						Annotations: map[string]string{
-							controlplanev1.KubeadmClusterConfigurationAnnotation: existingClusterConfigurationString,
-							controlplanev1.RemediationForAnnotation:              remediationData,
+							controlplanev1.RemediationForAnnotation: remediationData,
 						},
 					},
 					Spec: clusterv1.MachineSpec{
@@ -770,6 +841,10 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						ReadinessGates:    []clusterv1.MachineReadinessGate{{ConditionType: "Foo"}},
 					},
 				}
+				if tt.existingClusterConfigurationAnnotation != "" {
+					existingMachine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.existingClusterConfigurationAnnotation
+				}
+
 				desiredMachine, err = (&KubeadmControlPlaneReconciler{}).computeDesiredMachine(
 					tt.kcp, cluster,
 					existingMachine.Spec.FailureDomain, existingMachine,
@@ -801,7 +876,9 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
 					expectedAnnotations[k] = v
 				}
-				expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = existingClusterConfigurationString
+				if tt.wantClusterConfigurationAnnotation != "" {
+					expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.wantClusterConfigurationAnnotation
+				}
 				expectedAnnotations[controlplanev1.RemediationForAnnotation] = remediationData
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
@@ -835,7 +912,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
 					expectedAnnotations[k] = v
 				}
-				expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfigurationString
+				expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.wantClusterConfigurationAnnotation
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 				g.Expect(desiredMachine.Annotations).To(Equal(expectedAnnotations))

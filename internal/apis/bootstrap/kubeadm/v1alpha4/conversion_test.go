@@ -21,9 +21,12 @@ package v1alpha4
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -41,12 +44,12 @@ func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs, fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigFuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs, fuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{KubeadmConfigTemplateFuzzFuncs},
 	}))
 }
 
@@ -54,6 +57,41 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmConfigStatus,
 		spokeKubeadmConfigSpec,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeKubeadmConfigSpec,
+		hubBootstrapTokenString,
+		spokeBootstrapTokenString,
+		spokeAPIServer,
+		spokeDiscovery,
+		hubKubeadmConfigSpec,
+	}
+}
+
+func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
+	var initControlPlaneComponentHealthCheckSeconds *int32
+	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
+		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	}
+	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
+		if in.JoinConfiguration == nil {
+			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		if in.JoinConfiguration.Timeouts == nil {
+			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 }
 
@@ -82,35 +120,28 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 	in.UseExperimentalRetryJoin = false
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		// This custom functions are needed when ConvertTo/ConvertFrom functions
-		// uses the json package to unmarshal the bootstrap token string.
-		//
-		// The Kubeadm BootstrapTokenString type ships with a custom
-		// json string representation, in particular it supplies a customized
-		// UnmarshalJSON function that can return an error if the string
-		// isn't in the correct form.
-		//
-		// This function effectively disables any fuzzing for the token by setting
-		// the values for ID and Secret to working alphanumeric values.
-		kubeadmBootstrapTokenStringFuzzerV1Beta1,
-		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
+func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func spokeBootstrapTokenString(in *BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func spokeAPIServer(in *APIServer, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutForControlPlane != nil {
+		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = fakeID
-	in.Secret = fakeSecret
-}
+func spokeDiscovery(in *Discovery, c randfill.Continue) {
+	c.FillNoCustom(in)
 
-func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *BootstrapTokenString, _ randfill.Continue) {
-	in.ID = fakeID
-	in.Secret = fakeSecret
-}
-
-func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		spokeKubeadmConfigSpec,
+	if in.Timeout != nil {
+		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }

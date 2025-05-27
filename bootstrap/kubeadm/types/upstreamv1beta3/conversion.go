@@ -17,6 +17,7 @@ limitations under the License.
 package upstreamv1beta3
 
 import (
+	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -56,16 +57,71 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 // Custom conversion from this API, kubeadm v1beta3, to the hub version, CABPK v1beta1.
 
 func Convert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
-	// InitConfiguration.CertificateKey does not exist in CABPK v1beta1 version, because Cluster API does not use automatic copy certs.
+	// InitConfiguration.CertificateKey does not exist in CABPK, because Cluster API does not use automatic copy certs.
 	return autoConvert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
 }
 
+func Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
+	if err := autoConvert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if in.Discovery.Timeout != nil {
+		if out.Timeouts == nil {
+			out.Timeouts = &bootstrapv1.Timeouts{}
+		}
+		out.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(in.Discovery.Timeout)
+	}
+	return nil
+}
+
 func Convert_upstreamv1beta3_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinControlPlane, out *bootstrapv1.JoinControlPlane, s apimachineryconversion.Scope) error {
-	// JoinControlPlane.CertificateKey does not exist in CABPK v1beta1 version, because Cluster API does not use automatic copy certs.
+	// JoinControlPlane.CertificateKey does not exist in CABPK, because Cluster API does not use automatic copy certs.
 	return autoConvert_upstreamv1beta3_JoinControlPlane_To_v1beta2_JoinControlPlane(in, out, s)
 }
 
+func Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
+	// APIServer.TimeoutForControlPlane does not exist in CABPK, because CABPK aligns to upstreamV1Beta4.
+	return autoConvert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in, out, s)
+}
+
+func Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
+	// Discovery.Timeout does not exist in CABPK, because CABPK aligns to upstreamV1Beta4.
+	return autoConvert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in, out, s)
+}
+
+func Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	return autoConvert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
+}
+
+func Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
+	return autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
+}
+
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta3.
+
+func Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
+	// InitConfiguration.Timeouts does not exist in kubeadm v1beta3, dropping this info.
+	return autoConvert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Timeouts does not exist in kubeadm v1beta3, dropping this info.
+	if err := autoConvert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Timeouts != nil {
+		out.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
+	}
+	return nil
+}
 
 func Convert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
 	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
@@ -74,15 +130,53 @@ func Convert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in *bootstra
 
 func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta3, dropping this info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in, out, s)
 }
 
 func Convert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
 	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta3, dropping this info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
 	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in, out, s)
 }
 
 func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	// NodeRegistrationOptions.ImagePullSerial does not exist in kubeadm v1beta3, dropping this info.
+
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
+	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
+}
+
+// Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
+
+func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
+	if initConfiguration == nil || initConfiguration.Timeouts == nil || initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds == nil {
+		return nil
+	}
+
+	dst.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	return nil
+}
+
+func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
+	if src.APIServer.TimeoutForControlPlane == nil {
+		return nil
+	}
+
+	if initConfiguration == nil {
+		return errors.New("cannot convert ClusterConfiguration to a nil InitConfiguration")
+	}
+	if initConfiguration.Timeouts == nil {
+		initConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+	}
+	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
+	return nil
 }

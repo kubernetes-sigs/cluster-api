@@ -280,7 +280,7 @@ func setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer *server.Ser
 	// Create the ExtensionHandlers for the Topology Mutation Hooks.
 	// NOTE: it is not mandatory to group all the ExtensionHandlers using a struct, what is important
 	// is to have HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
-	topologyMutationExtensionHandlers := topologymutation.NewExtensionHandlers(scheme)
+	topologyMutationExtensionHandlers := topologymutation.NewExtensionHandlers()
 
 	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:        runtimehooksv1.GeneratePatches,

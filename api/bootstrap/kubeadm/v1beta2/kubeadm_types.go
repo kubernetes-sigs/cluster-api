@@ -113,6 +113,10 @@ type InitConfiguration struct {
 	// "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
 	Patches *Patches `json:"patches,omitempty"`
+
+	// timeouts holds various timeouts that apply to kubeadm commands.
+	// +optional
+	Timeouts *Timeouts `json:"timeouts,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -207,10 +211,17 @@ type ClusterConfiguration struct {
 
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
 type ControlPlaneComponent struct {
-	// extraArgs is an extra set of flags to pass to the control plane component.
-	// TODO: This is temporary and ideally we would like to switch all components to use ComponentConfig + ConfigMaps.
+	// extraArgs is a list of args to pass to the control plane component.
+	// The arg name must match the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
@@ -235,10 +246,6 @@ type APIServer struct {
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
 	CertSANs []string `json:"certSANs,omitempty"`
-
-	// timeoutForControlPlane controls the timeout that we use for API server to appear
-	// +optional
-	TimeoutForControlPlane *metav1.Duration `json:"timeoutForControlPlane,omitempty"`
 }
 
 // DNS defines the DNS addon that should be used in the cluster.
@@ -322,13 +329,20 @@ type NodeRegistrationOptions struct {
 	// +kubebuilder:validation:MaxItems=100
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
-	// kubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
-	// kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
-	// Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
+	// kubeletExtraArgs is a list of args to pass to kubelet.
+	// The arg name must match the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="kubeletExtraArgs name must be unique"
+	KubeletExtraArgs []Arg `json:"kubeletExtraArgs,omitempty"`
 
-	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
+	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
+	// Value 'all' ignores errors from all checks.
 	// +optional
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
@@ -342,7 +356,7 @@ type NodeRegistrationOptions struct {
 	// with Kubernetes version equal to 1.22 and later.
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +optional
-	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// imagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
 	// This option takes effect only on Kubernetes >=1.31.0.
@@ -367,9 +381,9 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 			Name                  string            `json:"name,omitempty"`
 			CRISocket             string            `json:"criSocket,omitempty"`
 			Taints                []corev1.Taint    `json:"taints"`
-			KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
+			KubeletExtraArgs      []Arg             `json:"kubeletExtraArgs,omitempty"`
 			IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
-			ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
+			ImagePullPolicy       corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 			ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 		}{
 			Name:                  n.Name,
@@ -387,9 +401,9 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 		Name                  string            `json:"name,omitempty"`
 		CRISocket             string            `json:"criSocket,omitempty"`
 		Taints                []corev1.Taint    `json:"taints,omitempty"`
-		KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
+		KubeletExtraArgs      []Arg             `json:"kubeletExtraArgs,omitempty"`
 		IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
-		ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
+		ImagePullPolicy       corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 		ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 	}{
 		Name:                  n.Name,
@@ -487,12 +501,19 @@ type LocalEtcd struct {
 	// +kubebuilder:validation:MaxLength=512
 	DataDir string `json:"dataDir,omitempty"`
 
-	// extraArgs are extra arguments provided to the etcd binary
-	// when run inside a static pod.
+	// extraArgs is a list of args to pass to etcd.
+	// The arg name must match the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
 	// +optional
-	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
 
-	// extraEnvs is an extra set of environment variables to pass to the control plane component.
+	// extraEnvs is an extra set of environment variables to pass to etcd.
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
@@ -559,7 +580,7 @@ type JoinConfiguration struct {
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// caCertPath is the path to the SSL certificate authority used to
-	// secure comunications between node and control-plane.
+	// secure communications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
@@ -590,6 +611,10 @@ type JoinConfiguration struct {
 	// "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
 	Patches *Patches `json:"patches,omitempty"`
+
+	// timeouts holds various timeouts that apply to kubeadm commands.
+	// +optional
+	Timeouts *Timeouts `json:"timeouts,omitempty"`
 }
 
 // JoinControlPlane contains elements describing an additional control plane instance to be deployed on the joining node.
@@ -618,10 +643,6 @@ type Discovery struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	TLSBootstrapToken string `json:"tlsBootstrapToken,omitempty"`
-
-	// timeout modifies the discovery timeout
-	// +optional
-	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 // BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery.
@@ -931,7 +952,67 @@ type Patches struct {
 	Directory string `json:"directory,omitempty"`
 }
 
+// Arg represents an argument with a name and a value.
+type Arg struct {
+	// name is the Name of the extraArg.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Name string `json:"name"`
+
+	// value is the Value of the extraArg.
+	// +required
+	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MaxLength=1024
+	Value string `json:"value"`
+}
+
 // EnvVar represents an environment variable present in a Container.
 type EnvVar struct {
 	corev1.EnvVar `json:",inline"`
+}
+
+// Timeouts holds various timeouts that apply to kubeadm commands.
+type Timeouts struct {
+	// controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
+	// component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".
+	// If not set, it defaults to 4m (240s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	ControlPlaneComponentHealthCheckSeconds *int32 `json:"controlPlaneComponentHealthCheckSeconds,omitempty"`
+
+	// kubeletHealthCheckSeconds is the amount of time to wait for the kubelet to be healthy
+	// during "kubeadm init" and "kubeadm join".
+	// If not set, it defaults to 4m (240s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	KubeletHealthCheckSeconds *int32 `json:"kubeletHealthCheckSeconds,omitempty"`
+
+	// kubernetesAPICallSeconds is the amount of time to wait for the kubeadm client to complete a request to
+	// the API server. This applies to all types of methods (GET, POST, etc).
+	// If not set, it defaults to 1m (60s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	KubernetesAPICallSeconds *int32 `json:"kubernetesAPICallSeconds,omitempty"`
+
+	// etcdAPICallSeconds is the amount of time to wait for the kubeadm etcd client to complete a request to
+	// the etcd cluster.
+	// If not set, it defaults to 2m (120s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	EtcdAPICallSeconds *int32 `json:"etcdAPICallSeconds,omitempty"`
+
+	// tlsBootstrapSeconds is the amount of time to wait for the kubelet to complete TLS bootstrap
+	// for a joining node.
+	// If not set, it defaults to 5m (300s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	TLSBootstrapSeconds *int32 `json:"tlsBootstrapSeconds,omitempty"`
+
+	// discoverySeconds is the amount of time to wait for kubeadm to validate the API server identity
+	// for a joining node.
+	// If not set, it defaults to 5m (300s).
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	DiscoverySeconds *int32 `json:"discoverySeconds,omitempty"`
 }

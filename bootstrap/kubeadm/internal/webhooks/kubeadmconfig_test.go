@@ -469,6 +469,42 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 			},
 		},
+		"invalid ControlPlaneComponentHealthCheckSeconds": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &bootstrapv1.InitConfiguration{
+						Timeouts: &bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"valid ControlPlaneComponentHealthCheckSeconds": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &bootstrapv1.InitConfiguration{
+						Timeouts: &bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						},
+					},
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Timeouts: &bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tt := range cases {

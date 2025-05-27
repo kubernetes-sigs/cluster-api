@@ -826,21 +826,29 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string
+		version                  semver.Version
 		clusterConfigurationData string
 		newAPIServer             bootstrapv1.APIServer
 		wantClusterConfiguration string
 	}{
 		{
-			name: "it should set the api server config",
+			name:    "it should set the api server config (< 1.31)",
+			version: semver.MustParse("1.19.1"),
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
 				kind: ClusterConfiguration
 				`),
 			newAPIServer: bootstrapv1.APIServer{
 				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: map[string]string{
-						"bar":     "baz",
-						"someKey": "someVal",
+					ExtraArgs: []bootstrapv1.Arg{
+						{
+							Name:  "bar",
+							Value: "baz",
+						},
+						{
+							Name:  "someKey",
+							Value: "someVal",
+						},
 					},
 					ExtraVolumes: []bootstrapv1.HostPathMount{
 						{
@@ -869,6 +877,55 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				scheduler: {}
 				`),
 		},
+		{
+			name:    "it should set the api server config (>=1.31)",
+			version: semver.MustParse("1.31.1"),
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration
+				`),
+			newAPIServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+					ExtraArgs: []bootstrapv1.Arg{
+						{
+							Name:  "bar",
+							Value: "baz",
+						},
+						{
+							Name:  "someKey",
+							Value: "someVal",
+						},
+					},
+					ExtraVolumes: []bootstrapv1.HostPathMount{
+						{
+							Name:      "mount2",
+							HostPath:  "/bar/baz",
+							MountPath: "/foo/bar",
+						},
+					},
+				},
+			},
+			wantClusterConfiguration: utilyaml.Raw(`
+				apiServer:
+				  extraArgs:
+				  - name: bar
+				    value: baz
+				  - name: someKey
+				    value: someVal
+				  extraVolumes:
+				  - hostPath: /bar/baz
+				    mountPath: /foo/bar
+				    name: mount2
+				apiVersion: kubeadm.k8s.io/v1beta4
+				controllerManager: {}
+				dns: {}
+				etcd: {}
+				kind: ClusterConfiguration
+				networking: {}
+				proxy: {}
+				scheduler: {}
+				`),
+		},
 	}
 
 	for _, tt := range tests {
@@ -887,7 +944,7 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.19.1"), w.UpdateAPIServerInKubeadmConfigMap(tt.newAPIServer))
+			err := w.UpdateClusterConfiguration(ctx, tt.version, w.UpdateAPIServerInKubeadmConfigMap(tt.newAPIServer))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
@@ -915,9 +972,15 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newControllerManager: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: map[string]string{
-					"bar":     "baz",
-					"someKey": "someVal",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
+					},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{
 					{
@@ -991,9 +1054,15 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newScheduler: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: map[string]string{
-					"bar":     "baz",
-					"someKey": "someVal",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
+					},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{
 					{

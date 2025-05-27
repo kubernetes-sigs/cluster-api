@@ -565,8 +565,11 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-							KubeletExtraArgs: map[string]string{
-								"eviction-hard": "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%",
+							KubeletExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "eviction-hard",
+									Value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%",
+								},
 							},
 						},
 					},

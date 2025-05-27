@@ -242,7 +242,10 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 					input.SpokeAfterMutation(spokeAfter)
 				}
 
-				g.Expect(apiequality.Semantic.DeepEqual(spokeBefore, spokeAfter)).To(gomega.BeTrue(), cmp.Diff(spokeBefore, spokeAfter))
+				if !apiequality.Semantic.DeepEqual(spokeBefore, spokeAfter) {
+					diff := cmp.Diff(spokeBefore, spokeAfter)
+					g.Expect(false).To(gomega.BeTrue(), diff)
+				}
 			}
 		})
 		t.Run("hub-spoke-hub", func(t *testing.T) {
@@ -266,7 +269,10 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 					input.HubAfterMutation(hubAfter)
 				}
 
-				g.Expect(apiequality.Semantic.DeepEqual(hubBefore, hubAfter)).To(gomega.BeTrue(), cmp.Diff(hubBefore, hubAfter))
+				if !apiequality.Semantic.DeepEqual(hubBefore, hubAfter) {
+					diff := cmp.Diff(hubBefore, hubAfter)
+					g.Expect(false).To(gomega.BeTrue(), diff)
+				}
 			}
 		})
 	}

@@ -20,11 +20,14 @@ package upstreamv1beta3
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -67,14 +70,16 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		initConfigurationFuzzer,
-		joinConfigurationFuzzer,
-		bootstrapv1JoinConfigurationFuzzer,
-		nodeRegistrationOptionsFuzzer,
-		joinControlPlanesFuzzer,
-		bootstrapv1ControlPlaneComponentFuzzer,
-		bootstrapv1LocalEtcdFuzzer,
-		bootstrapv1NodeRegistrationOptionsFuzzer,
+		spokeInitConfigurationFuzzer,
+		spokeJoinConfigurationFuzzer,
+		spokeAPIServerFuzzer,
+		hubJoinConfigurationFuzzer,
+		spokeNodeRegistrationOptionsFuzzer,
+		spokeJoinControlPlanesFuzzer,
+		hubInitConfigurationFuzzer,
+		hubControlPlaneComponentFuzzer,
+		hubLocalEtcdFuzzer,
+		hubNodeRegistrationOptionsFuzzer,
 	}
 }
 
@@ -82,34 +87,50 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 // NOTES:
 // - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 
-func initConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
+func spokeInitConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.CertificateKey = ""
 	obj.SkipPhases = nil
 }
 
-func joinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
+func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.SkipPhases = nil
+	if obj.Discovery.Timeout != nil {
+		obj.Discovery.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 }
 
-func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
+func spokeAPIServerFuzzer(obj *APIServer, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.TimeoutForControlPlane = nil
+}
+
+func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	if obj.Discovery.File != nil {
 		obj.Discovery.File.KubeConfig = nil
 	}
+	if obj.Timeouts != nil {
+		if obj.Timeouts.TLSBootstrapSeconds != nil {
+			obj.Timeouts = &bootstrapv1.Timeouts{TLSBootstrapSeconds: obj.Timeouts.TLSBootstrapSeconds}
+		} else {
+			obj.Timeouts = nil
+		}
+	}
 }
 
-func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c randfill.Continue) {
+func spokeNodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.IgnorePreflightErrors = nil
 }
 
-func joinControlPlanesFuzzer(obj *JoinControlPlane, c randfill.Continue) {
+func spokeJoinControlPlanesFuzzer(obj *JoinControlPlane, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.CertificateKey = ""
@@ -119,20 +140,26 @@ func joinControlPlanesFuzzer(obj *JoinControlPlane, c randfill.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 
-func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
+func hubControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
+func hubLocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil
 }
 
-func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
+func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ImagePullSerial = nil
+}
+
+func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.Timeouts = nil
 }

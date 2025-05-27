@@ -85,7 +85,7 @@ func TestHandler(t *testing.T) {
 
 	// Create a RuntimeClient that is backed by our Runtime Extension.
 	runtimeClient := &injectRuntimeClient{
-		runtimeExtension: NewExtensionHandlers(testScheme),
+		runtimeExtension: NewExtensionHandlers(),
 	}
 
 	// Create a ClusterClassReconciler.

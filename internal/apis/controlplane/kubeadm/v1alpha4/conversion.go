@@ -62,38 +62,41 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlane{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
+	if ok {
+		dst.Spec.MachineTemplate.ReadinessGates = restored.Spec.MachineTemplate.ReadinessGates
+		dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
+		dst.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.MachineTemplate.NodeVolumeDetachTimeout
+		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
-	dst.Spec.MachineTemplate.ReadinessGates = restored.Spec.MachineTemplate.ReadinessGates
-	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
-	dst.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.MachineTemplate.NodeVolumeDetachTimeout
-	dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
+		if restored.Spec.RemediationStrategy != nil {
+			dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
+		}
+		if restored.Status.LastRemediation != nil {
+			dst.Status.LastRemediation = restored.Status.LastRemediation
+		}
 
-	if restored.Spec.RemediationStrategy != nil {
-		dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
+		if restored.Spec.MachineNamingStrategy != nil {
+			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+		}
+
+		bootstrapv1alpha4.RestoreKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
+		dst.Status.Conditions = restored.Status.Conditions
+		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
+		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
+		dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
 	}
-	if restored.Status.LastRemediation != nil {
-		dst.Status.LastRemediation = restored.Status.LastRemediation
-	}
 
-	if restored.Spec.MachineNamingStrategy != nil {
-		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-	}
-
-	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
-	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
-	dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
-
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.KubeadmConfigSpec)
 	return nil
 }
 
 func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlane)
-
 	if err := Convert_v1beta2_KubeadmControlPlane_To_v1alpha4_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
@@ -126,6 +129,9 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 	dst.Status.Ready = dst.Status.ReadyReplicas > 0
 
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -139,47 +145,53 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlaneTemplate{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
-
-	dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
-
-	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-	if restored.Spec.Template.Spec.MachineTemplate != nil {
-		dst.Spec.Template.Spec.MachineTemplate.ObjectMeta = restored.Spec.Template.Spec.MachineTemplate.ObjectMeta
-	}
-
-	if dst.Spec.Template.Spec.MachineTemplate == nil {
+	if ok {
 		dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
-	} else if restored.Spec.Template.Spec.MachineTemplate != nil {
-		dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
-		dst.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout
+
+		dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+		if restored.Spec.Template.Spec.MachineTemplate != nil {
+			dst.Spec.Template.Spec.MachineTemplate.ObjectMeta = restored.Spec.Template.Spec.MachineTemplate.ObjectMeta
+		}
+
+		if dst.Spec.Template.Spec.MachineTemplate == nil {
+			dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
+		} else if restored.Spec.Template.Spec.MachineTemplate != nil {
+			dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
+			dst.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout
+		}
+
+		dst.Spec.Template.Spec.RolloutBefore = restored.Spec.Template.Spec.RolloutBefore
+
+		if restored.Spec.Template.Spec.RemediationStrategy != nil {
+			dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
+		}
+
+		if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
+			dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
+		}
+
+		bootstrapv1alpha4.RestoreKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec, &restored.Spec.Template.Spec.KubeadmConfigSpec)
 	}
 
-	dst.Spec.Template.Spec.RolloutBefore = restored.Spec.Template.Spec.RolloutBefore
-
-	if restored.Spec.Template.Spec.RemediationStrategy != nil {
-		dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
-	}
-
-	if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
-		dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
-	}
-
-	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec, &restored.Spec.Template.Spec.KubeadmConfigSpec)
-
+	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
+	src.Spec.Template.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.Template.Spec.KubeadmConfigSpec)
 	return nil
 }
 
 func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
-
 	if err := Convert_v1beta2_KubeadmControlPlaneTemplate_To_v1alpha4_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion except for metadata
+	// Convert timeouts moved from one struct to another.
+	dst.Spec.Template.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.Template.Spec.KubeadmConfigSpec)
+
+	// Preserve Hub data on down-conversion except for metadata.
 	return utilconversion.MarshalData(src, dst)
 }
 

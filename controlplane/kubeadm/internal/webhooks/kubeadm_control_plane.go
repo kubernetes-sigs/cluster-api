@@ -154,6 +154,7 @@ const (
 	ignition             = "ignition"
 	diskSetup            = "diskSetup"
 	featureGates         = "featureGates"
+	timeouts             = "timeouts"
 )
 
 const minimumCertificatesExpiryDays = 7
@@ -190,6 +191,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, initConfiguration, "bootstrapTokens"},
 		{spec, kubeadmConfigSpec, initConfiguration, "localAPIEndpoint"},
 		{spec, kubeadmConfigSpec, initConfiguration, "localAPIEndpoint", "*"},
+		{spec, kubeadmConfigSpec, initConfiguration, timeouts},
+		{spec, kubeadmConfigSpec, initConfiguration, timeouts, "*"},
 		// spec.kubeadmConfigSpec.joinConfiguration
 		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration, "*"},
@@ -201,6 +204,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, joinConfiguration, "controlPlane", "*"},
 		{spec, kubeadmConfigSpec, joinConfiguration, "discovery"},
 		{spec, kubeadmConfigSpec, joinConfiguration, "discovery", "*"},
+		{spec, kubeadmConfigSpec, joinConfiguration, timeouts},
+		{spec, kubeadmConfigSpec, joinConfiguration, timeouts, "*"},
 		// spec.kubeadmConfigSpec
 		{spec, kubeadmConfigSpec, bootCommands},
 		{spec, kubeadmConfigSpec, preKubeadmCommands},

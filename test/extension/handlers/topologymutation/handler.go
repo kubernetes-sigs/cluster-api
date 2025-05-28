@@ -38,8 +38,8 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
+	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
@@ -57,14 +57,14 @@ type ExtensionHandlers struct {
 // NewExtensionHandlers returns a new ExtensionHandlers for the topology mutation hook handlers.
 func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
-	_ = infrav1.AddToScheme(scheme)
-	_ = infraexpv1.AddToScheme(scheme)
+	_ = infrav1beta1.AddToScheme(scheme)
+	_ = infraexpv1beta1.AddToScheme(scheme)
 	_ = bootstrapv1beta1.AddToScheme(scheme)
 	_ = controlplanev1beta1.AddToScheme(scheme)
 	return &ExtensionHandlers{
 		// Add the apiGroups being handled to the decoder
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
-			infrav1.GroupVersion,
+			infrav1beta1.GroupVersion,
 			bootstrapv1beta1.GroupVersion,
 			controlplanev1beta1.GroupVersion,
 		),
@@ -87,7 +87,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 		log := ctrl.LoggerFrom(ctx)
 
 		switch obj := obj.(type) {
-		case *infrav1.DockerClusterTemplate:
+		case *infrav1beta1.DockerClusterTemplate:
 			if err := patchDockerClusterTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DockerClusterTemplate")
 				return errors.Wrap(err, "error patching DockerClusterTemplate")
@@ -107,7 +107,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching KubeadmConfigTemplate")
 				return errors.Wrap(err, "error patching KubeadmConfigTemplate")
 			}
-		case *infrav1.DockerMachineTemplate:
+		case *infrav1beta1.DockerMachineTemplate:
 			// NOTE: DockerMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
 			// the patchDockerMachineTemplate func shows how to implement different patches for DockerMachineTemplate
 			// linked to ControlPlane or for DockerMachineTemplate linked to MachineDeployment classes; another option
@@ -116,7 +116,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching DockerMachineTemplate")
 				return errors.Wrap(err, "error patching DockerMachineTemplate")
 			}
-		case *infraexpv1.DockerMachinePoolTemplate:
+		case *infraexpv1beta1.DockerMachinePoolTemplate:
 			if err := patchDockerMachinePoolTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DockerMachinePoolTemplate")
 				return errors.Wrap(err, "error patching DockerMachinePoolTemplate")
@@ -129,7 +129,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // patchDockerClusterTemplate patches the DockerClusterTemplate.
 // It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1.DockerClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1beta1.DockerClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	imageRepo, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
 		if topologymutation.IsNotFoundError(err) {
@@ -182,7 +182,7 @@ func patchKubeadmConfigTemplate(_ context.Context, _ *bootstrapv1beta1.KubeadmCo
 // the DockerMachineTemplate belongs to.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1.DockerMachineTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1beta1.DockerMachineTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If the DockerMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
@@ -237,7 +237,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 // It sets the CustomImage to an image for the version in use by the MachinePool.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTemplate *infraexpv1.DockerMachinePoolTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTemplate *infraexpv1beta1.DockerMachinePoolTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If the DockerMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.

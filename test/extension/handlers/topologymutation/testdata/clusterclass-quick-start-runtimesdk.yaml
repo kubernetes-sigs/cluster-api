@@ -11,13 +11,13 @@ spec:
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: quick-start-control-plane
     namingStrategy:
       template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: DockerClusterTemplate
       name: quick-start-cluster
   workers:
@@ -33,7 +33,7 @@ spec:
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
     machinePools:
@@ -48,7 +48,7 @@ spec:
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   patches:
@@ -58,7 +58,7 @@ spec:
       validateTopologyExtension: validate-topology.${EXTENSION_CONFIG_NAME:-"k8s-upgrade-with-runtimesdk"}
       discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"k8s-upgrade-with-runtimesdk"}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
 metadata:
   name: quick-start-cluster
@@ -103,7 +103,7 @@ spec:
         joinConfiguration:
           nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-control-plane
@@ -114,7 +114,7 @@ spec:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-default-worker-machinetemplate
@@ -125,7 +125,7 @@ spec:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachinePoolTemplate
 metadata:
   name: quick-start-default-worker-machinepooltemplate

@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -307,9 +308,16 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 		return "", err
 	}
 
+	// Fetch metadata for the requested provider version.
+	// If we hit a 404 or similar error (e.g., the repository moved or the tag
+	// lacks metadata), wrap the error with additional context so users can
+	// quickly pinpoint the root cause.
 	latestMetadata, err := providerRepository.Metadata(provider.Version).Get(ctx)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err,
+			"failed to fetch metadata for provider %q (version %s). "+
+				"Check that the release tag exists and the repository URL is correct — the project may have moved or the tag may be missing metadata.yaml",
+			provider.ManifestLabel(), provider.Version)
 	}
 
 	// Gets the contract for the current release.
@@ -320,7 +328,23 @@ func (i *providerInstaller) getProviderContract(ctx context.Context, providerIns
 
 	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
 	if releaseSeries == nil {
-		return "", errors.Errorf("invalid provider metadata: version %s for the provider %s does not match any release series", provider.Version, provider.InstanceName())
+		availableSeries := make([]string, 0, len(latestMetadata.ReleaseSeries))
+		for _, series := range latestMetadata.ReleaseSeries {
+			availableSeries = append(availableSeries, fmt.Sprintf("%d.%d", series.Major, series.Minor))
+		}
+
+		var errorMsg string
+		if len(availableSeries) > 0 {
+			errorMsg = fmt.Sprintf("invalid provider metadata: version %s for the provider %s does not match any release series. "+
+				"Available series: [%s]. This usually means the release tag lacks an updated metadata.yaml or the repository URL is stale.",
+				provider.Version, provider.InstanceName(), strings.Join(availableSeries, ", "))
+		} else {
+			errorMsg = fmt.Sprintf("invalid provider metadata: version %s for the provider %s does not match any release series. No release series found in metadata. "+
+				"The metadata.yaml file may be missing or the provider repository may be incorrect.",
+				provider.Version, provider.InstanceName())
+		}
+
+		return "", errors.New(errorMsg)
 	}
 
 	compatibleContracts := i.getCompatibleContractVersions(i.currentContractVersion)

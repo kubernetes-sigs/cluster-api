@@ -25,13 +25,7 @@ set -o pipefail
 
 sub_packages=(
   "api"
-  "api/addons"
-  "exp/api"
-  "bootstrap/kubeadm/api"
   "cmd/clusterctl/api"
-  "controlplane/kubeadm/api"
-  "api/ipam"
-  "api/runtime"
   "test/extension"
   "test/infrastructure/docker/api"
   "test/infrastructure/docker/exp/api"

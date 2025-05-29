@@ -17,7 +17,6 @@ limitations under the License.
 package hooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -167,7 +166,7 @@ func TestMarkAsPending(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
+			ctx := t.Context()
 			g.Expect(MarkAsPending(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
 			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
@@ -242,7 +241,7 @@ func TestMarkAsDone(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
+			ctx := t.Context()
 			g.Expect(MarkAsDone(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
 			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
@@ -322,7 +321,7 @@ func TestMarkAsOkToDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
+			ctx := t.Context()
 			g.Expect(MarkAsOkToDelete(ctx, fakeClient, tt.obj)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
 			g.Expect(annotations).To(HaveKey(runtimev1.OkToDeleteAnnotation))

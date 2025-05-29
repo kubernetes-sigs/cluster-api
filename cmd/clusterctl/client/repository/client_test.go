@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,7 +30,7 @@ import (
 func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpDir := t.TempDir()
 
@@ -82,7 +81,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			repoClient, err := newRepositoryClient(ctx, tt.fields.provider, configClient)
 			gs.Expect(err).ToNot(HaveOccurred())
@@ -130,7 +129,7 @@ func Test_newRepositoryClient_YamlProcessor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configProvider := config.NewProvider("fakeProvider", "", clusterctlv1.CoreProviderType)
 			configClient, err := config.New(ctx, "", config.InjectReader(test.NewFakeReader()))

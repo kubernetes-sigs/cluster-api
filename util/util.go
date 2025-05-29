@@ -696,9 +696,10 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 		return j
 	case j.IsZero():
 		return i
-	case i.Requeue:
+	// The Requeue filed is already deprecated, but we keep it for backward compatibility.
+	case i.Requeue: //nolint:staticcheck
 		return i
-	case j.Requeue:
+	case j.Requeue: //nolint:staticcheck
 		return j
 	case i.RequeueAfter < j.RequeueAfter:
 		return i

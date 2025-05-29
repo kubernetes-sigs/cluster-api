@@ -30,4 +30,10 @@ const (
 	// dependentCertRequeueAfter is how long to wait before checking again to see if
 	// dependent certificates have been created.
 	dependentCertRequeueAfter = 30 * time.Second
+
+	// scaleRequeueAfter is how long to wait before scaling up/down again after a scale operation has been requested.
+	scaleRequeueAfter = 15 * time.Second
+
+	// initializationRequeueAfter is how long to wait before checking again to see if the initialization has been completed.
+	initializationRequeueAfter = 15 * time.Second
 )

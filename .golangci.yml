@@ -265,10 +265,6 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
-        # CR v0.21 deprecated Result.Requeue, will be fixed incrementally and tracked via https://github.com/kubernetes-sigs/cluster-api/issues/12272
-      - linters:
-          - staticcheck
-        text: 'SA1019: .*(res|result|i|j)\.Requeue is deprecated: Use `RequeueAfter` instead'
       # CR v0.22 deprecated client.Apply, will be fixed via: https://github.com/kubernetes-sigs/cluster-api/issues/12695
       - linters:
           - staticcheck

@@ -47,4 +47,24 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:   &infrav1.DockerMachineTemplate{},
 		Spoke: &DockerMachineTemplate{},
 	}))
+
+	t.Run("for DevCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevCluster{},
+		Spoke: &DevCluster{},
+	}))
+
+	t.Run("for DevClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevClusterTemplate{},
+		Spoke: &DevClusterTemplate{},
+	}))
+
+	t.Run("for DevMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevMachine{},
+		Spoke: &DevMachine{},
+	}))
+
+	t.Run("for DevMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevMachineTemplate{},
+		Spoke: &DevMachineTemplate{},
+	}))
 }

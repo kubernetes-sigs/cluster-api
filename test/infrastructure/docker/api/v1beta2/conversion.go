@@ -20,3 +20,7 @@ func (*DockerCluster) Hub()         {}
 func (*DockerClusterTemplate) Hub() {}
 func (*DockerMachine) Hub()         {}
 func (*DockerMachineTemplate) Hub() {}
+func (*DevCluster) Hub()            {}
+func (*DevClusterTemplate) Hub()    {}
+func (*DevMachine) Hub()            {}
+func (*DevMachineTemplate) Hub()    {}

@@ -104,6 +104,9 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 				return err
 			}
 		}
+		if err := r.propagateDeletionTimeoutsToOldMachineSet(ctx, oldMSs, deployment); err != nil {
+			return err
+		}
 		selectorMap, err := metav1.LabelSelectorAsMap(&oldMS.Spec.Selector)
 		if err != nil {
 			log.V(4).Info("Failed to convert MachineSet label selector to a map", "err", err)

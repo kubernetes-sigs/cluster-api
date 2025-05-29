@@ -29,7 +29,7 @@ sub_packages=(
   "test/extension"
   "test/infrastructure/docker/api"
   "test/infrastructure/docker/exp/api"
-  "test/infrastructure/inmemory/api"
+  "test/infrastructure/inmemory/pkg/cloud/api"
 )
 
 packages=()

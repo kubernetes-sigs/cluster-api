@@ -1,5 +1,7 @@
 rules:
+  # Enforce that our APIs do not depend on CR packages.
+  # This is overwritten e.g. in packages that require conversion.
   - selectorRegexp: sigs[.]k8s[.]io/controller-runtime
-    allowedPrefixes:
-      - "sigs.k8s.io/controller-runtime/pkg/conversion"
-    forbiddenPrefixes: []
+    allowedPrefixes: []
+    forbiddenPrefixes:
+      - "sigs.k8s.io/controller-runtime"

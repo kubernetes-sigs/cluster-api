@@ -14,4 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
+// +kubebuilder:object:generate=true
+// +groupName=infrastructure.cluster.x-k8s.io
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2
+//
+// Deprecated: This package will be removed in one of the next releases.
 package v1beta1

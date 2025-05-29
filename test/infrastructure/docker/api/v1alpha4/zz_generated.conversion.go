@@ -26,10 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	corev1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
-	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
 func init() {
@@ -39,270 +38,265 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*APIEndpoint)(nil), (*v1beta1.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(a.(*APIEndpoint), b.(*v1beta1.APIEndpoint), scope)
+	if err := s.AddGeneratedConversionFunc((*APIEndpoint)(nil), (*v1beta2.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(a.(*APIEndpoint), b.(*v1beta2.APIEndpoint), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.APIEndpoint)(nil), (*APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(a.(*v1beta1.APIEndpoint), b.(*APIEndpoint), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.APIEndpoint)(nil), (*APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(a.(*v1beta2.APIEndpoint), b.(*APIEndpoint), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerCluster)(nil), (*v1beta1.DockerCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(a.(*DockerCluster), b.(*v1beta1.DockerCluster), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerCluster)(nil), (*v1beta2.DockerCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(a.(*DockerCluster), b.(*v1beta2.DockerCluster), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerCluster)(nil), (*DockerCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(a.(*v1beta1.DockerCluster), b.(*DockerCluster), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterList)(nil), (*v1beta2.DockerClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList(a.(*DockerClusterList), b.(*v1beta2.DockerClusterList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterList)(nil), (*v1beta1.DockerClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(a.(*DockerClusterList), b.(*v1beta1.DockerClusterList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterList)(nil), (*DockerClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList(a.(*v1beta2.DockerClusterList), b.(*DockerClusterList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerClusterList)(nil), (*DockerClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(a.(*v1beta1.DockerClusterList), b.(*DockerClusterList), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterSpec)(nil), (*v1beta2.DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(a.(*DockerClusterSpec), b.(*v1beta2.DockerClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterSpec)(nil), (*v1beta1.DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(a.(*DockerClusterSpec), b.(*v1beta1.DockerClusterSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterSpec)(nil), (*DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(a.(*v1beta2.DockerClusterSpec), b.(*DockerClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerClusterSpec)(nil), (*DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(a.(*v1beta1.DockerClusterSpec), b.(*DockerClusterSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterStatus)(nil), (*v1beta2.DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(a.(*DockerClusterStatus), b.(*v1beta2.DockerClusterStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterStatus)(nil), (*v1beta1.DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus(a.(*DockerClusterStatus), b.(*v1beta1.DockerClusterStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplate)(nil), (*v1beta2.DockerClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(a.(*DockerClusterTemplate), b.(*v1beta2.DockerClusterTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplate)(nil), (*v1beta1.DockerClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(a.(*DockerClusterTemplate), b.(*v1beta1.DockerClusterTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateList)(nil), (*v1beta2.DockerClusterTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList(a.(*DockerClusterTemplateList), b.(*v1beta2.DockerClusterTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerClusterTemplate)(nil), (*DockerClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(a.(*v1beta1.DockerClusterTemplate), b.(*DockerClusterTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterTemplateList)(nil), (*DockerClusterTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(a.(*v1beta2.DockerClusterTemplateList), b.(*DockerClusterTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateList)(nil), (*v1beta1.DockerClusterTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(a.(*DockerClusterTemplateList), b.(*v1beta1.DockerClusterTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateResource)(nil), (*v1beta2.DockerClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource(a.(*DockerClusterTemplateResource), b.(*v1beta2.DockerClusterTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerClusterTemplateList)(nil), (*DockerClusterTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(a.(*v1beta1.DockerClusterTemplateList), b.(*DockerClusterTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateSpec)(nil), (*v1beta2.DockerClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec(a.(*DockerClusterTemplateSpec), b.(*v1beta2.DockerClusterTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateResource)(nil), (*v1beta1.DockerClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource(a.(*DockerClusterTemplateResource), b.(*v1beta1.DockerClusterTemplateResource), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterTemplateSpec)(nil), (*DockerClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(a.(*v1beta2.DockerClusterTemplateSpec), b.(*DockerClusterTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterTemplateSpec)(nil), (*v1beta1.DockerClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(a.(*DockerClusterTemplateSpec), b.(*v1beta1.DockerClusterTemplateSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerLoadBalancer)(nil), (*v1beta2.DockerLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(a.(*DockerLoadBalancer), b.(*v1beta2.DockerLoadBalancer), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerClusterTemplateSpec)(nil), (*DockerClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(a.(*v1beta1.DockerClusterTemplateSpec), b.(*DockerClusterTemplateSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachine)(nil), (*v1beta2.DockerMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(a.(*DockerMachine), b.(*v1beta2.DockerMachine), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerLoadBalancer)(nil), (*v1beta1.DockerLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(a.(*DockerLoadBalancer), b.(*v1beta1.DockerLoadBalancer), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineList)(nil), (*v1beta2.DockerMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList(a.(*DockerMachineList), b.(*v1beta2.DockerMachineList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachine)(nil), (*v1beta1.DockerMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(a.(*DockerMachine), b.(*v1beta1.DockerMachine), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineList)(nil), (*DockerMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList(a.(*v1beta2.DockerMachineList), b.(*DockerMachineList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachine)(nil), (*DockerMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(a.(*v1beta1.DockerMachine), b.(*DockerMachine), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineSpec)(nil), (*v1beta2.DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(a.(*DockerMachineSpec), b.(*v1beta2.DockerMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineList)(nil), (*v1beta1.DockerMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(a.(*DockerMachineList), b.(*v1beta1.DockerMachineList), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineStatus)(nil), (*v1beta2.DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(a.(*DockerMachineStatus), b.(*v1beta2.DockerMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachineList)(nil), (*DockerMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(a.(*v1beta1.DockerMachineList), b.(*DockerMachineList), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplate)(nil), (*v1beta2.DockerMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(a.(*DockerMachineTemplate), b.(*v1beta2.DockerMachineTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineSpec)(nil), (*v1beta1.DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(a.(*DockerMachineSpec), b.(*v1beta1.DockerMachineSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateList)(nil), (*v1beta2.DockerMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList(a.(*DockerMachineTemplateList), b.(*v1beta2.DockerMachineTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineStatus)(nil), (*v1beta1.DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus(a.(*DockerMachineStatus), b.(*v1beta1.DockerMachineStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineTemplateList)(nil), (*DockerMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(a.(*v1beta2.DockerMachineTemplateList), b.(*DockerMachineTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplate)(nil), (*v1beta1.DockerMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(a.(*DockerMachineTemplate), b.(*v1beta1.DockerMachineTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateResource)(nil), (*v1beta2.DockerMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource(a.(*DockerMachineTemplateResource), b.(*v1beta2.DockerMachineTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachineTemplate)(nil), (*DockerMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(a.(*v1beta1.DockerMachineTemplate), b.(*DockerMachineTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateSpec)(nil), (*v1beta2.DockerMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec(a.(*DockerMachineTemplateSpec), b.(*v1beta2.DockerMachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateList)(nil), (*v1beta1.DockerMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(a.(*DockerMachineTemplateList), b.(*v1beta1.DockerMachineTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineTemplateSpec)(nil), (*DockerMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(a.(*v1beta2.DockerMachineTemplateSpec), b.(*DockerMachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachineTemplateList)(nil), (*DockerMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(a.(*v1beta1.DockerMachineTemplateList), b.(*DockerMachineTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*ImageMeta)(nil), (*v1beta2.ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(a.(*ImageMeta), b.(*v1beta2.ImageMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateResource)(nil), (*v1beta1.DockerMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource(a.(*DockerMachineTemplateResource), b.(*v1beta1.DockerMachineTemplateResource), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.ImageMeta)(nil), (*ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(a.(*v1beta2.ImageMeta), b.(*ImageMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineTemplateSpec)(nil), (*v1beta1.DockerMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(a.(*DockerMachineTemplateSpec), b.(*v1beta1.DockerMachineTemplateSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*Mount)(nil), (*v1beta2.Mount)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Mount_To_v1beta2_Mount(a.(*Mount), b.(*v1beta2.Mount), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachineTemplateSpec)(nil), (*DockerMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(a.(*v1beta1.DockerMachineTemplateSpec), b.(*DockerMachineTemplateSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta2.Mount)(nil), (*Mount)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Mount_To_v1alpha4_Mount(a.(*v1beta2.Mount), b.(*Mount), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ImageMeta)(nil), (*v1beta1.ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta(a.(*ImageMeta), b.(*v1beta1.ImageMeta), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(a.(*v1beta2.DockerClusterStatus), b.(*DockerClusterStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.ImageMeta)(nil), (*ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta(a.(*v1beta1.ImageMeta), b.(*ImageMeta), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerClusterTemplateResource)(nil), (*DockerClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(a.(*v1beta2.DockerClusterTemplateResource), b.(*DockerClusterTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Mount)(nil), (*v1beta1.Mount)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Mount_To_v1beta1_Mount(a.(*Mount), b.(*v1beta1.Mount), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerClusterTemplate)(nil), (*DockerClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(a.(*v1beta2.DockerClusterTemplate), b.(*DockerClusterTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.Mount)(nil), (*Mount)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Mount_To_v1alpha4_Mount(a.(*v1beta1.Mount), b.(*Mount), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerCluster)(nil), (*DockerCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerCluster_To_v1alpha4_DockerCluster(a.(*v1beta2.DockerCluster), b.(*DockerCluster), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(a.(*v1beta1.DockerClusterStatus), b.(*DockerClusterStatus), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerLoadBalancer)(nil), (*DockerLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(a.(*v1beta2.DockerLoadBalancer), b.(*DockerLoadBalancer), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerClusterTemplateResource)(nil), (*DockerClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(a.(*v1beta1.DockerClusterTemplateResource), b.(*DockerClusterTemplateResource), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerMachineSpec)(nil), (*DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(a.(*v1beta2.DockerMachineSpec), b.(*DockerMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerLoadBalancer)(nil), (*DockerLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(a.(*v1beta1.DockerLoadBalancer), b.(*DockerLoadBalancer), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerMachineStatus)(nil), (*DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(a.(*v1beta2.DockerMachineStatus), b.(*DockerMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerMachineSpec)(nil), (*DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(a.(*v1beta1.DockerMachineSpec), b.(*DockerMachineSpec), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerMachineTemplateResource)(nil), (*DockerMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(a.(*v1beta2.DockerMachineTemplateResource), b.(*DockerMachineTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerMachineStatus)(nil), (*DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(a.(*v1beta1.DockerMachineStatus), b.(*DockerMachineStatus), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerMachineTemplate)(nil), (*DockerMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(a.(*v1beta2.DockerMachineTemplate), b.(*DockerMachineTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.DockerMachineTemplateResource)(nil), (*DockerMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(a.(*v1beta1.DockerMachineTemplateResource), b.(*DockerMachineTemplateResource), scope)
+	if err := s.AddConversionFunc((*v1beta2.DockerMachine)(nil), (*DockerMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachine_To_v1alpha4_DockerMachine(a.(*v1beta2.DockerMachine), b.(*DockerMachine), scope)
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func autoConvert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in *APIEndpoint, out *v1beta1.APIEndpoint, s conversion.Scope) error {
+func autoConvert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
 	out.Port = in.Port
 	return nil
 }
 
-// Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint is an autogenerated conversion function.
-func Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in *APIEndpoint, out *v1beta1.APIEndpoint, s conversion.Scope) error {
-	return autoConvert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in, out, s)
+// Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint is an autogenerated conversion function.
+func Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
+	return autoConvert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(in, out, s)
 }
 
-func autoConvert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in *v1beta1.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
+func autoConvert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
 	out.Port = in.Port
 	return nil
 }
 
-// Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint is an autogenerated conversion function.
-func Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in *v1beta1.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
-	return autoConvert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
+// Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint is an autogenerated conversion function.
+func Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
+	return autoConvert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(in *DockerCluster, out *v1beta1.DockerCluster, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(in *DockerCluster, out *v1beta2.DockerCluster, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster is an autogenerated conversion function.
-func Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(in *DockerCluster, out *v1beta1.DockerCluster, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(in, out, s)
+// Convert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster is an autogenerated conversion function.
+func Convert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(in *DockerCluster, out *v1beta2.DockerCluster, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(in *v1beta1.DockerCluster, out *DockerCluster, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerCluster_To_v1alpha4_DockerCluster(in *v1beta2.DockerCluster, out *DockerCluster, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster is an autogenerated conversion function.
-func Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(in *v1beta1.DockerCluster, out *DockerCluster, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(in, out, s)
-}
-
-func autoConvert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(in *DockerClusterList, out *v1beta1.DockerClusterList, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList(in *DockerClusterList, out *v1beta2.DockerClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta1.DockerCluster, len(*in))
+		*out = make([]v1beta2.DockerCluster, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -312,18 +306,18 @@ func autoConvert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(in *Doc
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(in *DockerClusterList, out *v1beta1.DockerClusterList, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(in, out, s)
+// Convert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList(in *DockerClusterList, out *v1beta2.DockerClusterList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(in *v1beta1.DockerClusterList, out *DockerClusterList, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList(in *v1beta2.DockerClusterList, out *DockerClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerCluster, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta2_DockerCluster_To_v1alpha4_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -333,56 +327,56 @@ func autoConvert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(in *v1b
 	return nil
 }
 
-// Convert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(in *v1beta1.DockerClusterList, out *DockerClusterList, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(in, out, s)
+// Convert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList is an autogenerated conversion function.
+func Convert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList(in *v1beta2.DockerClusterList, out *DockerClusterList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *DockerClusterSpec, out *v1beta1.DockerClusterSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+func autoConvert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerClusterSpec, out *v1beta2.DockerClusterSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	if err := Convert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
+	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	if err := Convert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *DockerClusterSpec, out *v1beta1.DockerClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in, out, s)
+// Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerClusterSpec, out *v1beta2.DockerClusterSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *v1beta1.DockerClusterSpec, out *DockerClusterSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+func autoConvert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *v1beta2.DockerClusterSpec, out *DockerClusterSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
 	out.FailureDomains = *(*corev1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	if err := Convert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
+	if err := Convert_v1beta2_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *v1beta1.DockerClusterSpec, out *DockerClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in, out, s)
+// Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *v1beta2.DockerClusterSpec, out *DockerClusterSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *DockerClusterStatus, out *v1beta1.DockerClusterStatus, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*v1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *DockerClusterStatus, out *v1beta1.DockerClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in, out, s)
+// Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *v1beta1.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
@@ -390,39 +384,34 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in 
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(in *DockerClusterTemplate, out *v1beta1.DockerClusterTemplate, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(in *DockerClusterTemplate, out *v1beta2.DockerClusterTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(in *DockerClusterTemplate, out *v1beta1.DockerClusterTemplate, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(in, out, s)
+// Convert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(in *DockerClusterTemplate, out *v1beta2.DockerClusterTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(in *v1beta1.DockerClusterTemplate, out *DockerClusterTemplate, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(in *v1beta2.DockerClusterTemplate, out *DockerClusterTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(in *v1beta1.DockerClusterTemplate, out *DockerClusterTemplate, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(in, out, s)
-}
-
-func autoConvert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(in *DockerClusterTemplateList, out *v1beta1.DockerClusterTemplateList, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList(in *DockerClusterTemplateList, out *v1beta2.DockerClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta1.DockerClusterTemplate, len(*in))
+		*out = make([]v1beta2.DockerClusterTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -432,18 +421,18 @@ func autoConvert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemp
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(in *DockerClusterTemplateList, out *v1beta1.DockerClusterTemplateList, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(in, out, s)
+// Convert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList(in *DockerClusterTemplateList, out *v1beta2.DockerClusterTemplateList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in *v1beta1.DockerClusterTemplateList, out *DockerClusterTemplateList, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in *v1beta2.DockerClusterTemplateList, out *DockerClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerClusterTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta2_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -453,114 +442,109 @@ func autoConvert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemp
 	return nil
 }
 
-// Convert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in *v1beta1.DockerClusterTemplateList, out *DockerClusterTemplateList, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in, out, s)
+// Convert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList is an autogenerated conversion function.
+func Convert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in *v1beta2.DockerClusterTemplateList, out *DockerClusterTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource(in *DockerClusterTemplateResource, out *v1beta1.DockerClusterTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
+func autoConvert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource(in *DockerClusterTemplateResource, out *v1beta2.DockerClusterTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource(in *DockerClusterTemplateResource, out *v1beta1.DockerClusterTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource(in, out, s)
+// Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource(in *DockerClusterTemplateResource, out *v1beta2.DockerClusterTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *v1beta1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *v1beta2.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s conversion.Scope) error {
 	// WARNING: in.ObjectMeta requires manual conversion: does not exist in peer-type
-	if err := Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(in *DockerClusterTemplateSpec, out *v1beta1.DockerClusterTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta1_DockerClusterTemplateResource(&in.Template, &out.Template, s); err != nil {
+func autoConvert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec(in *DockerClusterTemplateSpec, out *v1beta2.DockerClusterTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha4_DockerClusterTemplateResource_To_v1beta2_DockerClusterTemplateResource(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec is an autogenerated conversion function.
-func Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(in *DockerClusterTemplateSpec, out *v1beta1.DockerClusterTemplateSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(in, out, s)
+// Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec is an autogenerated conversion function.
+func Convert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec(in *DockerClusterTemplateSpec, out *v1beta2.DockerClusterTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerClusterTemplateSpec_To_v1beta2_DockerClusterTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in *v1beta1.DockerClusterTemplateSpec, out *DockerClusterTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(&in.Template, &out.Template, s); err != nil {
+func autoConvert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in *v1beta2.DockerClusterTemplateSpec, out *DockerClusterTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in *v1beta1.DockerClusterTemplateSpec, out *DockerClusterTemplateSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in, out, s)
+// Convert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in *v1beta2.DockerClusterTemplateSpec, out *DockerClusterTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerClusterTemplateSpec_To_v1alpha4_DockerClusterTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta1.DockerLoadBalancer, s conversion.Scope) error {
-	if err := Convert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
+func autoConvert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta2.DockerLoadBalancer, s conversion.Scope) error {
+	if err := Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer is an autogenerated conversion function.
-func Convert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta1.DockerLoadBalancer, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerLoadBalancer_To_v1beta1_DockerLoadBalancer(in, out, s)
+// Convert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer is an autogenerated conversion function.
+func Convert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta2.DockerLoadBalancer, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in *v1beta1.DockerLoadBalancer, out *DockerLoadBalancer, s conversion.Scope) error {
-	if err := Convert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
+func autoConvert_v1beta2_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in *v1beta2.DockerLoadBalancer, out *DockerLoadBalancer, s conversion.Scope) error {
+	if err := Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
 		return err
 	}
 	// WARNING: in.CustomHAProxyConfigTemplateRef requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(in *DockerMachine, out *v1beta1.DockerMachine, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(in *DockerMachine, out *v1beta2.DockerMachine, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(in *DockerMachine, out *v1beta1.DockerMachine, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(in, out, s)
+// Convert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(in *DockerMachine, out *v1beta2.DockerMachine, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(in *v1beta1.DockerMachine, out *DockerMachine, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachine_To_v1alpha4_DockerMachine(in *v1beta2.DockerMachine, out *DockerMachine, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(in *v1beta1.DockerMachine, out *DockerMachine, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(in, out, s)
-}
-
-func autoConvert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(in *DockerMachineList, out *v1beta1.DockerMachineList, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList(in *DockerMachineList, out *v1beta2.DockerMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta1.DockerMachine, len(*in))
+		*out = make([]v1beta2.DockerMachine, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -570,18 +554,18 @@ func autoConvert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(in *Doc
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(in *DockerMachineList, out *v1beta1.DockerMachineList, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(in, out, s)
+// Convert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList(in *DockerMachineList, out *v1beta2.DockerMachineList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(in *v1beta1.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList(in *v1beta2.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerMachine, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta2_DockerMachine_To_v1alpha4_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -591,26 +575,26 @@ func autoConvert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(in *v1b
 	return nil
 }
 
-// Convert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(in *v1beta1.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(in, out, s)
+// Convert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList(in *v1beta2.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in *DockerMachineSpec, out *v1beta1.DockerMachineSpec, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *v1beta2.DockerMachineSpec, s conversion.Scope) error {
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]v1beta1.Mount)(unsafe.Pointer(&in.ExtraMounts))
+	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
 	out.Bootstrapped = in.Bootstrapped
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in *DockerMachineSpec, out *v1beta1.DockerMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in, out, s)
+// Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *v1beta2.DockerMachineSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in *v1beta1.DockerMachineSpec, out *DockerMachineSpec, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in *v1beta2.DockerMachineSpec, out *DockerMachineSpec, s conversion.Scope) error {
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
@@ -620,20 +604,20 @@ func autoConvert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in *v1b
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *DockerMachineStatus, out *v1beta1.DockerMachineStatus, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *DockerMachineStatus, out *v1beta2.DockerMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
-	out.Addresses = *(*[]v1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*v1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *DockerMachineStatus, out *v1beta1.DockerMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in, out, s)
+// Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *DockerMachineStatus, out *v1beta2.DockerMachineStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in *v1beta1.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1alpha4.MachineAddress)(unsafe.Pointer(&in.Addresses))
@@ -642,39 +626,34 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in 
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in *DockerMachineTemplate, out *v1beta1.DockerMachineTemplate, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(in *DockerMachineTemplate, out *v1beta2.DockerMachineTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in *DockerMachineTemplate, out *v1beta1.DockerMachineTemplate, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in, out, s)
+// Convert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(in *DockerMachineTemplate, out *v1beta2.DockerMachineTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(in *v1beta1.DockerMachineTemplate, out *DockerMachineTemplate, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(in *v1beta2.DockerMachineTemplate, out *DockerMachineTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(in *v1beta1.DockerMachineTemplate, out *DockerMachineTemplate, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(in, out, s)
-}
-
-func autoConvert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(in *DockerMachineTemplateList, out *v1beta1.DockerMachineTemplateList, s conversion.Scope) error {
+func autoConvert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList(in *DockerMachineTemplateList, out *v1beta2.DockerMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta1.DockerMachineTemplate, len(*in))
+		*out = make([]v1beta2.DockerMachineTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -684,18 +663,18 @@ func autoConvert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemp
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(in *DockerMachineTemplateList, out *v1beta1.DockerMachineTemplateList, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(in, out, s)
+// Convert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList(in *DockerMachineTemplateList, out *v1beta2.DockerMachineTemplateList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in *v1beta1.DockerMachineTemplateList, out *DockerMachineTemplateList, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in *v1beta2.DockerMachineTemplateList, out *DockerMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerMachineTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -705,97 +684,97 @@ func autoConvert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemp
 	return nil
 }
 
-// Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in *v1beta1.DockerMachineTemplateList, out *DockerMachineTemplateList, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in, out, s)
+// Convert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in *v1beta2.DockerMachineTemplateList, out *DockerMachineTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(in, out, s)
 }
 
-func autoConvert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource(in *DockerMachineTemplateResource, out *v1beta1.DockerMachineTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1alpha4_DockerMachineSpec_To_v1beta1_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+func autoConvert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource(in *DockerMachineTemplateResource, out *v1beta2.DockerMachineTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource(in *DockerMachineTemplateResource, out *v1beta1.DockerMachineTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource(in, out, s)
+// Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource(in *DockerMachineTemplateResource, out *v1beta2.DockerMachineTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *v1beta1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s conversion.Scope) error {
+func autoConvert_v1beta2_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *v1beta2.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s conversion.Scope) error {
 	// WARNING: in.ObjectMeta requires manual conversion: does not exist in peer-type
-	if err := Convert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-func autoConvert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(in *DockerMachineTemplateSpec, out *v1beta1.DockerMachineTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta1_DockerMachineTemplateResource(&in.Template, &out.Template, s); err != nil {
+func autoConvert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec(in *DockerMachineTemplateSpec, out *v1beta2.DockerMachineTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha4_DockerMachineTemplateResource_To_v1beta2_DockerMachineTemplateResource(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec is an autogenerated conversion function.
-func Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(in *DockerMachineTemplateSpec, out *v1beta1.DockerMachineTemplateSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(in, out, s)
+// Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec(in *DockerMachineTemplateSpec, out *v1beta2.DockerMachineTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_DockerMachineTemplateSpec_To_v1beta2_DockerMachineTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in *v1beta1.DockerMachineTemplateSpec, out *DockerMachineTemplateSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(&in.Template, &out.Template, s); err != nil {
+func autoConvert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in *v1beta2.DockerMachineTemplateSpec, out *DockerMachineTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in *v1beta1.DockerMachineTemplateSpec, out *DockerMachineTemplateSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in, out, s)
+// Convert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in *v1beta2.DockerMachineTemplateSpec, out *DockerMachineTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta(in *ImageMeta, out *v1beta1.ImageMeta, s conversion.Scope) error {
+func autoConvert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
 	return nil
 }
 
-// Convert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta is an autogenerated conversion function.
-func Convert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta(in *ImageMeta, out *v1beta1.ImageMeta, s conversion.Scope) error {
-	return autoConvert_v1alpha4_ImageMeta_To_v1beta1_ImageMeta(in, out, s)
+// Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta is an autogenerated conversion function.
+func Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {
+	return autoConvert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(in, out, s)
 }
 
-func autoConvert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta(in *v1beta1.ImageMeta, out *ImageMeta, s conversion.Scope) error {
+func autoConvert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(in *v1beta2.ImageMeta, out *ImageMeta, s conversion.Scope) error {
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
 	return nil
 }
 
-// Convert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta is an autogenerated conversion function.
-func Convert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta(in *v1beta1.ImageMeta, out *ImageMeta, s conversion.Scope) error {
-	return autoConvert_v1beta1_ImageMeta_To_v1alpha4_ImageMeta(in, out, s)
+// Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta is an autogenerated conversion function.
+func Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(in *v1beta2.ImageMeta, out *ImageMeta, s conversion.Scope) error {
+	return autoConvert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(in, out, s)
 }
 
-func autoConvert_v1alpha4_Mount_To_v1beta1_Mount(in *Mount, out *v1beta1.Mount, s conversion.Scope) error {
+func autoConvert_v1alpha4_Mount_To_v1beta2_Mount(in *Mount, out *v1beta2.Mount, s conversion.Scope) error {
 	out.ContainerPath = in.ContainerPath
 	out.HostPath = in.HostPath
 	out.Readonly = in.Readonly
 	return nil
 }
 
-// Convert_v1alpha4_Mount_To_v1beta1_Mount is an autogenerated conversion function.
-func Convert_v1alpha4_Mount_To_v1beta1_Mount(in *Mount, out *v1beta1.Mount, s conversion.Scope) error {
-	return autoConvert_v1alpha4_Mount_To_v1beta1_Mount(in, out, s)
+// Convert_v1alpha4_Mount_To_v1beta2_Mount is an autogenerated conversion function.
+func Convert_v1alpha4_Mount_To_v1beta2_Mount(in *Mount, out *v1beta2.Mount, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Mount_To_v1beta2_Mount(in, out, s)
 }
 
-func autoConvert_v1beta1_Mount_To_v1alpha4_Mount(in *v1beta1.Mount, out *Mount, s conversion.Scope) error {
+func autoConvert_v1beta2_Mount_To_v1alpha4_Mount(in *v1beta2.Mount, out *Mount, s conversion.Scope) error {
 	out.ContainerPath = in.ContainerPath
 	out.HostPath = in.HostPath
 	out.Readonly = in.Readonly
 	return nil
 }
 
-// Convert_v1beta1_Mount_To_v1alpha4_Mount is an autogenerated conversion function.
-func Convert_v1beta1_Mount_To_v1alpha4_Mount(in *v1beta1.Mount, out *Mount, s conversion.Scope) error {
-	return autoConvert_v1beta1_Mount_To_v1alpha4_Mount(in, out, s)
+// Convert_v1beta2_Mount_To_v1alpha4_Mount is an autogenerated conversion function.
+func Convert_v1beta2_Mount_To_v1alpha4_Mount(in *v1beta2.Mount, out *Mount, s conversion.Scope) error {
+	return autoConvert_v1beta2_Mount_To_v1alpha4_Mount(in, out, s)
 }

@@ -27,9 +27,8 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
 func TestDevMachineTemplateInvalid(t *testing.T) {
@@ -52,7 +51,7 @@ func TestDevMachineTemplateInvalid(t *testing.T) {
 	newTemplateSkipImmutabilityAnnotationSet.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 
 	newTemplateWithInvalidMetadata := newTemplate.DeepCopy()
-	newTemplateWithInvalidMetadata.Spec.Template.ObjectMeta = clusterv1beta1.ObjectMeta{
+	newTemplateWithInvalidMetadata.Spec.Template.ObjectMeta = clusterv1.ObjectMeta{
 		Labels: map[string]string{
 			"foo":          "$invalid-key",
 			"bar":          strings.Repeat("a", 64) + "too-long-value",

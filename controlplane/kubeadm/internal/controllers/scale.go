@@ -70,7 +70,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are additional operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: initializationRequeueAfter}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -111,7 +111,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are other operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: scaleRequeueAfter}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
@@ -167,7 +167,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		Info("Deleting Machine (scale down)", "Machine", klog.KObj(machineToDelete))
 
 	// Requeue the control plane, in case there are additional operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: scaleRequeueAfter}, nil
 }
 
 // preflightChecks checks if the control plane is stable before proceeding with a scale up/scale down operation,

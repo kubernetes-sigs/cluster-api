@@ -124,7 +124,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 }
 
@@ -297,7 +296,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	actual := &bootstrapv1.KubeadmConfig{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: config.Name}, actual)).To(Succeed())
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 }
@@ -470,7 +468,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 
 			result, err := k.Reconcile(ctx, tc.request)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 			assertHasFalseCondition(g, myclient, tc.request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
 		})
@@ -523,7 +520,6 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg", metav1.NamespaceDefault)
@@ -627,7 +623,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(10 * time.Second))
 
 	actualConfig := &bootstrapv1.KubeadmConfig{}
@@ -705,7 +700,6 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			}
 			result, err := k.Reconcile(ctx, request)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 			cfg, err := getKubeadmConfig(myclient, rt.configName, metav1.NamespaceDefault)
@@ -783,7 +777,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			}
 			result, err := k.Reconcile(ctx, request)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 			cfg, err := getKubeadmConfig(myclient, rt.configName, metav1.NamespaceDefault)
@@ -991,7 +984,6 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
@@ -1245,7 +1237,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result.Requeue).To(BeFalse())
 		g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 	}
 
@@ -2130,7 +2121,6 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	request = ctrl.Request{
@@ -2141,7 +2131,6 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 	confList := &bootstrapv1.KubeadmConfigList{}
 	g.Expect(myclient.List(ctx, confList)).To(Succeed())
@@ -2198,7 +2187,6 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg", metav1.NamespaceDefault)

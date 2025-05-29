@@ -58,7 +58,7 @@ func reconcileScopeForResource(
 		return nil, err
 	}
 
-	return newResourceReconcileScope(crs, resourceRef, resourceSetBinding, normalizedData, objs), nil
+	return newResourceReconcileScope(crs, resourceRef, resourceSetBinding, normalizedData, objs)
 }
 
 func newResourceReconcileScope(
@@ -67,7 +67,7 @@ func newResourceReconcileScope(
 	resourceSetBinding *addonsv1.ResourceSetBinding,
 	normalizedData [][]byte,
 	objs []unstructured.Unstructured,
-) resourceReconcileScope {
+) (resourceReconcileScope, error) {
 	base := baseResourceReconcileScope{
 		clusterResourceSet: clusterResourceSet,
 		resourceRef:        resourceRef,
@@ -79,11 +79,11 @@ func newResourceReconcileScope(
 
 	switch addonsv1.ClusterResourceSetStrategy(clusterResourceSet.Spec.Strategy) {
 	case addonsv1.ClusterResourceSetStrategyApplyOnce:
-		return &reconcileApplyOnceScope{base}
+		return &reconcileApplyOnceScope{base}, nil
 	case addonsv1.ClusterResourceSetStrategyReconcile:
-		return &reconcileStrategyScope{base}
+		return &reconcileStrategyScope{base}, nil
 	default:
-		return nil
+		return nil, errors.Errorf("unsupported or empty resource strategy: %q", clusterResourceSet.Spec.Strategy)
 	}
 }
 
@@ -173,7 +173,7 @@ func (r *reconcileApplyOnceScope) applyObj(ctx context.Context, c client.Client,
 
 type applyObj func(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error
 
-// apply reconciles unstructured objects using applyObj and aggreates the error if present.
+// apply reconciles unstructured objects using applyObj and aggregates the error if present.
 func apply(ctx context.Context, c client.Client, applyObj applyObj, objs []unstructured.Unstructured) error {
 	errList := []error{}
 	for i := range objs {

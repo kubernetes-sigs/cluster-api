@@ -109,18 +109,18 @@ func (f *metadataClient) Get(ctx context.Context) (*clusterctlv1.Metadata, error
 func validateMetadata(metadata *clusterctlv1.Metadata, providerLabel string) error {
 	// Check if metadata has the correct apiVersion and kind
 	if metadata.APIVersion != clusterctlv1.GroupVersion.String() {
-		return errors.Errorf("invalid provider metadata: unexpected apiVersion %q for provider %s (expected %q). Full metadata.yaml content is available in logs with --v=5",
+		return errors.Errorf("invalid provider metadata: unexpected apiVersion %q for provider %s (expected %q)",
 			metadata.APIVersion, providerLabel, clusterctlv1.GroupVersion.String())
 	}
 
 	if metadata.Kind != "Metadata" {
-		return errors.Errorf("invalid provider metadata: unexpected kind %q for provider %s (expected \"Metadata\"). Full metadata.yaml content is available in logs with --v=5",
+		return errors.Errorf("invalid provider metadata: unexpected kind %q for provider %s (expected \"Metadata\")",
 			metadata.Kind, providerLabel)
 	}
 
 	// Check if metadata has at least one release series
 	if len(metadata.ReleaseSeries) == 0 {
-		return errors.Errorf("invalid provider metadata: releaseSeries is empty in metadata.yaml for provider %s. Full metadata.yaml content is available in logs with --v=5", providerLabel)
+		return errors.Errorf("invalid provider metadata: releaseSeries is empty in metadata.yaml for provider %s", providerLabel)
 	}
 
 	return nil

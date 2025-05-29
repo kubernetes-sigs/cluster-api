@@ -526,6 +526,10 @@ func validateProvider(r Provider) error {
 		return errors.New("name value cannot be empty")
 	}
 
+	if r.Name() != strings.ToLower(r.Name()) {
+		return errors.Errorf("provider name %s must be in lower camel case", r.Name())
+	}
+
 	if (r.Name() == ClusterAPIProviderName) != (r.Type() == clusterctlv1.CoreProviderType) {
 		return errors.Errorf("name %s must be used with the %s type (name: %s, type: %s)", ClusterAPIProviderName, clusterctlv1.CoreProviderType, r.Name(), r.Type())
 	}

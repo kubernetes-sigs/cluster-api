@@ -527,7 +527,7 @@ func validateProvider(r Provider) error {
 	}
 
 	if r.Name() != strings.ToLower(r.Name()) {
-		return errors.Errorf("provider name %s must be in lower camel case", r.Name())
+		return errors.Errorf("provider name %s must be in lower case", r.Name())
 	}
 
 	if (r.Name() == ClusterAPIProviderName) != (r.Type() == clusterctlv1.CoreProviderType) {

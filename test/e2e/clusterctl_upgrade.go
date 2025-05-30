@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
@@ -730,7 +731,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			tries := 1
 			initKubernetesVersionParsed, err := semver.ParseTolerant(initKubernetesVersion)
 			Expect(err).ToNot(HaveOccurred())
-			if initKubernetesVersionParsed.LT(semver.MustParse("1.29.0")) {
+			if version.Compare(initKubernetesVersionParsed, semver.MustParse("1.29.0"), version.WithoutPreReleases()) < 0 {
 				tries = 10
 			}
 			for range tries {

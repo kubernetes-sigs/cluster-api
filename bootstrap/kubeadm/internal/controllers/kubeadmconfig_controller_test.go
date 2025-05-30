@@ -61,7 +61,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
-			WithVersion("v1.19.1").
+			WithVersion("v1.23.1").
 			WithClusterName(cluster.Name).
 			WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "").Unstructured()).
 			Build()
@@ -135,7 +135,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 	clusterName := "my-cluster"
 	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(clusterName).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
@@ -235,7 +235,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfReferencedMachineIsNotFoun
 
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		Build()
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	addKubeadmConfigToMachine(config, machine)
@@ -267,7 +267,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
 
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName("cluster1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
@@ -307,7 +307,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(cluster.Name).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
@@ -347,7 +347,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *testing.T) {
 	g := NewWithT(t)
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
@@ -380,7 +380,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(cluster.Name).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
@@ -1936,13 +1936,13 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 
 	controlPlaneMachineName := "my-machine"
 	machine := builder.Machine(metav1.NamespaceDefault, controlPlaneMachineName).
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(cluster.Name).
 		Build()
 
 	workerMachineName := "my-worker"
 	workerMachine := builder.Machine(metav1.NamespaceDefault, workerMachineName).
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(cluster.Name).
 		Build()
 
@@ -2023,7 +2023,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
-			WithVersion("v1.19.1").
+			WithVersion("v1.23.1").
 			WithClusterName(cluster.Name).
 			WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, configName).Unstructured()).
 			Build()
@@ -2585,7 +2585,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 // newWorkerMachineForCluster returns a Machine with the passed Cluster's information and a pre-configured name.
 func newWorkerMachineForCluster(cluster *clusterv1.Cluster) *clusterv1.Machine {
 	return builder.Machine(cluster.Namespace, "worker-machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
 		WithClusterName(cluster.Name).
 		Build()
@@ -2594,7 +2594,7 @@ func newWorkerMachineForCluster(cluster *clusterv1.Cluster) *clusterv1.Machine {
 // newControlPlaneMachine returns a Machine with the passed Cluster information and a MachineControlPlaneLabel.
 func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	m := builder.Machine(cluster.Namespace, name).
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		WithClusterName(cluster.Name).
 		WithLabels(map[string]string{clusterv1.MachineControlPlaneLabel: ""}).
@@ -2608,7 +2608,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachineP
 		WithClusterName(cluster.Name).
 		WithLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}).
 		WithBootstrap(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
-		WithVersion("1.19.1").
+		WithVersion("v1.23.1").
 		Build()
 	return m
 }
@@ -2767,7 +2767,7 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 	}
 
 	machine := builder.Machine(metav1.NamespaceDefault, "my-machine").
-		WithVersion("v1.19.1").
+		WithVersion("v1.23.1").
 		WithClusterName(cluster.Name).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "").Unstructured()).
 		Build()

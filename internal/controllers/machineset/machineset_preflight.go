@@ -45,8 +45,6 @@ type preflightCheckErrorMessage *string
 // the preflight checks fail.
 const preflightFailedRequeueAfter = 15 * time.Second
 
-var minVerKubernetesKubeletVersionSkewThree = semver.MustParse("1.28.0")
-
 func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, action string) ([]string, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// If the MachineSetPreflightChecks feature gate is disabled return early.
@@ -193,10 +191,6 @@ func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.V
 		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
 	minorSkew := uint64(3)
-	// For Control Planes running Kubernetes < v1.28, the version skew policy for kubelets is two.
-	if cpSemver.LT(minVerKubernetesKubeletVersionSkewThree) {
-		minorSkew = 2
-	}
 	if msSemver.Minor < cpSemver.Minor-minorSkew {
 		return ptr.To(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight check failed)", msSemver.String(), cpSemver.String(), minorSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}

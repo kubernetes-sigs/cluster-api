@@ -19,7 +19,6 @@ package v1alpha3
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
 )
 
@@ -37,15 +36,15 @@ const (
 type KubeadmConfigSpec struct {
 	// clusterConfiguration along with InitConfiguration are the configurations necessary for the init command
 	// +optional
-	ClusterConfiguration *upstreamv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+	ClusterConfiguration *ClusterConfiguration `json:"clusterConfiguration,omitempty"`
 
 	// initConfiguration along with ClusterConfiguration are the configurations necessary for the init command
 	// +optional
-	InitConfiguration *upstreamv1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
+	InitConfiguration *InitConfiguration `json:"initConfiguration,omitempty"`
 
 	// joinConfiguration is the kubeadm configuration for the join command
 	// +optional
-	JoinConfiguration *upstreamv1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
+	JoinConfiguration *JoinConfiguration `json:"joinConfiguration,omitempty"`
 
 	// files specifies extra files to be passed to user_data upon creation.
 	// +optional

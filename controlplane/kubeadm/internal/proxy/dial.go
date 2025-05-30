@@ -144,15 +144,3 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 	// Create the net.Conn and return.
 	return NewConn(connection, dataStream), nil
 }
-
-// DialTimeout sets the timeout.
-func DialTimeout(duration time.Duration) func(*Dialer) error {
-	return func(d *Dialer) error {
-		return d.setTimeout(duration)
-	}
-}
-
-func (d *Dialer) setTimeout(duration time.Duration) error {
-	d.timeout = duration
-	return nil
-}

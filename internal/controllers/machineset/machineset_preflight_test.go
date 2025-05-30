@@ -311,7 +311,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr: false,
 			},
 			{
-				name: "kubernetes version preflight check: should fail if the machine set minor version is 4 older than control plane minor version for >= v1.28",
+				name: "kubernetes version preflight check: should fail if the machine set minor version is 4 older than control plane minor version",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
@@ -335,34 +335,6 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				wantMessages: []string{
 					"MachineSet version (1.24.0) and ControlPlane version (1.28.0) do not conform to the kubernetes version skew policy as MachineSet version is more than 3 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
-				},
-				wantErr: false,
-			},
-			{
-				name: "kubernetes version preflight check: should fail if the machine set minor version is 3 older than control plane minor version for < v1.28",
-				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
-					},
-				},
-				controlPlane: controlPlaneStable,
-				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Template: clusterv1.MachineTemplateSpec{
-							Spec: clusterv1.MachineSpec{
-								Version: ptr.To("v1.23.0"),
-							},
-						},
-					},
-				},
-				wantMessages: []string{
-					"MachineSet version (1.23.0) and ControlPlane version (1.26.2) do not conform to the kubernetes version skew policy as MachineSet version is more than 2 minor versions older than the ControlPlane version (\"KubernetesVersionSkew\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -396,7 +368,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr:      false,
 			},
 			{
-				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy >= v1.28",
+				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
@@ -414,32 +386,6 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: ptr.To("v1.25.0"),
-							},
-						},
-					},
-				},
-				wantMessages: nil,
-				wantErr:      false,
-			},
-			{
-				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy < v1.28",
-				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
-					},
-				},
-				controlPlane: controlPlaneStable,
-				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Template: clusterv1.MachineTemplateSpec{
-							Spec: clusterv1.MachineSpec{
-								Version: ptr.To("v1.24.0"),
 							},
 						},
 					},

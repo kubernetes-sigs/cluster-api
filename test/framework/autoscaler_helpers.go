@@ -169,9 +169,6 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 		if _, ok := n.Labels[nodeRoleControlPlane]; ok {
 			continue
 		}
-		if _, ok := n.Labels[nodeRoleOldControlPlane]; ok {
-			continue
-		}
 		memory = n.Status.Allocatable.Memory() // Assume that all nodes have the same memory.
 		workers++
 	}

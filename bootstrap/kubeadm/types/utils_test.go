@@ -26,7 +26,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 )
@@ -55,30 +54,6 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 				version: semver.MustParse("1.14.99"),
 			},
 			wantErr: true,
-		},
-		{
-			name: "pass with minimum kubernetes alpha version for kubeadm API v1beta2",
-			args: args{
-				version: semver.MustParse("1.15.0-alpha.0.734+ba502ee555924a"),
-			},
-			want:    upstreamv1beta2.GroupVersion,
-			wantErr: false,
-		},
-		{
-			name: "pass with minimum kubernetes version for kubeadm API v1beta2",
-			args: args{
-				version: semver.MustParse("1.15.0"),
-			},
-			want:    upstreamv1beta2.GroupVersion,
-			wantErr: false,
-		},
-		{
-			name: "pass with kubernetes version for kubeadm API v1beta2",
-			args: args{
-				version: semver.MustParse("1.20.99"),
-			},
-			want:    upstreamv1beta2.GroupVersion,
-			wantErr: false,
 		},
 		{
 			name: "pass with minimum kubernetes alpha version for kubeadm API v1beta3",
@@ -156,44 +131,6 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{
-			name: "Generates a v1beta2 kubeadm configuration",
-			args: args{
-				capiObj: &bootstrapv1.ClusterConfiguration{},
-				version: semver.MustParse("1.15.0"),
-			},
-			want: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
-			wantErr: false,
-		},
-		{
-			name: "Generates a v1beta2 kubeadm configuration with data from init configuration",
-			args: args{
-				initConfiguration: &bootstrapv1.InitConfiguration{
-					Timeouts: &bootstrapv1.Timeouts{
-						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](30),
-					},
-				},
-				capiObj: &bootstrapv1.ClusterConfiguration{},
-				version: semver.MustParse("1.15.0"),
-			},
-			want: "apiServer:\n" +
-				"  timeoutForControlPlane: 30s\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
-				"scheduler: {}\n",
-			wantErr: false,
-		},
 		{
 			name: "Generates a v1beta3 kubeadm configuration",
 			args: args{
@@ -277,24 +214,6 @@ func TestMarshalInitConfigurationForVersion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Generates a v1beta2 kubeadm init configuration",
-			args: args{
-				initConfiguration: &bootstrapv1.InitConfiguration{
-					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-						IgnorePreflightErrors: []string{"some-preflight-check"},
-					},
-				},
-				version: semver.MustParse("1.15.0"),
-			},
-			want: "apiVersion: kubeadm.k8s.io/v1beta2\n" +
-				"kind: InitConfiguration\n" +
-				"localAPIEndpoint: {}\n" +
-				"nodeRegistration:\n" +
-				"  ignorePreflightErrors:\n" +
-				"  - some-preflight-check\n",
-			wantErr: false,
-		},
-		{
 			name: "Generates a v1beta3 kubeadm init configuration",
 			args: args{
 				initConfiguration: &bootstrapv1.InitConfiguration{
@@ -365,24 +284,6 @@ func TestMarshalJoinConfigurationForVersion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Generates a v1beta2 kubeadm join configuration",
-			args: args{
-				joinConfiguration: &bootstrapv1.JoinConfiguration{
-					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-						IgnorePreflightErrors: []string{"some-preflight-check"},
-					},
-				},
-				version: semver.MustParse("1.15.0"),
-			},
-			want: "apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-				"discovery: {}\n" +
-				"kind: JoinConfiguration\n" +
-				"nodeRegistration:\n" +
-				"  ignorePreflightErrors:\n" +
-				"  - some-preflight-check\n",
-			wantErr: false,
-		},
-		{
 			name: "Generates a v1beta3 kubeadm join configuration",
 			args: args{
 				joinConfiguration: &bootstrapv1.JoinConfiguration{
@@ -452,44 +353,6 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 		wantInitConfiguration *bootstrapv1.InitConfiguration
 		wantErr               bool
 	}{
-		{
-			name: "Parses a v1beta2 kubeadm configuration",
-			args: args{
-				yaml: "apiServer: {}\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-					"controllerManager: {}\n" +
-					"dns: {}\n" +
-					"etcd: {}\n" +
-					"kind: ClusterConfiguration\n" +
-					"networking: {}\n" +
-					"scheduler: {}\n",
-			},
-			want:                  &bootstrapv1.ClusterConfiguration{},
-			wantInitConfiguration: &bootstrapv1.InitConfiguration{},
-			wantErr:               false,
-		},
-		{
-			name: "Parses a v1beta2 kubeadm configuration with data to init configuration",
-			args: args{
-				yaml: "apiServer: {\n" +
-					"  timeoutForControlPlane: 50s\n" +
-					"}\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-					"controllerManager: {}\n" +
-					"dns: {}\n" +
-					"etcd: {}\n" +
-					"kind: ClusterConfiguration\n" +
-					"networking: {}\n" +
-					"scheduler: {}\n",
-			},
-			want: &bootstrapv1.ClusterConfiguration{},
-			wantInitConfiguration: &bootstrapv1.InitConfiguration{
-				Timeouts: &bootstrapv1.Timeouts{
-					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
-				},
-			},
-			wantErr: false,
-		},
 		{
 			name: "Parses a v1beta3 kubeadm configuration",
 			args: args{
@@ -574,17 +437,6 @@ func TestUnmarshalInitConfiguration(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Parses a v1beta2 kubeadm configuration",
-			args: args{
-				yaml: "apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-					"kind: InitConfiguration\n" +
-					"localAPIEndpoint: {}\n" +
-					"nodeRegistration: {}\n",
-			},
-			want:    &bootstrapv1.InitConfiguration{},
-			wantErr: false,
-		},
-		{
 			name: "Parses a v1beta3 kubeadm configuration",
 			args: args{
 				yaml: "apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
@@ -639,17 +491,6 @@ func TestUnmarshalJoinConfiguration(t *testing.T) {
 		want    *bootstrapv1.JoinConfiguration
 		wantErr bool
 	}{
-		{
-			name: "Parses a v1beta2 kubeadm configuration",
-			args: args{
-				yaml: "apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
-					"caCertPath: \"\"\n" +
-					"discovery: {}\n" +
-					"kind: JoinConfiguration\n",
-			},
-			want:    &bootstrapv1.JoinConfiguration{},
-			wantErr: false,
-		},
 		{
 			name: "Parses a v1beta3 kubeadm configuration",
 			args: args{

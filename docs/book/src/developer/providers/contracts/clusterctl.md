@@ -57,7 +57,7 @@ This is the process to add a new provider to the pre-defined list of providers s
 - As soon as possible, create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api) declaring the intent to add a new provider;
   each provider must have a unique name & type in the pre-defined list of providers shipped with `clusterctl`; the provider's name
   must be declared in the issue above and abide to the following naming convention:
-  - The name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character.
+  - The name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character. If the name includes upper case alphanumeric characters, clusterctl enforces it lower case it.
   - The name length should not exceed 63 characters.
   - For providers not in the kubernetes-sigs org, in order to prevent conflicts the `clusterctl` name must be prefixed with
     the provider's GitHub org name followed by `-` (see note below).

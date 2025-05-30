@@ -201,6 +201,25 @@ releaseSeries:
   contract: v1alpha2
 ```
 
+#### Validation Rules
+
+Starting from clusterctl v1.11, the metadata YAML file is subject to strict validation to ensure consistency and prevent configuration errors. The following validation rules are enforced:
+
+1. **apiVersion**: Must be set to `clusterctl.cluster.x-k8s.io/v1alpha3`
+   * This ensures compatibility with the current clusterctl metadata format
+   * Invalid apiVersion will result in an error: `invalid provider metadata: unexpected apiVersion "<value>" for provider <provider-name> (expected "clusterctl.cluster.x-k8s.io/v1alpha3")`
+
+2. **kind**: Must be set to `Metadata`
+   * This identifies the resource type correctly
+   * Invalid kind will result in an error: `invalid provider metadata: unexpected kind "<value>" for provider <provider-name> (expected "Metadata")`
+
+3. **releaseSeries**: Must contain at least one entry
+   * This ensures providers properly document their version compatibility
+   * Empty releaseSeries will result in an error: `invalid provider metadata: releaseSeries is empty in metadata.yaml for provider <provider-name>`
+
+These validation rules help catch configuration issues early and provide clear error messages to assist in troubleshooting.
+Ask Copilot about this file-diff
+
 <aside class="note">
 
 <h1> Note on user experience</h1>

@@ -19,9 +19,11 @@ package upstreamv1beta3
 import (
 	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -55,6 +57,10 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 // Custom conversion from this API, kubeadm v1beta3, to the hub version, CABPK v1beta1.
+
+func Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
+}
 
 func Convert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
 	// InitConfiguration.CertificateKey does not exist in CABPK, because Cluster API does not use automatic copy certs.
@@ -179,4 +185,56 @@ func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *b
 	}
 	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
 	return nil
+}
+
+// Func to allow handling fields that only exist in upstream types.
+
+var _ upstream.DataSetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
+	if data.KubernetesVersion != nil {
+		src.KubernetesVersion = *data.KubernetesVersion
+	}
+	if data.ClusterName != nil {
+		src.ClusterName = *data.ClusterName
+	}
+	if data.ControlPlaneEndpoint != nil {
+		src.ControlPlaneEndpoint = *data.ControlPlaneEndpoint
+	}
+	if data.DNSDomain != nil {
+		src.Networking.DNSDomain = *data.DNSDomain
+	}
+	if data.ServiceSubnet != nil {
+		src.Networking.ServiceSubnet = *data.ServiceSubnet
+	}
+	if data.PodSubnet != nil {
+		src.Networking.PodSubnet = *data.PodSubnet
+	}
+}
+
+var _ upstream.DataGetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
+	var data upstream.Data
+
+	if src.KubernetesVersion != "" {
+		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
+	}
+	if src.ClusterName != "" {
+		data.ClusterName = ptr.To(src.ClusterName)
+	}
+	if src.ControlPlaneEndpoint != "" {
+		data.ControlPlaneEndpoint = ptr.To(src.ControlPlaneEndpoint)
+	}
+	if src.Networking.DNSDomain != "" {
+		data.DNSDomain = ptr.To(src.Networking.DNSDomain)
+	}
+	if src.Networking.ServiceSubnet != "" {
+		data.ServiceSubnet = ptr.To(src.Networking.ServiceSubnet)
+	}
+	if src.Networking.PodSubnet != "" {
+		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
+	}
+
+	return data
 }

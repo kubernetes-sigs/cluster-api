@@ -18,9 +18,11 @@ package upstreamv1beta4
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -135,4 +137,56 @@ func Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(in *bootstrapv1.Timeou
 	out.TLSBootstrap = bootstrapv1.ConvertFromSeconds(in.TLSBootstrapSeconds)
 	out.Discovery = bootstrapv1.ConvertFromSeconds(in.DiscoverySeconds)
 	return nil
+}
+
+// Func to allow handling fields that only exist in upstream types.
+
+var _ upstream.DataSetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
+	if data.KubernetesVersion != nil {
+		src.KubernetesVersion = *data.KubernetesVersion
+	}
+	if data.ClusterName != nil {
+		src.ClusterName = *data.ClusterName
+	}
+	if data.ControlPlaneEndpoint != nil {
+		src.ControlPlaneEndpoint = *data.ControlPlaneEndpoint
+	}
+	if data.DNSDomain != nil {
+		src.Networking.DNSDomain = *data.DNSDomain
+	}
+	if data.ServiceSubnet != nil {
+		src.Networking.ServiceSubnet = *data.ServiceSubnet
+	}
+	if data.PodSubnet != nil {
+		src.Networking.PodSubnet = *data.PodSubnet
+	}
+}
+
+var _ upstream.DataGetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
+	var data upstream.Data
+
+	if src.KubernetesVersion != "" {
+		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
+	}
+	if src.ClusterName != "" {
+		data.ClusterName = ptr.To(src.ClusterName)
+	}
+	if src.ControlPlaneEndpoint != "" {
+		data.ControlPlaneEndpoint = ptr.To(src.ControlPlaneEndpoint)
+	}
+	if src.Networking.DNSDomain != "" {
+		data.DNSDomain = ptr.To(src.Networking.DNSDomain)
+	}
+	if src.Networking.ServiceSubnet != "" {
+		data.ServiceSubnet = ptr.To(src.Networking.ServiceSubnet)
+	}
+	if src.Networking.PodSubnet != "" {
+		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
+	}
+
+	return data
 }

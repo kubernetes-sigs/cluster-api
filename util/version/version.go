@@ -60,6 +60,12 @@ func ParseMajorMinorPatchTolerant(version string) (semver.Version, error) {
 	return parseMajorMinorPatch(version, true)
 }
 
+// ParseTolerantImageTag replaces all _ with + in version and then parses the version with semver.ParseTolerant.
+// This allows to parse image tags which cannot contain +, so they use _ instead of +.
+func ParseTolerantImageTag(version string) (semver.Version, error) {
+	return semver.ParseTolerant(strings.ReplaceAll(version, "_", "+"))
+}
+
 // parseMajorMinorPatch returns a semver.Version from the string provided
 // by looking only at major.minor.patch and stripping everything else out.
 func parseMajorMinorPatch(version string, tolerant bool) (semver.Version, error) {

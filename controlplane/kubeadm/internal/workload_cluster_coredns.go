@@ -177,7 +177,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	if parsedImage.Tag == "" {
 		return nil, errors.Errorf("failed to update coredns deployment: does not have a valid image tag: %q", container.Image)
 	}
-	currentVersion, err := semver.ParseTolerant(parsedImage.Tag)
+	currentVersion, err := version.ParseTolerantImageTag(parsedImage.Tag)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing semver from %q", parsedImage.Tag)
 	}
@@ -185,7 +185,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	if clusterConfig.DNS.ImageTag != "" {
 		toImageTag = clusterConfig.DNS.ImageTag
 	}
-	targetVersion, err := semver.ParseTolerant(toImageTag)
+	targetVersion, err := version.ParseTolerantImageTag(toImageTag)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing semver from %q", toImageTag)
 	}
@@ -313,11 +313,11 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 // Some of the checks come from
 // https://github.com/coredns/corefile-migration/blob/v1.0.6/migration/migrate.go#L414
 func validateCoreDNSImageTag(fromTag, toTag string) error {
-	from, err := semver.ParseTolerant(fromTag)
+	from, err := version.ParseTolerantImageTag(fromTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
 	}
-	to, err := semver.ParseTolerant(toTag)
+	to, err := version.ParseTolerantImageTag(toTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}

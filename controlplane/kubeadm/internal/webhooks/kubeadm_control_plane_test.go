@@ -547,7 +547,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	dns.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
 		ImageMeta: bootstrapv1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
-			ImageTag:        "v1.6.6-foobar.1",
+			ImageTag:        "v1.6.6_foobar.1",
 		},
 	}
 
@@ -579,7 +579,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validCoreDNSCustomToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
 		ImageMeta: bootstrapv1.ImageMeta{
 			ImageRepository: "gcr.io/capi-test",
-			ImageTag:        "v1.6.6-foobar.2",
+			ImageTag:        "v1.6.6_foobar.2",
 		},
 	}
 	validUnsupportedCoreDNSVersion := dns.DeepCopy()

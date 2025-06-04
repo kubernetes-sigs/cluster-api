@@ -577,13 +577,13 @@ func TestValidateCoreDNSImageTag(t *testing.T) {
 		},
 		{
 			name:    "fromVer is equal to toVer, but different patch versions",
-			fromVer: "1.6.5-foobar.1",
-			toVer:   "1.6.5-foobar.2",
+			fromVer: "1.6.5_foobar.1",
+			toVer:   "1.6.5_foobar.2",
 		},
 		{
 			name:    "fromVer is equal to toVer",
-			fromVer: "1.6.5-foobar.1",
-			toVer:   "1.6.5-foobar.1",
+			fromVer: "1.6.5_foobar.1",
+			toVer:   "1.6.5_foobar.1",
 		},
 		{
 			name:    "fromVer is lower but has meta",
@@ -598,7 +598,7 @@ func TestValidateCoreDNSImageTag(t *testing.T) {
 		{
 			name:    "fromVer is lower, toVer has meta and leading v",
 			fromVer: "1.6.5-foobar.1",
-			toVer:   "v1.7.5-foobar.1",
+			toVer:   "v1.7.5_foobar.1",
 		},
 	}
 

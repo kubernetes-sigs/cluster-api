@@ -514,7 +514,7 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 	}
 
 	if newClusterConfiguration.DNS.ImageTag != "" {
-		if _, err := semver.ParseTolerant(newClusterConfiguration.DNS.ImageTag); err != nil {
+		if _, err := version.ParseTolerantImageTag(newClusterConfiguration.DNS.ImageTag); err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					field.NewPath("dns", "imageTag"),
@@ -622,7 +622,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 	}
 	targetDNS := &newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
 
-	fromVersion, err := semver.ParseTolerant(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
+	fromVersion, err := version.ParseTolerantImageTag(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
@@ -634,7 +634,7 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 		return allErrs
 	}
 
-	toVersion, err := semver.ParseTolerant(targetDNS.ImageTag)
+	toVersion, err := version.ParseTolerantImageTag(targetDNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(

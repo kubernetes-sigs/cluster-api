@@ -28,6 +28,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -66,7 +67,7 @@ var (
 func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
 	// Creates the output table
 	tbl := tablewriter.NewWriter(w)
-	tbl.SetHeader([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
 
 	formatTableTree(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
@@ -81,7 +82,7 @@ func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
 func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
 	// Creates the output table
 	tbl := tablewriter.NewWriter(os.Stdout)
-	tbl.SetHeader([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
+	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	formatTableTreeV1Beta1(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
@@ -93,32 +94,30 @@ func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
 
 // formats the table with required attributes.
 func formatTableTree(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
+	tbl.Options(
+		tablewriter.WithRowAutoWrap(tw.WrapNone),
+		tablewriter.WithHeaderAlignment(tw.AlignLeft),
+		tablewriter.WithPadding(tw.Padding{Right: "  "}),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.BorderNone,
+			Settings: tw.Settings{
+				Separators: tw.SeparatorsNone,
+			}}),
+	)
 }
 
 // formats the table with required attributes.
 func formatTableTreeV1Beta1(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetColumnSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetBorder(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
+	tbl.Options(
+		tablewriter.WithRowAutoWrap(tw.WrapNone),
+		tablewriter.WithHeaderAlignment(tw.AlignLeft),
+		tablewriter.WithPadding(tw.Padding{Right: "  "}),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.BorderNone,
+			Settings: tw.Settings{
+				Separators: tw.SeparatorsNone,
+			}}),
+	)
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.

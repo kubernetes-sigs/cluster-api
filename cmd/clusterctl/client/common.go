@@ -62,7 +62,7 @@ func (c *clusterctlClient) getComponentsByName(ctx context.Context, provider str
 
 // parseProviderName defines a utility function that parses the abbreviated syntax for name[:version].
 func parseProviderName(provider string) (name string, version string, err error) {
-	t := strings.Split(strings.ToLower(provider), ":")
+	t := strings.Split(provider, ":")
 	if len(t) > 2 {
 		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version]", provider)
 	}
@@ -71,7 +71,7 @@ func parseProviderName(provider string) (name string, version string, err error)
 		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version] and name cannot be empty", provider)
 	}
 
-	name = t[0]
+	name = strings.ToLower(t[0])
 	if err := validateDNS1123Label(name); err != nil {
 		return "", "", errors.Wrapf(err, "invalid provider name %q. Provider name should be in the form name[:version] and the name should be valid", provider)
 	}

@@ -657,7 +657,22 @@ func Convert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in *clusterv1.ClusterSp
 
 func Convert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apimachineryconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
+	if err := autoConvert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = FailureDomainSpec{
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			}
+		}
+	}
+
+	return nil
 }
 
 func Convert_v1beta2_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *Topology, s apimachineryconversion.Scope) error {
@@ -777,7 +792,23 @@ func Convert_v1beta2_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStat
 }
 
 func Convert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, out *clusterv1.ClusterStatus, s apimachineryconversion.Scope) error {
-	return autoConvert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in, out, s)
+	if err := autoConvert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		for name, fd := range in.FailureDomains {
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			})
+		}
+	}
+
+	return nil
 }
 
 func Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *MachineDeploymentSpec, out *clusterv1.MachineDeploymentSpec, s apimachineryconversion.Scope) error {

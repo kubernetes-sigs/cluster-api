@@ -91,6 +91,10 @@ linters:
       text: "nomaps: APIEndpoints should not use a map type, use a list type with a unique name/identifier instead"
       linters:
         - kubeapilinter
+    - path: "api/core/v1beta1/*"
+      text: "nomaps: FailureDomains should not use a map type, use a list type with a unique name/identifier instead"
+      linters:
+        - kubeapilinter
 
     ## Excludes for clusterctl and Runtime Hooks (can be fixed once we bump their apiVersion)
     - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1"

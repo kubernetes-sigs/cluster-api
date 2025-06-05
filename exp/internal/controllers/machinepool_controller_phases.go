@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -110,7 +109,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *clusterv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -202,7 +201,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		}
 
 		// Determine contract version used by the BootstrapConfig.
-		contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind())
 		if err != nil {
 			return ctrl.Result{}, err
 		}

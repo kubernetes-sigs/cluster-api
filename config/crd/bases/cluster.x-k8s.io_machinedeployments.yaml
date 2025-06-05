@@ -2186,7 +2186,7 @@ spec:
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
-                          Must match a key in the FailureDomains map stored on the cluster object.
+                          Must match the name of a FailureDomain from the Cluster status.
                         maxLength: 256
                         minLength: 1
                         type: string
